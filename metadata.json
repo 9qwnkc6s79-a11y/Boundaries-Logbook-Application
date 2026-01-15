@@ -1,0 +1,7 @@
+{
+  "name": "Boundaries Logbook and Training",
+  "description": "A comprehensive operational and training management system for Boundaries Coffee, featuring self-paced onboarding, practice timers, quizzes, and photo-verified cleaning checklists.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}

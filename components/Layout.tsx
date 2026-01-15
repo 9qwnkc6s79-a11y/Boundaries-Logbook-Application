@@ -1,0 +1,424 @@
+
+import React, { useState, useRef, useEffect } from 'react';
+import { User, UserRole, Store, ManualSection, Recipe } from '../types';
+import { Coffee, ClipboardCheck, GraduationCap, Users, LogOut, Menu, X, MapPin, ChevronDown, BookOpen, Cloud, CloudOff, Activity, Download, Share, Smartphone, Brain, Send, Sparkles } from 'lucide-react';
+import { GoogleGenAI } from "@google/genai";
+
+interface LayoutProps {
+  user: User;
+  children: React.ReactNode;
+  activeTab: string;
+  onTabChange: (tab: string) => void;
+  onLogout: () => void;
+  stores: Store[];
+  currentStoreId: string;
+  onStoreChange: (storeId: string) => void;
+  isSyncing?: boolean;
+  showInstallBanner?: boolean;
+  onInstall?: () => void;
+  onDismissInstall?: () => void;
+  canNativeInstall?: boolean;
+  manual: ManualSection[];
+  recipes: Recipe[];
+}
+
+const Layout: React.FC<LayoutProps> = ({ 
+  user, children, activeTab, onTabChange, onLogout, 
+  stores, currentStoreId, onStoreChange, isSyncing = false,
+  showInstallBanner = false, onInstall, onDismissInstall, canNativeInstall = false,
+  manual, recipes
+}) => {
+  const [isProfileOpen, setIsProfileOpen] = React.useState(false);
+  
+  // Chat State
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatInput, setChatInput] = useState('');
+  const [chatMessages, setChatMessages] = useState<{ role: 'user' | 'ai', content: string }[]>([]);
+  const [isTyping, setIsTyping] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  const currentStore = stores.find(s => s.id === currentStoreId);
+
+  const navItems = [
+    { id: 'training', label: 'ACADEMY', icon: GraduationCap, roles: [UserRole.TRAINEE, UserRole.TRAINER, UserRole.MANAGER, UserRole.ADMIN] },
+    { id: 'ops', label: 'LOGBOOK', icon: ClipboardCheck, roles: [UserRole.TRAINEE, UserRole.TRAINER, UserRole.MANAGER, UserRole.ADMIN] },
+    { id: 'recipes', label: 'RECIPES', icon: BookOpen, roles: [UserRole.TRAINEE, UserRole.TRAINER, UserRole.MANAGER, UserRole.ADMIN] },
+    { id: 'manager', label: 'MANAGER', icon: Users, roles: [UserRole.MANAGER, UserRole.ADMIN] },
+  ];
+
+  const filteredNav = navItems.filter(item => item.roles.includes(user.role));
+  const canSwitchStore = user.role === UserRole.MANAGER || user.role === UserRole.ADMIN;
+
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+
+  const scrollToBottom = () => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [chatMessages, chatOpen]);
+
+  const handleSendChat = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (!chatInput.trim() || isTyping) return;
+
+    const userMsg = chatInput.trim();
+    setChatMessages(prev => [...prev, { role: 'user', content: userMsg }]);
+    setChatInput('');
+    setIsTyping(true);
+
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    
+    const manualContext = manual.map(s => `Section ${s.number}: ${s.title}\n${s.content}`).join('\n\n');
+    const recipeContext = recipes.map(r => `Recipe: ${r.title} (${r.category})\nDetails: ${JSON.stringify(r)}`).join('\n\n');
+
+    try {
+      const responseStream = await ai.models.generateContentStream({
+        model: 'gemini-3-flash-preview',
+        contents: `You are the "Barista Brain," the primary source of truth for Boundaries Coffee staff.
+        
+Ground your answers ONLY in the provided Operations Manual and Recipe Book context below. 
+If an answer isn't in the manual, say you don't know and advise checking with a Shift Lead.
+
+--- MANUAL CONTEXT ---
+${manualContext}
+
+--- RECIPE CONTEXT ---
+${recipeContext}
+
+User Question: ${userMsg}`,
+      });
+
+      let fullResponse = '';
+      setChatMessages(prev => [...prev, { role: 'ai', content: '' }]);
+
+      for await (const chunk of responseStream) {
+        fullResponse += chunk.text;
+        setChatMessages(prev => {
+          const newMsgs = [...prev];
+          newMsgs[newMsgs.length - 1].content = fullResponse;
+          return newMsgs;
+        });
+      }
+    } catch (error) {
+      setChatMessages(prev => [...prev, { role: 'ai', content: "Network error. Please try again." }]);
+    } finally {
+      setIsTyping(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex flex-col md:flex-row bg-[#FAFAFA]">
+      {/* Sidebar - Desktop */}
+      <aside className="hidden md:flex flex-col w-72 bg-[#001F3F] text-white fixed h-full shadow-2xl z-30">
+        <div className="p-8 border-b border-white/10">
+          <div className="flex items-center gap-4 mb-6">
+            <div className="bg-white p-2.5 rounded-xl shadow-lg">
+              <Coffee className="text-[#001F3F] w-6 h-6" />
+            </div>
+            <div>
+              <span className="font-extrabold text-xl tracking-tighter block leading-none">BOUNDARIES</span>
+              <span className="text-[10px] font-bold text-blue-300 tracking-[0.2em] uppercase mt-1 block">Coffee & Co.</span>
+            </div>
+          </div>
+
+          <div className="relative mb-6">
+            <div className="text-[10px] font-black text-blue-300/50 uppercase tracking-[0.2em] mb-2 px-1">Selected Location</div>
+            {canSwitchStore ? (
+              <select 
+                value={currentStoreId}
+                onChange={(e) => onStoreChange(e.target.value)}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm font-bold appearance-none cursor-pointer hover:bg-white/10 transition-colors outline-none focus:ring-2 focus:ring-blue-500/50"
+              >
+                {stores.map(s => (
+                  <option key={s.id} value={s.id} className="bg-[#001F3F] text-white">{s.name}</option>
+                ))}
+              </select>
+            ) : (
+              <div className="flex items-center gap-2 px-4 py-3 bg-white/5 rounded-xl border border-white/10 text-sm font-bold">
+                <MapPin size={14} className="text-blue-300" />
+                {currentStore?.name}
+              </div>
+            )}
+          </div>
+
+          <div className="bg-white/5 rounded-xl p-4 border border-white/5 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className={`w-2 h-2 rounded-full ${isSyncing ? 'bg-blue-400 animate-pulse' : 'bg-green-400'} shadow-[0_0_8px_rgba(74,222,128,0.5)]`} />
+              <span className="text-[9px] font-black uppercase tracking-widest text-blue-200">
+                {isSyncing ? 'Syncing...' : 'Live Cloud'}
+              </span>
+            </div>
+            <Activity size={12} className="text-white/20" />
+          </div>
+        </div>
+        
+        <nav className="flex-1 py-8 px-4 space-y-1.5 overflow-y-auto no-scrollbar">
+          {filteredNav.map(item => (
+            <button
+              key={item.id}
+              onClick={() => onTabChange(item.id)}
+              className={`w-full flex items-center gap-3.5 px-5 py-4 rounded-xl transition-all duration-300 group ${
+                activeTab === item.id 
+                  ? 'bg-white text-[#001F3F] font-bold shadow-xl shadow-white/10' 
+                  : 'text-blue-100/60 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <item.icon size={20} strokeWidth={activeTab === item.id ? 2.5 : 2} />
+              <span className="text-sm tracking-widest">{item.label}</span>
+            </button>
+          ))}
+        </nav>
+
+        <div className="px-4 pb-4">
+          <button 
+            onClick={() => setChatOpen(true)}
+            className="w-full flex items-center gap-3 px-5 py-4 rounded-xl bg-blue-500/10 text-blue-200 hover:bg-blue-500/20 hover:text-white transition-all border border-blue-500/20 mb-2"
+          >
+            <Brain size={18} />
+            <span className="text-xs font-black tracking-widest uppercase">Ask Barista Brain</span>
+          </button>
+        </div>
+
+        <div className="p-6 border-t border-white/10 space-y-4">
+          <div className="px-2 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-xs font-bold border border-white/10">
+              {user.name.charAt(0)}
+            </div>
+            <div>
+              <p className="text-sm font-bold tracking-tight">{user.name}</p>
+              <p className="text-[10px] text-blue-300 font-bold uppercase tracking-widest">{user.role}</p>
+            </div>
+          </div>
+          <button 
+            onClick={onLogout}
+            className="w-full flex items-center gap-3 px-5 py-3.5 rounded-xl text-blue-200 hover:text-red-400 hover:bg-red-400/5 transition-all duration-300 group"
+          >
+            <LogOut size={18} className="group-hover:-translate-x-1 transition-transform" />
+            <span className="text-xs font-bold tracking-widest uppercase">Logout</span>
+          </button>
+        </div>
+      </aside>
+
+      {/* Mobile Header */}
+      <div className="md:hidden glass-effect border-b border-neutral-100 p-4 flex flex-col gap-3 sticky top-0 z-50">
+        <div className="flex justify-between items-center w-full">
+          <div className="flex items-center gap-2">
+            <div className="bg-[#001F3F] p-1.5 rounded-lg">
+              <Coffee className="text-white w-4 h-4" />
+            </div>
+            <span className="font-black tracking-tighter text-[#001F3F] text-base uppercase leading-none">Boundaries</span>
+            <div className={`ml-2 w-1.5 h-1.5 rounded-full ${isSyncing ? 'bg-blue-500 animate-pulse' : 'bg-green-500'}`} />
+          </div>
+          <button 
+            onClick={() => setIsProfileOpen(!isProfileOpen)} 
+            className="w-9 h-9 rounded-full bg-[#001F3F] text-white flex items-center justify-center text-[10px] font-black border-2 border-white shadow-lg active:scale-90 transition-transform"
+          >
+            {user.name.charAt(0)}
+          </button>
+        </div>
+        
+        <div className="px-1">
+          {canSwitchStore ? (
+             <select 
+               value={currentStoreId}
+               onChange={(e) => onStoreChange(e.target.value)}
+               className="w-full bg-neutral-100 border-none rounded-xl px-3 py-2 text-[10px] font-black uppercase tracking-widest outline-none text-[#001F3F]"
+             >
+               {stores.map(s => (
+                 <option key={s.id} value={s.id}>{s.name}</option>
+               ))}
+             </select>
+          ) : (
+            <div className="text-[9px] font-black text-[#001F3F] uppercase flex items-center gap-1 bg-neutral-100/50 self-start px-2 py-1 rounded-lg">
+              <MapPin size={10} /> {currentStore?.name}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Mobile Profile Overlay */}
+      {isProfileOpen && (
+        <div className="md:hidden fixed inset-0 bg-[#001F3F]/60 backdrop-blur-md z-[60] p-6 flex flex-col justify-end animate-in fade-in slide-in-from-bottom-10 duration-300">
+          <div className="bg-white rounded-[2.5rem] p-8 space-y-6">
+            <div className="flex items-center gap-4 border-b border-neutral-100 pb-6">
+              <div className="w-16 h-16 rounded-[1.5rem] bg-[#001F3F] text-white flex items-center justify-center text-xl font-black">
+                {user.name.charAt(0)}
+              </div>
+              <div>
+                <h3 className="text-2xl font-black text-[#001F3F] tracking-tighter uppercase leading-none">{user.name}</h3>
+                <p className="text-sm font-bold text-neutral-400 mt-2 uppercase tracking-widest">{user.role}</p>
+              </div>
+            </div>
+            <button 
+              onClick={onLogout}
+              className="w-full flex items-center justify-center gap-3 px-6 py-5 rounded-2xl bg-red-50 text-red-600 font-black uppercase tracking-widest text-xs active:scale-95 transition-transform"
+            >
+              <LogOut size={18} /> Logout Session
+            </button>
+            <button 
+              onClick={() => setIsProfileOpen(false)}
+              className="w-full py-4 text-neutral-400 font-bold uppercase tracking-widest text-[10px]"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* PWA Install Banner (Mobile Only) */}
+      {showInstallBanner && (
+        <div className="md:hidden fixed bottom-24 left-4 right-4 z-[55] animate-in slide-in-from-bottom-20 duration-500">
+          <div className="bg-[#001F3F] text-white p-6 rounded-[2rem] shadow-2xl border border-white/10 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-blue-400/10 rounded-full blur-2xl -mr-16 -mt-16" />
+            
+            <button 
+              onClick={onDismissInstall}
+              className="absolute top-4 right-4 text-white/40 hover:text-white"
+            >
+              <X size={18} />
+            </button>
+
+            <div className="flex items-center gap-4 mb-4">
+              <div className="bg-white p-2 rounded-xl">
+                <Coffee className="text-[#001F3F] w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="font-black text-xs uppercase tracking-widest leading-none">Install App</h4>
+                <p className="text-[10px] text-blue-200 font-medium mt-1 uppercase tracking-tight">Access Logbook & Recipes Instantly</p>
+              </div>
+            </div>
+
+            {canNativeInstall ? (
+              <button 
+                onClick={onInstall}
+                className="w-full bg-white text-[#001F3F] font-black py-3 rounded-xl text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg"
+              >
+                <Download size={14} strokeWidth={3} /> Install on Phone
+              </button>
+            ) : isIOS ? (
+              <div className="space-y-3">
+                <div className="flex items-start gap-3 bg-white/5 p-3 rounded-xl border border-white/5">
+                  <div className="bg-blue-500 text-white p-1 rounded">
+                    <Share size={10} />
+                  </div>
+                  <p className="text-[9px] font-bold uppercase tracking-tight text-blue-100">
+                    1. Tap the <span className="text-white">"Share"</span> button at the bottom
+                  </p>
+                </div>
+                <div className="flex items-start gap-3 bg-white/5 p-3 rounded-xl border border-white/5">
+                  <div className="bg-white text-[#001F3F] p-1 rounded">
+                    <Smartphone size={10} />
+                  </div>
+                  <p className="text-[9px] font-bold uppercase tracking-tight text-blue-100">
+                    2. Select <span className="text-white">"Add to Home Screen"</span>
+                  </p>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      )}
+
+      {/* Main Content */}
+      <main className="flex-1 md:ml-72 p-4 sm:p-6 md:p-12 overflow-x-hidden transition-all">
+        <div className="max-w-6xl mx-auto pb-28 md:pb-0">
+          {children}
+        </div>
+      </main>
+
+      {/* Mobile Floating Action Button for Chat */}
+      <button 
+        onClick={() => setChatOpen(true)}
+        className="md:hidden fixed bottom-24 right-4 w-14 h-14 bg-[#001F3F] text-white rounded-full shadow-2xl flex items-center justify-center z-40 active:scale-90 transition-transform border border-white/10"
+      >
+        <Brain size={24} />
+      </button>
+
+      {/* Mobile Bottom Tab Bar */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 glass-effect border-t border-neutral-100 px-4 py-3 flex items-center justify-around z-50 pb-safe shadow-[0_-10px_30px_rgba(0,0,0,0.03)]">
+        {filteredNav.map(item => {
+          const isActive = activeTab === item.id;
+          return (
+            <button
+              key={item.id}
+              onClick={() => onTabChange(item.id)}
+              className={`flex flex-col items-center gap-1.5 transition-all relative ${
+                isActive ? 'text-[#001F3F]' : 'text-neutral-300'
+              }`}
+            >
+              <div className={`p-2 rounded-xl transition-all duration-300 ${isActive ? 'bg-blue-50' : 'bg-transparent'}`}>
+                <item.icon size={22} strokeWidth={isActive ? 2.5 : 2} />
+              </div>
+              <span className={`text-[9px] font-black uppercase tracking-[0.15em] transition-opacity ${isActive ? 'opacity-100' : 'opacity-40'}`}>
+                {item.label}
+              </span>
+              {isActive && <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-1 h-1 bg-[#001F3F] rounded-full" />}
+            </button>
+          );
+        })}
+      </nav>
+
+      {/* Barista Brain Chat Modal */}
+      {chatOpen && (
+        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-3 sm:p-6 bg-[#001F3F]/60 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="bg-white w-full max-w-xl rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col h-[80vh] sm:h-[600px] border border-white/20">
+            <header className="p-6 bg-[#001F3F] text-white flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <Brain size={24} className="text-blue-300" />
+                <div>
+                  <h3 className="text-xl font-black uppercase tracking-tighter">Barista Brain</h3>
+                  <p className="text-[8px] font-bold text-blue-300 uppercase tracking-widest">Grounded Source of Truth</p>
+                </div>
+              </div>
+              <button onClick={() => setChatOpen(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+                <X size={20} />
+              </button>
+            </header>
+
+            <div className="flex-1 overflow-y-auto p-6 space-y-4 no-scrollbar">
+              {chatMessages.length === 0 && (
+                <div className="h-full flex flex-col items-center justify-center text-center p-8 space-y-4">
+                  <Sparkles size={40} className="text-blue-100" />
+                  <p className="text-neutral-400 font-bold uppercase tracking-widest text-[10px]">
+                    Ask me about recipes, greeting scripts, or espresso mastery.
+                  </p>
+                </div>
+              )}
+              {chatMessages.map((msg, i) => (
+                <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom-2`}>
+                  <div className={`max-w-[85%] p-4 rounded-2xl text-xs font-medium leading-relaxed ${
+                    msg.role === 'user' 
+                      ? 'bg-[#001F3F] text-white rounded-tr-none' 
+                      : 'bg-neutral-100 text-[#001F3F] rounded-tl-none'
+                  }`}>
+                    {msg.content || (isTyping && <span className="animate-pulse">Consulting Manual...</span>)}
+                  </div>
+                </div>
+              ))}
+              <div ref={chatEndRef} />
+            </div>
+
+            <form onSubmit={handleSendChat} className="p-4 sm:p-6 bg-neutral-50 border-t border-neutral-100">
+              <div className="relative group">
+                <input 
+                  type="text" 
+                  placeholder="What is the greeting script?"
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  className="w-full bg-white border border-neutral-100 rounded-2xl pl-4 pr-14 py-4 font-bold text-[#001F3F] outline-none"
+                />
+                <button type="submit" disabled={isTyping} className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-[#001F3F] text-white rounded-xl shadow-lg active:scale-90 transition-all disabled:opacity-50">
+                  <Send size={18} strokeWidth={3} />
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default Layout;

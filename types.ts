@@ -1,0 +1,129 @@
+
+export enum UserRole {
+  TRAINEE = 'TRAINEE',
+  TRAINER = 'TRAINER',
+  MANAGER = 'MANAGER',
+  ADMIN = 'ADMIN'
+}
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  password?: string;
+  role: UserRole;
+  storeId: string;
+}
+
+export interface Store {
+  id: string;
+  name: string;
+}
+
+export interface ManualSection {
+  id: string;
+  number: number;
+  title: string;
+  content: string;
+  isPlaceholder?: boolean;
+}
+
+export interface Lesson {
+  id: string;
+  moduleId: string;
+  title: string;
+  type: 'CONTENT' | 'PRACTICE' | 'QUIZ' | 'SIGN_OFF' | 'FILE_UPLOAD';
+  content?: string;
+  videoUrl?: string;
+  durationMinutes?: number;
+  quizQuestions?: QuizQuestion[];
+  signOffRequired?: boolean;
+  fileLabel?: string;
+}
+
+export interface QuizQuestion {
+  id: string;
+  type: 'MULTIPLE_CHOICE' | 'TRUE_FALSE' | 'SELECT_ALL';
+  question: string;
+  options?: string[];
+  correctAnswers: string[];
+}
+
+export interface TrainingModule {
+  id: string;
+  title: string;
+  description: string;
+  category: 'ONBOARDING' | 'CONTINUED';
+  lessons: Lesson[];
+}
+
+export interface UserProgress {
+  userId: string;
+  lessonId: string;
+  status: 'LOCKED' | 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED';
+  score?: number;
+  signedOffBy?: string;
+  completedAt?: string;
+  fileUrl?: string;
+  fileName?: string;
+}
+
+export interface ChecklistTask {
+  id: string;
+  title: string;
+  requiresPhoto: boolean;
+  requiresValue?: string;
+  isCritical?: boolean;
+}
+
+export interface ChecklistTemplate {
+  id: string;
+  name: string;
+  storeId: string;
+  type: 'OPENING' | 'SHIFT_CHANGE' | 'CLOSING' | 'WEEKLY' | 'MONTHLY';
+  deadlineHour: number; // 24h format (e.g., 7 for 7am, 21 for 9pm)
+  tasks: ChecklistTask[];
+}
+
+export interface ChecklistSubmission {
+  id: string;
+  userId: string; 
+  storeId: string;
+  templateId: string;
+  date: string; // ISO string for the specific "target date" this checklist covers
+  status: 'DRAFT' | 'PENDING' | 'APPROVED' | 'REJECTED';
+  submittedAt?: string; // Actual time the user pressed "Finalize"
+  taskResults: {
+    taskId: string;
+    completed: boolean;
+    photoUrl?: string;
+    value?: string;
+    comment?: string;
+    completedByUserId: string; 
+    completedAt: string;
+  }[];
+  managerNotes?: string;
+}
+
+export interface Recipe {
+  id: string;
+  title: string;
+  category: string; // e.g. "Espresso", "Lemonades", "Seasonal"
+  type: 'ESPRESSO' | 'GRID' | 'BATCH' | 'STANDARD';
+  
+  // Espresso Stats
+  dose?: string;
+  yield?: string;
+  time?: string;
+
+  // Grid Data (for sizing charts)
+  gridColumns?: string[];
+  gridRows?: { label: string; values: string[] }[];
+
+  // Batch / Standard Data
+  ingredients?: { name: string; quantity: string }[];
+  steps?: string[];
+  
+  notes?: string;
+  lastUpdated?: string;
+}
