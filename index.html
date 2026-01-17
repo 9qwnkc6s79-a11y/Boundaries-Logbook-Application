@@ -1,56 +1,582 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Boundaries Coffee | Ops & Training</title>
-    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Full Focus Planner</title>
+
     <!-- PWA Meta Tags -->
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#001F3F">
+    <meta name="theme-color" content="#78350f">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Boundaries">
-    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/924/924514.png">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Full Focus">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2991/2991111.png">
 
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Fonts for planner aesthetic -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Inter:wght@300;400;500;600;700&family=Caveat:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        serif: ['Crimson Pro', 'Georgia', 'Times New Roman', 'serif'],
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                        handwriting: ['Caveat', 'cursive'],
+                    },
+                    colors: {
+                        paper: {
+                            50: '#fffbf5',
+                            100: '#fef7ec',
+                            200: '#fdecd0',
+                            300: '#fcdca8',
+                            400: '#f9c96b',
+                            500: '#f5b53d',
+                            600: '#d99a23',
+                            700: '#b37d1a',
+                            800: '#926419',
+                            900: '#785218',
+                            950: '#4a2e0a',
+                        },
+                    },
+                },
+            },
+        }
+    </script>
+
     <style>
-        body { 
-            font-family: 'Plus Jakarta Sans', sans-serif; 
-            letter-spacing: -0.01em;
+        /* Base Theme Variables */
+        :root {
+            --bg-primary: #fffbf5;
+            --bg-secondary: #fef7ec;
+            --bg-card: #ffffff;
+            --text-primary: #1c1917;
+            --text-secondary: #57534e;
+            --border-color: #d6d3d1;
+            --accent-color: #b45309;
+            --accent-light: #fef3c7;
+        }
+
+        /* Theme: Paper (Default) */
+        .theme-paper {
+            --bg-primary: #fffbf5;
+            --bg-secondary: #fef7ec;
+            --bg-card: #ffffff;
+            --text-primary: #1c1917;
+            --text-secondary: #57534e;
+            --border-color: #d6d3d1;
+            --accent-color: #b45309;
+            --accent-light: #fef3c7;
+        }
+
+        /* Theme: Light */
+        .theme-light {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f9fafb;
+            --bg-card: #ffffff;
+            --text-primary: #111827;
+            --text-secondary: #6b7280;
+            --border-color: #e5e7eb;
+            --accent-color: #2563eb;
+            --accent-light: #dbeafe;
+        }
+
+        /* Theme: Sepia */
+        .theme-sepia {
+            --bg-primary: #f5f0e6;
+            --bg-secondary: #ebe4d6;
+            --bg-card: #faf6ed;
+            --text-primary: #3d3328;
+            --text-secondary: #665c4d;
+            --border-color: #d4c9b5;
+            --accent-color: #92400e;
+            --accent-light: #fde68a;
+        }
+
+        /* Theme: Dark */
+        .theme-dark {
+            --bg-primary: #1f2937;
+            --bg-secondary: #111827;
+            --bg-card: #374151;
+            --text-primary: #f9fafb;
+            --text-secondary: #9ca3af;
+            --border-color: #4b5563;
+            --accent-color: #fbbf24;
+            --accent-light: #78350f;
+        }
+
+        /* Font Size Variables */
+        .font-size-small {
+            --font-size-base: 0.875rem;
+            --font-size-lg: 1rem;
+            --font-size-xl: 1.125rem;
+            --font-size-2xl: 1.25rem;
+            --font-size-3xl: 1.5rem;
+        }
+
+        .font-size-medium {
+            --font-size-base: 1rem;
+            --font-size-lg: 1.125rem;
+            --font-size-xl: 1.25rem;
+            --font-size-2xl: 1.5rem;
+            --font-size-3xl: 1.875rem;
+        }
+
+        .font-size-large {
+            --font-size-base: 1.125rem;
+            --font-size-lg: 1.25rem;
+            --font-size-xl: 1.5rem;
+            --font-size-2xl: 1.875rem;
+            --font-size-3xl: 2.25rem;
+        }
+
+        /* Apply theme to body */
+        body {
+            font-family: 'Crimson Pro', Georgia, serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            font-size: var(--font-size-base, 1rem);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
             -webkit-tap-highlight-color: transparent;
+            overscroll-behavior: none;
         }
-        .brand-shadow {
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+
+        /* Font family overrides */
+        .font-family-sans body,
+        body.font-family-sans {
+            font-family: 'Inter', system-ui, sans-serif;
         }
-        .glass-effect {
-            background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
+
+        .font-family-handwriting body,
+        body.font-family-handwriting {
+            font-family: 'Caveat', cursive;
         }
+
+        /* Planner Card - Paper-like styling */
+        .planner-card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            box-shadow:
+                0 1px 3px rgba(0, 0, 0, 0.05),
+                0 4px 6px rgba(0, 0, 0, 0.02),
+                inset 0 1px 0 rgba(255, 255, 255, 0.6);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Paper texture overlay */
+        .planner-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+            opacity: 0.015;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .planner-card > * {
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Planner input styling */
+        .planner-input {
+            background-color: transparent;
+            border: none;
+            border-bottom: 1px dashed var(--border-color);
+            padding: 0.5rem 0;
+            width: 100%;
+            font-family: inherit;
+            font-size: inherit;
+            color: inherit;
+            transition: border-color 0.2s;
+        }
+
+        .planner-input:focus {
+            outline: none;
+            border-bottom-color: var(--accent-color);
+            border-bottom-style: solid;
+        }
+
+        .planner-input::placeholder {
+            color: var(--text-secondary);
+            opacity: 0.5;
+        }
+
+        /* Lined paper effect */
+        .lined-paper {
+            background-image: repeating-linear-gradient(
+                transparent,
+                transparent 1.5rem,
+                var(--border-color) 1.5rem,
+                var(--border-color) calc(1.5rem + 1px)
+            );
+            background-position: 0 0;
+            line-height: 1.5rem;
+        }
+
+        /* Checkbox styling */
+        .planner-checkbox {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 1.25rem;
+            height: 1.25rem;
+            border: 2px solid var(--border-color);
+            border-radius: 0.25rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+
+        .planner-checkbox:checked {
+            background-color: var(--accent-color);
+            border-color: var(--accent-color);
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'%3E%3C/polyline%3E%3C/svg%3E");
+            background-size: 0.75rem;
+            background-position: center;
+            background-repeat: no-repeat;
+        }
+
+        .planner-checkbox:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px var(--accent-light);
+        }
+
+        /* Touch-friendly interactions */
+        .touch-manipulation {
+            touch-action: manipulation;
+        }
+
+        /* iPad/Stylus optimizations */
+        @media (pointer: coarse) {
+            .touch-manipulation {
+                min-height: 44px;
+                min-width: 44px;
+            }
+        }
+
+        /* Apple Pencil hover state */
+        @media (hover: hover) and (pointer: fine) {
+            .planner-card:hover {
+                box-shadow:
+                    0 4px 12px rgba(0, 0, 0, 0.08),
+                    0 2px 4px rgba(0, 0, 0, 0.04),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+            }
+
+            button:hover:not(:disabled) {
+                transform: translateY(-1px);
+            }
+        }
+
+        /* Smooth scrolling */
+        html {
+            scroll-behavior: smooth;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-secondary);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-secondary);
+        }
+
+        /* Focus ring for accessibility */
+        :focus-visible {
+            outline: 2px solid var(--accent-color);
+            outline-offset: 2px;
+        }
+
+        /* Selection styling */
+        ::selection {
+            background-color: var(--accent-light);
+            color: var(--text-primary);
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .animate-fadeIn {
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .animate-slideIn {
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .animate-pulse {
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        /* Page transitions */
+        .page-transition {
+            animation: fadeIn 0.2s ease-out;
+        }
+
+        /* Modal backdrop */
+        .modal-backdrop {
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+        }
+
+        /* Line clamp utilities */
+        .line-clamp-1 {
+            display: -webkit-box;
+            -webkit-line-clamp: 1;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .line-clamp-3 {
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
         /* PWA standalone mode adjustments */
         @media (display-mode: standalone) {
+            body {
+                padding-top: env(safe-area-inset-top);
+            }
+
             .pb-safe {
                 padding-bottom: env(safe-area-inset-bottom);
             }
+
+            .pt-safe {
+                padding-top: env(safe-area-inset-top);
+            }
+        }
+
+        /* Print styles */
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+
+            .planner-card {
+                break-inside: avoid;
+                box-shadow: none;
+                border: 1px solid #ccc;
+            }
+
+            body {
+                background: white;
+                color: black;
+            }
+        }
+
+        /* Reduce motion for accessibility */
+        @media (prefers-reduced-motion: reduce) {
+            *,
+            *::before,
+            *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        /* Dark mode system preference (when theme is auto) */
+        @media (prefers-color-scheme: dark) {
+            .theme-auto {
+                --bg-primary: #1f2937;
+                --bg-secondary: #111827;
+                --bg-card: #374151;
+                --text-primary: #f9fafb;
+                --text-secondary: #9ca3af;
+                --border-color: #4b5563;
+                --accent-color: #fbbf24;
+                --accent-light: #78350f;
+            }
+        }
+
+        /* Stylus/handwriting input support */
+        textarea,
+        input[type="text"],
+        .handwriting-input {
+            -webkit-user-select: text;
+            user-select: text;
+        }
+
+        /* Ensure text areas support stylus input properly */
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        /* Progress bar styling */
+        .progress-bar {
+            height: 0.5rem;
+            background-color: var(--bg-secondary);
+            border-radius: 9999px;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background-color: var(--accent-color);
+            border-radius: 9999px;
+            transition: width 0.3s ease;
+        }
+
+        /* Badge styling */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.125rem 0.5rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+            border-radius: 9999px;
+            background-color: var(--accent-light);
+            color: var(--accent-color);
+        }
+
+        /* Divider with text */
+        .divider {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background-color: var(--border-color);
+        }
+
+        /* Loading spinner */
+        .spinner {
+            width: 2rem;
+            height: 2rem;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--accent-color);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Time block colors for ideal week */
+        .time-block-work {
+            background-color: #dbeafe;
+            border-left: 3px solid #2563eb;
+        }
+
+        .time-block-personal {
+            background-color: #dcfce7;
+            border-left: 3px solid #16a34a;
+        }
+
+        .time-block-health {
+            background-color: #fee2e2;
+            border-left: 3px solid #dc2626;
+        }
+
+        .time-block-meeting {
+            background-color: #fef3c7;
+            border-left: 3px solid #d97706;
+        }
+
+        .time-block-focus {
+            background-color: #f3e8ff;
+            border-left: 3px solid #9333ea;
+        }
+
+        /* Drag and drop states */
+        .dragging {
+            opacity: 0.5;
+            cursor: grabbing;
+        }
+
+        .drop-target {
+            background-color: var(--accent-light);
+            border: 2px dashed var(--accent-color);
         }
     </style>
-<script type="importmap">
-{
-  "imports": {
-    "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
-    "recharts": "https://esm.sh/recharts@^3.6.0",
-    "react/": "https://esm.sh/react@^19.2.3/",
-    "react": "https://esm.sh/react@^19.2.3",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "@google/genai": "https://esm.sh/@google/genai@^1.35.0"
-  }
-}
-</script>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
+            "recharts": "https://esm.sh/recharts@^3.6.0",
+            "react/": "https://esm.sh/react@^19.2.3/",
+            "react": "https://esm.sh/react@^19.2.3",
+            "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+            "@google/genai": "https://esm.sh/@google/genai@^1.35.0"
+        }
+    }
+    </script>
 </head>
-<body class="bg-white text-neutral-900 selection:bg-blue-100">
+<body class="theme-paper font-size-medium selection:bg-amber-100">
     <div id="root"></div>
 </body>
 </html>

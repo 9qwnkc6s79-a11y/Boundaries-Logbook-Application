@@ -1,24 +1,25 @@
-
 {
-  "name": "Boundaries Coffee Ops",
-  "short_name": "Boundaries",
-  "description": "Operational standards and training for Boundaries Coffee staff.",
+  "name": "Full Focus Planner",
+  "short_name": "Full Focus",
+  "description": "A digital planner for achieving your goals with intention and focus. Based on Michael Hyatt's Full Focus Planner methodology.",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#001F3F",
-  "theme_color": "#001F3F",
-  "orientation": "portrait",
+  "background_color": "#fffbf5",
+  "theme_color": "#78350f",
+  "orientation": "any",
   "icons": [
     {
-      "src": "https://cdn-icons-png.flaticon.com/512/924/924514.png",
+      "src": "https://cdn-icons-png.flaticon.com/512/2991/2991111.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "https://cdn-icons-png.flaticon.com/512/924/924514.png",
+      "src": "https://cdn-icons-png.flaticon.com/512/2991/2991111.png",
       "sizes": "512x512",
       "type": "image/png"
     }
-  ]
+  ],
+  "categories": ["productivity", "lifestyle"],
+  "prefer_related_applications": false
 }
