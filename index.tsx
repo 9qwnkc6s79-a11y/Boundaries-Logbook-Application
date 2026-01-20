@@ -2,6 +2,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
+import './index.css';
 
 // Service Worker registration disabled to prevent cross-origin errors in preview environments.
 // Uncomment in production if PWA features are required and served from the same origin.
