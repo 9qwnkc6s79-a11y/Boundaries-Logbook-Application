@@ -195,6 +195,24 @@ class CloudAPI {
       next = [submission, ...all];
     }
 
+    // Check document size and strip photos if too large
+    let jsonSize = JSON.stringify(next).length;
+    console.log(`[DB] pushSubmission: Document size before save: ${Math.round(jsonSize / 1024)}KB`);
+
+    if (jsonSize > 900000) {
+      console.warn(`[DB] pushSubmission: Document too large (${Math.round(jsonSize / 1024)}KB), stripping photos to save data...`);
+      // Strip photos from all submissions to reduce size
+      next = next.map(sub => ({
+        ...sub,
+        taskResults: sub.taskResults.map(task => ({
+          ...task,
+          photoUrl: task.photoUrl ? '[photo-stripped-size-limit]' : undefined
+        }))
+      }));
+      jsonSize = JSON.stringify(next).length;
+      console.log(`[DB] pushSubmission: Document size after stripping photos: ${Math.round(jsonSize / 1024)}KB`);
+    }
+
     console.log(`[DB] pushSubmission: Saving ${next.length} total submissions`);
     const success = await this.remoteSet(DOC_KEYS.SUBMISSIONS, next);
     console.log(`[DB] pushSubmission END: success=${success}`);

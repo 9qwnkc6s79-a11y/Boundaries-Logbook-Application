@@ -58,9 +58,9 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onCapture })
       const video = videoRef.current;
       const canvas = canvasRef.current;
 
-      // Aggressively compress image to stay well under Firestore 1MB document limit
-      // Target: ~15-25KB per photo max
-      const maxDimension = 480;
+      // VERY aggressive compression to stay well under Firestore 1MB document limit
+      // Target: ~10-15KB per photo max
+      const maxDimension = 400;
       const scale = Math.min(maxDimension / video.videoWidth, maxDimension / video.videoHeight, 1);
       canvas.width = Math.round(video.videoWidth * scale);
       canvas.height = Math.round(video.videoHeight * scale);
@@ -68,11 +68,19 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onCapture })
       const ctx = canvas.getContext('2d');
       if (ctx) {
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        // Low quality (0.4) to keep photos ~15-25KB each
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.4);
-        const sizeKB = Math.round(dataUrl.length / 1024);
+        // Very low quality (0.3) to keep photos ~10-15KB each
+        let dataUrl = canvas.toDataURL('image/jpeg', 0.3);
+        let sizeKB = Math.round(dataUrl.length / 1024);
+
+        // If still too large, try even lower quality
+        if (sizeKB > 20) {
+          dataUrl = canvas.toDataURL('image/jpeg', 0.2);
+          sizeKB = Math.round(dataUrl.length / 1024);
+          console.log(`[Photo] Recompressed to quality 0.2, size: ${sizeKB}KB`);
+        }
+
         console.log(`[Photo] Captured ${canvas.width}x${canvas.height}, size: ${sizeKB}KB`);
-        if (sizeKB > 50) {
+        if (sizeKB > 25) {
           console.warn(`[Photo] WARNING: Photo is ${sizeKB}KB, may cause Firestore issues`);
         }
         setPreviewUrl(dataUrl);
