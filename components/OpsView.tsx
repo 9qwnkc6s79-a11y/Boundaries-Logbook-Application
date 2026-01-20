@@ -195,16 +195,16 @@ const OpsView: React.FC<OpsViewProps> = ({ user, allUsers, templates, existingSu
 
   const isManager = user.role === UserRole.MANAGER || user.role === UserRole.ADMIN;
 
+  const getLocalYYYYMMDD = useCallback((d: Date) => {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }, []);
+
   const getTargetDate = useCallback((template: ChecklistTemplate) => {
     const now = new Date();
     const localHour = now.getHours();
-    
-    const getLocalYYYYMMDD = (d: Date) => {
-      const year = d.getFullYear();
-      const month = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      return `${year}-${month}-${day}`;
-    };
 
     const todayStr = getLocalYYYYMMDD(now);
 
@@ -216,19 +216,67 @@ const OpsView: React.FC<OpsViewProps> = ({ user, allUsers, templates, existingSu
 
     const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     const dayNameInTemplate = daysOfWeek.find(d => template.name.includes(d));
-    
+
     if (template.type === 'WEEKLY' && dayNameInTemplate) {
       const targetDayIndex = daysOfWeek.indexOf(dayNameInTemplate);
       const currentDayIndex = now.getDay();
       let diff = currentDayIndex - targetDayIndex;
-      if (diff < 0) diff += 7; 
+      if (diff < 0) diff += 7;
       const targetDateObj = new Date(now);
       targetDateObj.setDate(now.getDate() - diff);
       return getLocalYYYYMMDD(targetDateObj);
     }
 
     return todayStr;
+  }, [getLocalYYYYMMDD]);
+
+  // Calculate when a submission should unlock based on template type
+  const getUnlockTime = useCallback((submission: ChecklistSubmission, template: ChecklistTemplate): Date => {
+    const submissionDate = new Date(submission.date + 'T00:00:00');
+    const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const dayNameInTemplate = daysOfWeek.find(d => template.name.includes(d));
+
+    if (template.type === 'WEEKLY' && dayNameInTemplate) {
+      // Weekly maintenance: unlock at same day next week (midnight)
+      const unlockDate = new Date(submissionDate);
+      unlockDate.setDate(submissionDate.getDate() + 7);
+      unlockDate.setHours(0, 0, 0, 0);
+      return unlockDate;
+    } else if (template.type === 'CLOSING') {
+      // Closing checklist: unlock at noon the next calendar day
+      const unlockDate = new Date(submissionDate);
+      unlockDate.setDate(submissionDate.getDate() + 1);
+      unlockDate.setHours(12, 0, 0, 0);
+      return unlockDate;
+    } else {
+      // Opening/other checklists: unlock at midnight (start of next calendar day)
+      const unlockDate = new Date(submissionDate);
+      unlockDate.setDate(submissionDate.getDate() + 1);
+      unlockDate.setHours(0, 0, 0, 0);
+      return unlockDate;
+    }
   }, []);
+
+  // Check if a checklist is currently locked due to a recent submission
+  const getLockedSubmission = useCallback((template: ChecklistTemplate): ChecklistSubmission | null => {
+    const now = new Date();
+
+    // Find all finalized submissions for this template (not drafts)
+    const finalizedSubmissions = existingSubmissions.filter(s =>
+      s.templateId === template.id &&
+      s.status !== 'DRAFT'
+    );
+
+    // Check if any submission is still within its lock period
+    for (const submission of finalizedSubmissions) {
+      const unlockTime = getUnlockTime(submission, template);
+      if (now < unlockTime) {
+        return submission;
+      }
+    }
+
+    return null;
+  }, [existingSubmissions, getUnlockTime]);
 
   const markInteraction = useCallback((taskId: string) => {
     interactionLock.current[taskId] = Date.now();
@@ -244,39 +292,45 @@ const OpsView: React.FC<OpsViewProps> = ({ user, allUsers, templates, existingSu
 
   useEffect(() => {
     if (!activeTemplate) return;
-    
+
     const targetDate = getTargetDate(activeTemplate);
-    
-    const submission = existingSubmissions.find(s => 
-      s.templateId === activeTemplate.id && 
-      s.date === targetDate
+
+    // First check if there's a locked submission (takes priority)
+    const lockedSubmission = getLockedSubmission(activeTemplate);
+
+    // Use locked submission if exists, otherwise look for draft on target date
+    const submission = lockedSubmission || existingSubmissions.find(s =>
+      s.templateId === activeTemplate.id &&
+      s.date === targetDate &&
+      s.status === 'DRAFT'
     );
 
-    const submissionFingerprint = submission 
-      ? JSON.stringify(submission.taskResults.map(r => ({ 
-          id: r.taskId, 
-          c: r.completed, 
-          by: r.completedByUserId 
+    const submissionFingerprint = submission
+      ? JSON.stringify(submission.taskResults.map(r => ({
+          id: r.taskId,
+          c: r.completed,
+          by: r.completedByUserId
         })))
       : 'none';
 
     if (submissionFingerprint === lastSyncedSubmissionRef.current) {
-      return; 
+      return;
     }
 
     lastSyncedSubmissionRef.current = submissionFingerprint;
 
     if (submission) {
       setActiveSubmissionId(submission.id);
-      setIsReadOnly(submission.status !== 'DRAFT');
-      
+      // Read-only if it's a locked submission (finalized and within lock period)
+      setIsReadOnly(!!lockedSubmission || submission.status !== 'DRAFT');
+
       setResponses(prev => {
         const next: Record<string, any> = {};
-        
+
         submission.taskResults.forEach(res => {
           const lastInteraction = interactionLock.current[res.taskId] || 0;
           const timeSinceInteraction = Date.now() - lastInteraction;
-          
+
           if (timeSinceInteraction < 5000) {
             next[res.taskId] = prev[res.taskId] || {
               completed: res.completed,
@@ -297,21 +351,21 @@ const OpsView: React.FC<OpsViewProps> = ({ user, allUsers, templates, existingSu
             };
           }
         });
-        
+
         return next;
       });
     } else {
       const anyRecentInteraction = Object.values(interactionLock.current).some(
         time => Date.now() - time < 6000
       );
-      
+
       if (!anyRecentInteraction) {
         setActiveSubmissionId(null);
         setIsReadOnly(false);
         setResponses({});
       }
     }
-  }, [existingSubmissions, activeTemplate, getTargetDate]);
+  }, [existingSubmissions, activeTemplate, getTargetDate, getLockedSubmission]);
 
   const handleToggle = (taskId: string) => {
     if (isReadOnly) return;
@@ -483,7 +537,10 @@ const OpsView: React.FC<OpsViewProps> = ({ user, allUsers, templates, existingSu
 
   if (activeTemplate) {
     const targetDate = getTargetDate(activeTemplate);
-    
+    const lockedSubmission = getLockedSubmission(activeTemplate);
+    const displayDate = lockedSubmission ? lockedSubmission.date : targetDate;
+    const unlockTime = lockedSubmission ? getUnlockTime(lockedSubmission, activeTemplate) : null;
+
     return (
       <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
         <CameraModal 
@@ -519,14 +576,19 @@ const OpsView: React.FC<OpsViewProps> = ({ user, allUsers, templates, existingSu
             <div>
               <h2 className="text-2xl sm:text-4xl font-[900] text-[#001F3F] tracking-tighter uppercase leading-none">{activeTemplate.name}</h2>
               <div className="text-xs sm:text-sm text-neutral-400 font-bold mt-1 flex items-center gap-2 flex-wrap">
-                <span className="bg-neutral-50 px-2 py-0.5 rounded-full border border-neutral-100">{targetDate}</span>
+                <span className="bg-neutral-50 px-2 py-0.5 rounded-full border border-neutral-100">{displayDate}</span>
                 {isReadOnly && (
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded-full flex items-center gap-1 font-black text-[10px] uppercase tracking-widest shadow-sm">
                       <Lock size={10}/> Archived
                     </span>
+                    {unlockTime && (
+                      <span className="text-[10px] text-green-600/70 font-bold">
+                        Unlocks {unlockTime.toLocaleDateString()} {unlockTime.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                      </span>
+                    )}
                     {isManager && (
-                      <button 
+                      <button
                         onClick={() => setShowReopenConfirm(true)}
                         className="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full flex items-center gap-1 font-black text-[10px] uppercase tracking-widest hover:bg-amber-200 transition-colors shadow-sm"
                       >
@@ -648,18 +710,18 @@ const OpsView: React.FC<OpsViewProps> = ({ user, allUsers, templates, existingSu
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {list.map(tpl => {
             const targetDate = getTargetDate(tpl);
-            const draft = existingSubmissions.find(s => 
-              s.templateId === tpl.id && 
-              s.date === targetDate && 
+            const draft = existingSubmissions.find(s =>
+              s.templateId === tpl.id &&
+              s.date === targetDate &&
               s.status === 'DRAFT'
             );
-            const finalizedSubmission = existingSubmissions.find(s => 
-              s.templateId === tpl.id && 
-              s.date === targetDate && 
-              s.status !== 'DRAFT'
-            );
-            
-            const isFinalized = !!finalizedSubmission;
+
+            // Check if there's a locked submission (may be from a different date but still within lock period)
+            const lockedSubmission = getLockedSubmission(tpl);
+            const isFinalized = !!lockedSubmission;
+
+            // Calculate unlock time for display
+            const unlockTime = lockedSubmission ? getUnlockTime(lockedSubmission, tpl) : null;
             
             return (
               <button
@@ -673,9 +735,16 @@ const OpsView: React.FC<OpsViewProps> = ({ user, allUsers, templates, existingSu
               >
                 <div className="absolute top-6 right-6 z-10 flex flex-col items-end gap-2">
                   {isFinalized ? (
-                    <span className="flex items-center gap-1.5 px-3 py-1 bg-green-600 text-white text-[9px] font-black uppercase tracking-widest rounded-xl shadow-lg animate-in zoom-in">
-                      <Lock size={12} strokeWidth={3} /> ARCHIVED
-                    </span>
+                    <div className="flex flex-col items-end gap-1">
+                      <span className="flex items-center gap-1.5 px-3 py-1 bg-green-600 text-white text-[9px] font-black uppercase tracking-widest rounded-xl shadow-lg animate-in zoom-in">
+                        <Lock size={12} strokeWidth={3} /> ARCHIVED
+                      </span>
+                      {unlockTime && (
+                        <span className="text-[8px] font-bold text-green-600/70">
+                          Unlocks {unlockTime.toLocaleDateString()} {unlockTime.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                        </span>
+                      )}
+                    </div>
                   ) : draft ? (
                     <div className="flex flex-col items-end gap-1">
                       <span className="flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-[#001F3F] text-[9px] font-black uppercase tracking-widest rounded-xl border border-blue-100 animate-pulse">
@@ -693,7 +762,7 @@ const OpsView: React.FC<OpsViewProps> = ({ user, allUsers, templates, existingSu
                 
                 <h3 className={`text-xl sm:text-2xl font-black tracking-tighter mb-1 uppercase leading-none ${isFinalized ? 'text-green-800' : 'text-black'}`}>{tpl.name}</h3>
                 <p className={`text-[10px] sm:text-xs font-bold leading-snug uppercase tracking-widest ${isFinalized ? 'text-green-600/60' : 'text-neutral-400'}`}>
-                  {targetDate}
+                  {isFinalized && lockedSubmission ? lockedSubmission.date : targetDate}
                 </p>
               </button>
             );
