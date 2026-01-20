@@ -1,6 +1,7 @@
+
 import React, { useState } from 'react';
 import { Recipe, ManualSection } from '../types';
-import { Search, Coffee, FileText, Plus, Edit3, Trash2, Save, GripVertical, X } from 'lucide-react';
+import { Search, Coffee, FileText, Plus, Edit3, Trash2, Save, GripVertical, X, AlertTriangle } from 'lucide-react';
 
 interface RecipeBookProps {
   manual: ManualSection[];
@@ -16,6 +17,9 @@ const RecipeBook: React.FC<RecipeBookProps> = ({ manual, recipes, isManager = fa
   
   // Edit State
   const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
+  
+  // Confirmation State
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   // Derive categories from recipes
   const categories = ['ALL', ...Array.from(new Set(recipes.map(r => r.category)))];
@@ -44,9 +48,10 @@ const RecipeBook: React.FC<RecipeBookProps> = ({ manual, recipes, isManager = fa
     setEditingRecipe(null);
   };
 
-  const handleDeleteRecipe = (id: string) => {
-    if (!onUpdateRecipes || !confirm('Are you sure you want to delete this recipe card?')) return;
-    onUpdateRecipes(recipes.filter(r => r.id !== id));
+  const handleDeleteRecipeConfirmed = () => {
+    if (!deleteId || !onUpdateRecipes) return;
+    onUpdateRecipes(recipes.filter(r => r.id !== deleteId));
+    setDeleteId(null);
   };
 
   const handleCreateRecipe = () => {
@@ -169,7 +174,7 @@ const RecipeBook: React.FC<RecipeBookProps> = ({ manual, recipes, isManager = fa
                  <input 
                    value={editingRecipe.title} 
                    onChange={e => setEditingRecipe({...editingRecipe, title: e.target.value})}
-                   className="w-full border border-neutral-200 rounded-xl px-3 py-2 font-bold text-[#001F3F] outline-none focus:ring-2 focus:ring-[#001F3F]/10"
+                   className="w-full bg-white border border-neutral-200 rounded-xl px-3 py-2 font-bold text-[#001F3F] outline-none focus:ring-2 focus:ring-[#001F3F]/10"
                  />
                </div>
                <div>
@@ -177,7 +182,7 @@ const RecipeBook: React.FC<RecipeBookProps> = ({ manual, recipes, isManager = fa
                  <input 
                    value={editingRecipe.category} 
                    onChange={e => setEditingRecipe({...editingRecipe, category: e.target.value})}
-                   className="w-full border border-neutral-200 rounded-xl px-3 py-2 font-bold text-[#001F3F] outline-none focus:ring-2 focus:ring-[#001F3F]/10"
+                   className="w-full bg-white border border-neutral-200 rounded-xl px-3 py-2 font-bold text-[#001F3F] outline-none focus:ring-2 focus:ring-[#001F3F]/10"
                  />
                </div>
              </div>
@@ -202,9 +207,9 @@ const RecipeBook: React.FC<RecipeBookProps> = ({ manual, recipes, isManager = fa
              {/* Type Specific Fields */}
              {editingRecipe.type === 'ESPRESSO' && (
                 <div className="grid grid-cols-3 gap-4 bg-neutral-50 p-4 rounded-xl">
-                  <input placeholder="Dose (e.g. 18g)" value={editingRecipe.dose || ''} onChange={e => setEditingRecipe({...editingRecipe, dose: e.target.value})} className="border p-2 rounded-lg text-xs" />
-                  <input placeholder="Yield (e.g. 36g)" value={editingRecipe.yield || ''} onChange={e => setEditingRecipe({...editingRecipe, yield: e.target.value})} className="border p-2 rounded-lg text-xs" />
-                  <input placeholder="Time (e.g. 30s)" value={editingRecipe.time || ''} onChange={e => setEditingRecipe({...editingRecipe, time: e.target.value})} className="border p-2 rounded-lg text-xs" />
+                  <input placeholder="Dose (e.g. 18g)" value={editingRecipe.dose || ''} onChange={e => setEditingRecipe({...editingRecipe, dose: e.target.value})} className="w-full bg-white text-[#001F3F] border border-neutral-200 p-2 rounded-lg text-xs" />
+                  <input placeholder="Yield (e.g. 36g)" value={editingRecipe.yield || ''} onChange={e => setEditingRecipe({...editingRecipe, yield: e.target.value})} className="w-full bg-white text-[#001F3F] border border-neutral-200 p-2 rounded-lg text-xs" />
+                  <input placeholder="Time (e.g. 30s)" value={editingRecipe.time || ''} onChange={e => setEditingRecipe({...editingRecipe, time: e.target.value})} className="w-full bg-white text-[#001F3F] border border-neutral-200 p-2 rounded-lg text-xs" />
                 </div>
              )}
 
@@ -215,7 +220,7 @@ const RecipeBook: React.FC<RecipeBookProps> = ({ manual, recipes, isManager = fa
                      <input 
                        value={editingRecipe.gridColumns?.join(', ') || ''}
                        onChange={e => setEditingRecipe({...editingRecipe, gridColumns: e.target.value.split(',').map(s => s.trim())})}
-                       className="w-full border p-2 rounded-lg text-xs"
+                       className="w-full bg-white text-[#001F3F] border border-neutral-200 p-2 rounded-lg text-xs"
                      />
                    </div>
                    <div className="space-y-2">
@@ -229,7 +234,7 @@ const RecipeBook: React.FC<RecipeBookProps> = ({ manual, recipes, isManager = fa
                              newRows[idx].label = e.target.value;
                              setEditingRecipe({...editingRecipe, gridRows: newRows});
                            }}
-                           className="w-1/3 border p-2 rounded-lg text-xs font-bold"
+                           className="w-1/3 bg-white text-[#001F3F] border border-neutral-200 p-2 rounded-lg text-xs font-bold"
                            placeholder="Label"
                          />
                          <input 
@@ -239,7 +244,7 @@ const RecipeBook: React.FC<RecipeBookProps> = ({ manual, recipes, isManager = fa
                              newRows[idx].values = e.target.value.split(',').map(s => s.trim());
                              setEditingRecipe({...editingRecipe, gridRows: newRows});
                            }}
-                           className="flex-1 border p-2 rounded-lg text-xs"
+                           className="flex-1 bg-white text-[#001F3F] border border-neutral-200 p-2 rounded-lg text-xs"
                            placeholder="Values (comma sep)"
                          />
                          <button onClick={() => {
@@ -272,7 +277,7 @@ const RecipeBook: React.FC<RecipeBookProps> = ({ manual, recipes, isManager = fa
                              newIng[i].quantity = e.target.value;
                              setEditingRecipe({...editingRecipe, ingredients: newIng});
                            }}
-                           className="w-1/4 border p-2 rounded-lg text-xs"
+                           className="w-1/4 bg-white text-[#001F3F] border border-neutral-200 p-2 rounded-lg text-xs"
                          />
                          <input 
                            placeholder="Name" 
@@ -282,7 +287,7 @@ const RecipeBook: React.FC<RecipeBookProps> = ({ manual, recipes, isManager = fa
                              newIng[i].name = e.target.value;
                              setEditingRecipe({...editingRecipe, ingredients: newIng});
                            }}
-                           className="flex-1 border p-2 rounded-lg text-xs"
+                           className="flex-1 bg-white text-[#001F3F] border border-neutral-200 p-2 rounded-lg text-xs"
                          />
                          <button onClick={() => {
                             const newIng = editingRecipe.ingredients?.filter((_, idx) => idx !== i);
@@ -305,7 +310,7 @@ const RecipeBook: React.FC<RecipeBookProps> = ({ manual, recipes, isManager = fa
                              newSteps[i] = e.target.value;
                              setEditingRecipe({...editingRecipe, steps: newSteps});
                            }}
-                           className="flex-1 border p-2 rounded-lg text-xs resize-none"
+                           className="flex-1 bg-white text-[#001F3F] border border-neutral-200 p-2 rounded-lg text-xs resize-none"
                          />
                           <button onClick={() => {
                             const newSteps = editingRecipe.steps?.filter((_, idx) => idx !== i);
@@ -323,7 +328,7 @@ const RecipeBook: React.FC<RecipeBookProps> = ({ manual, recipes, isManager = fa
                <textarea 
                  value={editingRecipe.notes || ''}
                  onChange={e => setEditingRecipe({...editingRecipe, notes: e.target.value})}
-                 className="w-full border border-neutral-200 rounded-xl px-3 py-2 text-sm outline-none"
+                 className="w-full bg-white text-[#001F3F] border border-neutral-200 rounded-xl px-3 py-2 text-sm outline-none"
                  rows={3}
                />
              </div>
@@ -356,6 +361,25 @@ const RecipeBook: React.FC<RecipeBookProps> = ({ manual, recipes, isManager = fa
           )}
         </div>
       </header>
+
+      {/* Delete Confirm Modal */}
+      {deleteId && (
+        <div className="fixed inset-0 z-[100] bg-[#001F3F]/60 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in duration-200">
+          <div className="bg-white rounded-[2.5rem] p-8 max-w-sm w-full shadow-2xl border border-neutral-100 text-center">
+             <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
+               <AlertTriangle size={32} />
+             </div>
+             <h3 className="text-xl font-black text-[#001F3F] uppercase tracking-tight mb-2">Delete Card?</h3>
+             <p className="text-neutral-500 text-sm font-medium mb-8 leading-relaxed">
+               Removing this standard will delete it for all staff. This cannot be undone.
+             </p>
+             <div className="flex gap-3">
+               <button onClick={() => setDeleteId(null)} className="flex-1 py-4 bg-neutral-100 text-neutral-400 font-black uppercase tracking-widest text-[10px] rounded-xl hover:bg-neutral-200 transition-colors">Cancel</button>
+               <button onClick={handleDeleteRecipeConfirmed} className="flex-1 py-4 bg-red-600 text-white font-black uppercase tracking-widest text-[10px] rounded-xl hover:bg-red-700 transition-all shadow-lg active:scale-95">Delete</button>
+             </div>
+          </div>
+        </div>
+      )}
 
       <div className="flex bg-neutral-100 p-1 rounded-[1.5rem] w-fit">
         <button 
@@ -407,7 +431,7 @@ const RecipeBook: React.FC<RecipeBookProps> = ({ manual, recipes, isManager = fa
               {isManager && (
                 <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
                   <button onClick={() => setEditingRecipe(recipe)} className="p-2 bg-white text-[#001F3F] rounded-full shadow border border-neutral-100 hover:bg-neutral-50"><Edit3 size={14}/></button>
-                  <button onClick={() => handleDeleteRecipe(recipe.id)} className="p-2 bg-white text-red-500 rounded-full shadow border border-neutral-100 hover:bg-red-50"><Trash2 size={14}/></button>
+                  <button onClick={() => setDeleteId(recipe.id)} className="p-2 bg-white text-red-500 rounded-full shadow border border-neutral-100 hover:bg-red-50"><Trash2 size={14}/></button>
                 </div>
               )}
               

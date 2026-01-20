@@ -82,6 +82,7 @@ export interface ChecklistTemplate {
   storeId: string;
   type: 'OPENING' | 'SHIFT_CHANGE' | 'CLOSING' | 'WEEKLY' | 'MONTHLY';
   deadlineHour: number; // 24h format (e.g., 7 for 7am, 21 for 9pm)
+  unlockHour: number; // 24h format - when the checklist rolls over to the current calendar day
   tasks: ChecklistTask[];
 }
 
@@ -101,6 +102,8 @@ export interface ChecklistSubmission {
     comment?: string;
     completedByUserId: string; 
     completedAt: string;
+    aiFlagged?: boolean;
+    aiReason?: string;
   }[];
   managerNotes?: string;
 }

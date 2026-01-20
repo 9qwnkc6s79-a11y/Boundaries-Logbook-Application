@@ -122,7 +122,7 @@ Customers come to Boundaries for **Speed, Quality, and Consistency**. These aren
   },
   {
     id: 's-5',
-    number: 5,
+    number: 2,
     title: 'Coffee Bar',
     content: `All espresso-based drinks—hot or iced—are produced here. The Coffee Bar is typically a **two-person team** but may be run solo.
 
@@ -534,21 +534,21 @@ export const BOUNDARIES_RECIPES: Recipe[] = [
 export const TRAINING_CURRICULUM: TrainingModule[] = [
   {
     id: 'm-onboarding',
-    title: 'Pre-Arrival: Onboarding Logistics',
-    description: 'Ensure your administrative and payroll setup is complete.',
+    title: 'Module 1: Onboarding Checklist',
+    description: 'Complete core logistics and administrative setup before training.',
     category: 'ONBOARDING',
     lessons: [
       {
-        id: 'l-logistics',
+        id: 'l-logistics-quiz',
         moduleId: 'm-onboarding',
-        title: 'System Confirmation',
+        title: 'System & Logistics Verification',
         type: 'QUIZ',
         quizQuestions: [
-          { id: 'q2', type: 'TRUE_FALSE', question: 'I have been added to Sling and have downloaded and logged into the app.', correctAnswers: ['True'] },
-          { id: 'q3', type: 'TRUE_FALSE', question: 'I have received my Toast Payroll Onboarding Email and completed the required steps to create my account.', correctAnswers: ['True'] },
-          { id: 'q4', type: 'TRUE_FALSE', question: 'I have set up my direct deposit.', correctAnswers: ['True'] },
-          { id: 'q5', type: 'TRUE_FALSE', question: 'I have reviewed the company handbook.', correctAnswers: ['True'] },
-          { id: 'q6', type: 'TRUE_FALSE', question: 'I have completed my Texas Food Handler certification.', correctAnswers: ['True'] }
+          { id: 'q1', type: 'TRUE_FALSE', question: 'I have been added to Sling and have downloaded and logged into the app.', correctAnswers: ['True'] },
+          { id: 'q2', type: 'TRUE_FALSE', question: 'I have received my Toast Payroll Onboarding Email and completed the required steps to create my account.', correctAnswers: ['True'] },
+          { id: 'q3', type: 'TRUE_FALSE', question: 'I have set up my direct deposit.', correctAnswers: ['True'] },
+          { id: 'q4', type: 'TRUE_FALSE', question: 'I have reviewed the company handbook.', correctAnswers: ['True'] },
+          { id: 'q5', type: 'TRUE_FALSE', question: 'I have completed my Texas Food Handler certification.', correctAnswers: ['True'] }
         ]
       },
       {
@@ -556,194 +556,253 @@ export const TRAINING_CURRICULUM: TrainingModule[] = [
         moduleId: 'm-onboarding',
         title: 'Certification Verification',
         type: 'FILE_UPLOAD',
-        fileLabel: 'Upload Texas Food Handler Certificate'
+        fileLabel: 'Upload your Texas Food Handler Certificate here.'
       }
     ]
   },
   {
-    id: 'm-culture',
-    title: 'Culture & Conflict Resolution',
-    description: 'Master the spirit of Humble, Focused, and Fun.',
+    id: 'm-values',
+    title: 'Module 2: Company Values & Policies',
+    description: 'Master the standards that define the Boundaries culture.',
     category: 'ONBOARDING',
     lessons: [
       {
-        id: 'l-values-quiz',
-        moduleId: 'm-culture',
-        title: 'The Boundaries Core',
+        id: 'l-culture-quiz',
+        moduleId: 'm-values',
+        title: 'The Boundaries Core Knowledge Check',
         type: 'QUIZ',
         quizQuestions: [
-          { id: 'q8', type: 'MULTIPLE_CHOICE', question: 'What are the three core company values at Boundaries Coffee?', options: ['Humble, Focused, Fun', 'Hungry, Happy, Hardworking', 'Humble, Consistent, Quality', 'Excellence, Innovation, Integrity'], correctAnswers: ['Humble, Focused, Fun'] },
-          { id: 'q9', type: 'MULTIPLE_CHOICE', question: 'What does it mean to be “humble” at Boundaries Coffee?', options: ['Always acting like you’re the best on the team', 'Being teachable, admitting mistakes, and putting others before yourself', 'Ignoring feedback from managers and teammates', 'Doing things your own way'], correctAnswers: ['Being teachable, admitting mistakes, and putting others before yourself'] },
-          { id: 'q10', type: 'MULTIPLE_CHOICE', question: 'Which of the following best reflects being “focused” at Boundaries Coffee?', options: ['Checking your phone', 'Prioritizing personal conversations', 'Staying attentive to responsibilities and customer needs', 'Finishing half your tasks'], correctAnswers: ['Staying attentive to responsibilities and customer needs'] },
-          { id: 'q11', type: 'MULTIPLE_CHOICE', question: 'Having “fun” at Boundaries Coffee primarily means:', options: ['Acting silly', 'Creating a positive, joyful environment for customers and teammates', 'Ignoring customer needs', 'Playing pranks'], correctAnswers: ['Creating a positive, joyful environment for customers and teammates'] },
-          { id: 'q12', type: 'MULTIPLE_CHOICE', question: 'What attitude shows humility?', options: ['Apologizing when you make a mistake', 'Blaming teammates', 'Ignoring team goals', 'Always insisting your way is right'], correctAnswers: ['Apologizing when you make a mistake'] },
-          { id: 'q13', type: 'MULTIPLE_CHOICE', question: 'Which situation best demonstrates being focused?', options: ['You clean a messy counter without being asked because you notice it’s needed.', 'You wait for your shift lead to tell you every task.', 'You leave early', 'You spend time chatting'], correctAnswers: ['You clean a messy counter without being asked because you notice it’s needed.'] },
-          { id: 'q14', type: 'MULTIPLE_CHOICE', question: 'Which behavior would NOT be considered humble?', options: ['Asking for advice', 'Blaming others when something goes wrong', 'Taking responsibility', 'Celebrating team wins'], correctAnswers: ['Blaming others when something goes wrong'] },
-          { id: 'q15', type: 'MULTIPLE_CHOICE', question: 'Which of the following best captures the spirit of “fun” at Boundaries Coffee?', options: ['Making customers and coworkers feel welcomed and positive', 'Being loud and disruptive', 'Doing whatever you want', 'Ignoring customers'], correctAnswers: ['Making customers and coworkers feel welcomed and positive'] },
-          { id: 'q16', type: 'MULTIPLE_CHOICE', question: 'What are the three organizational values emphasized in the handbook?', options: ['Humble, Focused, Fun', 'Passion, Hospitality, Selflessness', 'Professionalism, Respect', 'Skill, Communication'], correctAnswers: ['Passion, Hospitality, Selflessness'] },
-          { id: 'q17', type: 'MULTIPLE_CHOICE', question: 'What is the expected attitude when resolving staff conflicts?', options: ['Avoid confrontation', 'Handle it publicly', 'Attempt to resolve it directly with the other person first', 'Escalate to HR immediately'], correctAnswers: ['Attempt to resolve it directly with the other person first'] },
-          { id: 'q19', type: 'MULTIPLE_CHOICE', question: 'What should an employee do if they feel unsafe during a conflict with a guest?', options: ['Argue calmly', 'Continue serving', 'Immediately walk away and get help from a team lead or manager', 'Ask another employee to intervene'], correctAnswers: ['Immediately walk away and get help from a team lead or manager'] }
+          { id: 'q7', type: 'MULTIPLE_CHOICE', question: 'What are the three core company values at Boundaries Coffee?', options: ['Humble, Focused, Fun', 'Hungry, Happy, Hardworking', 'Humble, Consistent, Quality', 'Excellence, Innovation, Integrity'], correctAnswers: ['Humble, Focused, Fun'] },
+          { id: 'q8', type: 'MULTIPLE_CHOICE', question: 'What does it mean to be "humble" at Boundaries Coffee?', options: ['Always acting like you\'re the best on the team', 'Being teachable, admitting mistakes, and putting others before yourself', 'Ignoring feedback from managers and teammates', 'Doing things your own way, even if it affects others negatively'], correctAnswers: ['Being teachable, admitting mistakes, and putting others before yourself'] },
+          { id: 'q9', type: 'MULTIPLE_CHOICE', question: 'Which of the following best reflects being "focused" at Boundaries Coffee?', options: ['Checking your phone between orders', 'Prioritizing personal conversations over customer service', 'Staying attentive to responsibilities and customer needs', 'Finishing half your tasks and leaving the rest'], correctAnswers: ['Staying attentive to responsibilities and customer needs'] },
+          { id: 'q10', type: 'MULTIPLE_CHOICE', question: 'Having "fun" at Boundaries Coffee primarily means:', options: ['Acting silly no matter what happens', 'Creating a positive, joyful environment for customers and teammates', 'Ignoring customer needs to enjoy yourself', 'Playing pranks during the busiest hours'], correctAnswers: ['Creating a positive, joyful environment for customers and teammates'] },
+          { id: 'q11', type: 'MULTIPLE_CHOICE', question: 'What attitude shows humility?', options: ['Apologizing when you make a mistake', 'Blaming teammates when something goes wrong', 'Ignoring team goals to focus on your own ideas', 'Always insisting your way is the right way'], correctAnswers: ['Apologizing when you make a mistake'] },
+          { id: 'q12', type: 'MULTIPLE_CHOICE', question: 'Which situation best demonstrates being focused?', options: ['You clean a messy counter without being asked because you notice it\'s needed.', 'You wait for your shift lead to tell you every small task.', 'You leave early without finishing your checklist.', 'You spend time chatting with friends while customers wait.'], correctAnswers: ['You clean a messy counter without being asked because you notice it\'s needed.'] },
+          { id: 'q13', type: 'MULTIPLE_CHOICE', question: 'Which behavior would NOT be considered humble?', options: ['Asking for advice on how to improve', 'Blaming others when something goes wrong', 'Taking responsibility when you make a mistake', 'Celebrating team wins together'], correctAnswers: ['Blaming others when something goes wrong'] },
+          { id: 'q14', type: 'MULTIPLE_CHOICE', question: 'Which of the following best captures the spirit of "fun" at Boundaries Coffee?', options: ['Making customers and coworkers feel welcomed and positive', 'Being loud and disruptive, even during rushes', 'Doing whatever you want, even if it causes confusion', 'Ignoring customers to joke around with coworkers'], correctAnswers: ['Making customers and coworkers feel welcomed and positive'] },
+          { id: 'q15', type: 'MULTIPLE_CHOICE', question: 'What are the three organizational values emphasized in the handbook?', options: ['Humble, Focused, Fun', 'Passion, Hospitality, Selflessness', 'Professionalism, Respect, Cleanliness', 'Skill, Communication, Joy'], correctAnswers: ['Humble, Focused, Fun'] },
+          { id: 'q16', type: 'MULTIPLE_CHOICE', question: 'What is the expected attitude when resolving staff conflicts?', options: ['Avoid confrontation and involve others immediately', 'Handle it publicly so everyone is aware', 'Attempt to resolve it directly with the other person first', 'Escalate to HR before speaking to the other party'], correctAnswers: ['Attempt to resolve it directly with the other person first'] },
+          { id: 'q17', type: 'MULTIPLE_CHOICE', question: 'Which of the following is not appropriate workplace attire?', options: ['Clean black jeans', 'Boundaries-branded t-shirt', 'Water-resistant jacket in navy', 'Fleece hoodie in gray'], correctAnswers: ['Fleece hoodie in gray'] },
+          { id: 'q18', type: 'MULTIPLE_CHOICE', question: 'What should an employee do if they feel unsafe during a conflict with a guest?', options: ['Argue calmly but firmly', 'Continue serving until a manager steps in', 'Immediately walk away and get help from a team lead or manager', 'Ask another employee to intervene'], correctAnswers: ['Immediately walk away and get help from a team lead or manager'] },
+          { id: 'q19', type: 'MULTIPLE_CHOICE', question: 'Which of the following actions may result in immediate termination?', options: ['Wearing an unapproved hat', 'Forgetting to restock items', 'Using illicit drugs on the premises', 'Arriving 5 minutes late'], correctAnswers: ['Using illicit drugs on the premises'] },
+          { id: 'q20', type: 'MULTIPLE_CHOICE', question: 'What is Boundaries\' cell phone policy during work hours?', options: ['Phones can be used freely as long as it doesn\'t interfere with work', 'Phones must be left in a locker at all times', 'Cell phone use is only allowed for emergencies or job-related tasks', 'Texting is fine if it\'s quick'], correctAnswers: ['Cell phone use is only allowed for emergencies or job-related tasks'] },
+          { id: 'q21', type: 'MULTIPLE_CHOICE', question: 'What happens on a team member\'s third strike under the conduct policy?', options: ['A final warning is issued', 'The employee is suspended', 'Termination of employment', 'Pay is withheld for the next shift'], correctAnswers: ['Termination of employment'] },
+          { id: 'q22', type: 'MULTIPLE_CHOICE', question: 'What is required of employees before consuming a meal during a shift?', options: ['Get verbal permission from a teammate', 'Eat at the front counter quickly', 'Eat only in the designated area behind the walk-in cooler', 'Log their meal break in the POS system'], correctAnswers: ['Eat only in the designated area behind the walk-in cooler'] },
+          { id: 'q23', type: 'MULTIPLE_CHOICE', question: 'How many "no shows" within 12 months will result in potential termination?', options: ['1', '2', '3', '4'], correctAnswers: ['2'] },
+          { id: 'q24', type: 'MULTIPLE_CHOICE', question: 'What is the definition of a no-show at Boundaries Coffee?', options: ['Being over 10 minutes late for your shift', 'Giving less than 24 hours\' notice for time off', 'Being more than 20 minutes late or missing a shift without notice or medical emergency', 'Forgetting to clock in for a shift'], correctAnswers: ['Being more than 20 minutes late or missing a shift without notice or medical emergency'] },
+          { id: 'q25', type: 'MULTIPLE_CHOICE', question: 'An employee finds out they cannot make their shift five days before it starts. What are they expected to do?', options: ['Nothing, since it\'s more than 24 hours in advance', 'Call in sick and assume it\'s excused', 'Find a replacement and notify the manager', 'Just let the manager know the day before'], correctAnswers: ['Find a replacement and notify the manager'] },
+          { id: 'q26', type: 'MULTIPLE_CHOICE', question: 'How should you go about finding a replacement if you realize you can\'t make your shift?', options: ['Call everyone available on Sling and ask if they can cover', 'Send a group message in the Sling messaging center', 'Post in the team group chat and wait for replies', 'Text a few friends and hope someone picks it up'], correctAnswers: ['Send a group message in the Sling messaging center'] },
+          { id: 'q27', type: 'MULTIPLE_CHOICE', question: 'What should an employee do if they are feeling ill 24 hours before their shift?', options: ['Wait to see if they feel better and decide in the morning', 'Notify their manager and begin calling team members to find a shift cover', 'Text a coworker and assume it\'s handled', 'Message the group chat and hope someone takes the shift'], correctAnswers: ['Notify their manager and begin calling team members to find a shift cover'] },
+          { id: 'q28', type: 'MULTIPLE_CHOICE', question: 'Which of the following is part of Boundaries Coffee\'s required dress code?', options: ['Clean, branded Boundaries attire for the base layer', 'Any shirt or hoodie as long as it is comfortable', 'Political or graphic logo clothing', 'Brightly colored sneakers and open-toed shoes'], correctAnswers: ['Clean, branded Boundaries attire for the base layer'] },
+          { id: 'q29', type: 'MULTIPLE_CHOICE', question: 'Which of the following is not allowed under Boundaries Coffee\'s dress code?', options: ['Closed-toed shoes appropriate for the weather', 'Water-resistant jackets in Boundaries colors', 'Fleece jackets for outerwear', 'Clean black or navy pants'], correctAnswers: ['Fleece jackets for outerwear'] },
+          { id: 'q30', type: 'MULTIPLE_CHOICE', question: 'Which of the following hygiene practices is required for all employees at Boundaries Coffee?', options: ['Hair must be well kept and put up off the shoulders if long', 'Employees may wear strong perfumes or colognes', 'Nails and hands must be clean but gloves are optional', 'Hats can be dirty as long as they match Boundaries colors'], correctAnswers: ['Hair must be well kept and put up off the shoulders if long'] },
+          { id: 'q31', type: 'MULTIPLE_CHOICE', question: 'What hygiene standard must employees follow when working a shift?', options: ['Only wash hands once at the start of the shift', 'Keep nails and hands clean and well kept', 'Use hand sanitizer instead of hand washing', 'Wear excessive jewelry to appear professional'], correctAnswers: ['Keep nails and hands clean and well kept'] }
         ]
       }
     ]
   },
   {
-    id: 'm-policies',
-    title: 'Policies & Uniform Standards',
-    description: 'Conduct, cell phones, and the Boundaries look.',
+    id: 'm-morning',
+    title: 'Module 3: A Barista\'s Morning',
+    description: 'Learn the first steps in the cafe and the art of dialing in.',
     category: 'ONBOARDING',
     lessons: [
-      {
-        id: 'l-policy-quiz',
-        moduleId: 'm-policies',
-        title: 'Conduct & Professionalism',
-        type: 'QUIZ',
-        quizQuestions: [
-          { id: 'q18', type: 'MULTIPLE_CHOICE', question: 'Which of the following is not appropriate workplace attire?', options: ['Clean black jeans', 'Boundaries-branded t-shirt', 'Water-resistant jacket in navy', 'Fleece hoodie in gray'], correctAnswers: ['Fleece hoodie in gray'] },
-          { id: 'q20', type: 'MULTIPLE_CHOICE', question: 'Which of the following actions may result in immediate termination?', options: ['Wearing an unapproved hat', 'Forgetting to restock', 'Using illicit drugs on the premises', 'Arriving 5 minutes late'], correctAnswers: ['Using illicit drugs on the premises'] },
-          { id: 'q21', type: 'MULTIPLE_CHOICE', question: 'What is Boundaries’ cell phone policy during work hours?', options: ['Used freely', 'Left in a locker at all times', 'Cell phone use is only allowed for emergencies or job-related tasks', 'Texting is fine if quick'], correctAnswers: ['Cell phone use is only allowed for emergencies or job-related tasks'] },
-          { id: 'q22', type: 'MULTIPLE_CHOICE', question: 'What happens on a team member’s third strike under the conduct policy?', options: ['A final warning', 'Suspension', 'Termination of employment', 'Pay is withheld'], correctAnswers: ['Termination of employment'] },
-          { id: 'q23', type: 'MULTIPLE_CHOICE', question: 'What is required of employees before consuming a meal during a shift?', options: ['Verbal permission', 'Eat at front counter', 'Eat only in the designated area behind the walk-in cooler', 'Log in POS'], correctAnswers: ['Eat only in the designated area behind the walk-in cooler'] },
-          { id: 'q24', type: 'MULTIPLE_CHOICE', question: 'How many “no shows” within 12 months will result in potential termination?', options: ['1', '2', '3', '4'], correctAnswers: ['2'] },
-          { id: 'q25', type: 'MULTIPLE_CHOICE', question: 'What is the definition of a no-show at Boundaries Coffee?', options: ['10 mins late', 'Less than 24h notice', 'Being more than 20 minutes late or missing a shift without notice', 'Forgetting to clock in'], correctAnswers: ['Being more than 20 minutes late or missing a shift without notice'] },
-          { id: 'q26', type: 'MULTIPLE_CHOICE', question: 'An employee finds out they cannot make their shift five days before it starts. What are they expected to do?', options: ['Nothing', 'Call in sick', 'Find a replacement and notify the manager', 'Just let the manager know'], correctAnswers: ['Find a replacement and notify the manager'] },
-          { id: 'q27', type: 'MULTIPLE_CHOICE', question: 'How should you go about finding a replacement if you realize you can’t make your shift?', options: ['Call everyone on Sling', 'Send a group message in the Sling messaging center', 'Post in team group chat', 'Text friends'], correctAnswers: ['Send a group message in the Sling messaging center'] },
-          { id: 'q28', type: 'MULTIPLE_CHOICE', question: 'What should an employee do if they are feeling ill 24 hours before their shift?', options: ['Wait to see', 'Notify their manager and begin calling team members', 'Text a coworker', 'Message group chat'], correctAnswers: ['Notify their manager and begin calling team members'] },
-          { id: 'q29', type: 'MULTIPLE_CHOICE', question: 'Which of the following is part of Boundaries Coffee’s required dress code?', options: ['Clean, branded Boundaries attire for the base layer', 'Any comfortable shirt', 'Political clothing', 'Brightly colored sneakers'], correctAnswers: ['Clean, branded Boundaries attire for the base layer'] },
-          { id: 'q30', type: 'MULTIPLE_CHOICE', question: 'Which of the following is not allowed under Boundaries Coffee’s dress code?', options: ['Closed-toed shoes', 'Water-resistant jackets', 'Fleece jackets for outerwear', 'Clean black or navy pants'], correctAnswers: ['Fleece jackets for outerwear'] },
-          { id: 'q31', type: 'MULTIPLE_CHOICE', question: 'Which of the following hygiene practices is required?', options: ['Hair must be well kept and put up off the shoulders if long', 'Strong perfumes', 'Gloves are optional', 'Hats can be dirty'], correctAnswers: ['Hair must be well kept and put up off the shoulders if long'] },
-          { id: 'q32', type: 'MULTIPLE_CHOICE', question: 'What hygiene standard must employees follow when working a shift?', options: ['Hand wash once', 'Keep nails and hands clean and well kept', 'Hand sanitizer instead of washing', 'Excessive jewelry'], correctAnswers: ['Keep nails and hands clean and well kept'] }
-        ]
-      }
-    ]
-  },
-  {
-    id: 'm-barista-basics',
-    title: 'A Barista\'s Morning',
-    description: 'The first steps in the cafe and the art of dialing in.',
-    category: 'CONTINUED',
-    lessons: [
-      {
-        id: 'l-morning-quiz',
-        moduleId: 'm-barista-basics',
-        title: 'Morning Protocols',
-        type: 'QUIZ',
-        quizQuestions: [
-          { id: 'q33', type: 'MULTIPLE_CHOICE', question: 'What is one of the first things the barista does when starting a morning shift?', options: ['Brew espresso', 'Wash hands', 'Fill syrups', 'Clean pastry case'], correctAnswers: ['Wash hands'] },
-          { id: 'q34', type: 'MULTIPLE_CHOICE', question: 'Why does the barista taste the batch brew after it finishes brewing?', options: ['Practice cupping', 'Calibrate with baristas', 'To confirm the flavor is correct before serving customers', 'Determine caffeine level'], correctAnswers: ['To confirm the flavor is correct before serving customers'] },
-          { id: 'q35', type: 'MULTIPLE_CHOICE', question: 'What does “dialing in” espresso involve?', options: ['Cleaning the machine', 'Measuring and adjusting espresso shots for ideal yield and taste', 'Warming portafilters', 'Scheduling baristas'], correctAnswers: ['Measuring and adjusting espresso shots for ideal yield and taste'] },
-          { id: 'q36', type: 'MULTIPLE_CHOICE', question: 'Which of the following tasks is part of restocking before opening the café?', options: ['Scrubbing machine', 'Counting till', 'Preparing pitchers', 'Refilling lids, syrups, stir sticks, and stocking tea bags'], correctAnswers: ['Refilling lids, syrups, stir sticks, and stocking tea bags'] }
-        ]
-      },
       {
         id: 'l-morning-video',
-        moduleId: 'm-barista-basics',
-        title: 'Visual: Morning Routine',
+        moduleId: 'm-morning',
+        title: 'Video: A Barista\'s Morning Routine',
+        type: 'CONTENT',
+        videoUrl: 'https://youtube.com/watch?v=qiSpThw_S-o',
+        content: 'Watch the full routine of opening the cafe, from sanitation to initial brew tests.'
+      },
+      {
+        id: 'l-morning-quiz',
+        moduleId: 'm-morning',
+        title: 'Morning Protocols Knowledge Check',
         type: 'QUIZ',
-        videoUrl: 'http://youtube.com/watch?v=qiSpThw_S-o',
         quizQuestions: [
-          { id: 'q37', type: 'MULTIPLE_CHOICE', question: 'Why is it important to taste the brewed coffee before serving it to customers?', options: ['Check grinder', 'To ensure the coffee tastes correct and meets company standards', 'Compare milk', 'Practice latte art'], correctAnswers: ['To ensure the coffee tastes correct and meets company standards'] },
-          { id: 'q38', type: 'MULTIPLE_CHOICE', question: 'What does “dialing in” espresso mean?', options: ['Measuring sales', 'Adjusting the coffee grind and espresso settings to meet the correct weight and taste standards', 'Practice during free time', 'Brewing without measuring'], correctAnswers: ['Adjusting the coffee grind and espresso settings to meet the correct weight and taste standards'] },
-          { id: 'q39', type: 'MULTIPLE_CHOICE', question: 'What is the first thing employees are expected to do at the beginning of a shift?', options: ['Pull shots', 'Taste drip coffee', 'Turn on grinders', 'Wash their hands vigorously'], correctAnswers: ['Wash their hands vigorously'] }
+          { id: 'q32', type: 'MULTIPLE_CHOICE', question: 'What is one of the first things the barista does when starting a morning shift?', options: ['Brew espresso', 'Wash hands', 'Fill syrups', 'Clean the pastry case'], correctAnswers: ['Wash hands'] },
+          { id: 'q33', type: 'MULTIPLE_CHOICE', question: 'Why does the barista taste the batch brew after it finishes brewing?', options: ['To practice cupping techniques', 'To calibrate with other baristas', 'To confirm the flavor is correct before serving customers', 'To determine the caffeine level'], correctAnswers: ['To confirm the flavor is correct before serving customers'] },
+          { id: 'q34', type: 'MULTIPLE_CHOICE', question: 'What does "dialing in" espresso involve?', options: ['Cleaning the espresso machine', 'Measuring and adjusting espresso shots for ideal yield and taste', 'Warming up the portafilters', 'Scheduling baristas for the day'], correctAnswers: ['Measuring and adjusting espresso shots for ideal yield and taste'] },
+          { id: 'q35', type: 'MULTIPLE_CHOICE', question: 'Which of the following tasks is part of restocking before opening the café?', options: ['Scrubbing the espresso machine', 'Counting the till', 'Preparing latte art pitchers', 'Refilling lids, syrups, stir sticks, and stocking tea bags'], correctAnswers: ['Refilling lids, syrups, stir sticks, and stocking tea bags'] },
+          { id: 'q36', type: 'MULTIPLE_CHOICE', question: 'Why is it important to taste the brewed coffee before serving it to customers?', options: ['To check if the coffee grinder is clean', 'To ensure the coffee tastes correct and meets company standards', 'To compare different types of milk options', 'To practice for latte art competitions'], correctAnswers: ['To ensure the coffee tastes correct and meets company standards'] },
+          { id: 'q37', type: 'MULTIPLE_CHOICE', question: 'What does "dialing in" espresso mean?', options: ['Measuring how many lattes are sold each day', 'Adjusting the coffee grind and espresso settings to meet the correct weight and taste standards', 'Practicing latte art during free time', 'Brewing coffee without measuring the grounds'], correctAnswers: ['Adjusting the coffee grind and espresso settings to meet the correct weight and taste standards'] },
+          { id: 'q38', type: 'MULTIPLE_CHOICE', question: 'What is the first thing employees are expected to do at the beginning of a shift?', options: ['Pull shots for practice drinks', 'Taste the drip coffee', 'Turn on the grinders', 'Wash their hands vigorously'], correctAnswers: ['Wash their hands vigorously'] },
+          { id: 'q39', type: 'MULTIPLE_CHOICE', question: 'Why is hand washing emphasized as the very first task of the shift?', options: ['It\'s a Texas health code requirement before handling any food or beverage items', 'It helps wake you up in the morning', 'It\'s only necessary if you touched something dirty', 'It\'s optional but recommended'], correctAnswers: ['It\'s a Texas health code requirement before handling any food or beverage items'] },
+          { id: 'q40', type: 'MULTIPLE_CHOICE', question: 'When dialing in espresso, what two key measurements are you trying to achieve?', options: ['Temperature and pressure', 'Dose (input weight) and yield (output weight)', 'Grind size and water volume', 'Brew time and cup size'], correctAnswers: ['Dose (input weight) and yield (output weight)'] },
+          { id: 'q41', type: 'MULTIPLE_CHOICE', question: 'If the espresso tastes sour during the dial-in process, what adjustment should typically be made?', options: ['Use a coarser grind to speed up extraction', 'Use a finer grind to slow down extraction and increase sweetness', 'Add more water to the shot', 'Reduce the dose amount'], correctAnswers: ['Use a finer grind to slow down extraction and increase sweetness'] },
+          { id: 'q42', type: 'MULTIPLE_CHOICE', question: 'Why is restocking supplies before opening important for the flow of service?', options: ['It gives baristas something to do while waiting for customers', 'It ensures you won\'t run out of essential items during the rush, which would slow down service', 'It\'s not important - you can restock during slow periods', 'It\'s mainly for appearance when the manager arrives'], correctAnswers: ['It ensures you won\'t run out of essential items during the rush, which would slow down service'] },
+          { id: 'q43', type: 'MULTIPLE_CHOICE', question: 'What is the purpose of purging the espresso group head before pulling a shot?', options: ['To cool down the machine', 'To flush out old grounds and ensure fresh, clean water for extraction', 'To make a noise that signals you\'re ready', 'It\'s not necessary if the machine is already on'], correctAnswers: ['To flush out old grounds and ensure fresh, clean water for extraction'] }
         ]
       }
     ]
   },
   {
     id: 'm-ordering',
-    title: 'Ordering & Drink Standards',
-    description: 'Understanding the menu from Americanos to Mochas.',
-    category: 'CONTINUED',
+    title: 'Module 4: Ordering at a Coffee Shop',
+    description: 'Understand the menu standards and drink definitions.',
+    category: 'ONBOARDING',
     lessons: [
       {
         id: 'l-ordering-video',
         moduleId: 'm-ordering',
-        title: 'How to Order',
+        title: 'Video: How to Order at a Coffee Shop',
+        type: 'CONTENT',
+        videoUrl: 'https://youtube.com/watch?v=uv4d3qpbd80',
+        content: 'Learn how to accurately take orders and the science behind our standard drink builds.'
+      },
+      {
+        id: 'l-ordering-quiz',
+        moduleId: 'm-ordering',
+        title: 'Drink Standards Knowledge Check',
         type: 'QUIZ',
-        videoUrl: 'http://youtube.com/watch?v=uv4d3qpbd80',
         quizQuestions: [
-          { id: 'q40', type: 'MULTIPLE_CHOICE', question: 'What is the main difference between cold brew and iced coffee?', options: ['Cold brew is hot then chilled', 'Cold brew is brewed cold over a long period of time, usually 18–24 hours', 'Cold brew adds milk automatically', 'Cold brew has less caffeine'], correctAnswers: ['Cold brew is brewed cold over a long period of time, usually 18–24 hours'] },
-          { id: 'q41', type: 'MULTIPLE_CHOICE', question: 'What is a cortado made of?', options: ['2oz espresso + 3.5oz milk', 'Two ounces of espresso and two ounces of steamed milk', '1oz espresso + 1oz water', 'Two shots topped with foam'], correctAnswers: ['Two ounces of espresso and two ounces of steamed milk'] },
-          { id: 'q42', type: 'MULTIPLE_CHOICE', question: 'What is an Americano made of?', options: ['Two shots of espresso combined with hot or cold water', 'Shots mixed with steamed milk', 'Brewed coffee over ice', 'Cold brew mixed with sparkling water'], correctAnswers: ['Two shots of espresso combined with hot or cold water'] },
-          { id: 'q43', type: 'MULTIPLE_CHOICE', question: 'What is a mocha?', options: ['Americano + chocolate', 'A latte with chocolate sauce and sometimes cocoa powder', 'Cold brew + whipped cream', 'Cappuccino + cinnamon'], correctAnswers: ['A latte with chocolate sauce and sometimes cocoa powder'] }
+          { id: 'q44', type: 'MULTIPLE_CHOICE', question: 'What is the main difference between cold brew and iced coffee?', options: ['Cold brew is brewed hot and then chilled quickly', 'Cold brew is brewed cold over a long period of time, usually 18–24 hours', 'Cold brew has milk added automatically during brewing', 'Cold brew has less caffeine than iced coffee'], correctAnswers: ['Cold brew is brewed cold over a long period of time, usually 18–24 hours'] },
+          { id: 'q45', type: 'MULTIPLE_CHOICE', question: 'What is a cortado made of?', options: ['Two ounces of espresso and three and a half ounces of steamed milk', 'Two ounces of espresso and two ounces of steamed milk', 'One ounce of espresso and one ounce of hot water', 'Two shots of espresso topped with foam only'], correctAnswers: ['Two ounces of espresso and two ounces of steamed milk'] },
+          { id: 'q46', type: 'MULTIPLE_CHOICE', question: 'What is an Americano made of?', options: ['Two shots of espresso combined with hot or cold water', 'Two shots of espresso mixed with steamed milk', 'Brewed coffee poured over ice', 'Cold brew mixed with sparkling water'], correctAnswers: ['Two shots of espresso combined with hot or cold water'] },
+          { id: 'q47', type: 'MULTIPLE_CHOICE', question: 'What is a mocha?', options: ['An Americano with chocolate added', 'A latte with chocolate sauce and sometimes cocoa powder', 'A cold brew topped with whipped cream', 'A cappuccino with extra foam and cinnamon'], correctAnswers: ['A latte with chocolate sauce and sometimes cocoa powder'] },
+          { id: 'q48', type: 'MULTIPLE_CHOICE', question: 'What is the key difference between a latte and a cappuccino?', options: ['A cappuccino uses decaf espresso', 'A latte has more steamed milk, while a cappuccino has more foam and less liquid milk', 'A cappuccino is always iced', 'There is no difference - they are the same drink'], correctAnswers: ['A latte has more steamed milk, while a cappuccino has more foam and less liquid milk'] },
+          { id: 'q49', type: 'MULTIPLE_CHOICE', question: 'What makes a macchiato different from other espresso drinks?', options: ['It uses a different type of coffee bean', 'It\'s espresso "marked" or "stained" with just a small amount of milk or foam', 'It\'s the same as an Americano', 'It always includes flavored syrup'], correctAnswers: ['It\'s espresso "marked" or "stained" with just a small amount of milk or foam'] },
+          { id: 'q50', type: 'MULTIPLE_CHOICE', question: 'Why might a customer choose cold brew over iced coffee?', options: ['Cold brew is always cheaper', 'Cold brew typically has a smoother, less acidic flavor due to the cold extraction process', 'Iced coffee has more caffeine', 'Cold brew is made fresh while iced coffee is pre-made'], correctAnswers: ['Cold brew typically has a smoother, less acidic flavor due to the cold extraction process'] },
+          { id: 'q51', type: 'MULTIPLE_CHOICE', question: 'If a customer wants a strong coffee flavor but doesn\'t like milk, which drink would you recommend?', options: ['Latte', 'Cappuccino', 'Americano', 'Mocha'], correctAnswers: ['Americano'] },
+          { id: 'q52', type: 'MULTIPLE_CHOICE', question: 'What is a flat white, and how does it differ from a latte?', options: ['A flat white uses oat milk only', 'A flat white has a higher ratio of espresso to milk and features microfoam rather than frothy foam', 'A flat white is served cold', 'There is no difference - it\'s a regional name for a latte'], correctAnswers: ['A flat white has a higher ratio of espresso to milk and features microfoam rather than frothy foam'] },
+          { id: 'q53', type: 'MULTIPLE_CHOICE', question: 'A customer orders a "dry" cappuccino. What does this mean?', options: ['They want it with no espresso', 'They want extra foam and less steamed milk', 'They want it at room temperature', 'They want no foam at all'], correctAnswers: ['They want extra foam and less steamed milk'] }
         ]
       }
     ]
   },
   {
-    id: 'm-science',
-    title: 'Coffee Science & Processing',
-    description: 'From Seed to Cup: The technical side of specialty coffee.',
-    category: 'CONTINUED',
+    id: 'm-specialty',
+    title: 'Module 5: What is Specialty Coffee?',
+    description: 'Learn the technical definitions and Jon\'s long-term goal for the industry.',
+    category: 'ONBOARDING',
     lessons: [
       {
         id: 'l-specialty-video',
-        moduleId: 'm-science',
-        title: 'What is Specialty Coffee?',
-        type: 'QUIZ',
-        videoUrl: 'http://youtube.com/watch?v=kM_UlQ9fr2c',
-        quizQuestions: [
-          { id: 'q44', type: 'MULTIPLE_CHOICE', question: 'What is the technical definition of specialty coffee?', options: ['Sensory score of 80 or above...', 'Brewed with syrups', 'Roasted darker', 'Only served cold'], correctAnswers: ['Sensory score of 80 or above based on quality measures like acidity, sweetness, and aroma'] },
-          { id: 'q45', type: 'MULTIPLE_CHOICE', question: 'Why does specialty coffee often cost more than commodity coffee?', options: ['Grown closer to US', 'Specialty coffee requires more labor, higher quality farming practices, and careful defect removal', 'Roasted with expensive equipment', 'Higher tax'], correctAnswers: ['Specialty coffee requires more labor, higher quality farming practices, and careful defect removal'] },
-          { id: 'q46', type: 'MULTIPLE_CHOICE', question: 'What is Jon’s long-term goal for the coffee industry?', options: ['Baristas more famous than chefs', 'To turn farms and producers into recognized brands for consumers', 'More syrup-based drinks', 'Replace wine'], correctAnswers: ['To turn farms and producers into recognized brands for consumers'] }
-        ]
+        moduleId: 'm-specialty',
+        title: 'Video: What is Specialty Coffee?',
+        type: 'CONTENT',
+        videoUrl: 'https://youtube.com/watch?v=kM_UlQ9fr2c',
+        content: 'Understand the technical 100-point scoring system and the mission of SCA.'
       },
       {
-        id: 'l-seed-to-cup',
-        moduleId: 'm-science',
-        title: 'Seed to Cup Journey',
-        type: 'QUIZ',
-        videoUrl: 'http://youtube.com/watch?v=Dmpnrtey3YU',
-        quizQuestions: [
-          { id: 'q47', type: 'MULTIPLE_CHOICE', question: 'What factors contribute to the high quality of coffee grown at higher altitudes?', options: ['Faster growth', 'Slow growth, rich volcanic soil, and cooler climates', 'Fast harvesting', 'Hotter temperatures'], correctAnswers: ['Slow growth, rich volcanic soil, and cooler climates'] },
-          { id: 'q48', type: 'MULTIPLE_CHOICE', question: 'What is one major reason specialty coffee costs more than commodity coffee?', options: ['Machine picked', 'Grows faster', 'It requires more labor-intensive harvesting and sorting by hand', 'Mixed with syrups'], correctAnswers: ['It requires more labor-intensive harvesting and sorting by hand'] },
-          { id: 'q49', type: 'MULTIPLE_CHOICE', question: 'What is the washed process used for in coffee production?', options: ['Mix varieties', 'To ferment coffee cherries to remove mucilage and improve flavor', 'Dry directly in sun', 'Roast immediately'], correctAnswers: ['To ferment coffee cherries to remove mucilage and improve flavor'] },
-          { id: 'q50', type: 'MULTIPLE_CHOICE', question: 'What is the final stage before coffee is exported and roasted?', options: ['Green coffee', 'Red cherries', 'Dry parchment', 'Wet parchment'], correctAnswers: ['Green coffee'] },
-          { id: 'q51', type: 'MULTIPLE_CHOICE', question: 'What is the name of the coffee plant species that produces both commodity and specialty coffee?', options: ['Coffea robusta', 'Coffea liberica', 'Coffea arabica', 'Coffea excelsa'], correctAnswers: ['Coffea arabica'] }
-        ]
-      },
-      {
-        id: 'l-processing-logic',
-        moduleId: 'm-science',
-        title: 'Plant & Process',
+        id: 'l-specialty-quiz',
+        moduleId: 'm-specialty',
+        title: 'Specialty Coffee Knowledge Check',
         type: 'QUIZ',
         quizQuestions: [
-          { id: 'q52', type: 'MULTIPLE_CHOICE', question: 'Which of the following correctly lists the five main stages of coffee processing?', options: ['Green, roasted, wet, dry, red', 'Red cherry, wet parchment, dry parchment, green coffee, roasted coffee', 'Dry, red, green, roasted, wet', 'Wet, red, roasted, green, dry'], correctAnswers: ['Red cherry, wet parchment, dry parchment, green coffee, roasted coffee'] },
-          { id: 'q53', type: 'MULTIPLE_CHOICE', question: 'Coffee is best described as what part of the plant?', options: ['The seed inside a cherry', 'The root', 'The leaf', 'The outer skin'], correctAnswers: ['The seed inside a cherry'] }
+          { id: 'q54', type: 'MULTIPLE_CHOICE', question: 'What is the technical definition of specialty coffee?', options: ['Coffee with a sensory score of 80 or above based on quality measures like acidity, sweetness, and aroma', 'Coffee that is brewed with added syrups and flavors', 'Coffee that is roasted darker than normal', 'Coffee that is only served cold or iced'], correctAnswers: ['Coffee with a sensory score of 80 or above based on quality measures like acidity, sweetness, and aroma'] },
+          { id: 'q55', type: 'MULTIPLE_CHOICE', question: 'Why does specialty coffee often cost more than commodity coffee?', options: ['It is grown closer to the United States', 'Specialty coffee requires more labor, higher quality farming practices, and careful defect removal', 'It is roasted with more expensive equipment', 'It is taxed at a higher rate'], correctAnswers: ['Specialty coffee requires more labor, higher quality farming practices, and careful defect removal'] },
+          { id: 'q56', type: 'MULTIPLE_CHOICE', question: 'What is Jon\'s long-term goal for the coffee industry?', options: ['To make baristas more famous than chefs', 'To turn farms and producers into recognized brands for consumers', 'To create more syrup-based drinks for cafes', 'To replace wine as the most prestigious beverage'], correctAnswers: ['To turn farms and producers into recognized brands for consumers'] },
+          { id: 'q57', type: 'MULTIPLE_CHOICE', question: 'What organization developed the 100-point scoring system used to grade specialty coffee?', options: ['The National Coffee Association', 'The Specialty Coffee Association (SCA)', 'The USDA', 'Starbucks Corporation'], correctAnswers: ['The Specialty Coffee Association (SCA)'] },
+          { id: 'q58', type: 'MULTIPLE_CHOICE', question: 'What sensory attributes are evaluated when scoring specialty coffee?', options: ['Only the caffeine content and color', 'Aroma, flavor, aftertaste, acidity, body, balance, uniformity, clean cup, sweetness, and overall impression', 'Just the bitterness and temperature', 'Only the packaging and brand name'], correctAnswers: ['Aroma, flavor, aftertaste, acidity, body, balance, uniformity, clean cup, sweetness, and overall impression'] },
+          { id: 'q59', type: 'MULTIPLE_CHOICE', question: 'Why is traceability important in specialty coffee?', options: ['It\'s only important for marketing purposes', 'It allows consumers to know exactly where their coffee came from and ensures farmers are fairly compensated', 'It makes the coffee taste better', 'It\'s a government requirement'], correctAnswers: ['It allows consumers to know exactly where their coffee came from and ensures farmers are fairly compensated'] },
+          { id: 'q60', type: 'MULTIPLE_CHOICE', question: 'What is the difference between "commodity" coffee and "specialty" coffee?', options: ['Commodity coffee is always organic', 'Commodity coffee is mass-produced with less focus on quality, while specialty coffee is carefully sourced and graded for exceptional taste', 'There is no difference - they are marketing terms', 'Specialty coffee is always decaffeinated'], correctAnswers: ['Commodity coffee is mass-produced with less focus on quality, while specialty coffee is carefully sourced and graded for exceptional taste'] },
+          { id: 'q61', type: 'MULTIPLE_CHOICE', question: 'How does the specialty coffee movement benefit coffee farmers?', options: ['It doesn\'t - farmers receive the same payment regardless', 'Farmers can earn premium prices for higher quality beans, and direct trade relationships provide more income than commodity markets', 'It only benefits roasters and cafes', 'Farmers are required to work longer hours'], correctAnswers: ['Farmers can earn premium prices for higher quality beans, and direct trade relationships provide more income than commodity markets'] }
         ]
       }
     ]
   },
   {
-    id: 'm-advanced',
-    title: 'Excellence: Onyx & The Ideal Player',
-    description: 'Learning from the best in the industry.',
-    category: 'CONTINUED',
+    id: 'm-seed',
+    title: 'Module 6: Coffee Seed to Cup',
+    description: 'Trace the journey of coffee from the plant to the green bean.',
+    category: 'ONBOARDING',
+    lessons: [
+      {
+        id: 'l-seed-video',
+        moduleId: 'm-seed',
+        title: 'Video: Coffee Seed to Cup',
+        type: 'CONTENT',
+        videoUrl: 'https://youtube.com/watch?v=Dmpnrtey3YU',
+        content: 'Understand altitude, processing methods (washed vs natural), and the stages of coffee maturation.'
+      },
+      {
+        id: 'l-seed-quiz',
+        moduleId: 'm-seed',
+        title: 'Agricultural Standards Knowledge Check',
+        type: 'QUIZ',
+        quizQuestions: [
+          { id: 'q62', type: 'MULTIPLE_CHOICE', question: 'What factors contribute to the high quality of coffee grown at higher altitudes?', options: ['Faster growth, more sunlight, more machine harvesting', 'Slow growth, rich volcanic soil, and cooler climates', 'Fast harvesting, flat terrain, and larger bean size', 'Hotter temperatures and quicker ripening'], correctAnswers: ['Slow growth, rich volcanic soil, and cooler climates'] },
+          { id: 'q63', type: 'MULTIPLE_CHOICE', question: 'What is one major reason specialty coffee costs more than commodity coffee?', options: ['It is picked and processed by machines', 'It grows faster and produces more beans', 'It requires more labor-intensive harvesting and sorting by hand', 'It is mixed with different flavored syrups'], correctAnswers: ['It requires more labor-intensive harvesting and sorting by hand'] },
+          { id: 'q64', type: 'MULTIPLE_CHOICE', question: 'What is the washed process used for in coffee production?', options: ['To mix different coffee varieties', 'To ferment coffee cherries to remove mucilage and improve flavor', 'To dry coffee cherries directly in the sun without processing', 'To roast coffee immediately after harvesting'], correctAnswers: ['To ferment coffee cherries to remove mucilage and improve flavor'] },
+          { id: 'q65', type: 'MULTIPLE_CHOICE', question: 'What is the final stage before coffee is exported and roasted?', options: ['Green coffee', 'Red cherries', 'Dry parchment', 'Wet parchment'], correctAnswers: ['Green coffee'] },
+          { id: 'q66', type: 'MULTIPLE_CHOICE', question: 'What is the name of the coffee plant species that produces both commodity and specialty coffee?', options: ['Coffea robusta', 'Coffea liberica', 'Coffea arabica', 'Coffea excelsa'], correctAnswers: ['Coffea arabica'] },
+          { id: 'q67', type: 'MULTIPLE_CHOICE', question: 'Which of the following correctly lists the five main stages of coffee processing?', options: ['Green coffee, roasted coffee, wet parchment, dry parchment, red cherry', 'Red cherry, wet parchment, dry parchment, green coffee, roasted coffee', 'Dry parchment, red cherry, green coffee, roasted coffee, wet parchment', 'Wet parchment, red cherry, roasted coffee, green coffee, dry parchment'], correctAnswers: ['Red cherry, wet parchment, dry parchment, green coffee, roasted coffee'] },
+          { id: 'q68', type: 'MULTIPLE_CHOICE', question: 'Coffee is best described as what part of the plant?', options: ['The seed inside a cherry', 'The root of a small bush', 'The leaf of the coffee tree', 'The outer skin of the fruit'], correctAnswers: ['The seed inside a cherry'] },
+          { id: 'q69', type: 'MULTIPLE_CHOICE', question: 'What is the "natural" or "dry" processing method?', options: ['Coffee cherries are washed immediately after picking', 'Coffee cherries are dried whole with the fruit still on the seed, creating fruity flavor notes', 'Coffee is processed using chemicals', 'Coffee is frozen before processing'], correctAnswers: ['Coffee cherries are dried whole with the fruit still on the seed, creating fruity flavor notes'] },
+          { id: 'q70', type: 'MULTIPLE_CHOICE', question: 'What is the "Coffee Belt" or "Bean Belt"?', options: ['A brand of coffee equipment', 'The region between the Tropics of Cancer and Capricorn where coffee grows best', 'A type of coffee storage container', 'A measurement tool for coffee beans'], correctAnswers: ['The region between the Tropics of Cancer and Capricorn where coffee grows best'] },
+          { id: 'q71', type: 'MULTIPLE_CHOICE', question: 'Why is selective hand-picking preferred for specialty coffee harvesting?', options: ['It\'s faster than machine harvesting', 'It allows pickers to choose only ripe cherries, ensuring consistent quality', 'It\'s required by law in all countries', 'It doesn\'t matter how coffee is harvested'], correctAnswers: ['It allows pickers to choose only ripe cherries, ensuring consistent quality'] },
+          { id: 'q72', type: 'MULTIPLE_CHOICE', question: 'What is "mucilage" in coffee processing?', options: ['A type of coffee roast', 'The sticky, sugary layer surrounding the coffee seed inside the cherry', 'A coffee brewing method', 'A disease that affects coffee plants'], correctAnswers: ['The sticky, sugary layer surrounding the coffee seed inside the cherry'] },
+          { id: 'q73', type: 'MULTIPLE_CHOICE', question: 'How does altitude affect coffee flavor development?', options: ['Higher altitude means faster ripening and milder flavors', 'Higher altitude slows cherry maturation, allowing sugars and acids to develop more complex flavors', 'Altitude has no effect on coffee flavor', 'Lower altitude produces more complex flavors'], correctAnswers: ['Higher altitude slows cherry maturation, allowing sugars and acids to develop more complex flavors'] },
+          { id: 'q74', type: 'MULTIPLE_CHOICE', question: 'What happens during the "hulling" stage of coffee processing?', options: ['The coffee is roasted', 'The parchment layer is removed from the dried coffee to reveal the green bean', 'The coffee cherries are picked', 'The coffee is brewed for testing'], correctAnswers: ['The parchment layer is removed from the dried coffee to reveal the green bean'] }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'm-onyx',
+    title: 'Module 7: Onyx Coffee Lab',
+    description: 'Learn from the quality standards of an industry-leading roastery.',
+    category: 'ONBOARDING',
     lessons: [
       {
         id: 'l-onyx-video',
-        moduleId: 'm-advanced',
-        title: 'Onyx: Never Settle',
-        type: 'QUIZ',
-        videoUrl: 'http://youtube.com/watch?v=WYZQGE6M4Tc',
-        quizQuestions: [
-          { id: 'q54', type: 'MULTIPLE_CHOICE', question: 'What is the meaning of Onyx’s tagline “Never Settle for Good Enough”?', options: ['Fast service over quality', 'Strive for excellence and constantly push for better quality', 'Lowering costs', 'Create many new drinks'], correctAnswers: ['Strive for excellence and constantly push for better quality'] },
-          { id: 'q55', type: 'MULTIPLE_CHOICE', question: 'What quality control steps are mentioned for processing coffee at Onyx?', options: ['Roast and ship immediately', 'Sort only by weight', 'Roast, color sort to remove defects, cup for quality, then bag and ship', 'Large batches without checking'], correctAnswers: ['Roast, color sort to remove defects, cup for quality, then bag and ship'] },
-          { id: 'q56', type: 'MULTIPLE_CHOICE', question: 'What was the original goal behind founding Onyx Coffee Lab?', options: ['Largest chain of drive-thrus', 'Create flavored syrups', 'To build a coffee company geared toward coffee professionals', 'Focus on selling equipment'], correctAnswers: ['To build a coffee company geared toward coffee professionals'] }
-        ]
+        moduleId: 'm-onyx',
+        title: 'Video: Onyx Coffee Lab Quality Standards',
+        type: 'CONTENT',
+        videoUrl: 'https://youtube.com/watch?v=WYZQGE6M4Tc',
+        content: 'Observe the "Never Settle" philosophy in action through color-sorting and precision roasting.'
       },
       {
-        id: 'l-lencioni-video',
-        moduleId: 'm-advanced',
-        title: 'The Ideal Team Player',
+        id: 'l-onyx-quiz',
+        moduleId: 'm-onyx',
+        title: 'Onyx Standards Knowledge Check',
         type: 'QUIZ',
-        videoUrl: 'http://youtube.com/watch?v=PRh80RyT74I',
         quizQuestions: [
-          { id: 'q57', type: 'MULTIPLE_CHOICE', question: 'What are the three virtues of an ideal team player, according to Patrick Lencioni?', options: ['Humble, Hungry, Smart', 'Helpful, Honest, Strategic', 'Hardworking, Empathetic', 'Happy, Healthy, Structured'], correctAnswers: ['Humble, Hungry, Smart'] },
-          { id: 'q58', type: 'MULTIPLE_CHOICE', question: 'What does Lencioni say is the most important of the three virtues?', options: ['Smart', 'Hungry', 'Humble', 'Hardworking'], correctAnswers: ['Humble'] },
-          { id: 'q59', type: 'MULTIPLE_CHOICE', question: 'What does it mean to be “hungry” in the context of being a team player?', options: ['Wanting promotions', 'Having a strong internal drive to do more than the minimum', 'Working long hours for approval', 'Being competitive'], correctAnswers: ['Having a strong internal drive to do more than the minimum'] },
-          { id: 'q60', type: 'MULTIPLE_CHOICE', question: 'What type of team member is described as smart and hungry but not humble?', options: ['Accidental mess maker', 'Lovable slacker', 'Skillful politician', 'Silent contributor'], correctAnswers: ['Skillful politician'] },
-          { id: 'q61', type: 'MULTIPLE_CHOICE', question: 'Which of the following best describes someone who is humble and smart but not hungry?', options: ['Skillful politician', 'Lovable slacker', 'Silent overachiever', 'Unintentional leader'], correctAnswers: ['Lovable slacker'] }
+          { id: 'q75', type: 'MULTIPLE_CHOICE', question: 'What is the meaning of Onyx\'s tagline "Never Settle for Good Enough"?', options: ['Always offer fast service over quality', 'Strive for excellence and constantly push for better quality', 'Focus on lowering costs by cutting corners', 'Create as many new coffee drinks as possible each season'], correctAnswers: ['Strive for excellence and constantly push for better quality'] },
+          { id: 'q76', type: 'MULTIPLE_CHOICE', question: 'What quality control steps are mentioned for processing coffee at Onyx?', options: ['Roast the coffee and ship it immediately without checking', 'Sort green coffee only by weight, not quality', 'Roast, color sort to remove defects, cup for quality, then bag and ship', 'Only roast large batches without checking flavor'], correctAnswers: ['Roast, color sort to remove defects, cup for quality, then bag and ship'] },
+          { id: 'q77', type: 'MULTIPLE_CHOICE', question: 'What was the original goal behind founding Onyx Coffee Lab?', options: ['To open the largest chain of drive-thru coffee shops', 'To create flavored coffee syrups for mass distribution', 'To build a coffee company geared toward coffee professionals', 'To focus exclusively on selling equipment and merchandise'], correctAnswers: ['To build a coffee company geared toward coffee professionals'] },
+          { id: 'q78', type: 'MULTIPLE_CHOICE', question: 'What is "color sorting" in coffee roasting and why is it important?', options: ['It\'s a marketing technique to make bags look attractive', 'It uses optical sensors to identify and remove defective beans that would negatively impact flavor', 'It determines what color bag the coffee will be sold in', 'It\'s the same as grading coffee by size'], correctAnswers: ['It uses optical sensors to identify and remove defective beans that would negatively impact flavor'] },
+          { id: 'q79', type: 'MULTIPLE_CHOICE', question: 'What is "cupping" in the context of coffee quality control?', options: ['A method of measuring how much coffee fits in a cup', 'A standardized tasting protocol used to evaluate coffee\'s aroma, flavor, and quality', 'A way to package coffee for shipping', 'A technique for brewing espresso'], correctAnswers: ['A standardized tasting protocol used to evaluate coffee\'s aroma, flavor, and quality'] },
+          { id: 'q80', type: 'MULTIPLE_CHOICE', question: 'Why would a roaster cup every batch of coffee before shipping?', options: ['To delay the shipping process', 'To ensure consistent quality and catch any defects before the coffee reaches customers', 'It\'s not necessary - tasting is optional', 'To add extra caffeine to the beans'], correctAnswers: ['To ensure consistent quality and catch any defects before the coffee reaches customers'] },
+          { id: 'q81', type: 'MULTIPLE_CHOICE', question: 'How does Onyx\'s approach to quality reflect the "Never Settle" philosophy?', options: ['They accept whatever quality beans are available', 'They implement multiple quality checkpoints throughout the process and reject anything that doesn\'t meet their standards', 'They focus only on speed of production', 'They outsource all quality control'], correctAnswers: ['They implement multiple quality checkpoints throughout the process and reject anything that doesn\'t meet their standards'] }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'm-ideal',
+    title: 'Module 8: The Ideal Team Player',
+    description: 'Master the soft skills required for a high-performing team.',
+    category: 'ONBOARDING',
+    lessons: [
+      {
+        id: 'l-ideal-video',
+        moduleId: 'm-ideal',
+        title: 'Video: The Ideal Team Player (Lencioni)',
+        type: 'CONTENT',
+        videoUrl: 'https://youtube.com/watch?v=PRh80RyT74I',
+        content: 'Understand the three virtues that make a Boundaries team member successful.'
+      },
+      {
+        id: 'l-ideal-quiz',
+        moduleId: 'm-ideal',
+        title: 'Teamwork Knowledge Check',
+        type: 'QUIZ',
+        quizQuestions: [
+          { id: 'q82', type: 'MULTIPLE_CHOICE', question: 'What are the three virtues of an ideal team player, according to Patrick Lencioni?', options: ['Humble, Hungry, Smart', 'Helpful, Honest, Strategic', 'Hardworking, Empathetic, Logical', 'Happy, Healthy, Structured'], correctAnswers: ['Humble, Hungry, Smart'] },
+          { id: 'q83', type: 'MULTIPLE_CHOICE', question: 'What does Lencioni say is the most important of the three virtues?', options: ['Smart', 'Hungry', 'Humble', 'Hardworking'], correctAnswers: ['Humble'] },
+          { id: 'q84', type: 'MULTIPLE_CHOICE', question: 'What does it mean to be "hungry" in the context of being a team player?', options: ['Wanting promotions and recognition', 'Having a strong internal drive to do more than the minimum', 'Working long hours for approval', 'Being competitive with teammates'], correctAnswers: ['Having a strong internal drive to do more than the minimum'] },
+          { id: 'q85', type: 'MULTIPLE_CHOICE', question: 'What type of team member is described as smart and hungry but not humble?', options: ['Accidental mess maker', 'Lovable slacker', 'Skillful politician', 'Silent contributor'], correctAnswers: ['Skillful politician'] },
+          { id: 'q86', type: 'MULTIPLE_CHOICE', question: 'Which of the following best describes someone who is humble and smart but not hungry?', options: ['Skillful politician', 'Lovable slacker', 'Silent overachiever', 'Unintentional leader'], correctAnswers: ['Lovable slacker'] },
+          { id: 'q87', type: 'MULTIPLE_CHOICE', question: 'What does "smart" mean in Lencioni\'s framework (it\'s not about intelligence)?', options: ['Having a high IQ', 'Being good at solving math problems', 'Having common sense about people - understanding how words and actions affect others', 'Being the smartest person in the room'], correctAnswers: ['Having common sense about people - understanding how words and actions affect others'] },
+          { id: 'q88', type: 'MULTIPLE_CHOICE', question: 'What type of team member is described as humble and hungry but not smart?', options: ['The Skillful Politician', 'The Accidental Mess Maker - they mean well but unintentionally create interpersonal problems', 'The Lovable Slacker', 'The Perfect Employee'], correctAnswers: ['The Accidental Mess Maker - they mean well but unintentionally create interpersonal problems'] },
+          { id: 'q89', type: 'MULTIPLE_CHOICE', question: 'Why is humility considered the most important virtue for team players?', options: ['Because humble people don\'t ask for raises', 'Because without humility, a person\'s hunger and smarts can be used for selfish purposes that harm the team', 'Because humble people work faster', 'Humility isn\'t actually that important'], correctAnswers: ['Because without humility, a person\'s hunger and smarts can be used for selfish purposes that harm the team'] },
+          { id: 'q90', type: 'MULTIPLE_CHOICE', question: 'A coworker always does the minimum required and leaves exactly on time, but is pleasant and well-liked. Which virtue are they likely missing?', options: ['Humble', 'Smart', 'Hungry', 'None - they\'re an ideal team player'], correctAnswers: ['Hungry'] },
+          { id: 'q91', type: 'MULTIPLE_CHOICE', question: 'How can you demonstrate being "hungry" during a shift at Boundaries Coffee?', options: ['Complaining that you\'re not being given enough hours', 'Doing only what\'s on your assigned checklist', 'Looking for additional tasks to help the team, even when your own work is done', 'Asking for a promotion every week'], correctAnswers: ['Looking for additional tasks to help the team, even when your own work is done'] },
+          { id: 'q92', type: 'MULTIPLE_CHOICE', question: 'A team member is talented and driven but takes credit for others\' work and manipulates situations. What type are they?', options: ['The Ideal Team Player', 'The Lovable Slacker', 'The Skillful Politician - they lack humility', 'The Accidental Mess Maker'], correctAnswers: ['The Skillful Politician - they lack humility'] },
+          { id: 'q93', type: 'MULTIPLE_CHOICE', question: 'According to Lencioni, which combination of missing virtues is the most dangerous for a team?', options: ['Missing humble only', 'Missing hungry only', 'Missing smart only', 'Having none of the three virtues'], correctAnswers: ['Having none of the three virtues'] }
         ]
       }
     ]
@@ -756,6 +815,7 @@ const baseTemplates = [
     name: 'Opening Checklist',
     type: 'OPENING',
     deadlineHour: 7,
+    unlockHour: 0,
     tasks: [
       { id: 'o-1', title: 'Unlock doors, turn on lights, and start music', requiresPhoto: false, isCritical: true },
       { id: 'o-2', title: 'Dial in Monarch Espresso (Check yield & time)', requiresValue: 'Grind Setting', requiresPhoto: false },
@@ -774,6 +834,7 @@ const baseTemplates = [
     name: 'Closing Checklist',
     type: 'CLOSING',
     deadlineHour: 21,
+    unlockHour: 10,
     tasks: [
       { id: 'c-1', title: 'Backflush La Marzocco with Cafiza', requiresPhoto: false },
       { id: 'c-2', title: 'Soak portafilters & baskets in Cafiza', requiresPhoto: false },
@@ -791,6 +852,7 @@ const baseTemplates = [
     name: 'Monday Deep Clean',
     type: 'WEEKLY',
     deadlineHour: 23,
+    unlockHour: 0,
     tasks: [
       { id: 'mon-1', title: 'Wipe out all fridges & rotate milk', requiresPhoto: true },
       { id: 'mon-2', title: 'Clean out trash cans & knock box', requiresPhoto: false }
@@ -801,6 +863,7 @@ const baseTemplates = [
     name: 'Tuesday Deep Clean',
     type: 'WEEKLY',
     deadlineHour: 23,
+    unlockHour: 0,
     tasks: [
       { id: 'tue-1', title: 'Sweep & mop the walk in fridge', requiresPhoto: true },
       { id: 'tue-2', title: 'Clean out pastry case', requiresPhoto: true }
@@ -811,6 +874,7 @@ const baseTemplates = [
     name: 'Wednesday Deep Clean',
     type: 'WEEKLY',
     deadlineHour: 23,
+    unlockHour: 0,
     tasks: [
       { id: 'wed-1', title: 'Clean the walls & windows in FOH', requiresPhoto: true },
       { id: 'wed-3', title: 'Flush nitro lines with cafiza', requiresPhoto: true, isCritical: true }
@@ -821,6 +885,7 @@ const baseTemplates = [
     name: 'Thursday Deep Clean',
     type: 'WEEKLY',
     deadlineHour: 23,
+    unlockHour: 0,
     tasks: [
       { id: 'thu-1', title: 'Wipe out all fridges & rotate milk', requiresPhoto: true },
       { id: 'thu-4', title: 'Deep clean sinks', requiresPhoto: true }
@@ -831,6 +896,7 @@ const baseTemplates = [
     name: 'Friday Deep Clean',
     type: 'WEEKLY',
     deadlineHour: 23,
+    unlockHour: 0,
     tasks: [
       { id: 'fri-3', title: 'Pull fridges out & clean the floors behind (x3)', requiresPhoto: true, isCritical: true }
     ]
@@ -840,6 +906,7 @@ const baseTemplates = [
     name: 'Saturday Deep Clean',
     type: 'WEEKLY',
     deadlineHour: 23,
+    unlockHour: 0,
     tasks: [
       { id: 'sat-3', title: 'Deep clean the TurboChef oven', requiresPhoto: true, isCritical: true }
     ]
@@ -849,6 +916,7 @@ const baseTemplates = [
     name: 'Sunday Deep Clean',
     type: 'WEEKLY',
     deadlineHour: 23,
+    unlockHour: 0,
     tasks: [
       { id: 'sun-1', title: 'Deep clean the bathroom', requiresPhoto: true, isCritical: true }
     ]

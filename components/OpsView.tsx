@@ -1,7 +1,6 @@
-
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { ChecklistTemplate, User, ChecklistSubmission } from '../types';
-import { Camera, Check, AlertCircle, Info, Send, ChevronRight, X, Clock, User as UserIcon, MessageSquare, Save, RotateCcw, Users, RefreshCw, Trash2, CheckCircle2, ShieldCheck, AlertTriangle, Sunrise, Sunset, ClipboardList, CalendarCheck, CloudCheck, CalendarDays, Timer, Lock, Eye } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { ChecklistTemplate, User, ChecklistSubmission, UserRole } from '../types';
+import { Camera, Check, AlertCircle, Info, Send, ChevronRight, X, Clock, User as UserIcon, MessageSquare, Save, RotateCcw, Users, RefreshCw, Trash2, CheckCircle2, ShieldCheck, AlertTriangle, Sunrise, Sunset, ClipboardList, CalendarCheck, CloudCheck, CalendarDays, Timer, Lock, Eye, Sparkles, Zap, Unlock } from 'lucide-react';
 
 interface CameraModalProps {
   isOpen: boolean;
@@ -172,9 +171,10 @@ interface OpsViewProps {
   templates: ChecklistTemplate[];
   existingSubmissions: ChecklistSubmission[];
   onUpdate: (data: { id?: string; templateId: string; responses: any; isFinal: boolean; targetDate: string }) => void;
+  onResetSubmission?: (id: string) => void;
 }
 
-const OpsView: React.FC<OpsViewProps> = ({ user, allUsers, templates, existingSubmissions, onUpdate }) => {
+const OpsView: React.FC<OpsViewProps> = ({ user, allUsers, templates, existingSubmissions, onUpdate, onResetSubmission }) => {
   const [activeTemplate, setActiveTemplate] = useState<ChecklistTemplate | null>(() => {
     const saved = localStorage.getItem('boundaries_active_template_id');
     return saved ? templates.find(t => t.id === saved) || null : null;
@@ -185,11 +185,35 @@ const OpsView: React.FC<OpsViewProps> = ({ user, allUsers, templates, existingSu
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [capturingTaskId, setCapturingTaskId] = useState<string | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [showReopenConfirm, setShowReopenConfirm] = useState(false);
   
   const interactionLock = useRef<Record<string, number>>({});
+  const lastSyncedSubmissionRef = useRef<string | null>(null);
+
+  const dailyProtocols = useMemo(() => templates.filter(t => ['OPENING', 'CLOSING', 'SHIFT_CHANGE'].includes(t.type)), [templates]);
+  const maintenanceProtocols = useMemo(() => templates.filter(t => ['WEEKLY', 'MONTHLY'].includes(t.type)), [templates]);
+
+  const isManager = user.role === UserRole.MANAGER || user.role === UserRole.ADMIN;
 
   const getTargetDate = useCallback((template: ChecklistTemplate) => {
     const now = new Date();
+    const localHour = now.getHours();
+    
+    const getLocalYYYYMMDD = (d: Date) => {
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
+    const todayStr = getLocalYYYYMMDD(now);
+
+    if (localHour < (template.unlockHour ?? 0)) {
+      const yesterday = new Date(now);
+      yesterday.setDate(now.getDate() - 1);
+      return getLocalYYYYMMDD(yesterday);
+    }
+
     const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     const dayNameInTemplate = daysOfWeek.find(d => template.name.includes(d));
     
@@ -200,16 +224,16 @@ const OpsView: React.FC<OpsViewProps> = ({ user, allUsers, templates, existingSu
       if (diff < 0) diff += 7; 
       const targetDateObj = new Date(now);
       targetDateObj.setDate(now.getDate() - diff);
-      return targetDateObj.toISOString().split('T')[0];
+      return getLocalYYYYMMDD(targetDateObj);
     }
-    return now.toISOString().split('T')[0];
+
+    return todayStr;
   }, []);
 
   const markInteraction = useCallback((taskId: string) => {
     interactionLock.current[taskId] = Date.now();
   }, []);
 
-  // Persist template selection to survive camera reloads
   useEffect(() => {
     if (activeTemplate) {
       localStorage.setItem('boundaries_active_template_id', activeTemplate.id);
@@ -218,47 +242,73 @@ const OpsView: React.FC<OpsViewProps> = ({ user, allUsers, templates, existingSu
     }
   }, [activeTemplate]);
 
-  // Sync with shared cloud data heartbeat
   useEffect(() => {
-    if (activeTemplate) {
-      const targetDate = getTargetDate(activeTemplate);
-      const submission = existingSubmissions.find(s => 
-        s.templateId === activeTemplate.id && 
-        s.date === targetDate
-      );
+    if (!activeTemplate) return;
+    
+    const targetDate = getTargetDate(activeTemplate);
+    
+    const submission = existingSubmissions.find(s => 
+      s.templateId === activeTemplate.id && 
+      s.date === targetDate
+    );
 
-      if (submission) {
-        setActiveSubmissionId(submission.id);
-        setIsReadOnly(submission.status !== 'DRAFT');
+    const submissionFingerprint = submission 
+      ? JSON.stringify(submission.taskResults.map(r => ({ 
+          id: r.taskId, 
+          c: r.completed, 
+          by: r.completedByUserId 
+        })))
+      : 'none';
+
+    if (submissionFingerprint === lastSyncedSubmissionRef.current) {
+      return; 
+    }
+
+    lastSyncedSubmissionRef.current = submissionFingerprint;
+
+    if (submission) {
+      setActiveSubmissionId(submission.id);
+      setIsReadOnly(submission.status !== 'DRAFT');
+      
+      setResponses(prev => {
+        const next: Record<string, any> = {};
         
-        setResponses(prev => {
-          const next = { ...prev };
-          let changed = false;
-          submission.taskResults.forEach(res => {
-            const lastInteraction = interactionLock.current[res.taskId] || 0;
-            // Shield: Only update from cloud if we haven't touched this task in 8 seconds (longer shield for camera)
-            if (Date.now() - lastInteraction > 8000) {
-              if (
-                !next[res.taskId] || 
-                next[res.taskId].completed !== res.completed ||
-                next[res.taskId].value !== res.value ||
-                next[res.taskId].comment !== res.comment ||
-                next[res.taskId].photo !== res.photoUrl
-              ) {
-                next[res.taskId] = {
-                  completed: res.completed,
-                  photo: res.photoUrl,
-                  value: res.value,
-                  comment: res.comment,
-                  completedByUserId: res.completedByUserId,
-                  completedAt: res.completedAt
-                };
-                changed = true;
-              }
-            }
-          });
-          return changed ? next : prev;
+        submission.taskResults.forEach(res => {
+          const lastInteraction = interactionLock.current[res.taskId] || 0;
+          const timeSinceInteraction = Date.now() - lastInteraction;
+          
+          if (timeSinceInteraction < 5000) {
+            next[res.taskId] = prev[res.taskId] || {
+              completed: res.completed,
+              photo: res.photoUrl,
+              value: res.value,
+              comment: res.comment,
+              completedByUserId: res.completedByUserId,
+              completedAt: res.completedAt
+            };
+          } else {
+            next[res.taskId] = {
+              completed: res.completed,
+              photo: res.photoUrl,
+              value: res.value,
+              comment: res.comment,
+              completedByUserId: res.completedByUserId,
+              completedAt: res.completedAt
+            };
+          }
         });
+        
+        return next;
+      });
+    } else {
+      const anyRecentInteraction = Object.values(interactionLock.current).some(
+        time => Date.now() - time < 6000
+      );
+      
+      if (!anyRecentInteraction) {
+        setActiveSubmissionId(null);
+        setIsReadOnly(false);
+        setResponses({});
       }
     }
   }, [existingSubmissions, activeTemplate, getTargetDate]);
@@ -287,7 +337,6 @@ const OpsView: React.FC<OpsViewProps> = ({ user, allUsers, templates, existingSu
         completedAt: isCompleted ? new Date().toISOString() : (prev[taskId]?.completedAt || '')
       };
 
-      // Allow resubmitting photos: Clear photo when unchecking so it can be retaken
       if (!isCompleted && nextTask.photo) {
         delete nextTask.photo;
       }
@@ -350,7 +399,7 @@ const OpsView: React.FC<OpsViewProps> = ({ user, allUsers, templates, existingSu
 
   const openCamera = (taskId: string) => {
     if (isReadOnly) return;
-    markInteraction(taskId); // Lock the task during camera session
+    markInteraction(taskId); 
     setCapturingTaskId(taskId);
     setIsCameraOpen(true);
   };
@@ -394,7 +443,7 @@ const OpsView: React.FC<OpsViewProps> = ({ user, allUsers, templates, existingSu
       const isAllDone = activeTemplate?.tasks.every(t => responses[t.id]?.completed);
       if (!isAllDone && !confirm('Incomplete standards detected. Authorize final submission?')) return;
     }
-    
+
     onUpdate({
       id: activeSubmissionId || undefined,
       templateId: activeTemplate!.id,
@@ -403,46 +452,95 @@ const OpsView: React.FC<OpsViewProps> = ({ user, allUsers, templates, existingSu
       targetDate: getTargetDate(activeTemplate!)
     });
 
-    if (isFinal) {
-      setActiveTemplate(null);
+    if (isFinal) setActiveTemplate(null);
+  };
+
+  const executeReopen = async () => {
+    if (!activeSubmissionId || !onResetSubmission) return;
+    try {
+      setIsReadOnly(false);
+      setActiveSubmissionId(null);
+      setResponses({});
+      lastSyncedSubmissionRef.current = null;
+      interactionLock.current = {};
+      setShowReopenConfirm(false);
+      
+      await onResetSubmission(activeSubmissionId);
+    } catch (err) {
+      console.error("Reopen failed:", err);
+    }
+  };
+
+  const getTemplateIcon = (tpl: ChecklistTemplate) => {
+    switch(tpl.type) {
+      case 'OPENING': return <Sunrise size={32} strokeWidth={2.5} />;
+      case 'CLOSING': return <Sunset size={32} strokeWidth={2.5} />;
+      case 'WEEKLY': return <CalendarDays size={32} strokeWidth={2.5} />;
+      case 'MONTHLY': return <Timer size={32} strokeWidth={2.5} />;
+      default: return <ClipboardList size={32} strokeWidth={2.5} />;
     }
   };
 
   if (activeTemplate) {
     const targetDate = getTargetDate(activeTemplate);
-    const todayStr = new Date().toISOString().split('T')[0];
-    const isToday = targetDate === todayStr;
-    const isLate = (isToday && new Date().getHours() >= activeTemplate.deadlineHour) || (!isToday && targetDate < todayStr);
-
+    
     return (
-      <div className="space-y-6 sm:space-y-8 animate-in slide-in-from-bottom-6 duration-500">
+      <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
         <CameraModal 
-          isOpen={isCameraOpen}
+          isOpen={isCameraOpen} 
           onClose={() => setIsCameraOpen(false)}
           onCapture={handlePhotoCapture}
         />
 
-        <header className="flex flex-col md:flex-row md:items-center justify-between bg-white p-6 sm:p-8 rounded-[1.5rem] sm:rounded-[2.5rem] shadow-xl border border-neutral-100 gap-4">
-          <div className="flex-1">
-            <h2 className="text-xl sm:text-3xl font-black text-[#001F3F] tracking-tighter uppercase leading-tight">{activeTemplate.name}</h2>
-            <div className="flex flex-wrap items-center gap-3 mt-2">
-              <div className={`flex items-center gap-2 px-3 py-1 rounded-full border transition-all ${
-                isReadOnly ? 'bg-green-50 text-green-600 border-green-100' : 'bg-blue-50 text-blue-600 border-blue-100'
-              }`}>
-                {isReadOnly ? <Lock size={12} /> : <Users size={12} />}
-                <span className="text-[9px] font-black uppercase tracking-widest">
-                  {isReadOnly ? `Archived: ${targetDate}` : `Collaborative Log: ${targetDate}`}
-                </span>
+        {showReopenConfirm && (
+          <div className="fixed inset-0 z-[110] bg-[#001F3F]/60 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in duration-200">
+            <div className="bg-white rounded-[2.5rem] p-8 max-w-sm w-full shadow-2xl border border-neutral-100">
+              <div className="w-16 h-16 rounded-full flex items-center justify-center mb-6 bg-amber-50 text-amber-500 mx-auto">
+                <RotateCcw size={32} />
+              </div>
+              <h3 className="text-2xl font-black text-[#001F3F] uppercase tracking-tight leading-tight mb-2 text-center">
+                Reopen Protocol?
+              </h3>
+              <p className="text-neutral-500 text-sm font-medium mb-8 leading-relaxed text-center">
+                This will wipe today's archived submission for the entire team so it can be corrected. This action is irreversible.
+              </p>
+              <div className="flex gap-3">
+                <button onClick={() => setShowReopenConfirm(false)} className="flex-1 py-4 bg-neutral-100 text-neutral-400 font-black uppercase tracking-widest text-[10px] rounded-xl hover:bg-neutral-200 transition-colors">Cancel</button>
+                <button onClick={executeReopen} className="flex-1 py-4 bg-amber-600 text-white font-black uppercase tracking-widest text-[10px] rounded-xl shadow-lg active:scale-95 hover:bg-amber-700 transition-colors">
+                  Confirm
+                </button>
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            {!isReadOnly && (
-              <div className="flex items-center gap-1 bg-blue-50 text-blue-600 px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border border-blue-100 animate-pulse">
-                <CloudCheck size={12} /> Sync Active
+        )}
+
+        <header className="sticky top-0 z-50 -mx-4 sm:-mx-8 px-4 sm:px-8 py-4 sm:py-6 bg-white/80 backdrop-blur-xl border-b border-neutral-100">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h2 className="text-2xl sm:text-4xl font-[900] text-[#001F3F] tracking-tighter uppercase leading-none">{activeTemplate.name}</h2>
+              <div className="text-xs sm:text-sm text-neutral-400 font-bold mt-1 flex items-center gap-2 flex-wrap">
+                <span className="bg-neutral-50 px-2 py-0.5 rounded-full border border-neutral-100">{targetDate}</span>
+                {isReadOnly && (
+                  <div className="flex items-center gap-2">
+                    <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded-full flex items-center gap-1 font-black text-[10px] uppercase tracking-widest shadow-sm">
+                      <Lock size={10}/> Archived
+                    </span>
+                    {isManager && (
+                      <button 
+                        onClick={() => setShowReopenConfirm(true)}
+                        className="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full flex items-center gap-1 font-black text-[10px] uppercase tracking-widest hover:bg-amber-200 transition-colors shadow-sm"
+                      >
+                        <Unlock size={10}/> Reopen Protocol
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
-            )}
-            <button onClick={() => setActiveTemplate(null)} className="p-2 sm:p-3 bg-neutral-100 hover:bg-[#001F3F] hover:text-white rounded-xl transition-all">
+            </div>
+            <button 
+              onClick={() => setActiveTemplate(null)}
+              className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-neutral-100 text-neutral-500 flex items-center justify-center"
+            >
               <X size={18} strokeWidth={3} />
             </button>
           </div>
@@ -540,66 +638,84 @@ const OpsView: React.FC<OpsViewProps> = ({ user, allUsers, templates, existingSu
     );
   }
 
+  const renderProtocolGrid = (list: ChecklistTemplate[], sectionTitle: string) => {
+    if (list.length === 0) return null;
+    return (
+      <div className="space-y-6">
+        <div className="px-2">
+          <h3 className="text-xs font-black text-neutral-400 uppercase tracking-[0.2em]">{sectionTitle}</h3>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+          {list.map(tpl => {
+            const targetDate = getTargetDate(tpl);
+            const draft = existingSubmissions.find(s => 
+              s.templateId === tpl.id && 
+              s.date === targetDate && 
+              s.status === 'DRAFT'
+            );
+            const finalizedSubmission = existingSubmissions.find(s => 
+              s.templateId === tpl.id && 
+              s.date === targetDate && 
+              s.status !== 'DRAFT'
+            );
+            
+            const isFinalized = !!finalizedSubmission;
+            
+            return (
+              <button
+                key={tpl.id}
+                onClick={() => setActiveTemplate(tpl)}
+                className={`group relative bg-white p-6 sm:p-10 rounded-[2.5rem] sm:rounded-[3.5rem] border transition-all duration-300 text-left overflow-hidden ${
+                  isFinalized 
+                    ? 'border-green-200 bg-green-50/20 shadow-inner' 
+                    : 'border-neutral-100 hover:border-[#001F3F] shadow-sm hover:shadow-2xl active:scale-[0.98]'
+                }`}
+              >
+                <div className="absolute top-6 right-6 z-10 flex flex-col items-end gap-2">
+                  {isFinalized ? (
+                    <span className="flex items-center gap-1.5 px-3 py-1 bg-green-600 text-white text-[9px] font-black uppercase tracking-widest rounded-xl shadow-lg animate-in zoom-in">
+                      <Lock size={12} strokeWidth={3} /> ARCHIVED
+                    </span>
+                  ) : draft ? (
+                    <div className="flex flex-col items-end gap-1">
+                      <span className="flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-[#001F3F] text-[9px] font-black uppercase tracking-widest rounded-xl border border-blue-100 animate-pulse">
+                        <Users size={12} strokeWidth={3} /> ACTIVE
+                      </span>
+                    </div>
+                  ) : null}
+                </div>
+                
+                <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-2xl sm:rounded-[2rem] flex items-center justify-center mb-8 transition-all duration-500 group-hover:rotate-6 ${
+                  isFinalized ? 'bg-green-100 text-green-600' : 'bg-[#001F3F] text-white shadow-xl group-hover:shadow-[#001F3F]/20'
+                }`}>
+                  {isFinalized ? <Check strokeWidth={4} size={32} /> : getTemplateIcon(tpl)}
+                </div>
+                
+                <h3 className={`text-xl sm:text-2xl font-black tracking-tighter mb-1 uppercase leading-none ${isFinalized ? 'text-green-800' : 'text-black'}`}>{tpl.name}</h3>
+                <p className={`text-[10px] sm:text-xs font-bold leading-snug uppercase tracking-widest ${isFinalized ? 'text-green-600/60' : 'text-neutral-400'}`}>
+                  {targetDate}
+                </p>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
   return (
-    <div className="space-y-8 sm:space-y-12 animate-in fade-in duration-700">
+    <div className="space-y-12 sm:space-y-16 animate-in fade-in duration-700">
       <header className="max-w-2xl">
         <h1 className="text-4xl sm:text-6xl font-[900] text-[#001F3F] tracking-tighter mb-2 leading-none uppercase">Logbook</h1>
         <p className="text-neutral-500 font-medium text-base sm:text-lg">Collaborative shift standards.</p>
       </header>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-        {templates.map(tpl => {
-          const targetDate = getTargetDate(tpl);
-          const draft = existingSubmissions.find(s => 
-            s.templateId === tpl.id && 
-            s.date === targetDate && 
-            s.status === 'DRAFT'
-          );
-          const finalizedSubmission = existingSubmissions.find(s => 
-            s.templateId === tpl.id && 
-            s.date === targetDate && 
-            s.status !== 'DRAFT'
-          );
-          
-          const isFinalized = !!finalizedSubmission;
-          
-          return (
-            <button
-              key={tpl.id}
-              onClick={() => setActiveTemplate(tpl)}
-              className={`group relative bg-white p-6 sm:p-8 rounded-[2rem] sm:rounded-[3rem] border transition-all duration-300 text-left overflow-hidden ${
-                isFinalized 
-                  ? 'border-green-200 bg-green-50/20' 
-                  : 'border-neutral-100 hover:border-[#001F3F] shadow-sm hover:shadow-xl active:scale-[0.98]'
-              }`}
-            >
-              <div className="absolute top-4 right-4 z-10 flex flex-col items-end gap-2">
-                {isFinalized ? (
-                  <span className="flex items-center gap-1 px-3 py-1 bg-green-600 text-white text-[8px] font-black uppercase tracking-widest rounded-lg shadow-sm">
-                    <Lock size={10} /> LOGGED
-                  </span>
-                ) : draft ? (
-                  <div className="flex flex-col items-end gap-1">
-                    <span className="flex items-center gap-1 px-2 py-1 bg-blue-50 text-[#001F3F] text-[8px] font-black uppercase tracking-widest rounded-lg animate-pulse">
-                      <Users size={10} /> ACTIVE TEAM
-                    </span>
-                  </div>
-                ) : null}
-              </div>
-              
-              <div className={`w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-[1.5rem] flex items-center justify-center mb-6 transition-all ${
-                isFinalized ? 'bg-green-100 text-green-600' : 'bg-[#001F3F] text-white'
-              }`}>
-                {isFinalized ? <Check strokeWidth={4} size={28} /> : <ClipboardList size={28} />}
-              </div>
-              
-              <h3 className={`text-lg sm:text-2xl font-black tracking-tight mb-1 uppercase leading-none ${isFinalized ? 'text-green-800' : 'text-black'}`}>{tpl.name}</h3>
-              <p className={`text-[10px] sm:text-sm font-bold leading-snug ${isFinalized ? 'text-green-600' : 'text-neutral-400'}`}>
-                {targetDate}
-              </p>
-            </button>
-          );
-        })}
+      <div className="space-y-16">
+        {renderProtocolGrid(dailyProtocols, "Daily Essentials")}
+        
+        <div className="h-px bg-neutral-100 w-full" />
+        
+        {renderProtocolGrid(maintenanceProtocols, "Maintenance Cycles")}
       </div>
     </div>
   );

@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { User, UserRole, UserProgress, ChecklistSubmission, ChecklistTemplate, Store, TrainingModule, ManualSection, Recipe } from './types';
 import { TRAINING_CURRICULUM, CHECKLIST_TEMPLATES, MOCK_USERS, MOCK_STORES, BOUNDARIES_MANUAL, BOUNDARIES_RECIPES } from './data/mockData';
 import { db } from './services/db';
@@ -9,6 +8,9 @@ import OpsView from './components/OpsView';
 import ManagerHub from './components/ManagerHub';
 import RecipeBook from './components/RecipeBook';
 import Login from './components/Login';
+import { GoogleGenAI } from "@google/genai";
+
+const APP_VERSION = '3.3.2';
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -28,6 +30,9 @@ const App: React.FC = () => {
   const [manual, setManual] = useState<ManualSection[]>([]);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
 
+  // Track the last time we updated a submission locally to avoid the "sync overwrite flicker"
+  const lastSubmissionUpdateRef = useRef<number>(0);
+
   const performCloudSync = useCallback(async (background = false) => {
     if (!background) setIsSyncing(true);
     try {
@@ -39,16 +44,22 @@ const App: React.FC = () => {
         recipes: BOUNDARIES_RECIPES
       });
       
-      // IMPORTANT: Update state
       setAllUsers(data.users);
-      setSubmissions(data.submissions);
-      setProgress(data.progress);
-      setTemplates(data.templates);
-      setCurriculum(data.curriculum);
-      setManual(data.manual);
-      setRecipes(data.recipes);
+      
+      // OPTIMISTIC UI PROTECTION: 
+      // If we recently updated a submission, don't overwrite the state with 
+      // potentially stale data from the server for 7 seconds.
+      if (Date.now() - lastSubmissionUpdateRef.current > 7000) {
+        setSubmissions(data.submissions || []);
+      }
+      
+      setProgress(data.progress || []);
+      setTemplates(data.templates || []);
+      setCurriculum(data.curriculum || []);
+      setManual(data.manual || []);
+      setRecipes(data.recipes || []);
 
-      return data; // Return data for immediate usage
+      return data;
     } catch (err) {
       console.error("Cloud Sync Error:", err);
       return null;
@@ -109,11 +120,7 @@ const App: React.FC = () => {
     return currentUser;
   }, [currentUser, progress, curriculum]);
 
-  // --- Actions ---
-
   const handleLoginAction = async (email: string, pass: string): Promise<User> => {
-    // CRITICAL FIX: Force a fresh sync from DB before checking credentials
-    // This solves the "User not found" issue if the state was stale
     const freshData = await performCloudSync();
     const userList = freshData?.users || allUsers;
     
@@ -125,9 +132,7 @@ const App: React.FC = () => {
   };
 
   const handleSignupAction = async (user: User) => {
-    // 1. Save to DB immediately
     await db.syncUser(user);
-    // 2. Refresh local state fully
     const freshData = await performCloudSync();
     setAllUsers(freshData?.users || []);
     setCurrentUser(user);
@@ -157,24 +162,60 @@ const App: React.FC = () => {
       fileName: fileData?.name
     };
     
-    // Optimistic Update
     setProgress(prev => [...prev, entry]);
-    
-    // DB Update
     await db.pushProgress([entry]);
     performCloudSync(true);
   };
 
+  const auditPhotoWithAI = async (photoUrl: string, taskTitle: string): Promise<{ flagged: boolean; reason: string }> => {
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const base64Data = photoUrl.split(',')[1];
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash-image',
+        contents: {
+          parts: [
+            { inlineData: { mimeType: 'image/jpeg', data: base64Data } },
+            { text: `You are an operations auditor for Boundaries Coffee. The task name is: "${taskTitle}". Determine if this photo actually shows proof of the task being completed correctly in a cafe setting. Return ONLY a JSON object in this format: {"flagged": boolean, "reason": "Short explanation"}. Flag it if it is irrelevant, blurry, or incorrect.` }
+          ]
+        },
+      });
+      const text = response.text || '{"flagged": false, "reason": "No data"}';
+      return JSON.parse(text);
+    } catch (e) {
+      console.error("AI Audit Error:", e);
+      return { flagged: false, reason: "Audit service unavailable" };
+    }
+  };
+
   const handleChecklistUpdate = async (data: { id?: string, templateId: string, responses: any, isFinal: boolean, targetDate: string }) => {
-    const taskResults = Object.entries(data.responses).map(([taskId, res]: any) => ({
+    // Mark the timestamp to protect against stale sync heartbeat
+    lastSubmissionUpdateRef.current = Date.now();
+
+    let taskResults = Object.entries(data.responses).map(([taskId, res]: any) => ({
       taskId, 
       completed: res.completed, 
       photoUrl: res.photo, 
       value: res.value, 
       comment: res.comment,
       completedByUserId: res.completedByUserId || currentUser?.id || 'unknown', 
-      completedAt: res.completedAt || new Date().toISOString()
+      completedAt: res.completedAt || new Date().toISOString(),
+      aiFlagged: res.aiFlagged,
+      aiReason: res.aiReason
     }));
+
+    if (data.isFinal) {
+      const template = templates.find(t => t.id === data.templateId);
+      const auditPromises = taskResults.map(async (res) => {
+        if (res.photoUrl && !res.aiFlagged) {
+          const task = template?.tasks.find(t => t.id === res.taskId);
+          const audit = await auditPhotoWithAI(res.photoUrl, task?.title || 'Unknown Task');
+          return { ...res, aiFlagged: audit.flagged, aiReason: audit.reason };
+        }
+        return res;
+      });
+      taskResults = await Promise.all(auditPromises);
+    }
 
     const existing = data.id 
       ? submissions.find(s => s.id === data.id)
@@ -196,7 +237,6 @@ const App: React.FC = () => {
       taskResults
     };
 
-    // Optimistic Update
     setSubmissions(prev => {
       const filtered = prev.filter(s => s.id !== submission.id);
       return [submission, ...filtered];
@@ -216,6 +256,19 @@ const App: React.FC = () => {
     }
   };
 
+  const handleResetSubmission = async (id: string) => {
+    // Mark interaction to prevent sync overwrites
+    lastSubmissionUpdateRef.current = Date.now();
+    
+    // Wipe locally
+    const nextSubmissions = submissions.filter(s => s.id !== id);
+    setSubmissions(nextSubmissions);
+    
+    // Wipe on cloud
+    await db.pushFullSubmissionsRegistry(nextSubmissions);
+    performCloudSync(true);
+  };
+
   const handleUpdateTemplate = async (tpl: ChecklistTemplate) => {
     const updated = templates.map(t => t.id === tpl.id ? tpl : t);
     setTemplates(updated);
@@ -226,6 +279,15 @@ const App: React.FC = () => {
   const handleUpdateRecipes = async (nextRecipes: Recipe[]) => {
     setRecipes(nextRecipes);
     await db.pushRecipes(nextRecipes);
+    performCloudSync(true);
+  };
+
+  const handleUpdateUserHomeStore = async (storeId: string) => {
+    if (!currentUser) return;
+    const updatedUser = { ...currentUser, storeId };
+    setCurrentUser(updatedUser);
+    setCurrentStoreId(storeId);
+    await db.syncUser(updatedUser);
     performCloudSync(true);
   };
 
@@ -247,8 +309,9 @@ const App: React.FC = () => {
         onLogin={handleLoginAction}
         onSignup={handleSignupAction}
         onPasswordReset={handlePasswordResetAction}
-        users={allUsers} // Still passed for fallback UI checks, but Login now uses onLogin promise for auth
-        stores={MOCK_STORES} 
+        users={allUsers} 
+        stores={MOCK_STORES}
+        version={APP_VERSION}
       />
     );
   }
@@ -268,9 +331,11 @@ const App: React.FC = () => {
       stores={MOCK_STORES} 
       currentStoreId={currentStoreId} 
       onStoreChange={setCurrentStoreId}
+      onUserStoreChange={handleUpdateUserHomeStore}
       isSyncing={isSyncing}
       manual={manual}
       recipes={recipes}
+      version={APP_VERSION}
     >
       <div className="animate-in fade-in duration-500">
         {activeTab === 'training' && (
@@ -301,6 +366,7 @@ const App: React.FC = () => {
             templates={storeTemplates} 
             existingSubmissions={storeSubmissions} 
             onUpdate={handleChecklistUpdate} 
+            onResetSubmission={handleResetSubmission}
           />
         )}
         {activeTab === 'manager' && (
@@ -314,6 +380,7 @@ const App: React.FC = () => {
             manual={manual} 
             recipes={recipes} 
             onReview={handleReview} 
+            onResetSubmission={handleResetSubmission}
             onUpdateTemplate={handleUpdateTemplate} 
             onAddTemplate={async (tpl) => {
               const next = [...templates, { ...tpl, storeId: currentStoreId }];

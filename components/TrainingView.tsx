@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { TrainingModule, Lesson, UserProgress, QuizQuestion } from '../types';
-import { CheckCircle2, Clock, ChevronRight, Play, BookOpen, PenTool, ClipboardCheck, ArrowLeft, RefreshCw, XCircle, Video, Settings, Plus, Save, Trash2, Edit3, X, Zap, Target, Eye, EyeOff, Trash, Check, Square, CheckSquare, Circle, Dot, Upload, FileText, File as FileIcon, GripVertical } from 'lucide-react';
+import { CheckCircle2, Clock, ChevronRight, Play, BookOpen, PenTool, ClipboardCheck, ArrowLeft, RefreshCw, XCircle, Video, Settings, Plus, Save, Trash2, Edit3, X, Zap, Target, Eye, EyeOff, Trash, Check, Square, CheckSquare, Circle, Dot, Upload, FileText, File as FileIcon, GripVertical, AlertTriangle } from 'lucide-react';
 
 interface TrainingViewProps {
   curriculum: TrainingModule[];
@@ -28,6 +28,9 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
   const [quizScore, setQuizScore] = useState<number | null>(null);
   const [cooldown, setCooldown] = useState(0);
 
+  // Delete Confirmation State
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id: string, title: string, code: string, input: string } | null>(null);
+
   const getStatus = (lessonId: string) => progress.find(p => p.lessonId === lessonId)?.status || 'NOT_STARTED';
   const getProgressData = (lessonId: string) => progress.find(p => p.lessonId === lessonId);
 
@@ -37,7 +40,6 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
   const onboardingModules = curriculumArray.filter(m => m.category === 'ONBOARDING');
   const onboardingLessons = onboardingModules.flatMap(m => m.lessons);
   const completedOnboardingCount = onboardingLessons.filter(l => getStatus(l.id) === 'COMPLETED').length;
-  // Fixed typo: removed space in variable name
   const isOnboardingFullyComplete = onboardingLessons.length > 0 && completedOnboardingCount === onboardingLessons.length;
 
   useEffect(() => {
@@ -152,11 +154,10 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
     onUpdateCurriculum([...curriculumArray, newModule]);
   };
 
-  const handleDeleteModule = (moduleId: string) => {
-    if (!onUpdateCurriculum) return;
-    const confirmation = window.prompt('To confirm deletion, type "DELETE":');
-    if (confirmation !== 'DELETE') return;
-    onUpdateCurriculum(curriculumArray.filter(m => m.id !== moduleId));
+  const handleDeleteModuleConfirmed = () => {
+    if (!onUpdateCurriculum || !deleteConfirm) return;
+    onUpdateCurriculum(curriculumArray.filter(m => m.id !== deleteConfirm.id));
+    setDeleteConfirm(null);
   };
 
   const handleUpdateLesson = (lessonId: string, updates: Partial<Lesson>) => {
@@ -237,14 +238,12 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
           {isEditMode && (
             <button 
               onClick={() => {
-                if(confirm('Delete this lesson?')) {
                    const nextCurriculum = curriculumArray.map(m => ({
                     ...m,
                     lessons: m.lessons.filter(l => l.id !== selectedLesson.id)
                   }));
                   onUpdateCurriculum?.(nextCurriculum);
                   setSelectedLesson(null);
-                }
               }} 
               className="p-2 sm:p-3 text-red-500 hover:bg-red-50 rounded-xl transition-all"
             >
@@ -568,7 +567,7 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
                 <h3 className="text-xl font-black text-[#001F3F] tracking-tight uppercase">{module.title}</h3>
               )}
               {isEditMode && (
-                <button onClick={() => handleDeleteModule(module.id)} className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors">
+                <button onClick={() => setDeleteConfirm({ id: module.id, title: module.title, code: 'DELETE', input: '' })} className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors">
                   <Trash2 size={18} />
                 </button>
               )}
@@ -631,6 +630,38 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
           </button>
         )}
       </header>
+
+      {/* Custom Delete Confirmation Modal */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 z-[100] bg-[#001F3F]/60 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in duration-200">
+           <div className="bg-white rounded-[2.5rem] p-8 max-w-sm w-full shadow-2xl border border-neutral-100 text-center">
+              <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                <AlertTriangle size={32} />
+              </div>
+              <h3 className="text-xl font-black text-[#001F3F] uppercase tracking-tight mb-2">Delete Module?</h3>
+              <p className="text-neutral-500 text-sm font-medium mb-6 leading-relaxed">
+                Type <span className="font-black text-red-600">DELETE</span> to confirm removal of <span className="font-bold text-[#001F3F]">"{deleteConfirm.title}"</span>.
+              </p>
+              <input 
+                autoFocus
+                value={deleteConfirm.input}
+                onChange={e => setDeleteConfirm({...deleteConfirm, input: e.target.value})}
+                placeholder="Type here..."
+                className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 mb-6 text-center font-black uppercase text-sm tracking-widest focus:ring-2 focus:ring-red-500/10 outline-none"
+              />
+              <div className="flex gap-3">
+                <button onClick={() => setDeleteConfirm(null)} className="flex-1 py-4 bg-neutral-100 text-neutral-400 font-black uppercase tracking-widest text-[10px] rounded-xl hover:bg-neutral-200 transition-colors">Cancel</button>
+                <button 
+                  disabled={deleteConfirm.input !== 'DELETE'}
+                  onClick={handleDeleteModuleConfirmed} 
+                  className="flex-1 py-4 bg-red-600 text-white font-black uppercase tracking-widest text-[10px] rounded-xl hover:bg-red-700 transition-all shadow-lg active:scale-95 disabled:opacity-50"
+                >
+                  Delete
+                </button>
+              </div>
+           </div>
+        </div>
+      )}
 
       {onboardingModules.length > 0 && (
         <div className="space-y-12">

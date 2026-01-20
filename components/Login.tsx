@@ -1,7 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
-import { Coffee, ArrowRight, Lock, Mail, User as UserIcon, MapPin, Key, ShieldCheck, ChevronLeft } from 'lucide-react';
+import { Coffee, ArrowRight, Lock, Mail, User as UserIcon, MapPin, Key, ShieldCheck, ChevronLeft, Activity, HeartPulse } from 'lucide-react';
 import { User, UserRole, Store } from '../types';
+import FirebaseDiagnostic from './FirebaseDiagnostic';
 
 interface LoginProps {
   onLogin: (email: string, pass: string) => Promise<User>;
@@ -9,9 +10,10 @@ interface LoginProps {
   onPasswordReset: (email: string, newPassword: string) => Promise<void>;
   users: User[];
   stores: Store[];
+  version: string;
 }
 
-const Login: React.FC<LoginProps> = ({ onLogin, onSignup, onPasswordReset, users, stores }) => {
+const Login: React.FC<LoginProps> = ({ onLogin, onSignup, onPasswordReset, users, stores, version }) => {
   const [view, setView] = useState<'LOGIN' | 'SIGNUP' | 'FORGOT_PASSWORD'>('LOGIN');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -20,6 +22,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onSignup, onPasswordReset, users
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showDiagnostic, setShowDiagnostic] = useState(false);
   
   // Forgot Password flow states
   const [resetEmail, setResetEmail] = useState('');
@@ -141,11 +144,13 @@ const Login: React.FC<LoginProps> = ({ onLogin, onSignup, onPasswordReset, users
   };
 
   return (
-    <div className="min-h-screen bg-[#001F3F] flex items-center justify-center p-6 relative overflow-hidden text-white">
+    <div className="min-h-screen bg-[#001F3F] flex flex-col items-center justify-center p-6 relative overflow-hidden text-white">
+      {showDiagnostic && <FirebaseDiagnostic onClose={() => setShowDiagnostic(false)} />}
+      
       <div className="absolute top-0 right-0 w-1/2 h-full bg-blue-900/20 skew-x-12 transform translate-x-1/2 -z-0" />
       <div className="absolute bottom-0 left-0 w-96 h-96 bg-white/5 rounded-full blur-[120px] -z-0" />
 
-      <div className="max-w-md w-full relative z-10">
+      <div className="max-w-md w-full relative z-10 flex flex-col items-center">
         <div className="text-center mb-12 animate-in fade-in slide-in-from-top-4 duration-700">
           <div className="inline-flex p-5 rounded-[2rem] bg-white mb-8 shadow-2xl rotate-3">
             <Coffee size={48} strokeWidth={2.5} className="text-[#001F3F]" />
@@ -154,7 +159,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onSignup, onPasswordReset, users
           <p className="text-blue-300 font-bold tracking-[0.3em] uppercase text-xs">Coffee & Co. Operations</p>
         </div>
 
-        <div className="bg-white rounded-[2.5rem] p-8 sm:p-10 shadow-2xl border border-white/10 text-[#001F3F] animate-in zoom-in-95 duration-500">
+        <div className="bg-white rounded-[2.5rem] p-8 sm:p-10 shadow-2xl border border-white/10 text-[#001F3F] animate-in zoom-in-95 duration-500 w-full">
           {view === 'FORGOT_PASSWORD' ? (
             <div className="space-y-6">
               <button 
@@ -387,8 +392,15 @@ const Login: React.FC<LoginProps> = ({ onLogin, onSignup, onPasswordReset, users
           )}
         </div>
         
-        <div className="mt-8 text-center text-blue-200/40 text-[9px] font-black uppercase tracking-[0.4em]">
-          Secure Infrastructure System v2.6
+        <button 
+          onClick={() => setShowDiagnostic(true)}
+          className="mt-8 flex items-center gap-2 text-white/40 hover:text-white transition-colors text-[10px] font-black uppercase tracking-[0.2em] group"
+        >
+          <HeartPulse size={12} className="group-hover:text-red-400" /> Firebase Sync Health
+        </button>
+
+        <div className="mt-4 text-center text-blue-200/20 text-[9px] font-black uppercase tracking-[0.4em]">
+          App Version {version}
         </div>
       </div>
     </div>

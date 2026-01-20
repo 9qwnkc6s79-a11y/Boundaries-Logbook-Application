@@ -1,8 +1,9 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { User, UserRole, Store, ManualSection, Recipe } from '../types';
-import { Coffee, ClipboardCheck, GraduationCap, Users, LogOut, Menu, X, MapPin, ChevronDown, BookOpen, Cloud, CloudOff, Activity, Download, Share, Smartphone, Brain, Send, Sparkles } from 'lucide-react';
+import { Coffee, ClipboardCheck, GraduationCap, Users, LogOut, Menu, X, MapPin, ChevronDown, BookOpen, Cloud, CloudOff, Activity, Download, Share, Smartphone, Brain, Send, Sparkles, HeartPulse, ChevronRight, Settings } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
+import FirebaseDiagnostic from './FirebaseDiagnostic';
 
 interface LayoutProps {
   user: User;
@@ -13,6 +14,7 @@ interface LayoutProps {
   stores: Store[];
   currentStoreId: string;
   onStoreChange: (storeId: string) => void;
+  onUserStoreChange?: (storeId: string) => void;
   isSyncing?: boolean;
   showInstallBanner?: boolean;
   onInstall?: () => void;
@@ -20,15 +22,18 @@ interface LayoutProps {
   canNativeInstall?: boolean;
   manual: ManualSection[];
   recipes: Recipe[];
+  version: string;
 }
 
 const Layout: React.FC<LayoutProps> = ({ 
   user, children, activeTab, onTabChange, onLogout, 
-  stores, currentStoreId, onStoreChange, isSyncing = false,
+  stores, currentStoreId, onStoreChange, onUserStoreChange, isSyncing = false,
   showInstallBanner = false, onInstall, onDismissInstall, canNativeInstall = false,
-  manual, recipes
+  manual, recipes, version
 }) => {
   const [isProfileOpen, setIsProfileOpen] = React.useState(false);
+  const [showDiagnostic, setShowDiagnostic] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   
   // Chat State
   const [chatOpen, setChatOpen] = useState(false);
@@ -110,10 +115,12 @@ User Question: ${userMsg}`,
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-[#FAFAFA]">
+      {showDiagnostic && <FirebaseDiagnostic onClose={() => setShowDiagnostic(false)} />}
+      
       {/* Sidebar - Desktop */}
       <aside className="hidden md:flex flex-col w-72 bg-[#001F3F] text-white fixed h-full shadow-2xl z-30">
         <div className="p-8 border-b border-white/10">
-          <div className="flex items-center gap-4 mb-6">
+          <div className="flex items-center gap-4 mb-8">
             <div className="bg-white p-2.5 rounded-xl shadow-lg">
               <Coffee className="text-[#001F3F] w-6 h-6" />
             </div>
@@ -124,21 +131,27 @@ User Question: ${userMsg}`,
           </div>
 
           <div className="relative mb-6">
-            <div className="text-[10px] font-black text-blue-300/50 uppercase tracking-[0.2em] mb-2 px-1">Selected Location</div>
+            <div className="text-[10px] font-black text-blue-300/50 uppercase tracking-[0.2em] mb-2 px-1 flex items-center gap-2">
+              <MapPin size={10} /> Active Campus
+            </div>
             {canSwitchStore ? (
-              <select 
-                value={currentStoreId}
-                onChange={(e) => onStoreChange(e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm font-bold appearance-none cursor-pointer hover:bg-white/10 transition-colors outline-none focus:ring-2 focus:ring-blue-500/50"
-              >
-                {stores.map(s => (
-                  <option key={s.id} value={s.id} className="bg-[#001F3F] text-white">{s.name}</option>
-                ))}
-              </select>
+              <div className="relative group">
+                <select 
+                  value={currentStoreId}
+                  onChange={(e) => onStoreChange(e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-4 text-sm font-black appearance-none cursor-pointer hover:bg-white/10 transition-all outline-none focus:ring-2 focus:ring-blue-500/50 pr-10 uppercase tracking-tighter shadow-inner"
+                >
+                  {stores.map(s => (
+                    <option key={s.id} value={s.id} className="bg-[#001F3F] text-white py-2">{s.name.replace('Boundaries ', '')}</option>
+                  ))}
+                </select>
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-blue-300/50 group-hover:text-blue-300 transition-colors">
+                  <ChevronDown size={16} strokeWidth={3} />
+                </div>
+              </div>
             ) : (
-              <div className="flex items-center gap-2 px-4 py-3 bg-white/5 rounded-xl border border-white/10 text-sm font-bold">
-                <MapPin size={14} className="text-blue-300" />
-                {currentStore?.name}
+              <div className="flex items-center gap-3 px-4 py-4 bg-white/5 rounded-xl border border-white/10 text-xs font-black uppercase tracking-tighter">
+                {currentStore?.name.replace('Boundaries ', '')}
               </div>
             )}
           </div>
@@ -171,26 +184,63 @@ User Question: ${userMsg}`,
           ))}
         </nav>
 
-        <div className="px-4 pb-4">
+        <div className="px-4 pb-4 space-y-2">
           <button 
             onClick={() => setChatOpen(true)}
-            className="w-full flex items-center gap-3 px-5 py-4 rounded-xl bg-blue-500/10 text-blue-200 hover:bg-blue-500/20 hover:text-white transition-all border border-blue-500/20 mb-2"
+            className="w-full flex items-center gap-3 px-5 py-4 rounded-xl bg-blue-500/10 text-blue-200 hover:bg-blue-500/20 hover:text-white transition-all border border-blue-500/20"
           >
             <Brain size={18} />
             <span className="text-xs font-black tracking-widest uppercase">Ask Barista Brain</span>
           </button>
+          
+          <button 
+            onClick={() => setShowDiagnostic(true)}
+            className="w-full flex items-center gap-3 px-5 py-3 rounded-xl bg-white/5 text-blue-300/40 hover:text-white transition-all border border-white/5 group"
+          >
+            <HeartPulse size={16} className="group-hover:text-red-400" />
+            <span className="text-[10px] font-bold tracking-widest uppercase">Sync Health</span>
+          </button>
         </div>
 
         <div className="p-6 border-t border-white/10 space-y-4">
-          <div className="px-2 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-xs font-bold border border-white/10">
-              {user.name.charAt(0)}
+          <div className="px-2 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-xs font-bold border border-white/10">
+                {user.name.charAt(0)}
+              </div>
+              <div>
+                <p className="text-sm font-bold tracking-tight">{user.name}</p>
+                <div className="flex items-center gap-1">
+                  <p className="text-[10px] text-blue-300 font-bold uppercase tracking-widest">{user.role}</p>
+                </div>
+              </div>
             </div>
-            <div>
-              <p className="text-sm font-bold tracking-tight">{user.name}</p>
-              <p className="text-[10px] text-blue-300 font-bold uppercase tracking-widest">{user.role}</p>
-            </div>
+            <button 
+              onClick={() => setShowSettings(!showSettings)}
+              className={`p-2 rounded-lg transition-all ${showSettings ? 'bg-white/20 text-white' : 'text-blue-300/40 hover:text-white hover:bg-white/5'}`}
+              title="User Settings"
+            >
+              <Settings size={14} />
+            </button>
           </div>
+
+          {showSettings && (
+            <div className="px-2 py-3 bg-white/5 rounded-xl border border-white/5 space-y-3 animate-in fade-in slide-in-from-top-2">
+              <div>
+                <p className="text-[8px] font-black text-blue-300/60 uppercase tracking-[0.2em] mb-2">Change Home Store</p>
+                <select 
+                  value={user.storeId}
+                  onChange={(e) => onUserStoreChange?.(e.target.value)}
+                  className="w-full bg-[#001F3F] border border-white/10 rounded-lg px-3 py-2 text-[10px] font-bold text-white outline-none focus:ring-1 focus:ring-blue-500/50"
+                >
+                  {stores.map(s => (
+                    <option key={s.id} value={s.id}>{s.name.replace('Boundaries ', '')}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
+
           <button 
             onClick={onLogout}
             className="w-full flex items-center gap-3 px-5 py-3.5 rounded-xl text-blue-200 hover:text-red-400 hover:bg-red-400/5 transition-all duration-300 group"
@@ -198,11 +248,14 @@ User Question: ${userMsg}`,
             <LogOut size={18} className="group-hover:-translate-x-1 transition-transform" />
             <span className="text-xs font-bold tracking-widest uppercase">Logout</span>
           </button>
+          <div className="text-[8px] text-center text-blue-300/20 font-black uppercase tracking-[0.2em] pt-2">
+            App Version {version}
+          </div>
         </div>
       </aside>
 
       {/* Mobile Header */}
-      <div className="md:hidden glass-effect border-b border-neutral-100 p-4 flex flex-col gap-3 sticky top-0 z-50">
+      <div className="md:hidden glass-effect border-b border-neutral-100 p-4 flex flex-col gap-4 sticky top-0 z-50 shadow-sm">
         <div className="flex justify-between items-center w-full">
           <div className="flex items-center gap-2">
             <div className="bg-[#001F3F] p-1.5 rounded-lg">
@@ -211,28 +264,41 @@ User Question: ${userMsg}`,
             <span className="font-black tracking-tighter text-[#001F3F] text-base uppercase leading-none">Boundaries</span>
             <div className={`ml-2 w-1.5 h-1.5 rounded-full ${isSyncing ? 'bg-blue-500 animate-pulse' : 'bg-green-500'}`} />
           </div>
-          <button 
-            onClick={() => setIsProfileOpen(!isProfileOpen)} 
-            className="w-9 h-9 rounded-full bg-[#001F3F] text-white flex items-center justify-center text-[10px] font-black border-2 border-white shadow-lg active:scale-90 transition-transform"
-          >
-            {user.name.charAt(0)}
-          </button>
+          <div className="flex items-center gap-3">
+            <button onClick={() => setShowDiagnostic(true)} className="p-2 text-[#001F3F]/60 hover:bg-neutral-100 rounded-lg transition-colors">
+              <HeartPulse size={18} />
+            </button>
+            <button 
+              onClick={() => setIsProfileOpen(!isProfileOpen)} 
+              className="w-9 h-9 rounded-full bg-[#001F3F] text-white flex items-center justify-center text-[10px] font-black border-2 border-white shadow-lg active:scale-90 transition-transform"
+            >
+              {user.name.charAt(0)}
+            </button>
+          </div>
         </div>
         
         <div className="px-1">
           {canSwitchStore ? (
-             <select 
-               value={currentStoreId}
-               onChange={(e) => onStoreChange(e.target.value)}
-               className="w-full bg-neutral-100 border-none rounded-xl px-3 py-2 text-[10px] font-black uppercase tracking-widest outline-none text-[#001F3F]"
-             >
-               {stores.map(s => (
-                 <option key={s.id} value={s.id}>{s.name}</option>
-               ))}
-             </select>
+            <div className="relative group">
+              <select 
+                value={currentStoreId}
+                onChange={(e) => onStoreChange(e.target.value)}
+                className="w-full bg-neutral-100 border-none rounded-xl pl-10 pr-10 py-3 text-[11px] font-black uppercase tracking-widest outline-none text-[#001F3F] appearance-none shadow-inner"
+              >
+                {stores.map(s => (
+                  <option key={s.id} value={s.id}>{s.name.replace('Boundaries ', '')}</option>
+                ))}
+              </select>
+              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">
+                <MapPin size={14} strokeWidth={3} />
+              </div>
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400">
+                <ChevronDown size={14} strokeWidth={3} />
+              </div>
+            </div>
           ) : (
-            <div className="text-[9px] font-black text-[#001F3F] uppercase flex items-center gap-1 bg-neutral-100/50 self-start px-2 py-1 rounded-lg">
-              <MapPin size={10} /> {currentStore?.name}
+            <div className="text-[9px] font-black text-[#001F3F] uppercase flex items-center gap-1 bg-neutral-100/50 self-start px-3 py-2 rounded-xl border border-neutral-100 shadow-inner">
+              <MapPin size={10} strokeWidth={3} /> {currentStore?.name.replace('Boundaries ', '')}
             </div>
           )}
         </div>
@@ -242,27 +308,56 @@ User Question: ${userMsg}`,
       {isProfileOpen && (
         <div className="md:hidden fixed inset-0 bg-[#001F3F]/60 backdrop-blur-md z-[60] p-6 flex flex-col justify-end animate-in fade-in slide-in-from-bottom-10 duration-300">
           <div className="bg-white rounded-[2.5rem] p-8 space-y-6">
-            <div className="flex items-center gap-4 border-b border-neutral-100 pb-6">
-              <div className="w-16 h-16 rounded-[1.5rem] bg-[#001F3F] text-white flex items-center justify-center text-xl font-black">
-                {user.name.charAt(0)}
+            <div className="flex items-center justify-between border-b border-neutral-100 pb-6">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 rounded-[1.5rem] bg-[#001F3F] text-white flex items-center justify-center text-xl font-black">
+                  {user.name.charAt(0)}
+                </div>
+                <div>
+                  <h3 className="text-2xl font-black text-[#001F3F] tracking-tighter uppercase leading-none">{user.name}</h3>
+                  <p className="text-sm font-bold text-neutral-400 mt-2 uppercase tracking-widest">{user.role}</p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-2xl font-black text-[#001F3F] tracking-tighter uppercase leading-none">{user.name}</h3>
-                <p className="text-sm font-bold text-neutral-400 mt-2 uppercase tracking-widest">{user.role}</p>
-              </div>
+              <button 
+                onClick={() => setShowSettings(!showSettings)}
+                className={`p-3 rounded-2xl transition-all ${showSettings ? 'bg-[#001F3F] text-white' : 'bg-neutral-50 text-neutral-400'}`}
+              >
+                <Settings size={20} />
+              </button>
             </div>
+
+            {showSettings && (
+              <div className="p-5 bg-neutral-50 rounded-3xl border border-neutral-100 space-y-4 animate-in slide-in-from-top-4">
+                <div>
+                  <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest mb-2 block px-1">Update Home Campus</label>
+                  <select 
+                    value={user.storeId}
+                    onChange={(e) => onUserStoreChange?.(e.target.value)}
+                    className="w-full bg-white border border-neutral-200 rounded-xl px-4 py-3.5 text-sm font-bold text-[#001F3F] outline-none shadow-sm"
+                  >
+                    {stores.map(s => (
+                      <option key={s.id} value={s.id}>{s.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            )}
+
             <button 
               onClick={onLogout}
               className="w-full flex items-center justify-center gap-3 px-6 py-5 rounded-2xl bg-red-50 text-red-600 font-black uppercase tracking-widest text-xs active:scale-95 transition-transform"
             >
               <LogOut size={18} /> Logout Session
             </button>
-            <button 
-              onClick={() => setIsProfileOpen(false)}
-              className="w-full py-4 text-neutral-400 font-bold uppercase tracking-widest text-[10px]"
-            >
-              Dismiss
-            </button>
+            <div className="text-center pt-4">
+              <button 
+                onClick={() => setIsProfileOpen(false)}
+                className="w-full py-4 text-neutral-400 font-bold uppercase tracking-widest text-[10px]"
+              >
+                Dismiss
+              </button>
+              <p className="text-[8px] font-black text-neutral-200 uppercase tracking-[0.3em] mt-2">App Version {version}</p>
+            </div>
           </div>
         </div>
       )}
