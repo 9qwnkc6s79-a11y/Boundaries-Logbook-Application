@@ -57,12 +57,19 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onCapture })
     if (videoRef.current && canvasRef.current) {
       const video = videoRef.current;
       const canvas = canvasRef.current;
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
+
+      // Compress image: max 800px on longest side to reduce Firestore document size
+      const maxDimension = 800;
+      const scale = Math.min(maxDimension / video.videoWidth, maxDimension / video.videoHeight, 1);
+      canvas.width = Math.round(video.videoWidth * scale);
+      canvas.height = Math.round(video.videoHeight * scale);
+
       const ctx = canvas.getContext('2d');
       if (ctx) {
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+        // Use lower quality (0.6) to keep photos under ~50KB each
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+        console.log(`[Photo] Captured ${canvas.width}x${canvas.height}, size: ${Math.round(dataUrl.length / 1024)}KB`);
         setPreviewUrl(dataUrl);
       }
     }

@@ -193,23 +193,32 @@ const App: React.FC = () => {
     lastSubmissionUpdateRef.current = Date.now();
 
     let taskResults = Object.entries(data.responses).map(([taskId, res]: any) => ({
-      taskId, 
-      completed: res.completed, 
-      photoUrl: res.photo, 
-      value: res.value, 
+      taskId,
+      completed: res.completed,
+      photoUrl: res.photo,
+      value: res.value,
       comment: res.comment,
-      completedByUserId: res.completedByUserId || currentUser?.id || 'unknown', 
+      completedByUserId: res.completedByUserId || currentUser?.id || 'unknown',
       completedAt: res.completedAt || new Date().toISOString(),
       aiFlagged: res.aiFlagged,
       aiReason: res.aiReason
     }));
+
+    // Log photo task info for debugging
+    const photoTasks = taskResults.filter(r => r.photoUrl);
+    if (photoTasks.length > 0) {
+      const totalPhotoSize = photoTasks.reduce((sum, r) => sum + (r.photoUrl?.length || 0), 0);
+      console.log(`[Checklist] ${photoTasks.length} photo task(s), total photo data: ${Math.round(totalPhotoSize / 1024)}KB`);
+    }
 
     if (data.isFinal) {
       const template = templates.find(t => t.id === data.templateId);
       const auditPromises = taskResults.map(async (res) => {
         if (res.photoUrl && !res.aiFlagged) {
           const task = template?.tasks.find(t => t.id === res.taskId);
+          console.log(`[AI Audit] Auditing photo for task: ${task?.title}`);
           const audit = await auditPhotoWithAI(res.photoUrl, task?.title || 'Unknown Task');
+          console.log(`[AI Audit] Result: flagged=${audit.flagged}, reason="${audit.reason}"`);
           return { ...res, aiFlagged: audit.flagged, aiReason: audit.reason };
         }
         return res;

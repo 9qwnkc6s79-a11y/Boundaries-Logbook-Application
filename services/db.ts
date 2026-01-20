@@ -85,13 +85,27 @@ class CloudAPI {
         return;
       }
       const cleanedData = removeUndefined(data);
+
+      // Estimate document size to warn about Firestore 1MB limit
+      const jsonSize = JSON.stringify(cleanedData).length;
+      const estimatedDocSize = Math.round(jsonSize / 1024);
+      if (jsonSize > 900000) {
+        console.error(`[Firestore] remoteSet(${docId}): WARNING! Document size ~${estimatedDocSize}KB exceeds safe limit (900KB). Write may fail!`);
+      } else if (jsonSize > 500000) {
+        console.warn(`[Firestore] remoteSet(${docId}): Document size ~${estimatedDocSize}KB is getting large`);
+      }
+
       await firestore.collection('appData').doc(docId).set({
         data: cleanedData,
         lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
       }, { merge: false });
-      console.log(`[Firestore] remoteSet(${docId}): Saved ${Array.isArray(cleanedData) ? cleanedData.length + ' items' : 'data'}`);
-    } catch (error) {
+      console.log(`[Firestore] remoteSet(${docId}): Saved ${Array.isArray(cleanedData) ? cleanedData.length + ' items' : 'data'} (~${estimatedDocSize}KB)`);
+    } catch (error: any) {
       console.error(`[Firestore] remoteSet(${docId}): Error:`, error);
+      // Check for specific Firestore errors
+      if (error?.code === 'resource-exhausted' || error?.message?.includes('exceeds the maximum')) {
+        console.error(`[Firestore] remoteSet(${docId}): Document too large! Consider compressing images or using Firebase Storage.`);
+      }
     }
   }
 
