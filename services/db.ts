@@ -14,11 +14,18 @@ const firebaseConfig = {
 };
 
 // Initialize once using global firebase object
-if (typeof firebase !== 'undefined' && !firebase.apps.length) {
-  firebase.initializeApp(firebaseConfig);
-}
+let firestore: any = null;
 
-const firestore = typeof firebase !== 'undefined' ? firebase.firestore() : null;
+if (typeof firebase !== 'undefined') {
+  if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+    console.log('[Firebase] Initialized app:', firebaseConfig.projectId);
+  }
+  firestore = firebase.firestore();
+  console.log('[Firebase] Firestore connected');
+} else {
+  console.error('[Firebase] Firebase SDK not loaded! Check that CDN scripts are in index.html');
+}
 
 const DOC_KEYS = {
   USERS: 'users',
@@ -46,30 +53,45 @@ function removeUndefined(obj: any): any {
 
 class CloudAPI {
   private async remoteGet<T>(docId: string, defaultValue: T): Promise<T> {
-    if (!firestore) return defaultValue;
+    if (!firestore) {
+      console.warn(`[Firestore] remoteGet(${docId}): Firestore not available, returning default`);
+      return defaultValue;
+    }
     try {
       const docRef = firestore.collection('appData').doc(docId);
       const snap = await docRef.get();
-      if (!snap.exists) return defaultValue;
+      if (!snap.exists) {
+        console.log(`[Firestore] remoteGet(${docId}): Document doesn't exist, returning default`);
+        return defaultValue;
+      }
       const data = snap.data();
-      return data && data.data ? data.data : defaultValue;
+      const result = data && data.data ? data.data : defaultValue;
+      console.log(`[Firestore] remoteGet(${docId}): Retrieved ${Array.isArray(result) ? result.length + ' items' : 'data'}`);
+      return result;
     } catch (error) {
-      console.warn(`[Firestore] Get error for ${docId}:`, error);
+      console.error(`[Firestore] remoteGet(${docId}): Error:`, error);
       return defaultValue;
     }
   }
 
   private async remoteSet<T>(docId: string, data: T): Promise<void> {
-    if (!firestore) return;
+    if (!firestore) {
+      console.error(`[Firestore] remoteSet(${docId}): Firestore not available, data NOT saved!`);
+      return;
+    }
     try {
-      if (data === undefined || data === null) return;
+      if (data === undefined || data === null) {
+        console.warn(`[Firestore] remoteSet(${docId}): Skipping null/undefined data`);
+        return;
+      }
       const cleanedData = removeUndefined(data);
-      await firestore.collection('appData').doc(docId).set({ 
+      await firestore.collection('appData').doc(docId).set({
         data: cleanedData,
         lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
       }, { merge: false });
+      console.log(`[Firestore] remoteSet(${docId}): Saved ${Array.isArray(cleanedData) ? cleanedData.length + ' items' : 'data'}`);
     } catch (error) {
-      console.error(`[Firestore] Set error for ${docId}:`, error);
+      console.error(`[Firestore] remoteSet(${docId}): Error:`, error);
     }
   }
 
