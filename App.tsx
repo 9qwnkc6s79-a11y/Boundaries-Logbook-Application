@@ -10,8 +10,7 @@ import RecipeBook from './components/RecipeBook';
 import Login from './components/Login';
 import { GoogleGenAI } from "@google/genai";
 
-const APP_VERSION = '3.4.1';
-const CURRICULUM_VERSION = '3'; // Bump this to force-push curriculum updates to Firebase
+const APP_VERSION = '3.4.2';
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -34,33 +33,24 @@ const App: React.FC = () => {
   // Track the last time we updated a submission locally to avoid the "sync overwrite flicker"
   const lastSubmissionUpdateRef = useRef<number>(0);
 
-  // One-time migration to force-push curriculum when version changes
-  const runCurriculumMigration = useCallback(async () => {
-    const storedVersion = localStorage.getItem('boundaries_curriculum_version');
-    console.log(`[Migration] Checking curriculum version: stored=${storedVersion}, current=${CURRICULUM_VERSION}`);
-    console.log(`[Migration] TRAINING_CURRICULUM has ${TRAINING_CURRICULUM.length} modules`);
-    console.log(`[Migration] Module IDs:`, TRAINING_CURRICULUM.map(m => m.id));
-
-    if (storedVersion !== CURRICULUM_VERSION) {
-      console.log(`[Migration] Curriculum version changed (${storedVersion} -> ${CURRICULUM_VERSION}), pushing updated curriculum to Firebase...`);
-      try {
-        await db.pushCurriculum(TRAINING_CURRICULUM);
-        localStorage.setItem('boundaries_curriculum_version', CURRICULUM_VERSION);
-        console.log('[Migration] Curriculum push complete - SUCCESS');
-      } catch (err) {
-        console.error('[Migration] Curriculum push FAILED:', err);
-      }
-    } else {
-      console.log('[Migration] Curriculum version matches, skipping push');
+  // Force-push curriculum to Firebase on initial load to ensure it's always up to date
+  const forcePushCurriculum = useCallback(async () => {
+    console.log(`[Curriculum] Force-pushing ${TRAINING_CURRICULUM.length} modules to Firebase...`);
+    console.log(`[Curriculum] Module IDs:`, TRAINING_CURRICULUM.map(m => m.id));
+    try {
+      await db.pushCurriculum(TRAINING_CURRICULUM);
+      console.log('[Curriculum] Push complete - SUCCESS');
+    } catch (err) {
+      console.error('[Curriculum] Push FAILED:', err);
     }
   }, []);
 
   const performCloudSync = useCallback(async (background = false) => {
     if (!background) setIsSyncing(true);
     try {
-      // Run curriculum migration before sync (only on foreground syncs)
+      // Force-push curriculum before sync (only on foreground syncs)
       if (!background) {
-        await runCurriculumMigration();
+        await forcePushCurriculum();
       }
 
       const data = await db.globalSync({
@@ -94,7 +84,7 @@ const App: React.FC = () => {
       setIsSyncing(false);
       setIsInitialLoading(false);
     }
-  }, [runCurriculumMigration]);
+  }, [forcePushCurriculum]);
 
   useEffect(() => {
     performCloudSync();
