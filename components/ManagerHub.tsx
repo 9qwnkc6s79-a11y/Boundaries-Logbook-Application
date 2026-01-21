@@ -4,11 +4,9 @@ import {
   CheckCircle2, AlertCircle, Eye, User as UserIcon, Calendar, Check, X,
   Sparkles, Settings, Plus, Trash2, Edit3, BarChart3, ListTodo, BrainCircuit, Clock, TrendingDown, TrendingUp,
   ArrowRight, MessageSquare, Save, Users, LayoutDashboard, Flag, Activity, GraduationCap, Award, FileText, MoveUp, MoveDown, Coffee, Camera, Hash, AlertTriangle, ExternalLink, FileText as FileIcon, Image as ImageIcon, Search, ShieldCheck,
-  RefreshCw, RotateCcw, CalendarDays, Timer, Store as StoreIcon, MapPin, GripVertical, AlertOctagon, Info, Zap, Gauge, History, SearchCheck, ChevronUp, ChevronDown, ClipboardList, Upload
+  RefreshCw, RotateCcw, CalendarDays, Timer, Store as StoreIcon, MapPin, GripVertical, AlertOctagon, Info, Zap, Gauge, History, SearchCheck, ChevronUp, ChevronDown, ClipboardList
 } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
-import { TRAINING_CURRICULUM } from '../data/mockData';
-import { db } from '../services/db';
 
 interface ManagerHubProps {
   staff: User[];
@@ -39,24 +37,6 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
   const [aiInsight, setAiInsight] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [fullscreenPhoto, setFullscreenPhoto] = useState<{url: string, title: string, user: string, aiReview?: { flagged: boolean, reason: string }} | null>(null);
-  const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'success' | 'error'>('idle');
-
-  // Force push curriculum to Firebase
-  const handleSyncCurriculum = async () => {
-    setSyncStatus('syncing');
-    console.log('[ManagerHub] Syncing curriculum to Firebase...');
-    console.log('[ManagerHub] TRAINING_CURRICULUM modules:', TRAINING_CURRICULUM.map(m => m.id));
-    try {
-      await db.pushCurriculum(TRAINING_CURRICULUM);
-      setSyncStatus('success');
-      console.log('[ManagerHub] Curriculum sync SUCCESS');
-      setTimeout(() => setSyncStatus('idle'), 3000);
-    } catch (err) {
-      console.error('[ManagerHub] Curriculum sync FAILED:', err);
-      setSyncStatus('error');
-      setTimeout(() => setSyncStatus('idle'), 3000);
-    }
-  };
   
   const [deleteConfirm, setDeleteConfirm] = useState<{
     type: 'TASK' | 'TEMPLATE' | 'RESET_LOG',
@@ -432,35 +412,6 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
       <div className="space-y-8 sm:space-y-12">
         {activeSubTab === 'dashboard' && (
           <div className="space-y-10 animate-in fade-in duration-500">
-            {/* Curriculum Sync Banner */}
-            <div className="bg-yellow-50 border-2 border-yellow-400 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div>
-                <p className="font-bold text-yellow-800">Curriculum Sync</p>
-                <p className="text-sm text-yellow-700">
-                  Firebase: {curriculum.length} modules | MockData: {TRAINING_CURRICULUM.length} modules
-                  {curriculum.length < TRAINING_CURRICULUM.length && (
-                    <span className="ml-2 text-red-600 font-bold">⚠️ Missing modules!</span>
-                  )}
-                </p>
-              </div>
-              <button
-                onClick={handleSyncCurriculum}
-                disabled={syncStatus === 'syncing'}
-                className={`px-6 py-3 rounded-xl font-black uppercase text-sm flex items-center gap-2 transition-all ${
-                  syncStatus === 'success' ? 'bg-green-500 text-white' :
-                  syncStatus === 'error' ? 'bg-red-500 text-white' :
-                  syncStatus === 'syncing' ? 'bg-yellow-300 text-yellow-800' :
-                  'bg-yellow-500 text-white hover:bg-yellow-600'
-                }`}
-              >
-                <Upload size={16} />
-                {syncStatus === 'syncing' ? 'Syncing...' :
-                 syncStatus === 'success' ? 'Synced!' :
-                 syncStatus === 'error' ? 'Failed!' :
-                 'Sync Curriculum to Firebase'}
-              </button>
-            </div>
-
             <section className="bg-white p-8 rounded-[2.5rem] border border-neutral-100 shadow-sm overflow-hidden relative">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                 <div className="flex items-center gap-3">

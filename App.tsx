@@ -33,26 +33,9 @@ const App: React.FC = () => {
   // Track the last time we updated a submission locally to avoid the "sync overwrite flicker"
   const lastSubmissionUpdateRef = useRef<number>(0);
 
-  // Force-push curriculum to Firebase on initial load to ensure it's always up to date
-  const forcePushCurriculum = useCallback(async () => {
-    console.log(`[Curriculum] Force-pushing ${TRAINING_CURRICULUM.length} modules to Firebase...`);
-    console.log(`[Curriculum] Module IDs:`, TRAINING_CURRICULUM.map(m => m.id));
-    try {
-      await db.pushCurriculum(TRAINING_CURRICULUM);
-      console.log('[Curriculum] Push complete - SUCCESS');
-    } catch (err) {
-      console.error('[Curriculum] Push FAILED:', err);
-    }
-  }, []);
-
   const performCloudSync = useCallback(async (background = false) => {
     if (!background) setIsSyncing(true);
     try {
-      // Force-push curriculum before sync (only on foreground syncs)
-      if (!background) {
-        await forcePushCurriculum();
-      }
-
       const data = await db.globalSync({
         users: MOCK_USERS,
         templates: CHECKLIST_TEMPLATES,
@@ -84,7 +67,7 @@ const App: React.FC = () => {
       setIsSyncing(false);
       setIsInitialLoading(false);
     }
-  }, [forcePushCurriculum]);
+  }, []);
 
   useEffect(() => {
     performCloudSync();
@@ -348,20 +331,6 @@ const App: React.FC = () => {
   const storeProgress = progress.filter(p => storeUsers.some(u => u.id === p.userId));
   const isManager = currentUser.role === UserRole.MANAGER || currentUser.role === UserRole.ADMIN;
 
-  // Temporary admin function to force push curriculum
-  const handleForcePushCurriculum = async () => {
-    console.log('[ADMIN] Force pushing curriculum to Firebase...');
-    console.log('[ADMIN] Modules:', TRAINING_CURRICULUM.map(m => ({ id: m.id, title: m.title })));
-    try {
-      await db.pushCurriculum(TRAINING_CURRICULUM);
-      alert(`SUCCESS! Pushed ${TRAINING_CURRICULUM.length} modules to Firebase. Refresh to see changes.`);
-      performCloudSync(true);
-    } catch (err) {
-      console.error('[ADMIN] Push failed:', err);
-      alert('FAILED: ' + (err as Error).message);
-    }
-  };
-
   return (
     <Layout
       user={effectiveUser}
@@ -377,18 +346,6 @@ const App: React.FC = () => {
       recipes={recipes}
       version={APP_VERSION}
     >
-      {/* Temporary Admin Button - Remove after curriculum is synced */}
-      {isManager && (
-        <div className="mb-4 p-3 bg-yellow-100 border border-yellow-400 rounded-lg">
-          <p className="text-sm text-yellow-800 mb-2">Admin: Curriculum has {curriculum.length} modules. MockData has {TRAINING_CURRICULUM.length} modules.</p>
-          <button
-            onClick={handleForcePushCurriculum}
-            className="px-4 py-2 bg-yellow-500 text-white rounded font-bold hover:bg-yellow-600"
-          >
-            Force Push Curriculum to Firebase
-          </button>
-        </div>
-      )}
       <div className="animate-in fade-in duration-500">
         {activeTab === 'training' && (
           <TrainingView 
