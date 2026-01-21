@@ -250,14 +250,14 @@ class CloudAPI {
     await this.remoteSet(DOC_KEYS.RECIPES, recipes);
   }
 
-  async globalSync(defaults: { 
-    users: User[], 
-    templates: ChecklistTemplate[], 
-    curriculum: TrainingModule[], 
-    manual: ManualSection[], 
-    recipes: Recipe[] 
+  async globalSync(defaults: {
+    users: User[],
+    templates: ChecklistTemplate[],
+    curriculum: TrainingModule[],
+    manual: ManualSection[],
+    recipes: Recipe[]
   }) {
-    const [users, submissions, progress, templates, curriculum, manual, recipes] = await Promise.all([
+    const [users, submissions, progress, templates, cloudCurriculum, manual, recipes] = await Promise.all([
       this.fetchUsers(defaults.users),
       this.fetchSubmissions(),
       this.fetchProgress(),
@@ -266,6 +266,20 @@ class CloudAPI {
       this.remoteGet(DOC_KEYS.MANUAL, defaults.manual),
       this.remoteGet(DOC_KEYS.RECIPES, defaults.recipes)
     ]);
+
+    // Merge new modules from defaults that don't exist in cloud
+    // This ensures new modules added to mockData.ts appear in the app
+    const cloudModuleIds = new Set(cloudCurriculum.map((m: TrainingModule) => m.id));
+    const newModules = defaults.curriculum.filter(m => !cloudModuleIds.has(m.id));
+
+    let curriculum = cloudCurriculum;
+    if (newModules.length > 0) {
+      console.log(`[Firestore] globalSync: Found ${newModules.length} new curriculum module(s), merging...`);
+      curriculum = [...cloudCurriculum, ...newModules];
+      // Push merged curriculum back to cloud
+      await this.remoteSet(DOC_KEYS.CURRICULUM, curriculum);
+    }
+
     return { users, submissions, progress, templates, curriculum, manual, recipes };
   }
 }
