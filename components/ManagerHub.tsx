@@ -94,21 +94,80 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
 
     const mainTemplates = templates.filter(t => ['OPENING', 'CLOSING', 'SHIFT_CHANGE', 'WEEKLY'].includes(t.type));
 
-    return last7Days.map(date => {
-      const dayStatus = mainTemplates.map(tpl => {
-        const submission = submissions.find(s => s.templateId === tpl.id && s.date === date);
-        const now = new Date();
-        const todayStr = getLocalStr(now);
-        const isPastDeadline = now.getHours() >= (tpl.deadlineHour ?? 12) && todayStr === date;
-        const isHistory = todayStr > date;
+    // Helper to get deadline for a template on a specific date
+    const getDeadline = (tpl: ChecklistTemplate, dateStr: string): Date => {
+      const deadline = new Date(dateStr + 'T00:00:00');
 
-        let status: 'MISSING' | 'COMPLETED' | 'PENDING' | 'LATE' = 'PENDING';
-        if (submission && submission.status !== 'DRAFT') {
-          const submittedDate = submission.submittedAt ? new Date(submission.submittedAt) : null;
-          status = (submittedDate && submittedDate.getHours() >= (tpl.deadlineHour ?? 12)) ? 'LATE' : 'COMPLETED';
-        } else if (isHistory || isPastDeadline) {
-          status = 'MISSING';
+      if (tpl.type === 'OPENING') {
+        // Opening Checklist: deadline is noon that day
+        deadline.setHours(12, 0, 0, 0);
+      } else if (tpl.type === 'CLOSING') {
+        // Closing Checklist: deadline is midnight (end of that day)
+        deadline.setHours(23, 59, 59, 999);
+      } else if (tpl.type === 'WEEKLY') {
+        // Weekly cleans: deadline is end of that day (must be submitted on correct day)
+        deadline.setHours(23, 59, 59, 999);
+      } else {
+        // Default: noon
+        deadline.setHours(12, 0, 0, 0);
+      }
+
+      return deadline;
+    };
+
+    // Helper to check if a date is applicable for a weekly template
+    const isWeeklyDateApplicable = (tpl: ChecklistTemplate, dateStr: string): boolean => {
+      if (tpl.type !== 'WEEKLY') return true;
+
+      const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const dayNameInTemplate = daysOfWeek.find(d => tpl.name.includes(d));
+      if (!dayNameInTemplate) return true;
+
+      const date = new Date(dateStr + 'T12:00:00');
+      const dateDayName = daysOfWeek[date.getDay()];
+      return dateDayName === dayNameInTemplate;
+    };
+
+    return last7Days.map(date => {
+      const now = new Date();
+      const todayStr = getLocalStr(now);
+      const isFuture = date > todayStr;
+
+      const dayStatus = mainTemplates.map(tpl => {
+        // For weekly templates, check if this day is applicable
+        if (!isWeeklyDateApplicable(tpl, date)) {
+          return { templateName: tpl.name, templateType: tpl.type, status: 'N/A' as const };
         }
+
+        // Find submission for this template on this date
+        const submission = submissions.find(s => s.templateId === tpl.id && s.date === date && s.status !== 'DRAFT');
+
+        // Future date - not yet due
+        if (isFuture) {
+          return { templateName: tpl.name, templateType: tpl.type, status: 'FUTURE' as const };
+        }
+
+        const deadline = getDeadline(tpl, date);
+        const isToday = date === todayStr;
+        const isPastDeadline = now > deadline;
+
+        let status: 'MISSING' | 'COMPLETED' | 'LATE' | 'FUTURE' | 'N/A' = 'MISSING';
+
+        if (submission) {
+          const submittedAt = submission.submittedAt ? new Date(submission.submittedAt) : null;
+          if (submittedAt) {
+            // Check if submitted before or after deadline
+            status = submittedAt <= deadline ? 'COMPLETED' : 'LATE';
+          } else {
+            // No submittedAt timestamp, assume on time
+            status = 'COMPLETED';
+          }
+        } else if (isToday && !isPastDeadline) {
+          // Today but deadline hasn't passed yet - show as future/pending
+          status = 'FUTURE';
+        }
+        // else: no submission and past deadline = MISSING (default)
+
         return { templateName: tpl.name, templateType: tpl.type, status };
       });
       return { date, shortDate: date.split('-').slice(1).join('/'), statuses: dayStatus };
@@ -210,16 +269,14 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
   }, [templates, submissions]);
 
   const trailingSummary = useMemo(() => {
-    const totalPossible = complianceMatrix.reduce((acc, day) => acc + (day.statuses?.length || 0), 0);
-    const totalCompleted = complianceMatrix.reduce((acc, day) => 
-      acc + (day.statuses?.filter(s => s.status === 'COMPLETED' || s.status === 'LATE').length || 0), 0
+    // Only count statuses that are applicable (not FUTURE or N/A)
+    const applicableStatuses = complianceMatrix.flatMap(day =>
+      (day.statuses || []).filter(s => s.status !== 'FUTURE' && s.status !== 'N/A')
     );
-    const totalOnTime = complianceMatrix.reduce((acc, day) => 
-      acc + (day.statuses?.filter(s => s.status === 'COMPLETED').length || 0), 0
-    );
-    const totalMissed = complianceMatrix.reduce((acc, day) => 
-      acc + (day.statuses?.filter(s => s.status === 'MISSING').length || 0), 0
-    );
+    const totalPossible = applicableStatuses.length;
+    const totalCompleted = applicableStatuses.filter(s => s.status === 'COMPLETED' || s.status === 'LATE').length;
+    const totalOnTime = applicableStatuses.filter(s => s.status === 'COMPLETED').length;
+    const totalMissed = applicableStatuses.filter(s => s.status === 'MISSING').length;
     const completionRate = totalPossible > 0 ? Math.round((totalCompleted / totalPossible) * 100) : 100;
     const punctualityRate = totalCompleted > 0 ? Math.round((totalOnTime / totalCompleted) * 100) : 100;
     return { completionRate, punctualityRate, totalMissed };
@@ -530,17 +587,19 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                         <tr key={tpl.id}>
                           <td className="py-4 pr-6 font-bold text-xs text-[#001F3F] uppercase tracking-tight">{tpl.name}</td>
                           {complianceMatrix.map(day => {
-                            const status = day.statuses?.find(s => s.templateName === tpl.name)?.status || 'PENDING';
+                            const status = day.statuses?.find(s => s.templateName === tpl.name)?.status || 'FUTURE';
                             return (
                               <td key={`${tpl.id}-${day.date}`} className="py-4 px-3 text-center">
                                 <div className={`w-8 h-8 rounded-xl mx-auto flex items-center justify-center ${
                                   status === 'COMPLETED' ? 'bg-green-100 text-green-600' :
                                   status === 'LATE' ? 'bg-amber-100 text-amber-600' :
-                                  status === 'MISSING' ? 'bg-red-100 text-red-600' : 'bg-neutral-50 text-neutral-300'
+                                  status === 'MISSING' ? 'bg-red-100 text-red-600' :
+                                  status === 'N/A' ? 'bg-transparent' : 'bg-neutral-50 text-neutral-300'
                                 }`}>
-                                  {status === 'COMPLETED' ? <Check size={14} strokeWidth={3}/> : 
-                                   status === 'MISSING' ? <X size={14} strokeWidth={3}/> : 
-                                   status === 'LATE' ? <Clock size={14} strokeWidth={3}/> : <div className="w-1.5 h-1.5 rounded-full bg-neutral-200" />}
+                                  {status === 'COMPLETED' ? <Check size={14} strokeWidth={3}/> :
+                                   status === 'LATE' ? <Clock size={14} strokeWidth={3}/> :
+                                   status === 'MISSING' ? <X size={14} strokeWidth={3}/> :
+                                   status === 'N/A' ? null : <div className="w-1.5 h-1.5 rounded-full bg-neutral-300" />}
                                 </div>
                               </td>
                             );
