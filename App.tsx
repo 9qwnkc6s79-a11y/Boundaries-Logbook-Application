@@ -10,8 +10,8 @@ import RecipeBook from './components/RecipeBook';
 import Login from './components/Login';
 import { GoogleGenAI } from "@google/genai";
 
-const APP_VERSION = '3.4.0';
-const CURRICULUM_VERSION = '2'; // Bump this to force-push curriculum updates to Firebase
+const APP_VERSION = '3.4.1';
+const CURRICULUM_VERSION = '3'; // Bump this to force-push curriculum updates to Firebase
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -37,11 +37,21 @@ const App: React.FC = () => {
   // One-time migration to force-push curriculum when version changes
   const runCurriculumMigration = useCallback(async () => {
     const storedVersion = localStorage.getItem('boundaries_curriculum_version');
+    console.log(`[Migration] Checking curriculum version: stored=${storedVersion}, current=${CURRICULUM_VERSION}`);
+    console.log(`[Migration] TRAINING_CURRICULUM has ${TRAINING_CURRICULUM.length} modules`);
+    console.log(`[Migration] Module IDs:`, TRAINING_CURRICULUM.map(m => m.id));
+
     if (storedVersion !== CURRICULUM_VERSION) {
       console.log(`[Migration] Curriculum version changed (${storedVersion} -> ${CURRICULUM_VERSION}), pushing updated curriculum to Firebase...`);
-      await db.pushCurriculum(TRAINING_CURRICULUM);
-      localStorage.setItem('boundaries_curriculum_version', CURRICULUM_VERSION);
-      console.log('[Migration] Curriculum push complete');
+      try {
+        await db.pushCurriculum(TRAINING_CURRICULUM);
+        localStorage.setItem('boundaries_curriculum_version', CURRICULUM_VERSION);
+        console.log('[Migration] Curriculum push complete - SUCCESS');
+      } catch (err) {
+        console.error('[Migration] Curriculum push FAILED:', err);
+      }
+    } else {
+      console.log('[Migration] Curriculum version matches, skipping push');
     }
   }, []);
 
