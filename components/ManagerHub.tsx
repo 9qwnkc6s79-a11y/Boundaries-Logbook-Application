@@ -143,8 +143,10 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
         const submission = submissions.find(s => {
           if (s.templateId !== tpl.id || s.status === 'DRAFT') return false;
           // Match by the date portion of submittedAt (when actually submitted)
-          if (!s.submittedAt) return false;
-          const submittedDate = s.submittedAt.split('T')[0]; // Extract YYYY-MM-DD
+          // Fall back to s.date for older submissions without submittedAt
+          const submittedDate = s.submittedAt
+            ? s.submittedAt.split('T')[0]
+            : s.date;
           return submittedDate === date;
         });
 
