@@ -53,7 +53,7 @@ export interface TrainingModule {
   id: string;
   title: string;
   description: string;
-  category: 'ONBOARDING' | 'CONTINUED';
+  category: 'ONBOARDING' | 'CONTINUED' | 'BARISTA_SKILLS';
   lessons: Lesson[];
 }
 

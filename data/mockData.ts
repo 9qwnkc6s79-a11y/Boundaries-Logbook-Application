@@ -806,6 +806,50 @@ export const TRAINING_CURRICULUM: TrainingModule[] = [
         ]
       }
     ]
+  },
+  {
+    id: 'm-espresso',
+    title: 'Module 9: Espresso Fundamentals',
+    description: 'Learn the basics of espresso extraction, dosing, tamping, and equipment.',
+    category: 'BARISTA_SKILLS',
+    lessons: [
+      {
+        id: 'l-espresso-video',
+        moduleId: 'm-espresso',
+        title: 'Espresso Crash Course',
+        type: 'CONTENT',
+        videoUrl: 'https://www.youtube.com/watch?v=ZuQu12vMQZM',
+        content: 'Watch this Prima Coffee video to learn espresso fundamentals before taking the quiz.'
+      },
+      {
+        id: 'l-espresso-quiz',
+        moduleId: 'm-espresso',
+        title: 'Espresso Fundamentals Quiz',
+        type: 'QUIZ',
+        quizQuestions: [
+          { id: 'eq1', type: 'MULTIPLE_CHOICE', question: 'What makes espresso different from other brewing methods like French press or pour-over?', options: ['It uses a special type of coffee bean', 'It uses high pressurized water to shorten brew time and dissolve more solids', 'It requires a darker roast than other methods', 'It brews at a lower temperature than other methods'], correctAnswers: ['It uses high pressurized water to shorten brew time and dissolve more solids'] },
+          { id: 'eq2', type: 'MULTIPLE_CHOICE', question: 'What is espresso best described as?', options: ['A special blend of coffee beans', 'A very concentrated means of making coffee', 'Coffee brewed with extra hot water', 'A specific roast level of coffee'], correctAnswers: ['A very concentrated means of making coffee'] },
+          { id: 'eq3', type: 'MULTIPLE_CHOICE', question: 'What creates the distinctive layer of crema at the top of an espresso shot?', options: ['Adding milk to the espresso', 'Using dark roasted beans', 'The emulsification of oils under high pressure', 'Brewing at very high temperatures'], correctAnswers: ['The emulsification of oils under high pressure'] },
+          { id: 'eq4', type: 'MULTIPLE_CHOICE', question: 'How fine should espresso be ground compared to other brewing methods?', options: ['About the same as drip coffee', 'Coarser than French press', 'Very fine - finer than almost any other method except Turkish', 'Medium grind like pour-over'], correctAnswers: ['Very fine - finer than almost any other method except Turkish'] },
+          { id: 'eq5', type: 'MULTIPLE_CHOICE', question: 'What does "dose" refer to in espresso making?', options: ['The temperature of the water', 'The amount of ground coffee used (the brewing ratio)', 'The pressure of the machine', 'The speed of extraction'], correctAnswers: ['The amount of ground coffee used (the brewing ratio)'] },
+          { id: 'eq6', type: 'MULTIPLE_CHOICE', question: 'What is the recommended dose for a double shot of espresso?', options: ['10 to 14 grams', '18 to 21 grams', '25 to 30 grams', '35 to 40 grams'], correctAnswers: ['18 to 21 grams'] },
+          { id: 'eq7', type: 'MULTIPLE_CHOICE', question: 'What does "yield" refer to in espresso making?', options: ['The amount of water that goes into the machine', 'The temperature of the espresso', 'The amount of espresso that comes out of the machine', 'The pressure used during extraction'], correctAnswers: ['The amount of espresso that comes out of the machine'] },
+          { id: 'eq8', type: 'MULTIPLE_CHOICE', question: 'Why do we measure espresso out instead of water in?', options: ['It\'s faster to measure', 'We\'re not able to measure the exact water going into the puck in an espresso machine', 'The water amount doesn\'t matter', 'Espresso machines don\'t use water'], correctAnswers: ['We\'re not able to measure the exact water going into the puck in an espresso machine'] },
+          { id: 'eq9', type: 'MULTIPLE_CHOICE', question: 'What is the approximate weight of a 2oz espresso shot?', options: ['About 15 grams', 'About 30 grams', 'About 45 grams', 'About 60 grams'], correctAnswers: ['About 30 grams'] },
+          { id: 'eq10', type: 'MULTIPLE_CHOICE', question: 'Why is tamping important when making espresso?', options: ['It heats up the coffee grounds', 'It creates restriction so water and coffee are forced to interact under pressure', 'It adds flavor to the espresso', 'It cools down the portafilter'], correctAnswers: ['It creates restriction so water and coffee are forced to interact under pressure'] },
+          { id: 'eq11', type: 'MULTIPLE_CHOICE', question: 'What would happen if you didn\'t tamp the coffee at all?', options: ['The shot would taste the same', 'The water would fly right through, producing a weak, underdeveloped shot', 'The shot would be too strong', 'The machine would not turn on'], correctAnswers: ['The water would fly right through, producing a weak, underdeveloped shot'] },
+          { id: 'eq12', type: 'MULTIPLE_CHOICE', question: 'What is the recommended temperature range for brewing espresso?', options: ['175°F to 185°F', '185°F to 195°F', '195°F to 205°F', '210°F to 220°F'], correctAnswers: ['195°F to 205°F'] },
+          { id: 'eq13', type: 'MULTIPLE_CHOICE', question: 'What type of grinder should you use for espresso?', options: ['A blade grinder for quick results', 'A burr grinder that can grind very fine with precise adjustments', 'Any coffee grinder will work the same', 'A coarse grinder designed for French press'], correctAnswers: ['A burr grinder that can grind very fine with precise adjustments'] },
+          { id: 'eq14', type: 'MULTIPLE_CHOICE', question: 'Why is it important that an espresso grinder offers very fine adjustment?', options: ['So you can make large changes quickly', 'So you can make minute adjustments within the fine range without wide swings', 'Fine adjustment doesn\'t matter for espresso', 'To grind faster'], correctAnswers: ['So you can make minute adjustments within the fine range without wide swings'] },
+          { id: 'eq15', type: 'MULTIPLE_CHOICE', question: 'What is a portafilter?', options: ['The water reservoir', 'A metal filter basket attached to a handle where you put the ground coffee', 'The steam wand', 'The drip tray'], correctAnswers: ['A metal filter basket attached to a handle where you put the ground coffee'] },
+          { id: 'eq16', type: 'MULTIPLE_CHOICE', question: 'Why should you run water through the group and portafilter before brewing?', options: ['To clean out old coffee grounds', 'To bring fresh water to the front and ensure everything is hot for temperature stability', 'To test the water pressure', 'To soften the filter basket'], correctAnswers: ['To bring fresh water to the front and ensure everything is hot for temperature stability'] },
+          { id: 'eq17', type: 'MULTIPLE_CHOICE', question: 'Why is it important to wipe the portafilter dry before grinding?', options: ['To prevent rust', 'To prevent coffee from sticking and clumping, which affects even extraction', 'To make the portafilter lighter', 'It\'s not important to dry it'], correctAnswers: ['To prevent coffee from sticking and clumping, which affects even extraction'] },
+          { id: 'eq18', type: 'MULTIPLE_CHOICE', question: 'Why is distribution important before tamping?', options: ['It makes the coffee look nicer', 'Even packing starts at distribution; uneven distribution leads to uneven pressure when tamping', 'Distribution doesn\'t affect the shot', 'It removes excess coffee'], correctAnswers: ['Even packing starts at distribution; uneven distribution leads to uneven pressure when tamping'] },
+          { id: 'eq19', type: 'MULTIPLE_CHOICE', question: 'What is a "bottomless" or "naked" portafilter used for?', options: ['To make the espresso hotter', 'To check if your tamp is even by watching the stream during extraction', 'To make double shots', 'To reduce cleanup time'], correctAnswers: ['To check if your tamp is even by watching the stream during extraction'] },
+          { id: 'eq20', type: 'MULTIPLE_CHOICE', question: 'What does the "polish" or twist at the end of tamping do?', options: ['It adds shine to the puck', 'It helps put loose grounds in their place and ensures everything is smooth for water penetration', 'It removes the tamper more easily', 'It has no purpose'], correctAnswers: ['It helps put loose grounds in their place and ensures everything is smooth for water penetration'] }
+        ]
+      }
+    ]
   }
 ];
 
