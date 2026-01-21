@@ -1,8 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
-import { Coffee, ArrowRight, Lock, Mail, User as UserIcon, MapPin, Key, ShieldCheck, ChevronLeft, Activity, HeartPulse } from 'lucide-react';
+import { Coffee, ArrowRight, Lock, Mail, User as UserIcon, MapPin, Key, ShieldCheck, ChevronLeft } from 'lucide-react';
 import { User, UserRole, Store } from '../types';
-import FirebaseDiagnostic from './FirebaseDiagnostic';
 
 interface LoginProps {
   onLogin: (email: string, pass: string) => Promise<User>;
@@ -22,8 +21,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onSignup, onPasswordReset, users
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [showDiagnostic, setShowDiagnostic] = useState(false);
-  
+
   // Forgot Password flow states
   const [resetEmail, setResetEmail] = useState('');
   const [recoveryStep, setRecoveryStep] = useState<'EMAIL' | 'CODE' | 'NEW_PASSWORD' | 'SUCCESS'>('EMAIL');
@@ -145,8 +143,6 @@ const Login: React.FC<LoginProps> = ({ onLogin, onSignup, onPasswordReset, users
 
   return (
     <div className="min-h-screen bg-[#001F3F] flex flex-col items-center justify-center p-6 relative overflow-hidden text-white">
-      {showDiagnostic && <FirebaseDiagnostic onClose={() => setShowDiagnostic(false)} />}
-      
       <div className="absolute top-0 right-0 w-1/2 h-full bg-blue-900/20 skew-x-12 transform translate-x-1/2 -z-0" />
       <div className="absolute bottom-0 left-0 w-96 h-96 bg-white/5 rounded-full blur-[120px] -z-0" />
 
@@ -392,14 +388,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onSignup, onPasswordReset, users
           )}
         </div>
         
-        <button 
-          onClick={() => setShowDiagnostic(true)}
-          className="mt-8 flex items-center gap-2 text-white/40 hover:text-white transition-colors text-[10px] font-black uppercase tracking-[0.2em] group"
-        >
-          <HeartPulse size={12} className="group-hover:text-red-400" /> Firebase Sync Health
-        </button>
-
-        <div className="mt-4 text-center text-blue-200/20 text-[9px] font-black uppercase tracking-[0.4em]">
+        <div className="mt-8 text-center text-blue-200/20 text-[9px] font-black uppercase tracking-[0.4em]">
           App Version {version}
         </div>
       </div>
