@@ -251,27 +251,32 @@ const OpsView: React.FC<OpsViewProps> = ({ user, allUsers, templates, existingSu
   }, [getLocalYYYYMMDD]);
 
   // Calculate when a submission should unlock based on template type
+  // Uses submittedAt (when user actually submitted) not date (the target date)
   const getUnlockTime = useCallback((submission: ChecklistSubmission, template: ChecklistTemplate): Date => {
-    const submissionDate = new Date(submission.date + 'T00:00:00');
+    // Use actual submission time, fallback to date if submittedAt not available
+    const submittedAt = submission.submittedAt
+      ? new Date(submission.submittedAt)
+      : new Date(submission.date + 'T23:59:59');
+
     const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     const dayNameInTemplate = daysOfWeek.find(d => template.name.includes(d));
 
     if (template.type === 'WEEKLY' && dayNameInTemplate) {
       // Weekly maintenance: unlock at same day next week (midnight)
-      const unlockDate = new Date(submissionDate);
-      unlockDate.setDate(submissionDate.getDate() + 7);
+      const unlockDate = new Date(submittedAt);
+      unlockDate.setDate(submittedAt.getDate() + 7);
       unlockDate.setHours(0, 0, 0, 0);
       return unlockDate;
     } else if (template.type === 'CLOSING') {
-      // Closing checklist: unlock at noon the next calendar day
-      const unlockDate = new Date(submissionDate);
-      unlockDate.setDate(submissionDate.getDate() + 1);
+      // Closing checklist: unlock at noon the next calendar day after submission
+      const unlockDate = new Date(submittedAt);
+      unlockDate.setDate(submittedAt.getDate() + 1);
       unlockDate.setHours(12, 0, 0, 0);
       return unlockDate;
     } else {
-      // Opening/other checklists: unlock at midnight (start of next calendar day)
-      const unlockDate = new Date(submissionDate);
-      unlockDate.setDate(submissionDate.getDate() + 1);
+      // Opening/other checklists: unlock at midnight (start of next calendar day after submission)
+      const unlockDate = new Date(submittedAt);
+      unlockDate.setDate(submittedAt.getDate() + 1);
       unlockDate.setHours(0, 0, 0, 0);
       return unlockDate;
     }
@@ -280,6 +285,7 @@ const OpsView: React.FC<OpsViewProps> = ({ user, allUsers, templates, existingSu
   // Check if a checklist is currently locked due to a recent submission
   const getLockedSubmission = useCallback((template: ChecklistTemplate): ChecklistSubmission | null => {
     const now = new Date();
+    const todayStr = getLocalYYYYMMDD(now);
 
     // Find all finalized submissions for this template (not drafts)
     const finalizedSubmissions = existingSubmissions.filter(s =>
@@ -287,16 +293,21 @@ const OpsView: React.FC<OpsViewProps> = ({ user, allUsers, templates, existingSu
       s.status !== 'DRAFT'
     );
 
+    console.log(`[Lock Check] Template: ${template.name}, Today: ${todayStr}`);
+    console.log(`[Lock Check] Found ${finalizedSubmissions.length} finalized submissions`);
+
     // Check if any submission is still within its lock period
     for (const submission of finalizedSubmissions) {
       const unlockTime = getUnlockTime(submission, template);
-      if (now < unlockTime) {
+      const isLocked = now < unlockTime;
+      console.log(`[Lock Check] Submission date: ${submission.date}, status: ${submission.status}, unlockTime: ${unlockTime.toISOString()}, now: ${now.toISOString()}, isLocked: ${isLocked}`);
+      if (isLocked) {
         return submission;
       }
     }
 
     return null;
-  }, [existingSubmissions, getUnlockTime]);
+  }, [existingSubmissions, getUnlockTime, getLocalYYYYMMDD]);
 
   const markInteraction = useCallback((taskId: string) => {
     interactionLock.current[taskId] = Date.now();
@@ -730,11 +741,6 @@ const OpsView: React.FC<OpsViewProps> = ({ user, allUsers, templates, existingSu
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {list.map(tpl => {
             const targetDate = getTargetDate(tpl);
-            const draft = existingSubmissions.find(s =>
-              s.templateId === tpl.id &&
-              s.date === targetDate &&
-              s.status === 'DRAFT'
-            );
 
             // Check if there's a locked submission (may be from a different date but still within lock period)
             const lockedSubmission = getLockedSubmission(tpl);
@@ -742,6 +748,16 @@ const OpsView: React.FC<OpsViewProps> = ({ user, allUsers, templates, existingSu
 
             // Calculate unlock time for display
             const unlockTime = lockedSubmission ? getUnlockTime(lockedSubmission, tpl) : null;
+
+            // Only look for draft if not already locked
+            const draft = !isFinalized ? existingSubmissions.find(s =>
+              s.templateId === tpl.id &&
+              s.date === targetDate &&
+              s.status === 'DRAFT'
+            ) : null;
+
+            // Log for debugging
+            console.log(`[Grid] ${tpl.name}: targetDate=${targetDate}, isFinalized=${isFinalized}, lockedSubmission=${lockedSubmission?.id || 'none'}, draft=${draft?.id || 'none'}`);
             
             return (
               <button
