@@ -1,9 +1,8 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { User, UserRole, Store, ManualSection, Recipe } from '../types';
-import { Coffee, ClipboardCheck, GraduationCap, Users, LogOut, Menu, X, MapPin, ChevronDown, BookOpen, Cloud, CloudOff, Activity, Download, Share, Smartphone, Brain, Send, Sparkles, HeartPulse, ChevronRight, Settings } from 'lucide-react';
+import { Coffee, ClipboardCheck, GraduationCap, Users, LogOut, Menu, X, MapPin, ChevronDown, BookOpen, Cloud, CloudOff, Activity, Download, Share, Smartphone, Brain, Send, Sparkles, ChevronRight, Settings } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
-import FirebaseDiagnostic from './FirebaseDiagnostic';
 
 interface LayoutProps {
   user: User;
@@ -32,7 +31,6 @@ const Layout: React.FC<LayoutProps> = ({
   manual, recipes, version
 }) => {
   const [isProfileOpen, setIsProfileOpen] = React.useState(false);
-  const [showDiagnostic, setShowDiagnostic] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   
   // Chat State
@@ -115,8 +113,6 @@ User Question: ${userMsg}`,
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-[#FAFAFA]">
-      {showDiagnostic && <FirebaseDiagnostic onClose={() => setShowDiagnostic(false)} />}
-      
       {/* Sidebar - Desktop */}
       <aside className="hidden md:flex flex-col w-72 bg-[#001F3F] text-white fixed h-full shadow-2xl z-30">
         <div className="p-8 border-b border-white/10">
@@ -184,21 +180,13 @@ User Question: ${userMsg}`,
           ))}
         </nav>
 
-        <div className="px-4 pb-4 space-y-2">
-          <button 
+        <div className="px-4 pb-4">
+          <button
             onClick={() => setChatOpen(true)}
             className="w-full flex items-center gap-3 px-5 py-4 rounded-xl bg-blue-500/10 text-blue-200 hover:bg-blue-500/20 hover:text-white transition-all border border-blue-500/20"
           >
             <Brain size={18} />
             <span className="text-xs font-black tracking-widest uppercase">Ask Barista Brain</span>
-          </button>
-          
-          <button 
-            onClick={() => setShowDiagnostic(true)}
-            className="w-full flex items-center gap-3 px-5 py-3 rounded-xl bg-white/5 text-blue-300/40 hover:text-white transition-all border border-white/5 group"
-          >
-            <HeartPulse size={16} className="group-hover:text-red-400" />
-            <span className="text-[10px] font-bold tracking-widest uppercase">Sync Health</span>
           </button>
         </div>
 
@@ -264,17 +252,12 @@ User Question: ${userMsg}`,
             <span className="font-black tracking-tighter text-[#001F3F] text-base uppercase leading-none">Boundaries</span>
             <div className={`ml-2 w-1.5 h-1.5 rounded-full ${isSyncing ? 'bg-blue-500 animate-pulse' : 'bg-green-500'}`} />
           </div>
-          <div className="flex items-center gap-3">
-            <button onClick={() => setShowDiagnostic(true)} className="p-2 text-[#001F3F]/60 hover:bg-neutral-100 rounded-lg transition-colors">
-              <HeartPulse size={18} />
-            </button>
-            <button 
-              onClick={() => setIsProfileOpen(!isProfileOpen)} 
-              className="w-9 h-9 rounded-full bg-[#001F3F] text-white flex items-center justify-center text-[10px] font-black border-2 border-white shadow-lg active:scale-90 transition-transform"
-            >
-              {user.name.charAt(0)}
-            </button>
-          </div>
+          <button
+            onClick={() => setIsProfileOpen(!isProfileOpen)}
+            className="w-9 h-9 rounded-full bg-[#001F3F] text-white flex items-center justify-center text-[10px] font-black border-2 border-white shadow-lg active:scale-90 transition-transform"
+          >
+            {user.name.charAt(0)}
+          </button>
         </div>
         
         <div className="px-1">
