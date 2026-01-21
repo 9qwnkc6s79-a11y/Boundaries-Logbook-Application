@@ -139,8 +139,14 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
           return { templateName: tpl.name, templateType: tpl.type, status: 'N/A' as const };
         }
 
-        // Find submission for this template on this date
-        const submission = submissions.find(s => s.templateId === tpl.id && s.date === date && s.status !== 'DRAFT');
+        // Find submission for this template submitted on this date (by submittedAt, not target date)
+        const submission = submissions.find(s => {
+          if (s.templateId !== tpl.id || s.status === 'DRAFT') return false;
+          // Match by the date portion of submittedAt (when actually submitted)
+          if (!s.submittedAt) return false;
+          const submittedDate = s.submittedAt.split('T')[0]; // Extract YYYY-MM-DD
+          return submittedDate === date;
+        });
 
         // Future date - not yet due
         if (isFuture) {
