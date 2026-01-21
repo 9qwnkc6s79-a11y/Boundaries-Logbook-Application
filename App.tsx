@@ -10,13 +10,14 @@ import RecipeBook from './components/RecipeBook';
 import Login from './components/Login';
 import { GoogleGenAI } from "@google/genai";
 
-const APP_VERSION = '3.3.2';
+const APP_VERSION = '3.4.0';
+const CURRICULUM_VERSION = '2'; // Bump this to force-push curriculum updates to Firebase
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [activeTab, setActiveTab] = useState('training');
   const [currentStoreId, setCurrentStoreId] = useState<string>(MOCK_STORES[0].id);
-  
+
   // System States
   const [isSyncing, setIsSyncing] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
@@ -33,9 +34,25 @@ const App: React.FC = () => {
   // Track the last time we updated a submission locally to avoid the "sync overwrite flicker"
   const lastSubmissionUpdateRef = useRef<number>(0);
 
+  // One-time migration to force-push curriculum when version changes
+  const runCurriculumMigration = useCallback(async () => {
+    const storedVersion = localStorage.getItem('boundaries_curriculum_version');
+    if (storedVersion !== CURRICULUM_VERSION) {
+      console.log(`[Migration] Curriculum version changed (${storedVersion} -> ${CURRICULUM_VERSION}), pushing updated curriculum to Firebase...`);
+      await db.pushCurriculum(TRAINING_CURRICULUM);
+      localStorage.setItem('boundaries_curriculum_version', CURRICULUM_VERSION);
+      console.log('[Migration] Curriculum push complete');
+    }
+  }, []);
+
   const performCloudSync = useCallback(async (background = false) => {
     if (!background) setIsSyncing(true);
     try {
+      // Run curriculum migration before sync (only on foreground syncs)
+      if (!background) {
+        await runCurriculumMigration();
+      }
+
       const data = await db.globalSync({
         users: MOCK_USERS,
         templates: CHECKLIST_TEMPLATES,
@@ -67,7 +84,7 @@ const App: React.FC = () => {
       setIsSyncing(false);
       setIsInitialLoading(false);
     }
-  }, []);
+  }, [runCurriculumMigration]);
 
   useEffect(() => {
     performCloudSync();
