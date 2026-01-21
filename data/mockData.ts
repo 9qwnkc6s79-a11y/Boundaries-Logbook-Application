@@ -808,14 +808,14 @@ export const TRAINING_CURRICULUM: TrainingModule[] = [
     ]
   },
   {
-    id: 'm-espresso',
+    id: 'm-espresso-fundamentals',
     title: 'Module 9: Espresso Fundamentals',
     description: 'Learn the basics of espresso extraction, dosing, tamping, and equipment.',
-    category: 'BARISTA_SKILLS',
+    category: 'ONBOARDING',
     lessons: [
       {
         id: 'l-espresso-video',
-        moduleId: 'm-espresso',
+        moduleId: 'm-espresso-fundamentals',
         title: 'Espresso Crash Course',
         type: 'CONTENT',
         videoUrl: 'https://www.youtube.com/watch?v=ZuQu12vMQZM',
@@ -823,7 +823,7 @@ export const TRAINING_CURRICULUM: TrainingModule[] = [
       },
       {
         id: 'l-espresso-quiz',
-        moduleId: 'm-espresso',
+        moduleId: 'm-espresso-fundamentals',
         title: 'Espresso Fundamentals Quiz',
         type: 'QUIZ',
         quizQuestions: [
