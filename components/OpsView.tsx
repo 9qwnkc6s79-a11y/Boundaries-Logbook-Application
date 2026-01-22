@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { ChecklistTemplate, User, ChecklistSubmission, UserRole } from '../types';
-import { Camera, Check, AlertCircle, Info, Send, ChevronRight, X, Clock, User as UserIcon, MessageSquare, Save, RotateCcw, Users, RefreshCw, Trash2, CheckCircle2, ShieldCheck, AlertTriangle, Sunrise, Sunset, ClipboardList, CalendarCheck, CloudCheck, CalendarDays, Timer, Lock, Eye, Sparkles, Zap, Unlock } from 'lucide-react';
+import { Camera, Check, AlertCircle, Info, Send, ChevronRight, X, Clock, User as UserIcon, MessageSquare, Save, RotateCcw, Users, RefreshCw, Trash2, CheckCircle2, ShieldCheck, AlertTriangle, Sunrise, Sunset, ClipboardList, CalendarCheck, CloudCheck, CalendarDays, Timer, Lock, Eye, Sparkles, Zap, Unlock, Loader2 } from 'lucide-react';
+import { db } from '../services/db';
 
 interface CameraModalProps {
   isOpen: boolean;
@@ -58,9 +59,9 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onCapture })
       const video = videoRef.current;
       const canvas = canvasRef.current;
 
-      // VERY aggressive compression to stay well under Firestore 1MB document limit
-      // Target: ~10-15KB per photo max
-      const maxDimension = 400;
+      // Higher quality photos now that we use Firebase Storage instead of Firestore
+      // 800px max dimension, 70% JPEG quality (~50-150KB per photo)
+      const maxDimension = 800;
       const scale = Math.min(maxDimension / video.videoWidth, maxDimension / video.videoHeight, 1);
       canvas.width = Math.round(video.videoWidth * scale);
       canvas.height = Math.round(video.videoHeight * scale);
@@ -68,21 +69,11 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onCapture })
       const ctx = canvas.getContext('2d');
       if (ctx) {
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        // Very low quality (0.3) to keep photos ~10-15KB each
-        let dataUrl = canvas.toDataURL('image/jpeg', 0.3);
-        let sizeKB = Math.round(dataUrl.length / 1024);
-
-        // If still too large, try even lower quality
-        if (sizeKB > 20) {
-          dataUrl = canvas.toDataURL('image/jpeg', 0.2);
-          sizeKB = Math.round(dataUrl.length / 1024);
-          console.log(`[Photo] Recompressed to quality 0.2, size: ${sizeKB}KB`);
-        }
+        // 70% quality for good balance of quality and size
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+        const sizeKB = Math.round(dataUrl.length / 1024);
 
         console.log(`[Photo] Captured ${canvas.width}x${canvas.height}, size: ${sizeKB}KB`);
-        if (sizeKB > 25) {
-          console.warn(`[Photo] WARNING: Photo is ${sizeKB}KB, may cause Firestore issues`);
-        }
         setPreviewUrl(dataUrl);
       }
     }
@@ -204,6 +195,7 @@ const OpsView: React.FC<OpsViewProps> = ({ user, allUsers, templates, existingSu
   const [responses, setResponses] = useState<Record<string, { completed: boolean, photo?: string, value?: string, comment?: string, completedByUserId: string, completedAt: string }>>({});
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [capturingTaskId, setCapturingTaskId] = useState<string | null>(null);
+  const [uploadingTaskId, setUploadingTaskId] = useState<string | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [showReopenConfirm, setShowReopenConfirm] = useState(false);
   
@@ -496,21 +488,45 @@ const OpsView: React.FC<OpsViewProps> = ({ user, allUsers, templates, existingSu
     setIsCameraOpen(true);
   };
 
-  const handlePhotoCapture = (dataUrl: string) => {
-    if (capturingTaskId && !isReadOnly) {
-      markInteraction(capturingTaskId);
-      const task = activeTemplate?.tasks.find(t => t.id === capturingTaskId);
+  const handlePhotoCapture = async (dataUrl: string) => {
+    if (!capturingTaskId || isReadOnly || !activeTemplate) return;
+
+    const taskId = capturingTaskId;
+    setCapturingTaskId(null);
+    setUploadingTaskId(taskId);
+
+    try {
+      markInteraction(taskId);
+      const task = activeTemplate.tasks.find(t => t.id === taskId);
       const requiredPhotos = task?.requiredPhotos || (task?.requiresPhoto ? 1 : 0);
 
+      // Upload to Firebase Storage
+      const targetDate = getTargetDate(activeTemplate);
+      const submissionId = activeSubmissionId || `sub-${Date.now()}`;
+      const photoIndex = (responses[taskId]?.photos?.length || 0) + 1;
+      const storagePath = `photos/${user.storeId}/${targetDate}/${submissionId}/${taskId}-${photoIndex}.jpg`;
+
+      console.log(`[Photo] Uploading to Firebase Storage: ${storagePath}`);
+      let photoUrl: string;
+
+      try {
+        photoUrl = await db.uploadPhoto(dataUrl, storagePath);
+        console.log(`[Photo] Upload successful: ${photoUrl}`);
+      } catch (uploadError) {
+        console.error(`[Photo] Upload failed, falling back to base64:`, uploadError);
+        // Fallback to base64 if upload fails (e.g., offline, storage not configured)
+        photoUrl = dataUrl;
+      }
+
       setResponses(prev => {
-        const currentResp = prev[capturingTaskId] || {};
+        const currentResp = prev[taskId] || {};
         const existingPhotos = currentResp.photos || (currentResp.photo ? [currentResp.photo] : []);
-        const newPhotos = [...existingPhotos, dataUrl];
+        const newPhotos = [...existingPhotos, photoUrl];
         const hasEnoughPhotos = newPhotos.length >= requiredPhotos;
 
         const updated = {
           ...prev,
-          [capturingTaskId]: {
+          [taskId]: {
             ...currentResp,
             photo: newPhotos[0], // Keep first photo for backwards compatibility
             photos: newPhotos,
@@ -521,10 +537,10 @@ const OpsView: React.FC<OpsViewProps> = ({ user, allUsers, templates, existingSu
         };
         onUpdate({
           id: activeSubmissionId || undefined,
-          templateId: activeTemplate!.id,
+          templateId: activeTemplate.id,
           responses: updated,
           isFinal: false,
-          targetDate: getTargetDate(activeTemplate!)
+          targetDate
         });
 
         if (hasEnoughPhotos) {
@@ -535,8 +551,12 @@ const OpsView: React.FC<OpsViewProps> = ({ user, allUsers, templates, existingSu
 
         return updated;
       });
+    } catch (error) {
+      console.error('[Photo] Error in handlePhotoCapture:', error);
+      setValidationError('Failed to process photo. Please try again.');
+    } finally {
+      setUploadingTaskId(null);
     }
-    setCapturingTaskId(null);
   };
 
   const handleAction = (isFinal: boolean) => {
@@ -770,19 +790,27 @@ const OpsView: React.FC<OpsViewProps> = ({ user, allUsers, templates, existingSu
                           {!isReadOnly && needsMorePhotos && (
                             <button
                               onClick={() => openCamera(task.id)}
-                              className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-xl text-xs font-bold hover:bg-blue-100 transition-all"
+                              disabled={uploadingTaskId === task.id}
+                              className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-xl text-xs font-bold hover:bg-blue-100 transition-all disabled:opacity-50"
                             >
-                              <Camera size={14} />
-                              Add Photo ({currentPhotos.length}/{requiredPhotos})
+                              {uploadingTaskId === task.id ? (
+                                <><Loader2 size={14} className="animate-spin" /> Uploading...</>
+                              ) : (
+                                <><Camera size={14} /> Add Photo ({currentPhotos.length}/{requiredPhotos})</>
+                              )}
                             </button>
                           )}
                           {!isReadOnly && !needsMorePhotos && requiredPhotos > 0 && (
                             <button
                               onClick={() => openCamera(task.id)}
-                              className="flex items-center gap-2 px-4 py-2 bg-neutral-50 text-neutral-400 rounded-xl text-xs font-bold hover:bg-neutral-100 transition-all"
+                              disabled={uploadingTaskId === task.id}
+                              className="flex items-center gap-2 px-4 py-2 bg-neutral-50 text-neutral-400 rounded-xl text-xs font-bold hover:bg-neutral-100 transition-all disabled:opacity-50"
                             >
-                              <Camera size={14} />
-                              Add Another Photo
+                              {uploadingTaskId === task.id ? (
+                                <><Loader2 size={14} className="animate-spin" /> Uploading...</>
+                              ) : (
+                                <><Camera size={14} /> Add Another Photo</>
+                              )}
                             </button>
                           )}
                         </div>

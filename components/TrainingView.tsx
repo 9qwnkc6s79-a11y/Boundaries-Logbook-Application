@@ -1,7 +1,8 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { TrainingModule, Lesson, UserProgress, QuizQuestion, ChecklistItem } from '../types';
-import { CheckCircle2, Clock, ChevronRight, Play, BookOpen, PenTool, ClipboardCheck, ArrowLeft, RefreshCw, XCircle, Video, Settings, Plus, Save, Trash2, Edit3, X, Zap, Target, Eye, EyeOff, Trash, Check, Square, CheckSquare, Circle, Dot, Upload, FileText, File as FileIcon, GripVertical, AlertTriangle, Camera } from 'lucide-react';
+import { CheckCircle2, Clock, ChevronRight, Play, BookOpen, PenTool, ClipboardCheck, ArrowLeft, RefreshCw, XCircle, Video, Settings, Plus, Save, Trash2, Edit3, X, Zap, Target, Eye, EyeOff, Trash, Check, Square, CheckSquare, Circle, Dot, Upload, FileText, File as FileIcon, GripVertical, AlertTriangle, Camera, Loader2 } from 'lucide-react';
+import { db } from '../services/db';
 
 interface TrainingViewProps {
   curriculum: TrainingModule[];
@@ -32,6 +33,7 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
   const [checkedItems, setCheckedItems] = useState<string[]>([]);
   const [checklistPhotos, setChecklistPhotos] = useState<Record<string, string>>({});
   const [capturingPhotoForItem, setCapturingPhotoForItem] = useState<string | null>(null);
+  const [uploadingPhotoForItem, setUploadingPhotoForItem] = useState<string | null>(null);
   const checklistCameraRef = useRef<HTMLInputElement>(null);
 
   // Initialize checklist state when selecting a lesson
@@ -152,44 +154,69 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
     reader.readAsDataURL(uploadingFile);
   };
 
-  const handleChecklistPhotoCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChecklistPhotoCapture = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !capturingPhotoForItem) return;
+    if (!file || !capturingPhotoForItem || !selectedLesson) return;
+
+    const itemId = capturingPhotoForItem;
+    setCapturingPhotoForItem(null);
+    setUploadingPhotoForItem(itemId);
+
+    // Reset the input so the same file can be selected again
+    e.target.value = '';
 
     const reader = new FileReader();
-    reader.onload = (ev) => {
+    reader.onload = async (ev) => {
       const img = new Image();
-      img.onload = () => {
-        // Compress the image
-        const canvas = document.createElement('canvas');
-        const maxSize = 800;
-        let width = img.width;
-        let height = img.height;
-        if (width > height && width > maxSize) {
-          height = (height * maxSize) / width;
-          width = maxSize;
-        } else if (height > maxSize) {
-          width = (width * maxSize) / height;
-          height = maxSize;
-        }
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx?.drawImage(img, 0, 0, width, height);
-        const compressed = canvas.toDataURL('image/jpeg', 0.7);
+      img.onload = async () => {
+        try {
+          // Compress the image - 800px max, 70% quality
+          const canvas = document.createElement('canvas');
+          const maxSize = 800;
+          let width = img.width;
+          let height = img.height;
+          if (width > height && width > maxSize) {
+            height = (height * maxSize) / width;
+            width = maxSize;
+          } else if (height > maxSize) {
+            width = (width * maxSize) / height;
+            height = maxSize;
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+          const compressed = canvas.toDataURL('image/jpeg', 0.7);
 
-        setChecklistPhotos(prev => ({ ...prev, [capturingPhotoForItem]: compressed }));
-        // Auto-check the item when photo is added
-        if (!checkedItems.includes(capturingPhotoForItem)) {
-          setCheckedItems(prev => [...prev, capturingPhotoForItem]);
+          // Upload to Firebase Storage
+          const timestamp = Date.now();
+          const storagePath = `training/${selectedLesson.id}/${itemId}-${timestamp}.jpg`;
+
+          let photoUrl: string;
+          try {
+            console.log(`[Training Photo] Uploading to: ${storagePath}`);
+            photoUrl = await db.uploadPhoto(compressed, storagePath);
+            console.log(`[Training Photo] Upload successful: ${photoUrl}`);
+          } catch (uploadError) {
+            console.error(`[Training Photo] Upload failed, using base64:`, uploadError);
+            // Fallback to base64 if upload fails
+            photoUrl = compressed;
+          }
+
+          setChecklistPhotos(prev => ({ ...prev, [itemId]: photoUrl }));
+          // Auto-check the item when photo is added
+          if (!checkedItems.includes(itemId)) {
+            setCheckedItems(prev => [...prev, itemId]);
+          }
+        } catch (error) {
+          console.error('[Training Photo] Error processing photo:', error);
+        } finally {
+          setUploadingPhotoForItem(null);
         }
-        setCapturingPhotoForItem(null);
       };
       img.src = ev.target?.result as string;
     };
     reader.readAsDataURL(file);
-    // Reset the input so the same file can be selected again
-    e.target.value = '';
   };
 
   const getEmbedUrl = (url: string) => {
@@ -482,7 +509,12 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
                         {/* Photo section */}
                         {item.requiresPhoto && (
                           <div className="px-4 pb-4 pt-0">
-                            {hasPhoto ? (
+                            {uploadingPhotoForItem === item.id ? (
+                              <div className="flex items-center gap-2 text-[#001F3F]">
+                                <Loader2 size={16} className="animate-spin" />
+                                <span className="text-xs font-bold">Uploading photo...</span>
+                              </div>
+                            ) : hasPhoto ? (
                               <div className="flex items-center gap-3">
                                 <img
                                   src={checklistPhotos[item.id]}

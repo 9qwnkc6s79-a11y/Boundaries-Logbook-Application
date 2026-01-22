@@ -15,6 +15,7 @@ const firebaseConfig = {
 
 // Initialize once using global firebase object
 let firestore: any = null;
+let storage: any = null;
 
 if (typeof firebase !== 'undefined') {
   if (!firebase.apps.length) {
@@ -22,7 +23,8 @@ if (typeof firebase !== 'undefined') {
     console.log('[Firebase] Initialized app:', firebaseConfig.projectId);
   }
   firestore = firebase.firestore();
-  console.log('[Firebase] Firestore connected');
+  storage = firebase.storage();
+  console.log('[Firebase] Firestore and Storage connected');
 } else {
   console.error('[Firebase] Firebase SDK not loaded! Check that CDN scripts are in index.html');
 }
@@ -248,6 +250,35 @@ class CloudAPI {
 
   async pushRecipes(recipes: Recipe[]): Promise<void> {
     await this.remoteSet(DOC_KEYS.RECIPES, recipes);
+  }
+
+  async uploadPhoto(base64Data: string, path: string): Promise<string> {
+    if (!storage) {
+      console.error('[Storage] Firebase Storage not available');
+      throw new Error('Storage not available');
+    }
+
+    try {
+      console.log(`[Storage] uploadPhoto: Starting upload to ${path}`);
+
+      // Convert base64 to blob
+      const response = await fetch(base64Data);
+      const blob = await response.blob();
+      console.log(`[Storage] uploadPhoto: Blob size ${Math.round(blob.size / 1024)}KB`);
+
+      // Upload to storage
+      const ref = storage.ref().child(path);
+      const uploadTask = await ref.put(blob);
+      console.log(`[Storage] uploadPhoto: Upload complete, getting download URL...`);
+
+      // Get download URL
+      const url = await ref.getDownloadURL();
+      console.log(`[Storage] uploadPhoto: SUCCESS - ${path}`);
+      return url;
+    } catch (error: any) {
+      console.error(`[Storage] uploadPhoto: FAILED - ${path}`, error);
+      throw error;
+    }
   }
 
   async globalSync(defaults: {
