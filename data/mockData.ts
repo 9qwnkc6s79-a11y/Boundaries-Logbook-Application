@@ -486,6 +486,19 @@ export const BOUNDARIES_RECIPES: Recipe[] = [
       { label: '24oz', values: ['6 oz', '8 oz', '2.5 oz', '24oz+12oz'] }
     ]
   },
+  {
+    id: 'recipe-frozen-energy-base',
+    title: 'Frozen Energy Base',
+    category: 'Frozen',
+    type: 'GRID',
+    gridColumns: ['Ingredient', 'Full Batch (10L)', 'Refill (5L)'],
+    gridRows: [
+      { label: 'Lotus Concentrate', values: ['1.0 L', '0.5 L'] },
+      { label: 'Water', values: ['8.0 L', '4.0 L'] },
+      { label: 'Sugar', values: ['350 g', '175 g'] }
+    ],
+    notes: 'Rules: No dairy • No flavors in hopper • SLUSH mode only • Chill before loading'
+  },
 
   // 10. LEMONADES
   {
