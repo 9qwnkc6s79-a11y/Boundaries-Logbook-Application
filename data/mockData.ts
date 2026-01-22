@@ -954,35 +954,286 @@ export const TRAINING_CURRICULUM: TrainingModule[] = [
 
 **Training Components:**
 1. Review content with your instructor
-2. Complete hands-on practice with instructor guidance
-3. Complete the Required Practice Drinks checklist
-4. Pass the Knowledge Quiz (minimum 80%)`
+2. Complete each practice item below (21 total sign-offs)
+3. Pass the Knowledge Quiz (minimum 80%)
+
+**Practice Checklist (21 items):**
+- 5 Espresso Shots (3 dialed-in, 1 under-extracted, 1 over-extracted)
+- 5 Lattes (3x 12oz, 2x 16oz)
+- 2 Vanilla Lattes
+- 2 Mochas
+- 2 Cappuccinos
+- 2 Americanos
+- 1 Dial-In Exercise
+- 2 Backflush Procedures (water + cleaner)
+
+Each item requires trainer sign-off. Work through them in order with your trainer.`
+      },
+      // ESPRESSO EXTRACTION PRACTICE (5 shots)
+      {
+        id: 'l-practice-espresso-1',
+        moduleId: 'm-drink-making-basics',
+        title: '☐ Espresso Shot #1 (Dialed In)',
+        type: 'SIGN_OFF',
+        signOffRequired: true,
+        content: `**Focus:** Timing & dose accuracy
+
+Pull a properly dialed-in espresso shot. Target: 19g dose, 24s brew time (+/- 0.2g, +/- 2s).
+
+Have your trainer observe and verify the shot meets standards.`
       },
       {
-        id: 'l-drink-basics-practice',
+        id: 'l-practice-espresso-2',
         moduleId: 'm-drink-making-basics',
-        title: 'Required Practice Drinks',
-        type: 'PRACTICE',
-        content: `Complete each drink under trainer supervision. Each must be made independently and approved by your trainer.
+        title: '☐ Espresso Shot #2 (Dialed In)',
+        type: 'SIGN_OFF',
+        signOffRequired: true,
+        content: `**Focus:** Consistency
 
-**Practice Checklist:**
+Pull another properly dialed-in espresso shot. Demonstrate you can hit the target consistently.
 
-| Drink | Qty | Focus |
-|-------|-----|-------|
-| Espresso Shot (Dialed In) | 3 | Timing, dose accuracy |
-| Espresso Shot (Under-extracted) | 1 | Identify sour taste |
-| Espresso Shot (Over-extracted) | 1 | Identify bitter taste |
-| Latte (12oz) | 3 | Full drink process |
-| Latte (16oz) | 2 | Milk volume adjustment |
-| Vanilla Latte | 2 | Sauce stirring |
-| Mocha | 2 | Chocolate integration |
-| Cappuccino | 2 | More foam, less milk |
-| Americano | 2 | Water + espresso ratio |
-| Dial-In Exercise | 1 | Adjust grinder, hit target |
-| Backflush (Water Only) | 1 | Afternoon procedure |
-| Backflush (With Cleaner) | 1 | Closing procedure |
+Have your trainer observe and verify.`
+      },
+      {
+        id: 'l-practice-espresso-3',
+        moduleId: 'm-drink-making-basics',
+        title: '☐ Espresso Shot #3 (Dialed In)',
+        type: 'SIGN_OFF',
+        signOffRequired: true,
+        content: `**Focus:** Independence
 
-**Trainer Sign-Off Required:** Have your trainer initial each completed item and sign off when all drinks are completed satisfactorily.`
+Pull a third dialed-in shot with minimal guidance. Show you can do this on your own.
+
+Have your trainer observe and verify.`
+      },
+      {
+        id: 'l-practice-espresso-under',
+        moduleId: 'm-drink-making-basics',
+        title: '☐ Espresso Shot (Under-extracted)',
+        type: 'SIGN_OFF',
+        signOffRequired: true,
+        content: `**Focus:** Identify sour taste
+
+Intentionally pull an under-extracted shot (too fast/coarse grind). Taste it and describe the sour, acidic flavor to your trainer.
+
+This teaches you to recognize extraction problems.`
+      },
+      {
+        id: 'l-practice-espresso-over',
+        moduleId: 'm-drink-making-basics',
+        title: '☐ Espresso Shot (Over-extracted)',
+        type: 'SIGN_OFF',
+        signOffRequired: true,
+        content: `**Focus:** Identify bitter taste
+
+Intentionally pull an over-extracted shot (too slow/fine grind). Taste it and describe the bitter, harsh flavor to your trainer.
+
+This teaches you to recognize extraction problems.`
+      },
+      // LATTE PRACTICE (5 lattes)
+      {
+        id: 'l-practice-latte-12-1',
+        moduleId: 'm-drink-making-basics',
+        title: '☐ Latte 12oz #1',
+        type: 'SIGN_OFF',
+        signOffRequired: true,
+        content: `**Focus:** Full drink process
+
+Make a 12oz latte from start to finish:
+1. Prepare cup
+2. Portion milk
+3. Pull shot
+4. Steam milk
+5. Add shots & stir
+6. Pour & serve
+
+Have your trainer observe your technique.`
+      },
+      {
+        id: 'l-practice-latte-12-2',
+        moduleId: 'm-drink-making-basics',
+        title: '☐ Latte 12oz #2',
+        type: 'SIGN_OFF',
+        signOffRequired: true,
+        content: `**Focus:** Workflow efficiency
+
+Make another 12oz latte. Focus on smooth workflow and timing your shot pull with milk steaming.
+
+Have your trainer verify proper technique.`
+      },
+      {
+        id: 'l-practice-latte-12-3',
+        moduleId: 'm-drink-making-basics',
+        title: '☐ Latte 12oz #3',
+        type: 'SIGN_OFF',
+        signOffRequired: true,
+        content: `**Focus:** Independence
+
+Make a 12oz latte with minimal guidance. Demonstrate you can execute the full process independently.
+
+Have your trainer sign off.`
+      },
+      {
+        id: 'l-practice-latte-16-1',
+        moduleId: 'm-drink-making-basics',
+        title: '☐ Latte 16oz #1',
+        type: 'SIGN_OFF',
+        signOffRequired: true,
+        content: `**Focus:** Milk volume adjustment
+
+Make a 16oz latte. Note the different milk quantity needed for the larger size.
+
+Have your trainer verify proper proportions.`
+      },
+      {
+        id: 'l-practice-latte-16-2',
+        moduleId: 'm-drink-making-basics',
+        title: '☐ Latte 16oz #2',
+        type: 'SIGN_OFF',
+        signOffRequired: true,
+        content: `**Focus:** Size consistency
+
+Make another 16oz latte. Demonstrate consistent technique across sizes.
+
+Have your trainer sign off.`
+      },
+      // FLAVORED DRINKS (4 drinks)
+      {
+        id: 'l-practice-vanilla-1',
+        moduleId: 'm-drink-making-basics',
+        title: '☐ Vanilla Latte #1',
+        type: 'SIGN_OFF',
+        signOffRequired: true,
+        content: `**Focus:** Sauce integration
+
+Make a vanilla latte. Add vanilla sauce to the cup and ensure proper stirring after adding espresso.
+
+Have your trainer verify the sauce is fully integrated.`
+      },
+      {
+        id: 'l-practice-vanilla-2',
+        moduleId: 'm-drink-making-basics',
+        title: '☐ Vanilla Latte #2',
+        type: 'SIGN_OFF',
+        signOffRequired: true,
+        content: `**Focus:** Sauce consistency
+
+Make another vanilla latte. Focus on consistent sauce portions and thorough stirring.
+
+Have your trainer sign off.`
+      },
+      {
+        id: 'l-practice-mocha-1',
+        moduleId: 'm-drink-making-basics',
+        title: '☐ Mocha #1',
+        type: 'SIGN_OFF',
+        signOffRequired: true,
+        content: `**Focus:** Chocolate integration
+
+Make a mocha. Add chocolate sauce and ensure it's properly incorporated with the espresso before adding milk.
+
+Have your trainer verify the chocolate is fully mixed.`
+      },
+      {
+        id: 'l-practice-mocha-2',
+        moduleId: 'm-drink-making-basics',
+        title: '☐ Mocha #2',
+        type: 'SIGN_OFF',
+        signOffRequired: true,
+        content: `**Focus:** Chocolate consistency
+
+Make another mocha. Demonstrate consistent chocolate portioning and integration.
+
+Have your trainer sign off.`
+      },
+      // OTHER HOT DRINKS (4 drinks)
+      {
+        id: 'l-practice-capp-1',
+        moduleId: 'm-drink-making-basics',
+        title: '☐ Cappuccino #1',
+        type: 'SIGN_OFF',
+        signOffRequired: true,
+        content: `**Focus:** Foam texture
+
+Make a cappuccino. Steam the milk with MORE foam (more air) than a latte. The drink should have a thicker foam layer.
+
+Have your trainer verify proper foam texture.`
+      },
+      {
+        id: 'l-practice-capp-2',
+        moduleId: 'm-drink-making-basics',
+        title: '☐ Cappuccino #2',
+        type: 'SIGN_OFF',
+        signOffRequired: true,
+        content: `**Focus:** Foam consistency
+
+Make another cappuccino. Demonstrate you can consistently produce the right foam texture.
+
+Have your trainer sign off.`
+      },
+      {
+        id: 'l-practice-amer-1',
+        moduleId: 'm-drink-making-basics',
+        title: '☐ Americano #1',
+        type: 'SIGN_OFF',
+        signOffRequired: true,
+        content: `**Focus:** Water + espresso ratio
+
+Make an Americano. Add hot water to the cup first, then add espresso shots.
+
+Have your trainer verify proper water-to-espresso ratio.`
+      },
+      {
+        id: 'l-practice-amer-2',
+        moduleId: 'm-drink-making-basics',
+        title: '☐ Americano #2',
+        type: 'SIGN_OFF',
+        signOffRequired: true,
+        content: `**Focus:** Ratio consistency
+
+Make another Americano. Demonstrate consistent technique.
+
+Have your trainer sign off.`
+      },
+      // DIAL-IN & CLEANING (3 tasks)
+      {
+        id: 'l-practice-dialin',
+        moduleId: 'm-drink-making-basics',
+        title: '☐ Dial-In Exercise',
+        type: 'SIGN_OFF',
+        signOffRequired: true,
+        content: `**Focus:** Grinder adjustment
+
+With your trainer, intentionally change the grind setting to make shots run off-target. Then use the 2-5-10 rule to dial back in:
+- 1 tic = ~2 second change
+- 2-3 tics = ~5 second change
+- 5 tics = ~10 second change
+
+Demonstrate you can identify the problem and make the correct adjustment.`
+      },
+      {
+        id: 'l-practice-backflush-water',
+        moduleId: 'm-drink-making-basics',
+        title: '☐ Backflush (Water Only)',
+        type: 'SIGN_OFF',
+        signOffRequired: true,
+        content: `**Focus:** Afternoon cleaning procedure
+
+Perform a water-only backflush (no cleaning powder). This is done in the afternoon to clear coffee oils.
+
+Have your trainer verify proper technique.`
+      },
+      {
+        id: 'l-practice-backflush-cleaner',
+        moduleId: 'm-drink-making-basics',
+        title: '☐ Backflush (With Cleaner)',
+        type: 'SIGN_OFF',
+        signOffRequired: true,
+        content: `**Focus:** Closing cleaning procedure
+
+Perform a full backflush with Cafiza cleaning powder. This is done at closing.
+
+Have your trainer verify proper technique and rinse cycles.`
       },
       {
         id: 'l-drink-basics-quiz',
