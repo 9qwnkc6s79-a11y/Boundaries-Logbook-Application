@@ -1021,6 +1021,152 @@ export const TRAINING_CURRICULUM: TrainingModule[] = [
         ]
       }
     ]
+  },
+  {
+    id: 'm-menu-knowledge',
+    title: 'Module 13: Menu Knowledge',
+    description: 'Master the complete Boundaries Coffee menu including all drink categories, flavor combinations, and customization options.',
+    category: 'ONBOARDING',
+    lessons: [
+      {
+        id: 'l-menu-reference',
+        moduleId: 'm-menu-knowledge',
+        title: 'Complete Menu Reference',
+        type: 'CONTENT',
+        content: `BOUNDARIES COFFEE COMPLETE MENU
+
+═══════════════════════════════════════
+ORIGINALS (Signature Lattes)
+═══════════════════════════════════════
+Available Hot, Iced, or Frozen
+
+• Texas Delight - Honey, Vanilla, Cinnamon (Our flagship drink)
+• Hill Country - Butter Pecan & Caramel (Rich, nutty)
+• Cinnamon Dulce - TX Delight Caramel & Brown Sugar (Sweet, warm spice)
+• Lavender Sunrise - Lavender & Honey (Floral, light)
+• Harvest Moon - White Chocolate, Maple, Cinnamon (Fall favorite)
+• Golden Cream - Caramel & Vanilla (Classic combo)
+• Salted Sweetheart - Salted Caramel & White Chocolate (Sweet & salty)
+
+═══════════════════════════════════════
+CUSTOMIZATION OPTIONS
+═══════════════════════════════════════
+• Add Drizzle: +$0.25
+• Sweetness: ½ or Extra (no charge)
+• Extra Shot: +$1.00
+• Sweet Cream: +$0.75
+• Health Adds: Fairlife Protein Milk, Collagen
+• Alt Milks: Almond, Oat, Coconut, Fairlife (+2%)
+
+═══════════════════════════════════════
+MATCHAS
+═══════════════════════════════════════
+• Blue Coconut - Coconut (Matcha base) (Tropical, vibrant blue)
+• Strawberry Dream - Strawberry & Vanilla (Fruity, creamy)
+• White Pom. Matcha - White Chocolate & Pomegranate (Tart & sweet)
+
+═══════════════════════════════════════
+NITROS
+═══════════════════════════════════════
+Cold brew infused with nitrogen for creamy, smooth texture
+
+• Vanilla Cream - Cold Brew + Vanilla Sweet Cream (Classic nitro)
+• Salted Caramel - Salted Caramel (Sweet & salty)
+• Cookie Butter - White Chocolate & Biscoff (Dessert-like)
+
+═══════════════════════════════════════
+ENERGY | BUBBLY | FREEZE
+═══════════════════════════════════════
+Available as Energy (caffeinated), Bubbly (sparkling), or Frozen
+
+• The Drift - Strawberry & Pineapple (Tropical)
+• Electric B - Blue Raspberry & Lime (Tart, vibrant)
+• Mystic Cherry - Cherry & Coconut (Sweet, tropical)
+• Golden Wave - Orange & Lime (Citrus forward)
+• Blue Haze - Lavender, Blue Razz, Pomegranate (Floral & fruity)
+• Shockwave - Passionfruit, Strawberry, Kiwi (Tropical blend)
+• Strawberry Storm - Strawberry & Lavender (Floral berry)
+• Voltage - Blackberry & Lemon Concentrate (Bold, tart)
+
+═══════════════════════════════════════
+LEMONADES
+═══════════════════════════════════════
+Available Iced or Frozen
+
+• Boundaries Lagoon - Blue Raspberry, Coconut, Lime (Signature lemonade)
+• Cherry Limeade - Cherry, Lime, Lemon (Classic combo)
+• Pink Paradise - Strawberry & Vanilla (Creamy, fruity)
+• Sunset - Pineapple, Mango, Strawberry (Tropical layers)
+
+═══════════════════════════════════════
+KIDS DRINKS (Caffeine-Free)
+═══════════════════════════════════════
+• Unicorn Latte - Cotton Candy Tea Latte (Iced 12oz)
+• Dino Juice - Blue Raspberry Pineapple Lemonade (Iced 12oz)
+• Zebra Milk - Chocolate & Vanilla Milk (Iced 12oz)
+• Kiddos Coffee - Any Flavor, No Caffeine, Kids Temp (Hot 8oz)
+
+═══════════════════════════════════════
+TEAS
+═══════════════════════════════════════
+• Pomberry Punch - Pomegranate & Fresh Blueberry (Fruit tea)
+• Lavender Breeze - Rooibos, Coconut, Lavender (Caffeine-free)
+• Citrus Oolong - Taiwanese Oolong & Orange (Oolong)
+• Honey Bee - Black Tea, Honey, Peach & Ginger (Black tea)
+• Raspberry Hibiscus - Floral, Light, Refreshing (Hibiscus)
+
+═══════════════════════════════════════
+SMOOTHIES
+═══════════════════════════════════════
+• Strawberry Splash - 100% Strawberry Puree
+• Piña Colada - Coconut & Pineapple
+• Perfect Peach - 100% Peach Puree
+• Mellow Mango - 100% Mango Puree
+
+═══════════════════════════════════════
+FOOD ITEMS
+═══════════════════════════════════════
+• Breakfast Taco - Bacon OR Beef Chorizo
+• Blueberry Muffin
+• Croissant - Almond OR Chocolate
+• Kolache - Sausage, Cheese & Jalapeño
+
+═══════════════════════════════════════
+AVAILABLE FLAVORS
+═══════════════════════════════════════
+TX Delight, Vanilla (SF), Dark Choc (SF), Caramel (SF), White Choc, Hazelnut, Salted Caramel, Lavender, Honey, Maple, Coconut, Cardamom, Mango, Peach, Banana, Blue Razz, Pomegranate, Kiwi, Raspberry, Strawberry, Blueberry, Cherry, Lime, Orange, Pineapple, Seasonal
+
+Sugar-Free Options: Vanilla, Dark Chocolate, Caramel`
+      },
+      {
+        id: 'l-menu-quiz',
+        moduleId: 'm-menu-knowledge',
+        title: 'Menu Knowledge Quiz',
+        type: 'QUIZ',
+        quizQuestions: [
+          { id: 'mk1', type: 'MULTIPLE_CHOICE', question: 'What are the three flavors in the Texas Delight?', options: ['Caramel, Vanilla, Cinnamon', 'Honey, Vanilla, Cinnamon', 'Honey, Maple, Vanilla', 'Brown Sugar, Cinnamon, Vanilla'], correctAnswers: ['Honey, Vanilla, Cinnamon'] },
+          { id: 'mk2', type: 'MULTIPLE_CHOICE', question: 'What flavors are in the Hill Country latte?', options: ['Honey & Caramel', 'Butter Pecan & Caramel', 'Maple & Brown Sugar', 'Hazelnut & Vanilla'], correctAnswers: ['Butter Pecan & Caramel'] },
+          { id: 'mk3', type: 'MULTIPLE_CHOICE', question: 'The Harvest Moon contains which combination?', options: ['Pumpkin, Cinnamon, Nutmeg', 'White Chocolate, Maple, Cinnamon', 'Caramel, Apple, Cinnamon', 'Brown Sugar, Maple, Vanilla'], correctAnswers: ['White Chocolate, Maple, Cinnamon'] },
+          { id: 'mk4', type: 'MULTIPLE_CHOICE', question: 'What makes the Salted Sweetheart unique?', options: ['It has espresso and sea salt', 'Salted Caramel & White Chocolate combination', 'It\'s made with salted butter', 'Brown Sugar & Salt'], correctAnswers: ['Salted Caramel & White Chocolate combination'] },
+          { id: 'mk5', type: 'MULTIPLE_CHOICE', question: 'The Lavender Sunrise pairs lavender with what other flavor?', options: ['Vanilla', 'Lemon', 'Honey', 'Rose'], correctAnswers: ['Honey'] },
+          { id: 'mk6', type: 'MULTIPLE_CHOICE', question: 'What flavor is paired with matcha in the Blue Coconut?', options: ['Blueberry', 'Blue Raspberry', 'Coconut', 'Vanilla'], correctAnswers: ['Coconut'] },
+          { id: 'mk7', type: 'MULTIPLE_CHOICE', question: 'The Cookie Butter Nitro contains which two flavors?', options: ['Chocolate Chip & Vanilla', 'White Chocolate & Biscoff', 'Caramel & Cookie', 'Brown Sugar & Cinnamon'], correctAnswers: ['White Chocolate & Biscoff'] },
+          { id: 'mk8', type: 'MULTIPLE_CHOICE', question: 'What is the White Pom. Matcha flavor combination?', options: ['White Tea & Pomegranate', 'White Chocolate & Pomegranate', 'Vanilla & Pomegranate', 'Coconut & Pomegranate'], correctAnswers: ['White Chocolate & Pomegranate'] },
+          { id: 'mk9', type: 'MULTIPLE_CHOICE', question: 'What are the flavors in The Drift?', options: ['Mango & Pineapple', 'Strawberry & Pineapple', 'Peach & Pineapple', 'Orange & Pineapple'], correctAnswers: ['Strawberry & Pineapple'] },
+          { id: 'mk10', type: 'MULTIPLE_CHOICE', question: 'The Shockwave contains which three fruits?', options: ['Strawberry, Mango, Kiwi', 'Passionfruit, Strawberry, Kiwi', 'Pineapple, Strawberry, Lime', 'Blueberry, Strawberry, Pomegranate'], correctAnswers: ['Passionfruit, Strawberry, Kiwi'] },
+          { id: 'mk11', type: 'MULTIPLE_CHOICE', question: 'What makes Blue Haze unique among the energy drinks?', options: ['It has three citrus flavors', 'It combines Lavender, Blue Razz, and Pomegranate', 'It\'s the only sugar-free option', 'It has coconut milk'], correctAnswers: ['It combines Lavender, Blue Razz, and Pomegranate'] },
+          { id: 'mk12', type: 'MULTIPLE_CHOICE', question: 'Voltage is made with which flavor combination?', options: ['Grape & Lemon', 'Blackberry & Lemon Concentrate', 'Blueberry & Lime', 'Raspberry & Orange'], correctAnswers: ['Blackberry & Lemon Concentrate'] },
+          { id: 'mk13', type: 'MULTIPLE_CHOICE', question: 'What three flavors are in the Boundaries Lagoon lemonade?', options: ['Strawberry, Lemon, Lime', 'Blue Raspberry, Coconut, Lime', 'Mango, Pineapple, Lemon', 'Peach, Raspberry, Lime'], correctAnswers: ['Blue Raspberry, Coconut, Lime'] },
+          { id: 'mk14', type: 'MULTIPLE_CHOICE', question: 'The Sunset lemonade layers which three fruits?', options: ['Orange, Mango, Strawberry', 'Pineapple, Mango, Strawberry', 'Peach, Mango, Raspberry', 'Lemon, Lime, Strawberry'], correctAnswers: ['Pineapple, Mango, Strawberry'] },
+          { id: 'mk15', type: 'MULTIPLE_CHOICE', question: 'What are the flavors in the Honey Bee tea?', options: ['Black Tea, Honey, Lemon & Mint', 'Black Tea, Honey, Peach & Ginger', 'Green Tea, Honey, Orange & Cinnamon', 'Rooibos, Honey, Apple & Cinnamon'], correctAnswers: ['Black Tea, Honey, Peach & Ginger'] },
+          { id: 'mk16', type: 'MULTIPLE_CHOICE', question: 'What is the Dino Juice made of?', options: ['Green Apple Lemonade', 'Blue Raspberry Pineapple Lemonade', 'Grape Lemonade', 'Orange Mango Lemonade'], correctAnswers: ['Blue Raspberry Pineapple Lemonade'] },
+          { id: 'mk17', type: 'MULTIPLE_CHOICE', question: 'What two flavors make up the Zebra Milk?', options: ['Strawberry & Vanilla', 'Chocolate & Vanilla', 'Caramel & Chocolate', 'Cookies & Cream'], correctAnswers: ['Chocolate & Vanilla'] },
+          { id: 'mk18', type: 'MULTIPLE_CHOICE', question: 'Which three flavors are available in Sugar-Free?', options: ['Vanilla, Caramel, Hazelnut', 'Vanilla, Dark Chocolate, Caramel', 'Vanilla, White Chocolate, Mocha', 'Caramel, Mocha, Hazelnut'], correctAnswers: ['Vanilla, Dark Chocolate, Caramel'] },
+          { id: 'mk19', type: 'MULTIPLE_CHOICE', question: 'What is the upcharge for Sweet Cream?', options: ['$0.25', '$0.50', '$0.75', '$1.00'], correctAnswers: ['$0.75'] },
+          { id: 'mk20', type: 'MULTIPLE_CHOICE', question: 'What Alt Milks does Boundaries offer?', options: ['Soy, Almond, Oat', 'Almond, Oat, Coconut, Fairlife', 'Oat, Coconut, Cashew', 'Almond, Soy, Rice, Oat'], correctAnswers: ['Almond, Oat, Coconut, Fairlife'] }
+        ]
+      }
+    ]
   }
 ];
 
