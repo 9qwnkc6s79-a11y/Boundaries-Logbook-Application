@@ -850,6 +850,50 @@ export const TRAINING_CURRICULUM: TrainingModule[] = [
         ]
       }
     ]
+  },
+  {
+    id: 'm-espresso-troubleshooting',
+    title: 'Module 10: Espresso Troubleshooting',
+    description: 'Learn how to diagnose and fix common espresso problems.',
+    category: 'ONBOARDING',
+    lessons: [
+      {
+        id: 'l-troubleshooting-video',
+        moduleId: 'm-espresso-troubleshooting',
+        title: 'Espresso Troubleshooting',
+        type: 'CONTENT',
+        videoUrl: 'https://www.youtube.com/watch?v=441CyJjIM9o',
+        content: 'Watch this Prima Coffee video on troubleshooting espresso before taking the quiz.'
+      },
+      {
+        id: 'l-troubleshooting-quiz',
+        moduleId: 'm-espresso-troubleshooting',
+        title: 'Espresso Troubleshooting Quiz',
+        type: 'QUIZ',
+        quizQuestions: [
+          { id: 'tq1', type: 'MULTIPLE_CHOICE', question: 'What is the ideal shot time range for espresso?', options: ['15 to 20 seconds', '25 to 35 seconds, closest to 30', '45 to 60 seconds', '10 to 15 seconds'], correctAnswers: ['25 to 35 seconds, closest to 30'] },
+          { id: 'tq2', type: 'MULTIPLE_CHOICE', question: 'If your shot took too long (35-40+ seconds), what is the underlying problem?', options: ['The water is too hot', 'Something is preventing the water from going through at the rate it should', 'The coffee is too fresh', 'The portafilter is too cold'], correctAnswers: ['Something is preventing the water from going through at the rate it should'] },
+          { id: 'tq3', type: 'MULTIPLE_CHOICE', question: 'Which of the following will make water flow through the puck FASTER?', options: ['Grind finer', 'Dose more coffee', 'Tamp harder', 'Coarsen your grind'], correctAnswers: ['Coarsen your grind'] },
+          { id: 'tq4', type: 'MULTIPLE_CHOICE', question: 'If your shot is running too fast, which adjustment would help slow it down?', options: ['Tamp lighter', 'Dose less coffee', 'Grind finer', 'Coarsen your grind'], correctAnswers: ['Grind finer'] },
+          { id: 'tq5', type: 'MULTIPLE_CHOICE', question: 'What does a bitter-tasting shot indicate?', options: ['Under-extraction', 'Over-extraction', 'Channeling', 'Old coffee'], correctAnswers: ['Over-extraction'] },
+          { id: 'tq6', type: 'MULTIPLE_CHOICE', question: 'Over-extraction is compared to what in the video?', options: ['Baking something for too short a time', 'Steeping a tea bag for 10 minutes instead of four', 'Using cold water to brew', 'Grinding coffee too coarse'], correctAnswers: ['Steeping a tea bag for 10 minutes instead of four'] },
+          { id: 'tq7', type: 'MULTIPLE_CHOICE', question: 'What is the first recommended fix for a bitter (over-extracted) shot?', options: ['Grind coarser', 'Dose less coffee', 'Lower the water temperature', 'Tamp lighter'], correctAnswers: ['Lower the water temperature'] },
+          { id: 'tq8', type: 'MULTIPLE_CHOICE', question: 'Why is adjusting water temperature recommended as a first fix for extraction issues?', options: ['It\'s the easiest to change', 'It doesn\'t have a direct effect on other variables like grind and dose', 'Temperature is the most important variable', 'It\'s the cheapest adjustment to make'], correctAnswers: ['It doesn\'t have a direct effect on other variables like grind and dose'] },
+          { id: 'tq9', type: 'MULTIPLE_CHOICE', question: 'What does a sour-tasting shot indicate?', options: ['Over-extraction', 'Under-extraction', 'Too much crema', 'Stale coffee'], correctAnswers: ['Under-extraction'] },
+          { id: 'tq10', type: 'MULTIPLE_CHOICE', question: 'What is the recommended fix for a sour (under-extracted) shot?', options: ['Lower the water temperature', 'Increase the water temperature', 'Use older coffee', 'Tamp lighter'], correctAnswers: ['Increase the water temperature'] },
+          { id: 'tq11', type: 'MULTIPLE_CHOICE', question: 'What is channeling?', options: ['When water flows evenly through the entire puck', 'When water finds weak points in the puck and blasts through unevenly', 'When the shot takes too long', 'When there is too much crema'], correctAnswers: ['When water finds weak points in the puck and blasts through unevenly'] },
+          { id: 'tq12', type: 'MULTIPLE_CHOICE', question: 'How can you identify channeling in a wet puck?', options: ['The puck will be completely dry', 'You\'ll see little holes in the puck afterwards', 'The puck will be perfectly smooth', 'The puck will have no coffee left'], correctAnswers: ['You\'ll see little holes in the puck afterwards'] },
+          { id: 'tq13', type: 'MULTIPLE_CHOICE', question: 'What does channeling cause in terms of extraction?', options: ['Even extraction throughout', 'Over-extracts where the channel comes through and under-extracts everywhere else', 'Under-extraction everywhere', 'Over-extraction everywhere'], correctAnswers: ['Over-extracts where the channel comes through and under-extracts everywhere else'] },
+          { id: 'tq14', type: 'MULTIPLE_CHOICE', question: 'Which of the following helps prevent channeling?', options: ['Tamping unevenly', 'Letting coffee blast against one wall of the portafilter', 'Distributing coffee evenly and tamping evenly', 'Using stale coffee'], correctAnswers: ['Distributing coffee evenly and tamping evenly'] },
+          { id: 'tq15', type: 'MULTIPLE_CHOICE', question: 'What happens if you have a tilted tamp/puck?', options: ['The shot will be perfectly balanced', 'Water will channel toward the lower part of the puck', 'The shot will take longer', 'More crema will form'], correctAnswers: ['Water will channel toward the lower part of the puck'] },
+          { id: 'tq16', type: 'MULTIPLE_CHOICE', question: 'If your shot tastes watery and thin, what could you adjust?', options: ['Use older coffee', 'Adjust your brewing ratio (dose or yield) and use fresh coffee', 'Increase water temperature dramatically', 'Tamp lighter'], correctAnswers: ['Adjust your brewing ratio (dose or yield) and use fresh coffee'] },
+          { id: 'tq17', type: 'MULTIPLE_CHOICE', question: 'What two factors can cause a watery shot according to the video?', options: ['Too much pressure and too fine a grind', 'Brewing ratio issues and stale/pre-ground coffee', 'Water that is too hot and tamping too hard', 'Using too much coffee and grinding too fine'], correctAnswers: ['Brewing ratio issues and stale/pre-ground coffee'] },
+          { id: 'tq18', type: 'MULTIPLE_CHOICE', question: 'If your shot has little to no crema, what is one possible cause?', options: ['The coffee is too fresh', 'The shot is extracting too fast or the coffee is old', 'The water temperature is too high', 'You tamped too evenly'], correctAnswers: ['The shot is extracting too fast or the coffee is old'] },
+          { id: 'tq19', type: 'MULTIPLE_CHOICE', question: 'What is the correct pump pressure for extracting espresso?', options: ['Around 5 bars', 'Around 9 bars', 'Around 15 bars', 'Around 2 bars'], correctAnswers: ['Around 9 bars'] },
+          { id: 'tq20', type: 'MULTIPLE_CHOICE', question: 'If your shot is ALL crema (thick blonde mass), what does this indicate and how do you fix it?', options: ['The coffee is stale; buy new coffee', 'The coffee is too gassy/fresh; let it rest for 1-3 days', 'The grind is too coarse; grind finer', 'The water is too cold; increase temperature'], correctAnswers: ['The coffee is too gassy/fresh; let it rest for 1-3 days'] }
+        ]
+      }
+    ]
   }
 ];
 
