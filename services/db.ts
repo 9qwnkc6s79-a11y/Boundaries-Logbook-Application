@@ -311,7 +311,20 @@ class CloudAPI {
       await this.remoteSet(DOC_KEYS.CURRICULUM, curriculum);
     }
 
-    return { users, submissions, progress, templates, curriculum, manual, recipes };
+    // Merge new recipes from defaults that don't exist in cloud
+    // This ensures new recipes added to mockData.ts appear in the app
+    const cloudRecipeIds = new Set(recipes.map((r: Recipe) => r.id));
+    const newRecipes = defaults.recipes.filter(r => !cloudRecipeIds.has(r.id));
+
+    let mergedRecipes = recipes;
+    if (newRecipes.length > 0) {
+      console.log(`[Firestore] globalSync: Found ${newRecipes.length} new recipe(s), merging...`);
+      mergedRecipes = [...recipes, ...newRecipes];
+      // Push merged recipes back to cloud
+      await this.remoteSet(DOC_KEYS.RECIPES, mergedRecipes);
+    }
+
+    return { users, submissions, progress, templates, curriculum, manual, recipes: mergedRecipes };
   }
 }
 
