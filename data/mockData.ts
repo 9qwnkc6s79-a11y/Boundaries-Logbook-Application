@@ -894,6 +894,50 @@ export const TRAINING_CURRICULUM: TrainingModule[] = [
         ]
       }
     ]
+  },
+  {
+    id: 'm-milk-steaming',
+    title: 'Module 11: Milk Steaming Fundamentals',
+    description: 'Learn proper milk steaming technique for silky microfoam.',
+    category: 'ONBOARDING',
+    lessons: [
+      {
+        id: 'l-milk-steaming-video',
+        moduleId: 'm-milk-steaming',
+        title: 'How to Steam Milk',
+        type: 'CONTENT',
+        videoUrl: 'https://www.youtube.com/watch?v=wJnMXLG_qR4',
+        content: 'Watch this Lance Hedrick video on milk steaming before taking the quiz.'
+      },
+      {
+        id: 'l-milk-steaming-quiz',
+        moduleId: 'm-milk-steaming',
+        title: 'Milk Steaming Fundamentals Quiz',
+        type: 'QUIZ',
+        quizQuestions: [
+          { id: 'mq1', type: 'MULTIPLE_CHOICE', question: 'What are the two important things you need to understand when steaming milk?', options: ['Temperature and pressure', 'Pitcher position and movement up and down the wand', 'Milk type and pitcher size', 'Steam pressure and timing'], correctAnswers: ['Pitcher position and movement up and down the wand'] },
+          { id: 'mq2', type: 'MULTIPLE_CHOICE', question: 'What should you do first when positioning the steam wand?', options: ['Put it in the center of the pitcher', 'Line the steam wand along the back of the pitcher', 'Submerge it as deep as possible', 'Point it toward the spout'], correctAnswers: ['Line the steam wand along the back of the pitcher'] },
+          { id: 'mq3', type: 'MULTIPLE_CHOICE', question: 'What should always stay connected during the steaming process?', options: ['The pitcher and the drip tray', 'The steam wand and the spout of the pitcher', 'Your hand and the steam knob', 'The pitcher and the group head'], correctAnswers: ['The steam wand and the spout of the pitcher'] },
+          { id: 'mq4', type: 'MULTIPLE_CHOICE', question: 'After lining the wand against the back, where do you tilt the pitcher to (front to back)?', options: ['All the way to the front', 'Halfway from front to back', 'One quarter from the back', 'Three quarters to the front'], correctAnswers: ['Halfway from front to back'] },
+          { id: 'mq5', type: 'MULTIPLE_CHOICE', question: 'After the halfway tilt, where do you position the wand from side to side?', options: ['Dead center', 'All the way to one side', 'A quarter to either side', 'Three quarters to one side'], correctAnswers: ['A quarter to either side'] },
+          { id: 'mq6', type: 'MULTIPLE_CHOICE', question: 'What is the correct pitcher position formula to remember?', options: ['Center and center', 'Halfway and a quarter', 'Quarter and halfway', 'Full tilt and centered'], correctAnswers: ['Halfway and a quarter'] },
+          { id: 'mq7', type: 'MULTIPLE_CHOICE', question: 'How deep should the steam tip be submerged to start?', options: ['Completely submerged to the bottom', 'Just barely submerged', 'Halfway up the pitcher', 'Above the surface of the milk'], correctAnswers: ['Just barely submerged'] },
+          { id: 'mq8', type: 'MULTIPLE_CHOICE', question: 'What do you do after achieving the correct starting depth?', options: ['Immediately plunge deeper', 'Start the steam and slowly pull down until you hear a ripping paper noise', 'Keep the position static the entire time', 'Move the pitcher in circles'], correctAnswers: ['Start the steam and slowly pull down until you hear a ripping paper noise'] },
+          { id: 'mq9', type: 'MULTIPLE_CHOICE', question: 'What sound indicates you are injecting air into the milk?', options: ['A loud hissing sound', 'A ripping paper noise', 'Complete silence', 'A bubbling sound'], correctAnswers: ['A ripping paper noise'] },
+          { id: 'mq10', type: 'MULTIPLE_CHOICE', question: 'What does "stretching" mean in milk steaming?', options: ['Making the pitcher taller', 'Injecting air into the milk', 'Heating the milk faster', 'Pulling the wand out of the milk'], correctAnswers: ['Injecting air into the milk'] },
+          { id: 'mq11', type: 'MULTIPLE_CHOICE', question: 'When should you stop stretching (injecting air) and resubmerge the tip?', options: ['After exactly 5 seconds', 'When the pitcher temperature matches your hand temperature (90-100°F)', 'When the milk starts boiling', 'When you see large bubbles'], correctAnswers: ['When the pitcher temperature matches your hand temperature (90-100°F)'] },
+          { id: 'mq12', type: 'MULTIPLE_CHOICE', question: 'Why might you not need to move the pitcher back up as far after stretching?', options: ['The milk gets lighter', 'The foam volume has increased, so the tip gets covered naturally', 'The steam pressure decreases', 'The pitcher shrinks from heat'], correctAnswers: ['The foam volume has increased, so the tip gets covered naturally'] },
+          { id: 'mq13', type: 'MULTIPLE_CHOICE', question: 'What does the "whirling" motion accomplish?', options: ['It cools down the milk', 'It incorporates the air you\'ve injected to create silky texture', 'It removes foam from the milk', 'It heats the milk faster'], correctAnswers: ['It incorporates the air you\'ve injected to create silky texture'] },
+          { id: 'mq14', type: 'MULTIPLE_CHOICE', question: 'What does the "halfway and a quarter" position create in the milk?', options: ['Large bubbles', 'A rapid whirl', 'No movement', 'Separation of foam and milk'], correctAnswers: ['A rapid whirl'] },
+          { id: 'mq15', type: 'MULTIPLE_CHOICE', question: 'Why does milk heat up slower than water?', options: ['Milk is colder to start', 'Milk has more fats in it', 'Milk has less volume', 'The steam wand works differently with milk'], correctAnswers: ['Milk has more fats in it'] },
+          { id: 'mq16', type: 'MULTIPLE_CHOICE', question: 'What is your cue to end the steaming process?', options: ['When you see foam on top', 'When the pitcher becomes too hot to touch', 'After exactly 30 seconds', 'When the milk turns brown'], correctAnswers: ['When the pitcher becomes too hot to touch'] },
+          { id: 'mq17', type: 'MULTIPLE_CHOICE', question: 'If you have a machine with limited wand movement (like a Gaggia Classic Pro), what does the video recommend?', options: ['Buy a new machine', 'Take the drip tray out for more room to tilt the pitcher', 'Use a smaller pitcher', 'Steam at a lower pressure'], correctAnswers: ['Take the drip tray out for more room to tilt the pitcher'] },
+          { id: 'mq18', type: 'MULTIPLE_CHOICE', question: 'For a longer steam tip, how much should you submerge?', options: ['The entire tip', 'About a third of it', 'None of it', 'The full length plus more'], correctAnswers: ['About a third of it'] },
+          { id: 'mq19', type: 'MULTIPLE_CHOICE', question: 'What happens when the steam tip is above the surface vs. just below?', options: ['Above: no air injection / Below: air injection', 'Above: air injection (stretching) / Below: no air injection (whirling)', 'Both produce the same result', 'Above: faster heating / Below: slower heating'], correctAnswers: ['Above: air injection (stretching) / Below: no air injection (whirling)'] },
+          { id: 'mq20', type: 'MULTIPLE_CHOICE', question: 'What is the end goal of proper milk steaming technique?', options: ['Very hot milk with large bubbles', 'Silky, smooth microfoam milk', 'Milk that separates into layers', 'Cold frothy milk'], correctAnswers: ['Silky, smooth microfoam milk'] }
+        ]
+      }
+    ]
   }
 ];
 
