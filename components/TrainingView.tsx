@@ -41,6 +41,13 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
     }
   }, [selectedLesson, progress]);
 
+  // Scroll to top when opening a lesson
+  useEffect(() => {
+    if (selectedLesson) {
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    }
+  }, [selectedLesson]);
+
   // Delete Confirmation State
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string, title: string, code: string, input: string } | null>(null);
 
