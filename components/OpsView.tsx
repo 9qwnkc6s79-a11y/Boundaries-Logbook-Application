@@ -361,11 +361,14 @@ const OpsView: React.FC<OpsViewProps> = ({ user, allUsers, templates, existingSu
         submission.taskResults.forEach(res => {
           const lastInteraction = interactionLock.current[res.taskId] || 0;
           const timeSinceInteraction = Date.now() - lastInteraction;
+          // Handle both single photoUrl and multiple photoUrls
+          const photos = res.photoUrls || (res.photoUrl ? [res.photoUrl] : []);
 
           if (timeSinceInteraction < 5000) {
             next[res.taskId] = prev[res.taskId] || {
               completed: res.completed,
               photo: res.photoUrl,
+              photos: photos,
               value: res.value,
               comment: res.comment,
               completedByUserId: res.completedByUserId,
@@ -375,6 +378,7 @@ const OpsView: React.FC<OpsViewProps> = ({ user, allUsers, templates, existingSu
             next[res.taskId] = {
               completed: res.completed,
               photo: res.photoUrl,
+              photos: photos,
               value: res.value,
               comment: res.comment,
               completedByUserId: res.completedByUserId,
@@ -402,35 +406,38 @@ const OpsView: React.FC<OpsViewProps> = ({ user, allUsers, templates, existingSu
     if (isReadOnly) return;
     markInteraction(taskId);
     const task = activeTemplate?.tasks.find(t => t.id === taskId);
-    
+
     setResponses(prev => {
       const currentResp = prev[taskId];
       const isCompleted = !currentResp?.completed;
+      const requiredPhotos = task?.requiredPhotos || (task?.requiresPhoto ? 1 : 0);
+      const currentPhotos = currentResp?.photos || (currentResp?.photo ? [currentResp.photo] : []);
 
-      if (task?.requiresPhoto && isCompleted && !currentResp?.photo) {
-        setValidationError(`Verification Required: "${task.title}"`);
+      if (requiredPhotos > 0 && isCompleted && currentPhotos.length < requiredPhotos) {
+        setValidationError(`Verification Required: "${task?.title}" needs ${requiredPhotos} photo(s), has ${currentPhotos.length}`);
         openCamera(taskId);
         return prev;
       }
 
       setValidationError(null);
-      
-      const nextTask = { 
-        ...prev[taskId], 
+
+      const nextTask = {
+        ...prev[taskId],
         completed: isCompleted,
         completedByUserId: isCompleted ? user.id : (prev[taskId]?.completedByUserId || ''),
         completedAt: isCompleted ? new Date().toISOString() : (prev[taskId]?.completedAt || '')
       };
 
-      if (!isCompleted && nextTask.photo) {
+      if (!isCompleted) {
         delete nextTask.photo;
+        delete nextTask.photos;
       }
 
       const updated = {
         ...prev,
         [taskId]: nextTask
       };
-      
+
       onUpdate({
         id: activeSubmissionId || undefined,
         templateId: activeTemplate!.id,
@@ -492,13 +499,22 @@ const OpsView: React.FC<OpsViewProps> = ({ user, allUsers, templates, existingSu
   const handlePhotoCapture = (dataUrl: string) => {
     if (capturingTaskId && !isReadOnly) {
       markInteraction(capturingTaskId);
+      const task = activeTemplate?.tasks.find(t => t.id === capturingTaskId);
+      const requiredPhotos = task?.requiredPhotos || (task?.requiresPhoto ? 1 : 0);
+
       setResponses(prev => {
+        const currentResp = prev[capturingTaskId] || {};
+        const existingPhotos = currentResp.photos || (currentResp.photo ? [currentResp.photo] : []);
+        const newPhotos = [...existingPhotos, dataUrl];
+        const hasEnoughPhotos = newPhotos.length >= requiredPhotos;
+
         const updated = {
           ...prev,
-          [capturingTaskId]: { 
-            ...prev[capturingTaskId], 
-            photo: dataUrl, 
-            completed: true,
+          [capturingTaskId]: {
+            ...currentResp,
+            photo: newPhotos[0], // Keep first photo for backwards compatibility
+            photos: newPhotos,
+            completed: hasEnoughPhotos,
             completedByUserId: user.id,
             completedAt: new Date().toISOString()
           }
@@ -510,7 +526,13 @@ const OpsView: React.FC<OpsViewProps> = ({ user, allUsers, templates, existingSu
           isFinal: false,
           targetDate: getTargetDate(activeTemplate!)
         });
-        setValidationError(null);
+
+        if (hasEnoughPhotos) {
+          setValidationError(null);
+        } else {
+          setValidationError(`Photo ${newPhotos.length}/${requiredPhotos} captured for "${task?.title}"`);
+        }
+
         return updated;
       });
     }
@@ -520,9 +542,15 @@ const OpsView: React.FC<OpsViewProps> = ({ user, allUsers, templates, existingSu
   const handleAction = (isFinal: boolean) => {
     if (isReadOnly) return;
     if (isFinal) {
-      const missingPhotos = activeTemplate?.tasks.filter(t => t.requiresPhoto && !responses[t.id]?.photo);
+      const missingPhotos = activeTemplate?.tasks.filter(t => {
+        const requiredPhotos = t.requiredPhotos || (t.requiresPhoto ? 1 : 0);
+        if (requiredPhotos === 0) return false;
+        const resp = responses[t.id];
+        const currentPhotos = resp?.photos || (resp?.photo ? [resp.photo] : []);
+        return currentPhotos.length < requiredPhotos;
+      });
       if (missingPhotos && missingPhotos.length > 0) {
-        alert(`Verification missing! ${missingPhotos.length} standards require photo proof.`);
+        alert(`Verification missing! ${missingPhotos.length} standards require more photo proof.`);
         return;
       }
       const isAllDone = activeTemplate?.tasks.every(t => responses[t.id]?.completed);
@@ -666,6 +694,21 @@ const OpsView: React.FC<OpsViewProps> = ({ user, allUsers, templates, existingSu
                           {verifyingUser?.name || 'Teammate'}
                         </span>
                       )}
+                      {(() => {
+                        const requiredPhotos = task.requiredPhotos || (task.requiresPhoto ? 1 : 0);
+                        const currentPhotos = resp?.photos || (resp?.photo ? [resp.photo] : []);
+                        if (requiredPhotos > 0) {
+                          return (
+                            <span className={`px-2 py-0.5 text-[7px] sm:text-[9px] font-black uppercase tracking-widest rounded flex items-center gap-1 ${
+                              currentPhotos.length >= requiredPhotos ? 'bg-blue-100 text-blue-600' : 'bg-amber-100 text-amber-600'
+                            }`}>
+                              <Camera size={10} />
+                              {currentPhotos.length}/{requiredPhotos}
+                            </span>
+                          );
+                        }
+                        return null;
+                      })()}
                       <h3 className={`font-bold text-base sm:text-lg tracking-tight leading-snug transition-colors ${
                         isVerified ? 'text-neutral-400 line-through' : 'text-[#001F3F]'
                       }`}>
@@ -697,6 +740,54 @@ const OpsView: React.FC<OpsViewProps> = ({ user, allUsers, templates, existingSu
                         className="w-full border rounded-xl px-4 py-3 text-xs font-medium outline-none resize-none bg-neutral-50 border-neutral-100 focus:bg-white"
                       />
                     </div>
+
+                    {/* Photo display and capture section */}
+                    {(() => {
+                      const requiredPhotos = task.requiredPhotos || (task.requiresPhoto ? 1 : 0);
+                      const currentPhotos = resp?.photos || (resp?.photo ? [resp.photo] : []);
+                      const needsMorePhotos = requiredPhotos > 0 && currentPhotos.length < requiredPhotos;
+
+                      if (requiredPhotos === 0 && currentPhotos.length === 0) return null;
+
+                      return (
+                        <div className="mt-4 pt-4 border-t border-neutral-50">
+                          {currentPhotos.length > 0 && (
+                            <div className="flex flex-wrap gap-2 mb-3">
+                              {currentPhotos.map((photo: string, idx: number) => (
+                                <div key={idx} className="relative group">
+                                  <img
+                                    src={photo}
+                                    alt={`Photo ${idx + 1}`}
+                                    className="w-16 h-16 object-cover rounded-lg border border-neutral-200"
+                                  />
+                                  <span className="absolute bottom-0 right-0 bg-black/60 text-white text-[8px] px-1 rounded-tl">
+                                    {idx + 1}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          {!isReadOnly && needsMorePhotos && (
+                            <button
+                              onClick={() => openCamera(task.id)}
+                              className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-xl text-xs font-bold hover:bg-blue-100 transition-all"
+                            >
+                              <Camera size={14} />
+                              Add Photo ({currentPhotos.length}/{requiredPhotos})
+                            </button>
+                          )}
+                          {!isReadOnly && !needsMorePhotos && requiredPhotos > 0 && (
+                            <button
+                              onClick={() => openCamera(task.id)}
+                              className="flex items-center gap-2 px-4 py-2 bg-neutral-50 text-neutral-400 rounded-xl text-xs font-bold hover:bg-neutral-100 transition-all"
+                            >
+                              <Camera size={14} />
+                              Add Another Photo
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   {!isReadOnly && (

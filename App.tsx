@@ -195,7 +195,8 @@ const App: React.FC = () => {
     let taskResults = Object.entries(data.responses).map(([taskId, res]: any) => ({
       taskId,
       completed: res.completed,
-      photoUrl: res.photo,
+      photoUrl: res.photo, // Keep for backwards compatibility
+      photoUrls: res.photos || (res.photo ? [res.photo] : undefined), // New array format
       value: res.value,
       comment: res.comment,
       completedByUserId: res.completedByUserId || currentUser?.id || 'unknown',
@@ -205,10 +206,11 @@ const App: React.FC = () => {
     }));
 
     // Log photo task info for debugging
-    const photoTasks = taskResults.filter(r => r.photoUrl);
+    const photoTasks = taskResults.filter(r => r.photoUrls && r.photoUrls.length > 0);
     if (photoTasks.length > 0) {
-      const totalPhotoSize = photoTasks.reduce((sum, r) => sum + (r.photoUrl?.length || 0), 0);
-      console.log(`[Checklist] ${photoTasks.length} photo task(s), total photo data: ${Math.round(totalPhotoSize / 1024)}KB`);
+      const totalPhotos = photoTasks.reduce((sum, r) => sum + (r.photoUrls?.length || 0), 0);
+      const totalPhotoSize = photoTasks.reduce((sum, r) => sum + (r.photoUrls?.reduce((s: number, p: string) => s + (p?.length || 0), 0) || 0), 0);
+      console.log(`[Checklist] ${photoTasks.length} task(s) with ${totalPhotos} total photo(s), size: ${Math.round(totalPhotoSize / 1024)}KB`);
     }
 
     if (data.isFinal) {

@@ -771,10 +771,52 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                           handleUpdateTemplateLocal(tpl.id, { tasks: next });
                         }} className="flex-1 bg-transparent text-sm font-bold text-[#001F3F] outline-none" />
                         <div className="flex items-center gap-2">
-                           <button onClick={() => {
-                             const next = tpl.tasks.map(tk => tk.id === task.id ? { ...tk, requiresPhoto: !tk.requiresPhoto } : tk);
-                             handleUpdateTemplateLocal(tpl.id, { tasks: next });
-                           }} className={`p-3 rounded-xl transition-all ${task.requiresPhoto ? 'bg-blue-600 text-white shadow-lg' : 'bg-neutral-100 text-neutral-300 hover:text-neutral-500'}`} title="Requires Photo Proof"><Camera size={18}/></button>
+                           {/* Photo requirement control */}
+                           <div className="flex items-center gap-1">
+                             <button
+                               onClick={() => {
+                                 const currentPhotos = task.requiredPhotos || (task.requiresPhoto ? 1 : 0);
+                                 const newPhotos = Math.max(0, currentPhotos - 1);
+                                 const next = tpl.tasks.map(tk => tk.id === task.id ? {
+                                   ...tk,
+                                   requiresPhoto: newPhotos > 0,
+                                   requiredPhotos: newPhotos > 0 ? newPhotos : undefined
+                                 } : tk);
+                                 handleUpdateTemplateLocal(tpl.id, { tasks: next });
+                               }}
+                               className="p-2 rounded-lg bg-neutral-100 text-neutral-400 hover:bg-neutral-200 hover:text-neutral-600 transition-all"
+                               title="Decrease photos"
+                             >
+                               <ChevronDown size={14}/>
+                             </button>
+                             <div
+                               className={`px-3 py-2 rounded-xl flex items-center gap-2 min-w-[70px] justify-center ${
+                                 (task.requiredPhotos || (task.requiresPhoto ? 1 : 0)) > 0
+                                   ? 'bg-blue-600 text-white shadow-lg'
+                                   : 'bg-neutral-100 text-neutral-400'
+                               }`}
+                               title="Required photos"
+                             >
+                               <Camera size={16}/>
+                               <span className="text-xs font-black">{task.requiredPhotos || (task.requiresPhoto ? 1 : 0)}</span>
+                             </div>
+                             <button
+                               onClick={() => {
+                                 const currentPhotos = task.requiredPhotos || (task.requiresPhoto ? 1 : 0);
+                                 const newPhotos = currentPhotos + 1;
+                                 const next = tpl.tasks.map(tk => tk.id === task.id ? {
+                                   ...tk,
+                                   requiresPhoto: true,
+                                   requiredPhotos: newPhotos
+                                 } : tk);
+                                 handleUpdateTemplateLocal(tpl.id, { tasks: next });
+                               }}
+                               className="p-2 rounded-lg bg-neutral-100 text-neutral-400 hover:bg-neutral-200 hover:text-neutral-600 transition-all"
+                               title="Increase photos"
+                             >
+                               <ChevronUp size={14}/>
+                             </button>
+                           </div>
                            <button onClick={() => {
                              const next = tpl.tasks.map(tk => tk.id === task.id ? { ...tk, isCritical: !tk.isCritical } : tk);
                              handleUpdateTemplateLocal(tpl.id, { tasks: next });

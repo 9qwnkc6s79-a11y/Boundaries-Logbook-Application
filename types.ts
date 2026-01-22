@@ -72,6 +72,7 @@ export interface ChecklistTask {
   id: string;
   title: string;
   requiresPhoto: boolean;
+  requiredPhotos?: number; // Number of photos required (1 if requiresPhoto is true and this is not set)
   requiresValue?: string;
   isCritical?: boolean;
 }
@@ -98,9 +99,10 @@ export interface ChecklistSubmission {
     taskId: string;
     completed: boolean;
     photoUrl?: string;
+    photoUrls?: string[]; // Support for multiple photos
     value?: string;
     comment?: string;
-    completedByUserId: string; 
+    completedByUserId: string;
     completedAt: string;
     aiFlagged?: boolean;
     aiReason?: string;
