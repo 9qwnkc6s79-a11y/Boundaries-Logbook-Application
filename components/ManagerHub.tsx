@@ -736,9 +736,36 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                     </div>
                   </div>
                   <div className="p-8 space-y-4">
-                    {tpl.tasks.map(task => (
+                    {tpl.tasks.map((task, taskIndex) => (
                       <div key={task.id} className="flex items-center gap-4 bg-neutral-50/50 p-5 rounded-2xl border border-neutral-100 hover:bg-white transition-all shadow-sm group/task">
-                        <GripVertical size={20} className="text-neutral-300"/>
+                        <div className="flex flex-col gap-1">
+                          <button
+                            onClick={() => {
+                              if (taskIndex === 0) return;
+                              const newTasks = [...tpl.tasks];
+                              [newTasks[taskIndex - 1], newTasks[taskIndex]] = [newTasks[taskIndex], newTasks[taskIndex - 1]];
+                              handleUpdateTemplateLocal(tpl.id, { tasks: newTasks });
+                            }}
+                            disabled={taskIndex === 0}
+                            className={`p-1 rounded transition-all ${taskIndex === 0 ? 'text-neutral-200 cursor-not-allowed' : 'text-neutral-400 hover:text-[#001F3F] hover:bg-neutral-100'}`}
+                            title="Move Up"
+                          >
+                            <MoveUp size={16}/>
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (taskIndex === tpl.tasks.length - 1) return;
+                              const newTasks = [...tpl.tasks];
+                              [newTasks[taskIndex], newTasks[taskIndex + 1]] = [newTasks[taskIndex + 1], newTasks[taskIndex]];
+                              handleUpdateTemplateLocal(tpl.id, { tasks: newTasks });
+                            }}
+                            disabled={taskIndex === tpl.tasks.length - 1}
+                            className={`p-1 rounded transition-all ${taskIndex === tpl.tasks.length - 1 ? 'text-neutral-200 cursor-not-allowed' : 'text-neutral-400 hover:text-[#001F3F] hover:bg-neutral-100'}`}
+                            title="Move Down"
+                          >
+                            <MoveDown size={16}/>
+                          </button>
+                        </div>
                         <input value={task.title} onChange={e => {
                           const next = tpl.tasks.map(tk => tk.id === task.id ? { ...tk, title: e.target.value } : tk);
                           handleUpdateTemplateLocal(tpl.id, { tasks: next });
