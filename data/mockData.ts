@@ -938,6 +938,81 @@ export const TRAINING_CURRICULUM: TrainingModule[] = [
         ]
       }
     ]
+  },
+  {
+    id: 'm-drink-making-basics',
+    title: 'Module 12: Drink Making Basics - Day 1 Hot Drinks',
+    description: 'Learn espresso extraction, drink making process, milk steaming, dialing in, and cleaning procedures.',
+    category: 'ONBOARDING',
+    lessons: [
+      {
+        id: 'l-drink-basics-overview',
+        moduleId: 'm-drink-making-basics',
+        title: 'Module Overview',
+        type: 'CONTENT',
+        content: `This module covers the fundamentals of making espresso-based hot drinks at Boundaries Coffee. By the end of this training, you will understand espresso extraction, the drink making process, milk steaming, dialing in, and cleaning procedures.
+
+**Training Components:**
+1. Review content with your instructor
+2. Complete hands-on practice with instructor guidance
+3. Complete the Required Practice Drinks checklist
+4. Pass the Knowledge Quiz (minimum 80%)`
+      },
+      {
+        id: 'l-drink-basics-practice',
+        moduleId: 'm-drink-making-basics',
+        title: 'Required Practice Drinks',
+        type: 'PRACTICE',
+        content: `Complete each drink under trainer supervision. Each must be made independently and approved by your trainer.
+
+**Practice Checklist:**
+
+| Drink | Qty | Focus |
+|-------|-----|-------|
+| Espresso Shot (Dialed In) | 3 | Timing, dose accuracy |
+| Espresso Shot (Under-extracted) | 1 | Identify sour taste |
+| Espresso Shot (Over-extracted) | 1 | Identify bitter taste |
+| Latte (12oz) | 3 | Full drink process |
+| Latte (16oz) | 2 | Milk volume adjustment |
+| Vanilla Latte | 2 | Sauce stirring |
+| Mocha | 2 | Chocolate integration |
+| Cappuccino | 2 | More foam, less milk |
+| Americano | 2 | Water + espresso ratio |
+| Dial-In Exercise | 1 | Adjust grinder, hit target |
+| Backflush (Water Only) | 1 | Afternoon procedure |
+| Backflush (With Cleaner) | 1 | Closing procedure |
+
+**Trainer Sign-Off Required:** Have your trainer initial each completed item and sign off when all drinks are completed satisfactorily.`
+      },
+      {
+        id: 'l-drink-basics-quiz',
+        moduleId: 'm-drink-making-basics',
+        title: 'Drink Making Basics Quiz',
+        type: 'QUIZ',
+        quizQuestions: [
+          { id: 'db1', type: 'MULTIPLE_CHOICE', question: 'What is espresso?', options: ['A type of coffee bean', 'A brew method requiring ground coffee, water, heat, pressure, filter, and time', 'A dark roast coffee', 'Coffee with milk added'], correctAnswers: ['A brew method requiring ground coffee, water, heat, pressure, filter, and time'] },
+          { id: 'db2', type: 'MULTIPLE_CHOICE', question: 'What are the 6 things required for espresso?', options: ['Beans, grinder, machine, cup, water, milk', 'Ground coffee, water, heat, pressure (9 bar), filter, time', 'Steam, pressure, heat, beans, filter, cup', 'Coffee, cream, sugar, water, heat, time'], correctAnswers: ['Ground coffee, water, heat, pressure (9 bar), filter, time'] },
+          { id: 'db3', type: 'MULTIPLE_CHOICE', question: 'What is the standard espresso yield and shot time range?', options: ['1oz, 10-15 seconds', '2oz, 20-30 seconds', '3oz, 40-50 seconds', '4oz, 60-90 seconds'], correctAnswers: ['2oz, 20-30 seconds'] },
+          { id: 'db4', type: 'MULTIPLE_CHOICE', question: 'What is the Monarch espresso recipe at Boundaries Coffee?', options: ['18g dose at 20s brew time', '19g dose at 24s brew time', '21g dose at 30s brew time', '17g dose at 22s brew time'], correctAnswers: ['19g dose at 24s brew time'] },
+          { id: 'db5', type: 'MULTIPLE_CHOICE', question: 'What is the acceptable range for dose and brew time variation?', options: ['+/- 1g, +/- 5s', '+/- 0.2g, +/- 2s', '+/- 0.5g, +/- 3s', '+/- 2g, +/- 10s'], correctAnswers: ['+/- 0.2g, +/- 2s'] },
+          { id: 'db6', type: 'MULTIPLE_CHOICE', question: 'What does an under-extracted shot taste like?', options: ['Bitter and harsh', 'Sour and acidic', 'Sweet and balanced', 'Burnt and smoky'], correctAnswers: ['Sour and acidic'] },
+          { id: 'db7', type: 'MULTIPLE_CHOICE', question: 'What does an over-extracted shot taste like?', options: ['Sour and bright', 'Bitter and harsh', 'Fruity and light', 'Watery and thin'], correctAnswers: ['Bitter and harsh'] },
+          { id: 'db8', type: 'MULTIPLE_CHOICE', question: 'What is the correct order for the drink making process?', options: ['Pull shot, steam milk, prepare cup, pour', 'Prepare cup, portion milk, pull shot, steam milk, add shots, stir, pour, serve', 'Steam milk, pull shot, add sauce, serve', 'Portion milk, prepare cup, steam, pull shot, serve'], correctAnswers: ['Prepare cup, portion milk, pull shot, steam milk, add shots, stir, pour, serve'] },
+          { id: 'db9', type: 'MULTIPLE_CHOICE', question: 'What are the steps for pulling a shot? (In order)', options: ['Dose, tamp, insert, brew', 'Remove portafilter, rinse group, wipe dry, dose, settle, distribute, tamp, wipe, insert, brew', 'Grind, tamp, insert, wait, brew', 'Wipe, dose, distribute, insert, brew'], correctAnswers: ['Remove portafilter, rinse group, wipe dry, dose, settle, distribute, tamp, wipe, insert, brew'] },
+          { id: 'db10', type: 'MULTIPLE_CHOICE', question: 'After inserting the portafilter, what should you do?', options: ['Wait 30 seconds then brew', 'Brew immediately and set cup underneath', 'Check the pressure gauge first', 'Wipe the group head again'], correctAnswers: ['Brew immediately and set cup underneath'] },
+          { id: 'db11', type: 'MULTIPLE_CHOICE', question: 'What do you do after adding shots to the cup?', options: ['Immediately pour milk', 'Rinse shot catchers and set back on machine, then stir sauce/espresso', 'Let it cool for 30 seconds', 'Add more espresso'], correctAnswers: ['Rinse shot catchers and set back on machine, then stir sauce/espresso'] },
+          { id: 'db12', type: 'MULTIPLE_CHOICE', question: 'What is the correct pitcher position for steaming milk?', options: ['Center and center', 'Halfway (front to back) and a quarter (side to side)', 'All the way to one side', 'At the very front of the pitcher'], correctAnswers: ['Halfway (front to back) and a quarter (side to side)'] },
+          { id: 'db13', type: 'MULTIPLE_CHOICE', question: 'What does "stretching" mean in milk steaming?', options: ['Making the pitcher taller', 'Injecting air into the milk', 'Heating the milk faster', 'Pouring the milk slowly'], correctAnswers: ['Injecting air into the milk'] },
+          { id: 'db14', type: 'MULTIPLE_CHOICE', question: 'When should you stop stretching and resubmerge the steam tip?', options: ['After 10 seconds', 'When the pitcher matches your hand temperature (90-100°F)', 'When you see large bubbles', 'When the milk starts boiling'], correctAnswers: ['When the pitcher matches your hand temperature (90-100°F)'] },
+          { id: 'db15', type: 'MULTIPLE_CHOICE', question: 'What is the fundamental rule for grind adjustment?', options: ['Finer grind = shorter shot time', 'Finer grind = longer shot time; Coarser grind = shorter shot time', 'Grind doesn\'t affect shot time', 'Coarser grind = longer shot time'], correctAnswers: ['Finer grind = longer shot time; Coarser grind = shorter shot time'] },
+          { id: 'db16', type: 'MULTIPLE_CHOICE', question: 'According to the 2-5-10 rule, what does 1 tic on the grind collar equal?', options: ['1 second change', '2 seconds change', '5 seconds change', '10 seconds change'], correctAnswers: ['2 seconds change'] },
+          { id: 'db17', type: 'MULTIPLE_CHOICE', question: 'What defines consistent shots when dialing in?', options: ['Shots within 5 seconds of each other', 'Shots within 2 seconds of each other', 'Shots that look the same', 'Shots that taste identical'], correctAnswers: ['Shots within 2 seconds of each other'] },
+          { id: 'db18', type: 'MULTIPLE_CHOICE', question: 'When do you backflush with just water (no cleaner)?', options: ['At closing only', 'In the afternoon', 'Every hour', 'Only on Mondays'], correctAnswers: ['In the afternoon'] },
+          { id: 'db19', type: 'MULTIPLE_CHOICE', question: 'When do you backflush with cleaning powder?', options: ['In the morning', 'At closing', 'Every other day', 'Weekly only'], correctAnswers: ['At closing'] },
+          { id: 'db20', type: 'MULTIPLE_CHOICE', question: 'What items go in the weekly Puro soak?', options: ['Steam wand tips and milk pitchers', 'Portafilter baskets, shot catchers, screens/screws, and portafilters', 'Only the portafilters', 'Cups and saucers'], correctAnswers: ['Portafilter baskets, shot catchers, screens/screws, and portafilters'] }
+        ]
+      }
+    ]
   }
 ];
 
