@@ -312,7 +312,8 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
   }, [complianceMatrix]);
 
   const concernNotes = useMemo(() => {
-    return allPhotos.filter(p => p.aiFlagged).slice(0, 5);
+    // Only show photos that are flagged AND not yet overridden by manager
+    return allPhotos.filter(p => p.aiFlagged && !p.managerOverride).slice(0, 5);
   }, [allPhotos]);
 
   const handleUpdateTemplateLocal = (templateId: string, updates: Partial<ChecklistTemplate>) => {
@@ -497,21 +498,65 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                 </div>
 
                 <div className="space-y-6">
-                  <div className="flex items-center gap-2">
-                    <SearchCheck size={16} className="text-red-500" />
-                    <h3 className="text-[11px] font-black text-red-600 uppercase tracking-widest">Audit Alerts</h3>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <SearchCheck size={16} className="text-red-500" />
+                      <h3 className="text-[11px] font-black text-red-600 uppercase tracking-widest">Audit Alerts</h3>
+                    </div>
+                    {concernNotes.length > 0 && (
+                      <span className="px-2 py-1 bg-red-100 text-red-600 text-[9px] font-black rounded-full">{concernNotes.length} pending</span>
+                    )}
                   </div>
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     {concernNotes.length > 0 ? concernNotes.map((concern, idx) => (
-                      <div key={idx} className="flex items-center gap-3 p-3 bg-red-50 rounded-2xl border border-red-100 group cursor-pointer hover:bg-red-100 transition-colors" onClick={() => setFullscreenPhoto({ ...concern, aiReview: { flagged: true, reason: concern.aiReason || '' } })}>
-                        <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0 border border-red-200">
-                          <img src={concern.url} className="w-full h-full object-cover" alt="Concern" />
+                      <div key={idx} className="bg-red-50 rounded-2xl border border-red-200 overflow-hidden">
+                        <div className="flex gap-4 p-4">
+                          {/* Photo thumbnail - clickable to view full size */}
+                          <div
+                            className="w-20 h-20 rounded-xl overflow-hidden shrink-0 border-2 border-red-300 cursor-pointer hover:border-red-400 transition-colors bg-red-100"
+                            onClick={() => setFullscreenPhoto({ url: concern.url, title: concern.title, user: concern.user, aiReview: { flagged: true, reason: concern.aiReason || '' } })}
+                          >
+                            <img
+                              src={concern.url}
+                              className="w-full h-full object-cover"
+                              alt={concern.title}
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                                target.parentElement!.innerHTML = '<div class="w-full h-full flex items-center justify-center text-red-400"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg></div>';
+                              }}
+                            />
+                          </div>
+
+                          {/* Info section */}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-black text-red-800 uppercase tracking-tight mb-1">{concern.title}</p>
+                            <p className="text-[10px] text-red-600 font-medium line-clamp-2 mb-2">{concern.aiReason || 'Flagged for review'}</p>
+                            <p className="text-[9px] text-red-500 font-bold uppercase tracking-widest">{concern.user} • {concern.date}</p>
+                          </div>
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-[10px] font-black text-red-800 uppercase tracking-tight truncate">{concern.title}</p>
-                          <p className="text-[9px] font-bold text-red-600 line-clamp-1">{concern.aiReason}</p>
+
+                        {/* Action buttons */}
+                        <div className="flex gap-2 px-4 pb-4">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onOverrideAIFlag(concern.submissionId, concern.taskId, true);
+                            }}
+                            className="flex-1 py-2.5 bg-green-600 text-white rounded-xl font-black uppercase text-[9px] tracking-widest flex items-center justify-center gap-1.5 hover:bg-green-700 transition-all active:scale-95 shadow-sm"
+                          >
+                            <Check size={14} /> Approve Override
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onOverrideAIFlag(concern.submissionId, concern.taskId, false);
+                            }}
+                            className="flex-1 py-2.5 bg-neutral-200 text-neutral-600 rounded-xl font-black uppercase text-[9px] tracking-widest flex items-center justify-center gap-1.5 hover:bg-neutral-300 transition-all"
+                          >
+                            <X size={14} /> Keep Flagged
+                          </button>
                         </div>
-                        <AlertCircle size={14} className="text-red-400" />
                       </div>
                     )) : (
                       <div className="p-8 border-2 border-dashed border-neutral-100 rounded-2xl flex flex-col items-center justify-center text-center">
