@@ -1,12 +1,12 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { TrainingModule, Lesson, UserProgress, QuizQuestion, ChecklistItem } from '../types';
-import { CheckCircle2, Clock, ChevronRight, Play, BookOpen, PenTool, ClipboardCheck, ArrowLeft, RefreshCw, XCircle, Video, Settings, Plus, Save, Trash2, Edit3, X, Zap, Target, Eye, EyeOff, Trash, Check, Square, CheckSquare, Circle, Dot, Upload, FileText, File as FileIcon, GripVertical, AlertTriangle } from 'lucide-react';
+import { CheckCircle2, Clock, ChevronRight, Play, BookOpen, PenTool, ClipboardCheck, ArrowLeft, RefreshCw, XCircle, Video, Settings, Plus, Save, Trash2, Edit3, X, Zap, Target, Eye, EyeOff, Trash, Check, Square, CheckSquare, Circle, Dot, Upload, FileText, File as FileIcon, GripVertical, AlertTriangle, Camera } from 'lucide-react';
 
 interface TrainingViewProps {
   curriculum: TrainingModule[];
   progress: UserProgress[];
-  onCompleteLesson: (lessonId: string, score?: number, fileData?: { url: string, name: string }, checklistCompleted?: string[]) => void;
+  onCompleteLesson: (lessonId: string, score?: number, fileData?: { url: string, name: string }, checklistCompleted?: string[], checklistPhotos?: Record<string, string>) => void;
   canEdit?: boolean;
   onUpdateCurriculum?: (curriculum: TrainingModule[]) => void;
 }
@@ -30,15 +30,21 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
 
   // Checklist State (for PRACTICE lessons with checklistItems)
   const [checkedItems, setCheckedItems] = useState<string[]>([]);
+  const [checklistPhotos, setChecklistPhotos] = useState<Record<string, string>>({});
+  const [capturingPhotoForItem, setCapturingPhotoForItem] = useState<string | null>(null);
+  const checklistCameraRef = useRef<HTMLInputElement>(null);
 
   // Initialize checklist state when selecting a lesson
   useEffect(() => {
     if (selectedLesson?.checklistItems) {
       const savedProgress = progress.find(p => p.lessonId === selectedLesson.id);
       setCheckedItems(savedProgress?.checklistCompleted || []);
+      setChecklistPhotos(savedProgress?.checklistPhotos || {});
     } else {
       setCheckedItems([]);
+      setChecklistPhotos({});
     }
+    setCapturingPhotoForItem(null);
   }, [selectedLesson, progress]);
 
   // Scroll to top when opening a lesson
@@ -144,6 +150,46 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
       setUploadingFile(null);
     };
     reader.readAsDataURL(uploadingFile);
+  };
+
+  const handleChecklistPhotoCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !capturingPhotoForItem) return;
+
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const img = new Image();
+      img.onload = () => {
+        // Compress the image
+        const canvas = document.createElement('canvas');
+        const maxSize = 800;
+        let width = img.width;
+        let height = img.height;
+        if (width > height && width > maxSize) {
+          height = (height * maxSize) / width;
+          width = maxSize;
+        } else if (height > maxSize) {
+          width = (width * maxSize) / height;
+          height = maxSize;
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, width, height);
+        const compressed = canvas.toDataURL('image/jpeg', 0.7);
+
+        setChecklistPhotos(prev => ({ ...prev, [capturingPhotoForItem]: compressed }));
+        // Auto-check the item when photo is added
+        if (!checkedItems.includes(capturingPhotoForItem)) {
+          setCheckedItems(prev => [...prev, capturingPhotoForItem]);
+        }
+        setCapturingPhotoForItem(null);
+      };
+      img.src = ev.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+    // Reset the input so the same file can be selected again
+    e.target.value = '';
   };
 
   const getEmbedUrl = (url: string) => {
@@ -364,6 +410,15 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
             {/* Checklist UI for PRACTICE lessons with checklistItems */}
             {selectedLesson.type === 'PRACTICE' && selectedLesson.checklistItems && selectedLesson.checklistItems.length > 0 && (
               <div className="space-y-3 mb-8 sm:mb-12">
+                {/* Hidden camera input for checklist photos */}
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  ref={checklistCameraRef}
+                  className="hidden"
+                  onChange={handleChecklistPhotoCapture}
+                />
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-sm font-black text-[#001F3F] uppercase tracking-widest">Practice Checklist</h3>
                   <span className="text-xs font-bold text-neutral-400">
@@ -374,40 +429,92 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
                   {selectedLesson.checklistItems.map((item, idx) => {
                     const isChecked = checkedItems.includes(item.id);
                     const isCompleted = lessonStatus === 'COMPLETED';
+                    const hasPhoto = !!checklistPhotos[item.id];
+                    const needsPhoto = item.requiresPhoto && !hasPhoto;
                     return (
-                      <button
+                      <div
                         key={item.id}
-                        onClick={() => {
-                          if (isCompleted && !isEditMode) return;
-                          setCheckedItems(prev =>
-                            prev.includes(item.id)
-                              ? prev.filter(id => id !== item.id)
-                              : [...prev, item.id]
-                          );
-                        }}
-                        disabled={isCompleted && !isEditMode}
-                        className={`flex items-start gap-4 p-4 rounded-xl border transition-all text-left ${
+                        className={`rounded-xl border transition-all ${
                           isChecked
                             ? 'bg-green-50 border-green-200'
-                            : 'bg-white border-neutral-100 hover:border-neutral-200'
+                            : 'bg-white border-neutral-100'
                         } ${isCompleted ? 'opacity-75' : ''}`}
                       >
-                        <div className={`w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 ${
-                          isChecked
-                            ? 'bg-green-600 text-white'
-                            : 'bg-neutral-100 text-neutral-300'
-                        }`}>
-                          {isChecked ? <Check size={14} strokeWidth={3} /> : <span className="text-xs font-bold">{idx + 1}</span>}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className={`font-bold text-sm ${isChecked ? 'text-green-700' : 'text-[#001F3F]'}`}>
-                            {item.title}
-                          </p>
-                          {item.description && (
-                            <p className="text-xs text-neutral-500 mt-1">{item.description}</p>
-                          )}
-                        </div>
-                      </button>
+                        <button
+                          onClick={() => {
+                            if (isCompleted && !isEditMode) return;
+                            // If item requires photo and doesn't have one, don't allow checking
+                            if (item.requiresPhoto && !hasPhoto) return;
+                            setCheckedItems(prev =>
+                              prev.includes(item.id)
+                                ? prev.filter(id => id !== item.id)
+                                : [...prev, item.id]
+                            );
+                          }}
+                          disabled={isCompleted && !isEditMode}
+                          className="flex items-start gap-4 p-4 text-left w-full"
+                        >
+                          <div className={`w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                            isChecked
+                              ? 'bg-green-600 text-white'
+                              : needsPhoto
+                                ? 'bg-amber-100 text-amber-600'
+                                : 'bg-neutral-100 text-neutral-300'
+                          }`}>
+                            {isChecked ? <Check size={14} strokeWidth={3} /> : needsPhoto ? <Camera size={12} /> : <span className="text-xs font-bold">{idx + 1}</span>}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <p className={`font-bold text-sm ${isChecked ? 'text-green-700' : 'text-[#001F3F]'}`}>
+                                {item.title}
+                              </p>
+                              {item.requiresPhoto && (
+                                <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded ${hasPhoto ? 'bg-green-100 text-green-600' : 'bg-amber-100 text-amber-600'}`}>
+                                  {hasPhoto ? 'Photo ✓' : 'Photo Required'}
+                                </span>
+                              )}
+                            </div>
+                            {item.description && (
+                              <p className="text-xs text-neutral-500 mt-1">{item.description}</p>
+                            )}
+                          </div>
+                        </button>
+                        {/* Photo section */}
+                        {item.requiresPhoto && (
+                          <div className="px-4 pb-4 pt-0">
+                            {hasPhoto ? (
+                              <div className="flex items-center gap-3">
+                                <img
+                                  src={checklistPhotos[item.id]}
+                                  alt={item.title}
+                                  className="w-16 h-16 object-cover rounded-lg border border-green-200"
+                                />
+                                {!isCompleted && (
+                                  <button
+                                    onClick={() => {
+                                      setCapturingPhotoForItem(item.id);
+                                      checklistCameraRef.current?.click();
+                                    }}
+                                    className="text-xs font-bold text-[#001F3F] underline"
+                                  >
+                                    Retake
+                                  </button>
+                                )}
+                              </div>
+                            ) : !isCompleted && (
+                              <button
+                                onClick={() => {
+                                  setCapturingPhotoForItem(item.id);
+                                  checklistCameraRef.current?.click();
+                                }}
+                                className="flex items-center gap-2 px-4 py-2 bg-[#001F3F] text-white rounded-lg text-xs font-bold"
+                              >
+                                <Camera size={14} /> Take Photo
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     );
                   })}
                 </div>
@@ -580,28 +687,36 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
                     )}
                   </div>
                 ) : (
-                  selectedLesson.type !== 'FILE_UPLOAD' && (
-                    <button
-                      onClick={() => {
-                        if (selectedLesson.type === 'QUIZ') {
-                          submitQuiz();
-                        } else if (selectedLesson.checklistItems && selectedLesson.checklistItems.length > 0) {
-                          onCompleteLesson(selectedLesson.id, undefined, undefined, checkedItems);
-                        } else {
-                          onCompleteLesson(selectedLesson.id);
+                  selectedLesson.type !== 'FILE_UPLOAD' && (() => {
+                    // Check if all items requiring photos have photos
+                    const itemsNeedingPhotos = selectedLesson.checklistItems?.filter(item => item.requiresPhoto) || [];
+                    const allPhotosProvided = itemsNeedingPhotos.every(item => !!checklistPhotos[item.id]);
+                    const hasChecklist = selectedLesson.checklistItems && selectedLesson.checklistItems.length > 0;
+                    const allItemsChecked = hasChecklist && checkedItems.length >= selectedLesson.checklistItems!.length;
+
+                    return (
+                      <button
+                        onClick={() => {
+                          if (selectedLesson.type === 'QUIZ') {
+                            submitQuiz();
+                          } else if (hasChecklist) {
+                            onCompleteLesson(selectedLesson.id, undefined, undefined, checkedItems, checklistPhotos);
+                          } else {
+                            onCompleteLesson(selectedLesson.id);
+                          }
+                        }}
+                        disabled={
+                          lessonStatus === 'COMPLETED' ||
+                          (selectedLesson.type === 'QUIZ' && !allQuestionsAnswered) ||
+                          (hasChecklist && (!allItemsChecked || !allPhotosProvided))
                         }
-                      }}
-                      disabled={
-                        lessonStatus === 'COMPLETED' ||
-                        (selectedLesson.type === 'QUIZ' && !allQuestionsAnswered) ||
-                        (selectedLesson.checklistItems && selectedLesson.checklistItems.length > 0 && checkedItems.length < selectedLesson.checklistItems.length)
-                      }
-                      className="w-full sm:w-auto px-12 py-5 bg-[#001F3F] text-white rounded-2xl font-black hover:bg-blue-900 disabled:opacity-50 transition-all shadow-xl tracking-widest uppercase text-xs"
-                    >
-                      {selectedLesson.type === 'QUIZ' ? 'Submit Knowledge Check' :
-                       selectedLesson.checklistItems && selectedLesson.checklistItems.length > 0 ? 'Submit Checklist' : 'Complete Lesson'}
-                    </button>
-                  )
+                        className="w-full sm:w-auto px-12 py-5 bg-[#001F3F] text-white rounded-2xl font-black hover:bg-blue-900 disabled:opacity-50 transition-all shadow-xl tracking-widest uppercase text-xs"
+                      >
+                        {selectedLesson.type === 'QUIZ' ? 'Submit Knowledge Check' :
+                         hasChecklist ? 'Submit Checklist' : 'Complete Lesson'}
+                      </button>
+                    );
+                  })()
                 )}
               </div>
             )}

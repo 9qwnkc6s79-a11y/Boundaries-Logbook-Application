@@ -32,6 +32,7 @@ export interface ChecklistItem {
   id: string;
   title: string;
   description?: string;
+  requiresPhoto?: boolean;
 }
 
 export interface Lesson {
@@ -74,6 +75,7 @@ export interface UserProgress {
   fileUrl?: string;
   fileName?: string;
   checklistCompleted?: string[]; // IDs of completed checklist items
+  checklistPhotos?: Record<string, string>; // Photos for checklist items (itemId -> photoUrl)
 }
 
 export interface ChecklistTask {

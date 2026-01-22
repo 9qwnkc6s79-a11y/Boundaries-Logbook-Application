@@ -965,28 +965,28 @@ export const TRAINING_CURRICULUM: TrainingModule[] = [
         content: `Complete each drink under trainer supervision. Check off each item as you complete it. All items must be checked before you can submit.`,
         checklistItems: [
           // Espresso Shots (5)
-          { id: 'esp-1', title: 'Espresso Shot #1 (Dialed In)', description: 'Pull a properly dialed-in shot. Target: 19g dose, 24s brew time.' },
-          { id: 'esp-2', title: 'Espresso Shot #2 (Dialed In)', description: 'Pull another dialed-in shot. Demonstrate consistency.' },
-          { id: 'esp-3', title: 'Espresso Shot #3 (Dialed In)', description: 'Pull a third shot with minimal guidance.' },
-          { id: 'esp-under', title: 'Espresso Shot (Under-extracted)', description: 'Pull an under-extracted shot. Identify the sour, acidic taste.' },
-          { id: 'esp-over', title: 'Espresso Shot (Over-extracted)', description: 'Pull an over-extracted shot. Identify the bitter, harsh taste.' },
+          { id: 'esp-1', title: 'Espresso Shot #1 (Dialed In)', description: 'Pull a properly dialed-in shot. Target: 19g dose, 24s brew time.', requiresPhoto: true },
+          { id: 'esp-2', title: 'Espresso Shot #2 (Dialed In)', description: 'Pull another dialed-in shot. Demonstrate consistency.', requiresPhoto: true },
+          { id: 'esp-3', title: 'Espresso Shot #3 (Dialed In)', description: 'Pull a third shot with minimal guidance.', requiresPhoto: true },
+          { id: 'esp-under', title: 'Espresso Shot (Under-extracted)', description: 'Pull an under-extracted shot. Identify the sour, acidic taste.', requiresPhoto: true },
+          { id: 'esp-over', title: 'Espresso Shot (Over-extracted)', description: 'Pull an over-extracted shot. Identify the bitter, harsh taste.', requiresPhoto: true },
           // Lattes (5)
-          { id: 'latte-12-1', title: 'Latte 12oz #1', description: 'Make a 12oz latte from start to finish.' },
-          { id: 'latte-12-2', title: 'Latte 12oz #2', description: 'Focus on workflow efficiency and timing.' },
-          { id: 'latte-12-3', title: 'Latte 12oz #3', description: 'Make independently with minimal guidance.' },
-          { id: 'latte-16-1', title: 'Latte 16oz #1', description: 'Note the different milk quantity for larger size.' },
-          { id: 'latte-16-2', title: 'Latte 16oz #2', description: 'Demonstrate consistent technique across sizes.' },
+          { id: 'latte-12-1', title: 'Latte 12oz #1', description: 'Make a 12oz latte from start to finish.', requiresPhoto: true },
+          { id: 'latte-12-2', title: 'Latte 12oz #2', description: 'Focus on workflow efficiency and timing.', requiresPhoto: true },
+          { id: 'latte-12-3', title: 'Latte 12oz #3', description: 'Make independently with minimal guidance.', requiresPhoto: true },
+          { id: 'latte-16-1', title: 'Latte 16oz #1', description: 'Note the different milk quantity for larger size.', requiresPhoto: true },
+          { id: 'latte-16-2', title: 'Latte 16oz #2', description: 'Demonstrate consistent technique across sizes.', requiresPhoto: true },
           // Flavored Drinks (4)
-          { id: 'vanilla-1', title: 'Vanilla Latte #1', description: 'Add vanilla sauce and ensure proper stirring.' },
-          { id: 'vanilla-2', title: 'Vanilla Latte #2', description: 'Focus on consistent sauce portions.' },
-          { id: 'mocha-1', title: 'Mocha #1', description: 'Integrate chocolate sauce properly with espresso.' },
-          { id: 'mocha-2', title: 'Mocha #2', description: 'Demonstrate consistent chocolate portioning.' },
+          { id: 'vanilla-1', title: 'Vanilla Latte #1', description: 'Add vanilla sauce and ensure proper stirring.', requiresPhoto: true },
+          { id: 'vanilla-2', title: 'Vanilla Latte #2', description: 'Focus on consistent sauce portions.', requiresPhoto: true },
+          { id: 'mocha-1', title: 'Mocha #1', description: 'Integrate chocolate sauce properly with espresso.', requiresPhoto: true },
+          { id: 'mocha-2', title: 'Mocha #2', description: 'Demonstrate consistent chocolate portioning.', requiresPhoto: true },
           // Other Drinks (4)
-          { id: 'capp-1', title: 'Cappuccino #1', description: 'Steam milk with more foam than a latte.' },
-          { id: 'capp-2', title: 'Cappuccino #2', description: 'Demonstrate consistent foam texture.' },
-          { id: 'amer-1', title: 'Americano #1', description: 'Hot water first, then espresso shots.' },
-          { id: 'amer-2', title: 'Americano #2', description: 'Demonstrate consistent water-to-espresso ratio.' },
-          // Dial-In & Cleaning (3)
+          { id: 'capp-1', title: 'Cappuccino #1', description: 'Steam milk with more foam than a latte.', requiresPhoto: true },
+          { id: 'capp-2', title: 'Cappuccino #2', description: 'Demonstrate consistent foam texture.', requiresPhoto: true },
+          { id: 'amer-1', title: 'Americano #1', description: 'Hot water first, then espresso shots.', requiresPhoto: true },
+          { id: 'amer-2', title: 'Americano #2', description: 'Demonstrate consistent water-to-espresso ratio.', requiresPhoto: true },
+          // Dial-In & Cleaning (3) - no photos required
           { id: 'dialin', title: 'Dial-In Exercise', description: 'Adjust grinder using 2-5-10 rule to hit target.' },
           { id: 'backflush-water', title: 'Backflush (Water Only)', description: 'Afternoon cleaning procedure.' },
           { id: 'backflush-cleaner', title: 'Backflush (With Cleaner)', description: 'Closing procedure with Cafiza.' }

@@ -150,7 +150,7 @@ const App: React.FC = () => {
     }
   };
 
-  const handleLessonComplete = async (lessonId: string, score?: number, fileData?: { url: string, name: string }, checklistCompleted?: string[]) => {
+  const handleLessonComplete = async (lessonId: string, score?: number, fileData?: { url: string, name: string }, checklistCompleted?: string[], checklistPhotos?: Record<string, string>) => {
     if (!currentUser) return;
     const entry: UserProgress = {
       userId: currentUser.id,
@@ -160,7 +160,8 @@ const App: React.FC = () => {
       completedAt: new Date().toISOString(),
       fileUrl: fileData?.url,
       fileName: fileData?.name,
-      checklistCompleted
+      checklistCompleted,
+      checklistPhotos
     };
 
     setProgress(prev => [...prev, entry]);
