@@ -18,6 +18,7 @@ interface ManagerHubProps {
   manual: ManualSection[];
   recipes: Recipe[];
   onReview: (id: string, approved: boolean) => void;
+  onOverrideAIFlag: (submissionId: string, taskId: string, approve: boolean) => void;
   onResetSubmission?: (id: string) => void;
   onUpdateTemplate: (template: ChecklistTemplate) => void;
   onAddTemplate: (template: ChecklistTemplate) => void;
@@ -28,12 +29,13 @@ interface ManagerHubProps {
   stores: Store[];
 }
 
-const ManagerHub: React.FC<ManagerHubProps> = ({ 
-  staff = [], allUsers = [], submissions = [], templates = [], curriculum = [], allProgress = [], manual = [], recipes = [], onReview, onResetSubmission,
+const ManagerHub: React.FC<ManagerHubProps> = ({
+  staff = [], allUsers = [], submissions = [], templates = [], curriculum = [], allProgress = [], manual = [], recipes = [], onReview, onOverrideAIFlag, onResetSubmission,
   onUpdateTemplate, onAddTemplate, onDeleteTemplate, onUpdateManual, onUpdateRecipes,
   currentStoreId, stores = []
 }) => {
-  const [activeSubTab, setActiveSubTab] = useState<'dashboard' | 'compliance' | 'editor' | 'staff' | 'gallery' | 'manual'>('dashboard');
+  const [activeSubTab, setActiveSubTab] = useState<'dashboard' | 'compliance' | 'editor' | 'staff' | 'gallery' | 'audit' | 'manual'>('dashboard');
+  const [auditFilter, setAuditFilter] = useState<'pending' | 'approved' | 'all'>('pending');
   const [aiInsight, setAiInsight] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [fullscreenPhoto, setFullscreenPhoto] = useState<{url: string, title: string, user: string, aiReview?: { flagged: boolean, reason: string }} | null>(null);
@@ -231,16 +233,35 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
       const tpl = templates.find(t => t.id === s.templateId);
       return (s.taskResults || []).filter(tr => tr.photoUrl).map(tr => ({
         id: `${s.id}-${tr.taskId}`,
+        submissionId: s.id,
+        taskId: tr.taskId,
         url: tr.photoUrl!,
         title: tpl?.tasks?.find(tk => tk.id === tr.taskId)?.title || 'Standard',
         user: allUsers.find(u => u.id === tr.completedByUserId)?.name || 'Unknown',
         date: s.date,
         templateName: tpl?.name || 'Log',
         aiFlagged: tr.aiFlagged,
-        aiReason: tr.aiReason
+        aiReason: tr.aiReason,
+        managerOverride: tr.managerOverride,
+        overrideBy: tr.overrideBy,
+        overrideAt: tr.overrideAt
       }));
     }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [submissions, templates, allUsers]);
+
+  // Photos that need audit review (flagged by AI)
+  const auditPhotos = useMemo(() => {
+    const flaggedPhotos = allPhotos.filter(p => p.aiFlagged || p.managerOverride);
+    switch (auditFilter) {
+      case 'pending':
+        return flaggedPhotos.filter(p => p.aiFlagged && !p.managerOverride);
+      case 'approved':
+        return flaggedPhotos.filter(p => p.managerOverride);
+      case 'all':
+      default:
+        return flaggedPhotos;
+    }
+  }, [allPhotos, auditFilter]);
 
   const realTimeCompliance = useMemo(() => {
     const now = new Date();
@@ -528,25 +549,174 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
 
         {activeSubTab === 'gallery' && (
           <section className="animate-in fade-in space-y-8">
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-              {allPhotos.map(photo => (
-                <div key={photo.id} onClick={() => setFullscreenPhoto(photo)} className="group relative aspect-square bg-white rounded-[2rem] overflow-hidden cursor-pointer hover:shadow-2xl transition-all border border-neutral-100 shadow-sm">
-                  <img src={photo.url} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt="Audit" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity p-6 flex flex-col justify-end">
-                     <p className="text-[10px] font-black text-white uppercase truncate mb-1">{photo.title}</p>
-                     <p className="text-[8px] text-blue-300 font-bold uppercase tracking-widest">{photo.user} • {photo.date}</p>
+            {/* Audit Filter Tabs */}
+            <div className="bg-white p-6 rounded-[2rem] border border-neutral-100 shadow-sm">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-red-50 text-red-600 rounded-xl"><SearchCheck size={20} /></div>
+                  <div>
+                    <h2 className="text-xl font-black text-[#001F3F] uppercase tracking-tight">Photo Audit Queue</h2>
+                    <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">Review AI-flagged photos</p>
                   </div>
-                  {photo.aiFlagged && (
-                    <div className="absolute top-4 right-4 bg-red-600 text-white p-2 rounded-xl shadow-lg">
-                      <AlertOctagon size={16} />
-                    </div>
-                  )}
                 </div>
-              ))}
+                <div className="flex bg-neutral-100 p-1 rounded-xl border border-neutral-200">
+                  {[
+                    { id: 'pending', label: 'Pending Review', count: allPhotos.filter(p => p.aiFlagged && !p.managerOverride).length },
+                    { id: 'approved', label: 'Approved', count: allPhotos.filter(p => p.managerOverride).length },
+                    { id: 'all', label: 'All Flagged', count: allPhotos.filter(p => p.aiFlagged || p.managerOverride).length }
+                  ].map(filter => (
+                    <button
+                      key={filter.id}
+                      onClick={() => setAuditFilter(filter.id as 'pending' | 'approved' | 'all')}
+                      className={`px-4 py-2 text-[9px] font-black rounded-lg transition-all flex items-center gap-2 whitespace-nowrap tracking-widest ${
+                        auditFilter === filter.id
+                          ? 'bg-[#001F3F] text-white shadow-lg'
+                          : 'text-neutral-500 hover:text-[#001F3F]'
+                      }`}
+                    >
+                      {filter.label}
+                      <span className={`px-1.5 py-0.5 rounded-md text-[8px] ${
+                        auditFilter === filter.id ? 'bg-white/20' : 'bg-neutral-200'
+                      }`}>{filter.count}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
-            {allPhotos.length === 0 && (
-              <div className="py-20 text-center border-2 border-dashed border-neutral-200 rounded-[3rem] text-neutral-300 uppercase font-black text-xs">No verification photos found.</div>
+
+            {/* Audit Photo Cards */}
+            {auditPhotos.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {auditPhotos.map(photo => (
+                  <div key={photo.id} className={`bg-white rounded-[2rem] overflow-hidden border shadow-sm ${
+                    photo.managerOverride ? 'border-green-200' : 'border-red-200'
+                  }`}>
+                    {/* Photo Preview */}
+                    <div
+                      className="relative aspect-video cursor-pointer group"
+                      onClick={() => setFullscreenPhoto({
+                        url: photo.url,
+                        title: photo.title,
+                        user: photo.user,
+                        aiReview: { flagged: photo.aiFlagged || false, reason: photo.aiReason || '' }
+                      })}
+                    >
+                      <img src={photo.url} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="Flagged" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+
+                      {/* Status Badge */}
+                      <div className={`absolute top-4 right-4 px-3 py-1.5 rounded-xl flex items-center gap-2 ${
+                        photo.managerOverride
+                          ? 'bg-green-600 text-white'
+                          : 'bg-red-600 text-white'
+                      }`}>
+                        {photo.managerOverride ? <ShieldCheck size={14} /> : <AlertOctagon size={14} />}
+                        <span className="text-[9px] font-black uppercase tracking-widest">
+                          {photo.managerOverride ? 'Approved' : 'Flagged'}
+                        </span>
+                      </div>
+
+                      {/* Photo Info Overlay */}
+                      <div className="absolute bottom-4 left-4 right-4">
+                        <p className="text-white text-sm font-black uppercase truncate">{photo.title}</p>
+                        <p className="text-white/70 text-[10px] font-bold uppercase tracking-widest">{photo.user} • {photo.date}</p>
+                      </div>
+                    </div>
+
+                    {/* AI Reason & Actions */}
+                    <div className="p-6 space-y-4">
+                      <div className={`p-4 rounded-xl ${photo.managerOverride ? 'bg-green-50 border border-green-100' : 'bg-red-50 border border-red-100'}`}>
+                        <div className="flex items-start gap-3">
+                          <div className={`p-2 rounded-lg shrink-0 ${photo.managerOverride ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
+                            <BrainCircuit size={16} />
+                          </div>
+                          <div>
+                            <p className={`text-[9px] font-black uppercase tracking-widest mb-1 ${photo.managerOverride ? 'text-green-600' : 'text-red-600'}`}>
+                              {photo.managerOverride ? 'Manager Override' : 'AI Detection'}
+                            </p>
+                            <p className={`text-sm font-medium leading-relaxed ${photo.managerOverride ? 'text-green-800' : 'text-red-800'}`}>
+                              {photo.aiReason || 'Flagged for review'}
+                            </p>
+                            {photo.managerOverride && photo.overrideAt && (
+                              <p className="text-[9px] text-green-600 font-bold mt-2 uppercase tracking-widest">
+                                Approved {new Date(photo.overrideAt).toLocaleDateString()}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Action Buttons - Only show for pending items */}
+                      {photo.aiFlagged && !photo.managerOverride && (
+                        <div className="flex gap-3">
+                          <button
+                            onClick={() => onOverrideAIFlag(photo.submissionId, photo.taskId, true)}
+                            className="flex-1 py-4 bg-green-600 text-white rounded-xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 hover:bg-green-700 transition-all active:scale-95 shadow-lg"
+                          >
+                            <Check size={16} /> Approve Override
+                          </button>
+                          <button
+                            onClick={() => onOverrideAIFlag(photo.submissionId, photo.taskId, false)}
+                            className="flex-1 py-4 bg-neutral-100 text-neutral-500 rounded-xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 hover:bg-neutral-200 transition-all"
+                          >
+                            <X size={16} /> Keep Flagged
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="py-20 text-center border-2 border-dashed border-neutral-200 rounded-[3rem]">
+                <ShieldCheck size={48} className="mx-auto text-green-500 mb-4" />
+                <p className="text-neutral-400 uppercase font-black text-xs tracking-widest">
+                  {auditFilter === 'pending' ? 'No photos pending review' :
+                   auditFilter === 'approved' ? 'No approved overrides yet' :
+                   'No flagged photos found'}
+                </p>
+              </div>
             )}
+
+            {/* All Photos Gallery (below audit queue) */}
+            <div className="pt-8 border-t border-neutral-100">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-2 bg-neutral-100 text-neutral-600 rounded-xl"><ImageIcon size={20} /></div>
+                <h3 className="text-lg font-black text-[#001F3F] uppercase tracking-tight">All Verification Photos</h3>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                {allPhotos.map(photo => (
+                  <div
+                    key={photo.id}
+                    onClick={() => setFullscreenPhoto({
+                      url: photo.url,
+                      title: photo.title,
+                      user: photo.user,
+                      aiReview: photo.aiFlagged ? { flagged: true, reason: photo.aiReason || '' } : undefined
+                    })}
+                    className="group relative aspect-square bg-white rounded-2xl overflow-hidden cursor-pointer hover:shadow-xl transition-all border border-neutral-100 shadow-sm"
+                  >
+                    <img src={photo.url} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt="Audit" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity p-3 flex flex-col justify-end">
+                      <p className="text-[8px] font-black text-white uppercase truncate">{photo.title}</p>
+                    </div>
+                    {/* Status indicator */}
+                    {(photo.aiFlagged || photo.managerOverride) && (
+                      <div className={`absolute top-2 right-2 p-1.5 rounded-lg shadow-lg ${
+                        photo.managerOverride ? 'bg-green-600 text-white' : 'bg-red-600 text-white'
+                      }`}>
+                        {photo.managerOverride ? <ShieldCheck size={12} /> : <AlertOctagon size={12} />}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+              {allPhotos.length === 0 && (
+                <div className="py-12 text-center border-2 border-dashed border-neutral-200 rounded-2xl text-neutral-300 uppercase font-black text-xs">
+                  No verification photos found.
+                </div>
+              )}
+            </div>
           </section>
         )}
 

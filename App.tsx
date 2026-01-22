@@ -269,6 +269,34 @@ const App: React.FC = () => {
     }
   };
 
+  const handleOverrideAIFlag = async (submissionId: string, taskId: string, approve: boolean) => {
+    if (!currentUser) return;
+    const sub = submissions.find(s => s.id === submissionId);
+    if (!sub) return;
+
+    const updatedTaskResults = sub.taskResults.map(tr => {
+      if (tr.taskId === taskId) {
+        if (approve) {
+          return {
+            ...tr,
+            aiFlagged: false,
+            managerOverride: true,
+            overrideBy: currentUser.id,
+            overrideAt: new Date().toISOString()
+          };
+        }
+        // Keep flagged - just mark as reviewed (optional: could add reviewedBy field)
+        return tr;
+      }
+      return tr;
+    });
+
+    const updated = { ...sub, taskResults: updatedTaskResults };
+    setSubmissions(prev => prev.map(s => s.id === submissionId ? updated : s));
+    await db.pushSubmission(updated);
+    performCloudSync(true);
+  };
+
   const handleResetSubmission = async (id: string) => {
     // Mark interaction to prevent sync overwrites
     lastSubmissionUpdateRef.current = Date.now();
@@ -392,7 +420,8 @@ const App: React.FC = () => {
             allProgress={storeProgress} 
             manual={manual} 
             recipes={recipes} 
-            onReview={handleReview} 
+            onReview={handleReview}
+            onOverrideAIFlag={handleOverrideAIFlag}
             onResetSubmission={handleResetSubmission}
             onUpdateTemplate={handleUpdateTemplate} 
             onAddTemplate={async (tpl) => {

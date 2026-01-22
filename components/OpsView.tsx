@@ -192,7 +192,7 @@ const OpsView: React.FC<OpsViewProps> = ({ user, allUsers, templates, existingSu
   });
   const [activeSubmissionId, setActiveSubmissionId] = useState<string | null>(null);
   const [isReadOnly, setIsReadOnly] = useState(false);
-  const [responses, setResponses] = useState<Record<string, { completed: boolean, photo?: string, value?: string, comment?: string, completedByUserId: string, completedAt: string }>>({});
+  const [responses, setResponses] = useState<Record<string, { completed: boolean, photo?: string, photos?: string[], value?: string, comment?: string, completedByUserId: string, completedAt: string, aiFlagged?: boolean, aiReason?: string, managerOverride?: boolean }>>({});
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [capturingTaskId, setCapturingTaskId] = useState<string | null>(null);
   const [uploadingTaskId, setUploadingTaskId] = useState<string | null>(null);
@@ -364,7 +364,10 @@ const OpsView: React.FC<OpsViewProps> = ({ user, allUsers, templates, existingSu
               value: res.value,
               comment: res.comment,
               completedByUserId: res.completedByUserId,
-              completedAt: res.completedAt
+              completedAt: res.completedAt,
+              aiFlagged: res.aiFlagged,
+              aiReason: res.aiReason,
+              managerOverride: res.managerOverride
             };
           } else {
             next[res.taskId] = {
@@ -374,7 +377,10 @@ const OpsView: React.FC<OpsViewProps> = ({ user, allUsers, templates, existingSu
               value: res.value,
               comment: res.comment,
               completedByUserId: res.completedByUserId,
-              completedAt: res.completedAt
+              completedAt: res.completedAt,
+              aiFlagged: res.aiFlagged,
+              aiReason: res.aiReason,
+              managerOverride: res.managerOverride
             };
           }
         });
@@ -773,18 +779,51 @@ const OpsView: React.FC<OpsViewProps> = ({ user, allUsers, templates, existingSu
                         <div className="mt-4 pt-4 border-t border-neutral-50">
                           {currentPhotos.length > 0 && (
                             <div className="flex flex-wrap gap-2 mb-3">
-                              {currentPhotos.map((photo: string, idx: number) => (
-                                <div key={idx} className="relative group">
-                                  <img
-                                    src={photo}
-                                    alt={`Photo ${idx + 1}`}
-                                    className="w-16 h-16 object-cover rounded-lg border border-neutral-200"
-                                  />
-                                  <span className="absolute bottom-0 right-0 bg-black/60 text-white text-[8px] px-1 rounded-tl">
-                                    {idx + 1}
-                                  </span>
-                                </div>
-                              ))}
+                              {currentPhotos.map((photo: string, idx: number) => {
+                                const isFlagged = resp?.aiFlagged && !resp?.managerOverride;
+                                const isApproved = resp?.managerOverride;
+                                return (
+                                  <div key={idx} className={`relative group rounded-lg overflow-hidden border-2 ${
+                                    isFlagged ? 'border-red-400' : isApproved ? 'border-green-400' : 'border-neutral-200'
+                                  }`}>
+                                    <img
+                                      src={photo}
+                                      alt={`Photo ${idx + 1}`}
+                                      className="w-16 h-16 object-cover"
+                                    />
+                                    <span className="absolute bottom-0 right-0 bg-black/60 text-white text-[8px] px-1 rounded-tl">
+                                      {idx + 1}
+                                    </span>
+                                    {/* AI Flag Status Indicator */}
+                                    {isFlagged && (
+                                      <div className="absolute top-0.5 right-0.5 bg-red-500 text-white p-0.5 rounded" title={resp?.aiReason || 'Flagged by AI'}>
+                                        <AlertTriangle size={10} />
+                                      </div>
+                                    )}
+                                    {isApproved && (
+                                      <div className="absolute top-0.5 right-0.5 bg-green-500 text-white p-0.5 rounded" title="Manager approved">
+                                        <ShieldCheck size={10} />
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                          {/* AI Flag Reason Display */}
+                          {resp?.aiFlagged && !resp?.managerOverride && resp?.aiReason && (
+                            <div className="flex items-start gap-2 p-2 bg-red-50 border border-red-100 rounded-lg mb-3 text-xs">
+                              <AlertTriangle size={14} className="text-red-500 shrink-0 mt-0.5" />
+                              <div>
+                                <p className="text-red-700 font-bold text-[10px] uppercase tracking-widest mb-0.5">AI Flagged</p>
+                                <p className="text-red-600">{resp.aiReason}</p>
+                              </div>
+                            </div>
+                          )}
+                          {resp?.managerOverride && (
+                            <div className="flex items-center gap-2 p-2 bg-green-50 border border-green-100 rounded-lg mb-3 text-xs">
+                              <ShieldCheck size={14} className="text-green-500" />
+                              <span className="text-green-700 font-bold text-[10px] uppercase tracking-widest">Manager Approved</span>
                             </div>
                           )}
                           {!isReadOnly && needsMorePhotos && (

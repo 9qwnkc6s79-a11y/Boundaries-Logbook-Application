@@ -116,6 +116,9 @@ export interface ChecklistSubmission {
     completedAt: string;
     aiFlagged?: boolean;
     aiReason?: string;
+    managerOverride?: boolean; // Manager approved despite AI flag
+    overrideBy?: string; // Manager user ID who approved
+    overrideAt?: string; // Timestamp of override
   }[];
   managerNotes?: string;
 }
