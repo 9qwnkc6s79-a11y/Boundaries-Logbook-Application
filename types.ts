@@ -28,6 +28,12 @@ export interface ManualSection {
   isPlaceholder?: boolean;
 }
 
+export interface ChecklistItem {
+  id: string;
+  title: string;
+  description?: string;
+}
+
 export interface Lesson {
   id: string;
   moduleId: string;
@@ -39,6 +45,7 @@ export interface Lesson {
   quizQuestions?: QuizQuestion[];
   signOffRequired?: boolean;
   fileLabel?: string;
+  checklistItems?: ChecklistItem[]; // For PRACTICE lessons with checkable items
 }
 
 export interface QuizQuestion {
@@ -66,6 +73,7 @@ export interface UserProgress {
   completedAt?: string;
   fileUrl?: string;
   fileName?: string;
+  checklistCompleted?: string[]; // IDs of completed checklist items
 }
 
 export interface ChecklistTask {

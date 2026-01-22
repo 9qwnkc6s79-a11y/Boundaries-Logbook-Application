@@ -150,18 +150,19 @@ const App: React.FC = () => {
     }
   };
 
-  const handleLessonComplete = async (lessonId: string, score?: number, fileData?: { url: string, name: string }) => {
+  const handleLessonComplete = async (lessonId: string, score?: number, fileData?: { url: string, name: string }, checklistCompleted?: string[]) => {
     if (!currentUser) return;
-    const entry: UserProgress = { 
-      userId: currentUser.id, 
-      lessonId, 
-      status: 'COMPLETED', 
-      score, 
+    const entry: UserProgress = {
+      userId: currentUser.id,
+      lessonId,
+      status: 'COMPLETED',
+      score,
       completedAt: new Date().toISOString(),
       fileUrl: fileData?.url,
-      fileName: fileData?.name
+      fileName: fileData?.name,
+      checklistCompleted
     };
-    
+
     setProgress(prev => [...prev, entry]);
     await db.pushProgress([entry]);
     performCloudSync(true);

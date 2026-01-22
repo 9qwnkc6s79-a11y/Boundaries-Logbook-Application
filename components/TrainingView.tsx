@@ -1,12 +1,12 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { TrainingModule, Lesson, UserProgress, QuizQuestion } from '../types';
+import { TrainingModule, Lesson, UserProgress, QuizQuestion, ChecklistItem } from '../types';
 import { CheckCircle2, Clock, ChevronRight, Play, BookOpen, PenTool, ClipboardCheck, ArrowLeft, RefreshCw, XCircle, Video, Settings, Plus, Save, Trash2, Edit3, X, Zap, Target, Eye, EyeOff, Trash, Check, Square, CheckSquare, Circle, Dot, Upload, FileText, File as FileIcon, GripVertical, AlertTriangle } from 'lucide-react';
 
 interface TrainingViewProps {
   curriculum: TrainingModule[];
   progress: UserProgress[];
-  onCompleteLesson: (lessonId: string, score?: number, fileData?: { url: string, name: string }) => void;
+  onCompleteLesson: (lessonId: string, score?: number, fileData?: { url: string, name: string }, checklistCompleted?: string[]) => void;
   canEdit?: boolean;
   onUpdateCurriculum?: (curriculum: TrainingModule[]) => void;
 }
@@ -27,6 +27,19 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
   const [isQuizSubmitted, setIsQuizSubmitted] = useState(false);
   const [quizScore, setQuizScore] = useState<number | null>(null);
   const [cooldown, setCooldown] = useState(0);
+
+  // Checklist State (for PRACTICE lessons with checklistItems)
+  const [checkedItems, setCheckedItems] = useState<string[]>([]);
+
+  // Initialize checklist state when selecting a lesson
+  useEffect(() => {
+    if (selectedLesson?.checklistItems) {
+      const savedProgress = progress.find(p => p.lessonId === selectedLesson.id);
+      setCheckedItems(savedProgress?.checklistCompleted || []);
+    } else {
+      setCheckedItems([]);
+    }
+  }, [selectedLesson, progress]);
 
   // Delete Confirmation State
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string, title: string, code: string, input: string } | null>(null);
@@ -331,7 +344,7 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
 
             <div className="prose prose-neutral max-w-none mb-8 sm:mb-12 text-neutral-600 leading-relaxed text-sm sm:text-lg font-medium whitespace-pre-wrap">
               {isEditMode ? (
-                <textarea 
+                <textarea
                   rows={6}
                   value={selectedLesson.content || ''}
                   onChange={(e) => handleUpdateLesson(selectedLesson.id, { content: e.target.value })}
@@ -340,6 +353,59 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
                 />
               ) : selectedLesson.content}
             </div>
+
+            {/* Checklist UI for PRACTICE lessons with checklistItems */}
+            {selectedLesson.type === 'PRACTICE' && selectedLesson.checklistItems && selectedLesson.checklistItems.length > 0 && (
+              <div className="space-y-3 mb-8 sm:mb-12">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-black text-[#001F3F] uppercase tracking-widest">Practice Checklist</h3>
+                  <span className="text-xs font-bold text-neutral-400">
+                    {checkedItems.length} / {selectedLesson.checklistItems.length} Complete
+                  </span>
+                </div>
+                <div className="grid gap-2">
+                  {selectedLesson.checklistItems.map((item, idx) => {
+                    const isChecked = checkedItems.includes(item.id);
+                    const isCompleted = lessonStatus === 'COMPLETED';
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => {
+                          if (isCompleted && !isEditMode) return;
+                          setCheckedItems(prev =>
+                            prev.includes(item.id)
+                              ? prev.filter(id => id !== item.id)
+                              : [...prev, item.id]
+                          );
+                        }}
+                        disabled={isCompleted && !isEditMode}
+                        className={`flex items-start gap-4 p-4 rounded-xl border transition-all text-left ${
+                          isChecked
+                            ? 'bg-green-50 border-green-200'
+                            : 'bg-white border-neutral-100 hover:border-neutral-200'
+                        } ${isCompleted ? 'opacity-75' : ''}`}
+                      >
+                        <div className={`w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                          isChecked
+                            ? 'bg-green-600 text-white'
+                            : 'bg-neutral-100 text-neutral-300'
+                        }`}>
+                          {isChecked ? <Check size={14} strokeWidth={3} /> : <span className="text-xs font-bold">{idx + 1}</span>}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className={`font-bold text-sm ${isChecked ? 'text-green-700' : 'text-[#001F3F]'}`}>
+                            {item.title}
+                          </p>
+                          {item.description && (
+                            <p className="text-xs text-neutral-500 mt-1">{item.description}</p>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {selectedLesson.type === 'FILE_UPLOAD' && (
               <div className="bg-neutral-50 rounded-[2rem] p-10 border border-neutral-100 mb-8 text-center">
@@ -508,12 +574,25 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
                   </div>
                 ) : (
                   selectedLesson.type !== 'FILE_UPLOAD' && (
-                    <button 
-                      onClick={selectedLesson.type === 'QUIZ' ? submitQuiz : () => onCompleteLesson(selectedLesson.id)}
-                      disabled={lessonStatus === 'COMPLETED' || (selectedLesson.type === 'QUIZ' && !allQuestionsAnswered)}
+                    <button
+                      onClick={() => {
+                        if (selectedLesson.type === 'QUIZ') {
+                          submitQuiz();
+                        } else if (selectedLesson.checklistItems && selectedLesson.checklistItems.length > 0) {
+                          onCompleteLesson(selectedLesson.id, undefined, undefined, checkedItems);
+                        } else {
+                          onCompleteLesson(selectedLesson.id);
+                        }
+                      }}
+                      disabled={
+                        lessonStatus === 'COMPLETED' ||
+                        (selectedLesson.type === 'QUIZ' && !allQuestionsAnswered) ||
+                        (selectedLesson.checklistItems && selectedLesson.checklistItems.length > 0 && checkedItems.length < selectedLesson.checklistItems.length)
+                      }
                       className="w-full sm:w-auto px-12 py-5 bg-[#001F3F] text-white rounded-2xl font-black hover:bg-blue-900 disabled:opacity-50 transition-all shadow-xl tracking-widest uppercase text-xs"
                     >
-                      {selectedLesson.type === 'QUIZ' ? 'Submit Knowledge Check' : 'Complete Lesson'}
+                      {selectedLesson.type === 'QUIZ' ? 'Submit Knowledge Check' :
+                       selectedLesson.checklistItems && selectedLesson.checklistItems.length > 0 ? 'Submit Checklist' : 'Complete Lesson'}
                     </button>
                   )
                 )}
