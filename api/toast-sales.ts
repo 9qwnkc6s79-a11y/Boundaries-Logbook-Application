@@ -1,10 +1,15 @@
 /**
  * Vercel Serverless Function: Toast Sales API Proxy
- *
- * Fetches sales data using OAuth2 authentication and orders endpoint
+ * Fetches NET sales data (excluding tax) for specified location
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+
+// Restaurant GUIDs
+const LOCATIONS: Record<string, string> = {
+  'littleelm': process.env.VITE_TOAST_RESTAURANT_GUID || '',
+  'prosper': process.env.VITE_TOAST_PROSPER_GUID || '',
+};
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -19,22 +24,15 @@ async function getAuthToken(): Promise<string> {
   const authResponse = await fetch('https://ws-api.toasttab.com/authentication/v1/authentication/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      clientId,
-      clientSecret,
-      userAccessType: 'TOAST_MACHINE_CLIENT'
-    })
+    body: JSON.stringify({ clientId, clientSecret, userAccessType: 'TOAST_MACHINE_CLIENT' })
   });
 
   if (!authResponse.ok) {
-    const errorText = await authResponse.text();
-    throw new Error(`Toast auth failed (${authResponse.status}): ${errorText}`);
+    throw new Error(`Toast auth failed (${authResponse.status})`);
   }
 
   const authData = await authResponse.json();
-  if (!authData.token?.accessToken) {
-    throw new Error('Invalid auth response from Toast');
-  }
+  if (!authData.token?.accessToken) throw new Error('Invalid auth response');
   return authData.token.accessToken;
 }
 
@@ -43,17 +41,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { startDate, endDate } = req.query;
+  const { startDate, endDate, location } = req.query;
   if (!startDate || !endDate) {
     return res.status(400).json({ error: 'startDate and endDate are required' });
   }
 
   const startDateStr = Array.isArray(startDate) ? startDate[0] : startDate;
   const endDateStr = Array.isArray(endDate) ? endDate[0] : endDate;
-  const restaurantGuid = process.env.VITE_TOAST_RESTAURANT_GUID;
-
+  const locationKey = (Array.isArray(location) ? location[0] : location)?.toLowerCase() || 'littleelm';
+  
+  // Get restaurant GUID based on location
+  const restaurantGuid = LOCATIONS[locationKey] || LOCATIONS['littleelm'];
+  
   if (!restaurantGuid) {
-    return res.status(500).json({ error: 'Toast API not configured' });
+    return res.status(500).json({ error: 'Toast API not configured for this location' });
   }
 
   try {
@@ -86,20 +87,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (current < end) await delay(200);
     }
 
-    // Process orders - Toast stores amounts in DOLLARS (not cents!)
-    let totalSales = 0;
+    // Process orders - use 'amount' for NET sales (excludes tax)
+    let netSales = 0;
+    let totalTax = 0;
     let totalTips = 0;
     const paymentMethods: Record<string, number> = {};
     const hourlySales: Record<number, number> = {};
 
     allOrders.forEach(order => {
-      // Sum up all checks in the order
       const checks = order.checks || [];
       checks.forEach((check: any) => {
-        const checkTotal = check.totalAmount || 0;
-        totalSales += checkTotal;
+        // NET sales = check.amount (excludes tax)
+        // Total = check.totalAmount (includes tax + tip)
+        netSales += check.amount || 0;
+        totalTax += check.taxAmount || 0;
         
-        // Get tips and payment types from payments
         const payments = check.payments || [];
         payments.forEach((payment: any) => {
           totalTips += payment.tipAmount || 0;
@@ -108,21 +110,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         });
       });
       
-      // Hourly breakdown
+      // Hourly breakdown (using net sales)
       const hour = new Date(order.openedDate || order.createdDate).getHours();
-      hourlySales[hour] = (hourlySales[hour] || 0) + checks.reduce((sum: number, c: any) => sum + (c.totalAmount || 0), 0);
+      hourlySales[hour] = (hourlySales[hour] || 0) + checks.reduce((sum: number, c: any) => sum + (c.amount || 0), 0);
     });
 
     const salesData = {
+      location: locationKey,
       startDate: startDateStr,
       endDate: endDateStr,
-      totalSales: Math.round(totalSales * 100) / 100,
+      netSales: Math.round(netSales * 100) / 100,
+      totalTax: Math.round(totalTax * 100) / 100,
+      grossSales: Math.round((netSales + totalTax) * 100) / 100,
       totalOrders: allOrders.length,
-      averageCheck: allOrders.length > 0 ? Math.round((totalSales / allOrders.length) * 100) / 100 : 0,
+      averageCheck: allOrders.length > 0 ? Math.round((netSales / allOrders.length) * 100) / 100 : 0,
       totalTips: Math.round(totalTips * 100) / 100,
       paymentMethods,
       hourlySales,
-      requestsMade: requestCount,
       lastUpdated: new Date().toISOString(),
     };
 
@@ -130,10 +134,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).json(salesData);
 
   } catch (error: any) {
-    return res.status(500).json({
-      error: 'Failed to fetch sales data',
-      message: error.message,
-    });
+    return res.status(500).json({ error: 'Failed to fetch sales data', message: error.message });
   }
 }
 
