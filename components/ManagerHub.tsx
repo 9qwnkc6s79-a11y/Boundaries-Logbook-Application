@@ -448,12 +448,12 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
     }
   };
 
-  // Fetch Toast data on mount and refresh every 5 minutes
+  // Fetch Toast data on mount, when campus changes, and refresh every 5 minutes
   useEffect(() => {
     fetchToastData();
     const interval = setInterval(fetchToastData, 5 * 60 * 1000); // 5 minutes
     return () => clearInterval(interval);
-  }, []);
+  }, [currentStoreId]); // Re-fetch when campus changes
 
   return (
     <div className="space-y-6 sm:space-y-8 pb-20">
