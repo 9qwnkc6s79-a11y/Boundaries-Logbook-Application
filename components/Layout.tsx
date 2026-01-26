@@ -117,18 +117,18 @@ User Question: ${userMsg}`,
     <div className="min-h-screen flex flex-col md:flex-row bg-[#FAFAFA]">
       {/* Sidebar - Desktop */}
       <aside className="hidden md:flex flex-col w-72 bg-[#001F3F] text-white fixed h-full shadow-2xl z-30">
-        <div className="p-8 border-b border-white/10">
-          <div className="flex items-center gap-4 mb-8">
-            <div className="bg-white p-2.5 rounded-xl shadow-lg">
-              <Coffee className="text-[#001F3F] w-6 h-6" />
+        <div className="p-4 border-b border-white/10">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="bg-white p-2 rounded-xl shadow-lg">
+              <Coffee className="text-[#001F3F] w-5 h-5" />
             </div>
             <div>
-              <span className="font-extrabold text-xl tracking-tighter block leading-none">BOUNDARIES</span>
-              <span className="text-[10px] font-bold text-blue-300 tracking-[0.2em] uppercase mt-1 block">Coffee & Co.</span>
+              <span className="font-extrabold text-lg tracking-tighter block leading-none">BOUNDARIES</span>
+              <span className="text-[9px] font-bold text-blue-300 tracking-[0.2em] uppercase mt-0.5 block">Coffee & Co.</span>
             </div>
           </div>
 
-          <div className="relative mb-6">
+          <div className="relative mb-3">
             <div className="text-[10px] font-black text-blue-300/50 uppercase tracking-[0.2em] mb-2 px-1 flex items-center gap-2">
               <MapPin size={10} /> Active Campus
             </div>
@@ -155,19 +155,19 @@ User Question: ${userMsg}`,
           </div>
 
           {/* Total Sales Widget */}
-          <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/5 rounded-xl p-4 border border-green-500/20">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[9px] font-black uppercase tracking-widest text-green-300/60">
+          <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/5 rounded-xl p-3 border border-green-500/20">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[8px] font-black uppercase tracking-widest text-green-300/60">
                 Today's Sales
               </span>
-              <DollarSign size={14} className="text-green-400/40" />
+              <DollarSign size={12} className="text-green-400/40" />
             </div>
             <div className="flex items-baseline gap-1">
-              <span className="text-2xl font-black text-white tracking-tight">
+              <span className="text-xl font-black text-white tracking-tight">
                 {toastSales ? `$${toastSales.totalSales.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '--'}
               </span>
               {toastSales && toastSales.totalOrders > 0 && (
-                <span className="text-[9px] font-bold text-green-300/60 uppercase tracking-wider ml-1">
+                <span className="text-[8px] font-bold text-green-300/60 uppercase tracking-wider ml-1">
                   {toastSales.totalOrders} orders
                 </span>
               )}
@@ -175,81 +175,81 @@ User Question: ${userMsg}`,
           </div>
 
           {/* Clocked In Staff Widget */}
-          <div className="bg-gradient-to-br from-blue-500/10 to-indigo-500/5 rounded-xl p-4 border border-blue-500/20">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[9px] font-black uppercase tracking-widest text-blue-300/60">
+          <div className="bg-gradient-to-br from-blue-500/10 to-indigo-500/5 rounded-xl p-3 border border-blue-500/20 mt-2">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[8px] font-black uppercase tracking-widest text-blue-300/60">
                 Clocked In
               </span>
-              <UserCheck size={14} className="text-blue-400/40" />
+              <UserCheck size={12} className="text-blue-400/40" />
             </div>
             <div className="flex items-baseline gap-1">
-              <span className="text-2xl font-black text-white tracking-tight">
+              <span className="text-xl font-black text-white tracking-tight">
                 {toastClockedIn.length}
               </span>
-              <span className="text-[9px] font-bold text-blue-300/60 uppercase tracking-wider ml-1">
+              <span className="text-[8px] font-bold text-blue-300/60 uppercase tracking-wider ml-1">
                 {toastClockedIn.length === 1 ? 'staff' : 'staff'}
               </span>
             </div>
           </div>
         </div>
-        
-        <nav className="flex-1 py-8 px-4 space-y-1.5 overflow-y-auto no-scrollbar">
+
+        <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto no-scrollbar">
           {filteredNav.map(item => (
             <button
               key={item.id}
               onClick={() => onTabChange(item.id)}
-              className={`w-full flex items-center gap-3.5 px-5 py-4 rounded-xl transition-all duration-300 group ${
-                activeTab === item.id 
-                  ? 'bg-white text-[#001F3F] font-bold shadow-xl shadow-white/10' 
+              className={`w-full flex items-center gap-2.5 px-4 py-3 rounded-xl transition-all duration-300 group ${
+                activeTab === item.id
+                  ? 'bg-white text-[#001F3F] font-bold shadow-xl shadow-white/10'
                   : 'text-blue-100/60 hover:text-white hover:bg-white/5'
               }`}
             >
-              <item.icon size={20} strokeWidth={activeTab === item.id ? 2.5 : 2} />
-              <span className="text-sm tracking-widest">{item.label}</span>
+              <item.icon size={18} strokeWidth={activeTab === item.id ? 2.5 : 2} />
+              <span className="text-xs tracking-widest">{item.label}</span>
             </button>
           ))}
         </nav>
 
-        <div className="px-4 pb-4">
+        <div className="px-3 pb-3">
           <button
             onClick={() => setChatOpen(true)}
-            className="w-full flex items-center gap-3 px-5 py-4 rounded-xl bg-blue-500/10 text-blue-200 hover:bg-blue-500/20 hover:text-white transition-all border border-blue-500/20"
+            className="w-full flex items-center gap-2.5 px-4 py-3 rounded-xl bg-blue-500/10 text-blue-200 hover:bg-blue-500/20 hover:text-white transition-all border border-blue-500/20"
           >
-            <Brain size={18} />
-            <span className="text-xs font-black tracking-widest uppercase">Ask Barista Brain</span>
+            <Brain size={16} />
+            <span className="text-[10px] font-black tracking-widest uppercase">Ask Barista Brain</span>
           </button>
         </div>
 
-        <div className="p-6 border-t border-white/10 space-y-4">
+        <div className="p-4 border-t border-white/10 space-y-3">
           <div className="px-2 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-xs font-bold border border-white/10">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-xs font-bold border border-white/10">
                 {user.name.charAt(0)}
               </div>
               <div>
-                <p className="text-sm font-bold tracking-tight">{user.name}</p>
+                <p className="text-xs font-bold tracking-tight">{user.name}</p>
                 <div className="flex items-center gap-1">
-                  <p className="text-[10px] text-blue-300 font-bold uppercase tracking-widest">{user.role}</p>
+                  <p className="text-[9px] text-blue-300 font-bold uppercase tracking-widest">{user.role}</p>
                 </div>
               </div>
             </div>
-            <button 
+            <button
               onClick={() => setShowSettings(!showSettings)}
-              className={`p-2 rounded-lg transition-all ${showSettings ? 'bg-white/20 text-white' : 'text-blue-300/40 hover:text-white hover:bg-white/5'}`}
+              className={`p-1.5 rounded-lg transition-all ${showSettings ? 'bg-white/20 text-white' : 'text-blue-300/40 hover:text-white hover:bg-white/5'}`}
               title="User Settings"
             >
-              <Settings size={14} />
+              <Settings size={12} />
             </button>
           </div>
 
           {showSettings && (
-            <div className="px-2 py-3 bg-white/5 rounded-xl border border-white/5 space-y-3 animate-in fade-in slide-in-from-top-2">
+            <div className="px-2 py-2.5 bg-white/5 rounded-xl border border-white/5 space-y-2 animate-in fade-in slide-in-from-top-2">
               <div>
-                <p className="text-[8px] font-black text-blue-300/60 uppercase tracking-[0.2em] mb-2">Change Home Store</p>
-                <select 
+                <p className="text-[8px] font-black text-blue-300/60 uppercase tracking-[0.2em] mb-1.5">Change Home Store</p>
+                <select
                   value={user.storeId}
                   onChange={(e) => onUserStoreChange?.(e.target.value)}
-                  className="w-full bg-[#001F3F] border border-white/10 rounded-lg px-3 py-2 text-[10px] font-bold text-white outline-none focus:ring-1 focus:ring-blue-500/50"
+                  className="w-full bg-[#001F3F] border border-white/10 rounded-lg px-2.5 py-1.5 text-[10px] font-bold text-white outline-none focus:ring-1 focus:ring-blue-500/50"
                 >
                   {stores.map(s => (
                     <option key={s.id} value={s.id}>{s.name.replace('Boundaries ', '')}</option>
@@ -259,54 +259,69 @@ User Question: ${userMsg}`,
             </div>
           )}
 
-          <button 
+          <button
             onClick={onLogout}
-            className="w-full flex items-center gap-3 px-5 py-3.5 rounded-xl text-blue-200 hover:text-red-400 hover:bg-red-400/5 transition-all duration-300 group"
+            className="w-full flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-blue-200 hover:text-red-400 hover:bg-red-400/5 transition-all duration-300 group"
           >
-            <LogOut size={18} className="group-hover:-translate-x-1 transition-transform" />
-            <span className="text-xs font-bold tracking-widest uppercase">Logout</span>
+            <LogOut size={16} className="group-hover:-translate-x-1 transition-transform" />
+            <span className="text-[10px] font-bold tracking-widest uppercase">Logout</span>
           </button>
-          <div className="text-[8px] text-center text-blue-300/20 font-black uppercase tracking-[0.2em] pt-2">
+          <div className="text-[7px] text-center text-blue-300/20 font-black uppercase tracking-[0.2em] pt-1">
             App Version {version}
           </div>
         </div>
       </aside>
 
       {/* Mobile Header */}
-      <div className="md:hidden glass-effect border-b border-neutral-100 p-4 flex flex-col gap-4 sticky top-0 z-50 shadow-sm">
+      <div className="md:hidden glass-effect border-b border-neutral-100 p-3 flex flex-col gap-3 sticky top-0 z-50 shadow-sm">
         <div className="flex justify-between items-center w-full">
           <div className="flex items-center gap-2">
             <div className="bg-[#001F3F] p-1.5 rounded-lg">
               <Coffee className="text-white w-4 h-4" />
             </div>
-            <span className="font-black tracking-tighter text-[#001F3F] text-base uppercase leading-none">Boundaries</span>
-            <div className={`ml-2 w-1.5 h-1.5 rounded-full ${isSyncing ? 'bg-blue-500 animate-pulse' : 'bg-green-500'}`} />
+            <span className="font-black tracking-tighter text-[#001F3F] text-sm uppercase leading-none">Boundaries</span>
+            <div className={`ml-1.5 w-1.5 h-1.5 rounded-full ${isSyncing ? 'bg-blue-500 animate-pulse' : 'bg-green-500'}`} />
           </div>
-          <button
-            onClick={() => setIsProfileOpen(!isProfileOpen)}
-            className="w-9 h-9 rounded-full bg-[#001F3F] text-white flex items-center justify-center text-[10px] font-black border-2 border-white shadow-lg active:scale-90 transition-transform"
-          >
-            {user.name.charAt(0)}
-          </button>
+          <div className="flex items-center gap-2">
+            {/* Mobile Toast Widgets */}
+            <div className="flex items-center gap-2">
+              <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/5 rounded-lg px-2.5 py-1.5 border border-green-500/20 flex items-center gap-1.5">
+                <DollarSign size={12} className="text-green-600" />
+                <span className="text-xs font-black text-[#001F3F]">
+                  {toastSales ? `$${Math.round(toastSales.totalSales)}` : '--'}
+                </span>
+              </div>
+              <div className="bg-gradient-to-br from-blue-500/10 to-indigo-500/5 rounded-lg px-2.5 py-1.5 border border-blue-500/20 flex items-center gap-1.5">
+                <UserCheck size={12} className="text-blue-600" />
+                <span className="text-xs font-black text-[#001F3F]">{toastClockedIn.length}</span>
+              </div>
+            </div>
+            <button
+              onClick={() => setIsProfileOpen(!isProfileOpen)}
+              className="w-8 h-8 rounded-full bg-[#001F3F] text-white flex items-center justify-center text-[10px] font-black border-2 border-white shadow-lg active:scale-90 transition-transform"
+            >
+              {user.name.charAt(0)}
+            </button>
+          </div>
         </div>
         
         <div className="px-1">
           {canSwitchStore ? (
             <div className="relative group">
-              <select 
+              <select
                 value={currentStoreId}
                 onChange={(e) => onStoreChange(e.target.value)}
-                className="w-full bg-neutral-100 border-none rounded-xl pl-10 pr-10 py-3 text-[11px] font-black uppercase tracking-widest outline-none text-[#001F3F] appearance-none shadow-inner"
+                className="w-full bg-neutral-100 border-none rounded-xl pl-9 pr-9 py-2 text-[10px] font-black uppercase tracking-widest outline-none text-[#001F3F] appearance-none shadow-inner"
               >
                 {stores.map(s => (
                   <option key={s.id} value={s.id}>{s.name.replace('Boundaries ', '')}</option>
                 ))}
               </select>
-              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">
-                <MapPin size={14} strokeWidth={3} />
+              <div className="absolute left-2.5 top-1/2 -translate-y-1/2 text-neutral-400">
+                <MapPin size={12} strokeWidth={3} />
               </div>
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400">
-                <ChevronDown size={14} strokeWidth={3} />
+              <div className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400">
+                <ChevronDown size={12} strokeWidth={3} />
               </div>
             </div>
           ) : (
@@ -437,29 +452,29 @@ User Question: ${userMsg}`,
       </main>
 
       {/* Mobile Floating Action Button for Chat */}
-      <button 
+      <button
         onClick={() => setChatOpen(true)}
-        className="md:hidden fixed bottom-24 right-4 w-14 h-14 bg-[#001F3F] text-white rounded-full shadow-2xl flex items-center justify-center z-40 active:scale-90 transition-transform border border-white/10"
+        className="md:hidden fixed bottom-16 right-3 w-12 h-12 bg-[#001F3F] text-white rounded-full shadow-2xl flex items-center justify-center z-40 active:scale-90 transition-transform border border-white/10"
       >
-        <Brain size={24} />
+        <Brain size={20} />
       </button>
 
       {/* Mobile Bottom Tab Bar */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 glass-effect border-t border-neutral-100 px-4 py-3 flex items-center justify-around z-50 pb-safe shadow-[0_-10px_30px_rgba(0,0,0,0.03)]">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 glass-effect border-t border-neutral-100 px-3 py-2 flex items-center justify-around z-50 pb-safe shadow-[0_-10px_30px_rgba(0,0,0,0.03)]">
         {filteredNav.map(item => {
           const isActive = activeTab === item.id;
           return (
             <button
               key={item.id}
               onClick={() => onTabChange(item.id)}
-              className={`flex flex-col items-center gap-1.5 transition-all relative ${
+              className={`flex flex-col items-center gap-0.5 transition-all relative ${
                 isActive ? 'text-[#001F3F]' : 'text-neutral-300'
               }`}
             >
-              <div className={`p-2 rounded-xl transition-all duration-300 ${isActive ? 'bg-blue-50' : 'bg-transparent'}`}>
-                <item.icon size={22} strokeWidth={isActive ? 2.5 : 2} />
+              <div className={`p-1.5 rounded-lg transition-all duration-300 ${isActive ? 'bg-blue-50' : 'bg-transparent'}`}>
+                <item.icon size={20} strokeWidth={isActive ? 2.5 : 2} />
               </div>
-              <span className={`text-[9px] font-black uppercase tracking-[0.15em] transition-opacity ${isActive ? 'opacity-100' : 'opacity-40'}`}>
+              <span className={`text-[8px] font-black uppercase tracking-[0.1em] transition-opacity ${isActive ? 'opacity-100' : 'opacity-40'}`}>
                 {item.label}
               </span>
               {isActive && <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-1 h-1 bg-[#001F3F] rounded-full" />}
