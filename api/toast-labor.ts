@@ -7,12 +7,41 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 async function getAuthToken(): Promise<string> {
-  const response = await fetch(`${process.env.VERCEL_URL ? 'https://' + process.env.VERCEL_URL : 'http://localhost:3000'}/api/toast-auth`);
-  if (!response.ok) {
-    throw new Error('Failed to get auth token');
+  // Get credentials directly instead of calling another endpoint
+  const clientId = process.env.VITE_TOAST_CLIENT_ID;
+  const clientSecret = process.env.VITE_TOAST_API_KEY;
+
+  if (!clientId || !clientSecret) {
+    throw new Error('Toast credentials not configured');
   }
-  const data = await response.json();
-  return data.accessToken;
+
+  // Authenticate with Toast
+  const authResponse = await fetch('https://ws-api.toasttab.com/authentication/v1/authentication/login', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      clientId,
+      clientSecret,
+      userAccessType: 'TOAST_MACHINE_CLIENT'
+    })
+  });
+
+  if (!authResponse.ok) {
+    const errorText = await authResponse.text();
+    console.error('[Toast Auth] Error:', errorText);
+    throw new Error(`Toast authentication failed: ${authResponse.statusText}`);
+  }
+
+  const authData = await authResponse.json();
+
+  // Extract token from nested structure
+  if (!authData.token || !authData.token.accessToken) {
+    throw new Error('Invalid auth response from Toast');
+  }
+
+  return authData.token.accessToken;
 }
 
 export default async function handler(
