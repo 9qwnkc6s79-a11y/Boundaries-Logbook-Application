@@ -379,21 +379,47 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
     }
 
     setIsToastConfigured(true);
+
+    // Check cache first (5-minute cache to avoid rate limits)
+    const cacheKey = 'toast_data_cache';
+    const cacheTimeKey = 'toast_data_cache_time';
+    const cachedData = localStorage.getItem(cacheKey);
+    const cacheTime = localStorage.getItem(cacheTimeKey);
+
+    if (cachedData && cacheTime) {
+      const age = Date.now() - parseInt(cacheTime);
+      if (age < 5 * 60 * 1000) { // 5 minutes
+        console.log('[Toast] Using cached data (age: ' + Math.floor(age / 1000) + 's)');
+        const parsed = JSON.parse(cachedData);
+        setToastSales(parsed.sales);
+        setToastLabor(parsed.labor);
+        setToastClockedIn(parsed.clockedIn);
+        setToastLoading(false);
+        return;
+      }
+    }
+
     setToastLoading(true);
     setToastError(null);
 
     try {
-      console.log('[Toast] Fetching POS data...');
+      console.log('[Toast] Fetching fresh POS data...');
       const today = new Date().toISOString().split('T')[0];
 
       // Fetch all data in parallel
       const [sales, laborData] = await Promise.all([
         toastAPI.getTodaySales().catch(err => {
           console.error('[Toast] Sales fetch failed:', err);
+          if (err.message?.includes('Too Many Requests')) {
+            throw new Error('Rate limited - please wait a few minutes and refresh');
+          }
           return null;
         }),
         toastAPI.getLaborData(today, today).catch(err => {
           console.error('[Toast] Labor fetch failed:', err);
+          if (err.message?.includes('Too Many Requests')) {
+            throw new Error('Rate limited - please wait a few minutes and refresh');
+          }
           return { laborSummary: [], currentlyClocked: [], timeEntries: [] };
         }),
       ]);
@@ -401,7 +427,16 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
       setToastSales(sales);
       setToastLabor(laborData.laborSummary);
       setToastClockedIn(laborData.currentlyClocked);
-      console.log('[Toast] Data fetched successfully');
+
+      // Cache the results
+      localStorage.setItem(cacheKey, JSON.stringify({
+        sales,
+        labor: laborData.laborSummary,
+        clockedIn: laborData.currentlyClocked
+      }));
+      localStorage.setItem(cacheTimeKey, Date.now().toString());
+
+      console.log('[Toast] Data fetched and cached successfully');
     } catch (error: any) {
       console.error('[Toast] Failed to fetch POS data:', error);
       setToastError(error.message || 'Failed to connect to Toast POS');
