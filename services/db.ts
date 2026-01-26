@@ -163,14 +163,49 @@ class CloudAPI {
     await this.remoteSet(DOC_KEYS.SUBMISSIONS, submissions);
   }
 
+  /**
+   * Upload photo to Firebase Storage and return download URL
+   * @param dataUrl - Base64 data URL from canvas
+   * @param storagePath - Full storage path (e.g., "photos/store123/2026-01-26/sub-123/task-1.jpg")
+   * @returns Download URL from Firebase Storage
+   */
+  async uploadPhoto(dataUrl: string, storagePath: string): Promise<string> {
+    if (!storage) {
+      throw new Error('Firebase Storage not initialized');
+    }
+
+    try {
+      // Convert data URL to blob
+      const response = await fetch(dataUrl);
+      const blob = await response.blob();
+
+      console.log(`[Storage] Uploading photo: ${storagePath}, size: ${Math.round(blob.size / 1024)}KB`);
+
+      // Upload to Firebase Storage
+      const storageRef = storage.ref(storagePath);
+      const snapshot = await storageRef.put(blob);
+
+      // Get download URL
+      const downloadUrl = await snapshot.ref.getDownloadURL();
+      console.log(`[Storage] Upload successful: ${downloadUrl.substring(0, 60)}...`);
+
+      return downloadUrl;
+    } catch (error: any) {
+      console.error('[Storage] Upload failed:', error);
+      throw new Error(`Photo upload failed: ${error.message}`);
+    }
+  }
+
   async pushSubmission(submission: ChecklistSubmission): Promise<boolean> {
     console.log(`[DB] pushSubmission START: id=${submission.id}, status=${submission.status}`);
 
     // Log photo info
-    const photoTasks = submission.taskResults.filter(t => t.photoUrl);
+    const photoTasks = submission.taskResults.filter(t => t.photoUrl || t.photoUrls);
     if (photoTasks.length > 0) {
-      const totalPhotoBytes = photoTasks.reduce((sum, t) => sum + (t.photoUrl?.length || 0), 0);
-      console.log(`[DB] pushSubmission: ${photoTasks.length} photos, total photo data: ${Math.round(totalPhotoBytes / 1024)}KB`);
+      const totalPhotoCount = photoTasks.reduce((sum, t) =>
+        sum + (t.photoUrls?.length || (t.photoUrl ? 1 : 0)), 0
+      );
+      console.log(`[DB] pushSubmission: ${totalPhotoCount} photo URLs`);
     }
 
     const all = await this.fetchSubmissions();
@@ -197,22 +232,12 @@ class CloudAPI {
       next = [submission, ...all];
     }
 
-    // Check document size and strip photos if too large
-    let jsonSize = JSON.stringify(next).length;
-    console.log(`[DB] pushSubmission: Document size before save: ${Math.round(jsonSize / 1024)}KB`);
+    // Log document size (should be small now that we use Storage URLs)
+    const jsonSize = JSON.stringify(next).length;
+    console.log(`[DB] pushSubmission: Document size: ${Math.round(jsonSize / 1024)}KB`);
 
     if (jsonSize > 900000) {
-      console.warn(`[DB] pushSubmission: Document too large (${Math.round(jsonSize / 1024)}KB), stripping photos to save data...`);
-      // Strip photos from all submissions to reduce size
-      next = next.map(sub => ({
-        ...sub,
-        taskResults: sub.taskResults.map(task => ({
-          ...task,
-          photoUrl: task.photoUrl ? '[photo-stripped-size-limit]' : undefined
-        }))
-      }));
-      jsonSize = JSON.stringify(next).length;
-      console.log(`[DB] pushSubmission: Document size after stripping photos: ${Math.round(jsonSize / 1024)}KB`);
+      console.warn(`[DB] pushSubmission: Document size is large (${Math.round(jsonSize / 1024)}KB) - consider archiving old submissions`);
     }
 
     console.log(`[DB] pushSubmission: Saving ${next.length} total submissions`);
