@@ -578,16 +578,24 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                             className="w-20 h-20 rounded-xl overflow-hidden shrink-0 border-2 border-red-300 cursor-pointer hover:border-red-400 transition-colors bg-red-100"
                             onClick={() => setFullscreenPhoto({ url: concern.url, title: concern.title, user: concern.user, aiReview: { flagged: true, reason: concern.aiReason || '' } })}
                           >
-                            <img
-                              src={concern.url}
-                              className="w-full h-full object-cover"
-                              alt={concern.title}
-                              onError={(e) => {
-                                const target = e.target as HTMLImageElement;
-                                target.style.display = 'none';
-                                target.parentElement!.innerHTML = '<div class="w-full h-full flex items-center justify-center text-red-400"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg></div>';
-                              }}
-                            />
+                            {concern.url ? (
+                              <img
+                                src={concern.url}
+                                className="w-full h-full object-cover"
+                                alt={concern.title}
+                                onError={(e) => {
+                                  console.error('[Image Error] Failed to load:', concern.url);
+                                  const target = e.target as HTMLImageElement;
+                                  target.style.display = 'none';
+                                  target.parentElement!.innerHTML = '<div class="w-full h-full flex items-center justify-center text-red-400"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg></div>';
+                                }}
+                                onLoad={() => console.log('[Image Loaded]', concern.url)}
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-red-400">
+                                <ImageIcon size={24} />
+                              </div>
+                            )}
                           </div>
 
                           {/* Info section */}
