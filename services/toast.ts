@@ -1,68 +1,31 @@
 /**
- * Toast POS API Integration
+ * Toast POS API Integration (via Vercel Serverless Proxy)
  *
- * This service handles communication with the Toast POS API to fetch:
- * - Employee clock-in/out data (labor hours)
- * - Sales and revenue data
+ * This service calls Vercel serverless functions which act as a proxy
+ * to fetch data from Toast API, avoiding CORS issues.
  *
  * API Documentation: https://doc.toasttab.com/
  */
 
-import { ToastEmployee, ToastSalesData, ToastLaborEntry, ToastTimeEntry } from '../types';
-
-// Toast API Configuration
-const TOAST_API_BASE = 'https://ws-api.toasttab.com';
+import { ToastSalesData, ToastLaborEntry, ToastTimeEntry } from '../types';
 
 class ToastAPI {
-  private apiKey: string;
-  private restaurantGuid: string;
-  private managementGroupGuid: string;
-
-  constructor() {
-    // These will be loaded from environment variables
-    this.apiKey = import.meta.env.VITE_TOAST_API_KEY || '';
-    this.restaurantGuid = import.meta.env.VITE_TOAST_RESTAURANT_GUID || '';
-    this.managementGroupGuid = import.meta.env.VITE_TOAST_MANAGEMENT_GROUP_GUID || '';
-  }
-
   /**
    * Check if Toast API is configured
+   * In production, this checks if serverless functions are available
+   * In development, checks environment variables
    */
   isConfigured(): boolean {
-    return !!(this.apiKey && this.restaurantGuid && this.managementGroupGuid);
+    // Check if environment variables are set
+    const apiKey = import.meta.env.VITE_TOAST_API_KEY;
+    const restaurantGuid = import.meta.env.VITE_TOAST_RESTAURANT_GUID;
+    const managementGroupGuid = import.meta.env.VITE_TOAST_MANAGEMENT_GROUP_GUID;
+
+    return !!(apiKey && restaurantGuid && managementGroupGuid);
   }
 
   /**
-   * Make authenticated request to Toast API
-   */
-  private async makeRequest<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-    if (!this.isConfigured()) {
-      throw new Error('Toast API not configured. Please set environment variables.');
-    }
-
-    const url = `${TOAST_API_BASE}${endpoint}`;
-
-    const response = await fetch(url, {
-      ...options,
-      headers: {
-        'Authorization': `Bearer ${this.apiKey}`,
-        'Toast-Restaurant-External-ID': this.restaurantGuid,
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`[Toast API] Error ${response.status}: ${errorText}`);
-      throw new Error(`Toast API Error: ${response.status} ${response.statusText}`);
-    }
-
-    return response.json();
-  }
-
-  /**
-   * Fetch sales data for a specific date range
+   * Fetch sales data for a specific date range via proxy
    * @param startDate - ISO date string (YYYY-MM-DD)
    * @param endDate - ISO date string (YYYY-MM-DD)
    */
@@ -70,42 +33,17 @@ class ToastAPI {
     try {
       console.log(`[Toast API] Fetching sales data: ${startDate} to ${endDate}`);
 
-      // Toast Orders API endpoint
-      const orders = await this.makeRequest<any[]>(
-        `/orders/v2/orders?startDate=${startDate}&endDate=${endDate}`,
-        { method: 'GET' }
-      );
+      const response = await fetch(`/api/toast-sales?startDate=${startDate}&endDate=${endDate}`);
 
-      // Process orders to calculate totals
-      const totalSales = orders.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
-      const totalOrders = orders.length;
-      const totalTips = orders.reduce((sum, order) => sum + (order.tip || 0), 0);
+      if (!response.ok) {
+        const error = await response.json();
+        console.error(`[Toast API] Sales error:`, error);
+        throw new Error(error.error || 'Failed to fetch sales data');
+      }
 
-      // Calculate payment method breakdown
-      const paymentMethods: Record<string, number> = {};
-      orders.forEach(order => {
-        const method = order.paymentType || 'Unknown';
-        paymentMethods[method] = (paymentMethods[method] || 0) + (order.totalAmount || 0);
-      });
-
-      // Get hourly breakdown
-      const hourlySales: Record<number, number> = {};
-      orders.forEach(order => {
-        const hour = new Date(order.createdDate).getHours();
-        hourlySales[hour] = (hourlySales[hour] || 0) + (order.totalAmount || 0);
-      });
-
-      return {
-        startDate,
-        endDate,
-        totalSales: totalSales / 100, // Toast stores in cents
-        totalOrders,
-        averageCheck: totalOrders > 0 ? totalSales / totalOrders / 100 : 0,
-        totalTips: totalTips / 100,
-        paymentMethods,
-        hourlySales,
-        lastUpdated: new Date().toISOString(),
-      };
+      const data = await response.json();
+      console.log(`[Toast API] Sales data received: ${data.totalOrders} orders, $${data.totalSales}`);
+      return data;
     } catch (error) {
       console.error('[Toast API] Failed to fetch sales data:', error);
       throw error;
@@ -113,35 +51,31 @@ class ToastAPI {
   }
 
   /**
-   * Fetch employee time entries (clock-in/out data)
+   * Get labor data (time entries, summary, currently clocked) via proxy
    * @param startDate - ISO date string (YYYY-MM-DD)
    * @param endDate - ISO date string (YYYY-MM-DD)
    */
-  async getTimeEntries(startDate: string, endDate: string): Promise<ToastTimeEntry[]> {
+  async getLaborData(startDate: string, endDate: string): Promise<{
+    timeEntries: ToastTimeEntry[];
+    laborSummary: ToastLaborEntry[];
+    currentlyClocked: ToastTimeEntry[];
+  }> {
     try {
-      console.log(`[Toast API] Fetching time entries: ${startDate} to ${endDate}`);
+      console.log(`[Toast API] Fetching labor data: ${startDate} to ${endDate}`);
 
-      // Toast Labor API endpoint
-      const response = await this.makeRequest<any>(
-        `/labor/v1/timeEntries?startDate=${startDate}&endDate=${endDate}`,
-        { method: 'GET' }
-      );
+      const response = await fetch(`/api/toast-labor?startDate=${startDate}&endDate=${endDate}`);
 
-      const timeEntries: ToastTimeEntry[] = (response.timeEntries || []).map((entry: any) => ({
-        employeeGuid: entry.employeeReference?.guid || '',
-        employeeName: entry.employeeReference?.entityId || 'Unknown',
-        jobName: entry.jobReference?.name || 'Staff',
-        inDate: entry.inDate,
-        outDate: entry.outDate,
-        regularHours: entry.regularHours || 0,
-        overtimeHours: entry.overtimeHours || 0,
-        totalHours: (entry.regularHours || 0) + (entry.overtimeHours || 0),
-        deleted: entry.deleted || false,
-      }));
+      if (!response.ok) {
+        const error = await response.json();
+        console.error(`[Toast API] Labor error:`, error);
+        throw new Error(error.error || 'Failed to fetch labor data');
+      }
 
-      return timeEntries.filter(entry => !entry.deleted);
+      const data = await response.json();
+      console.log(`[Toast API] Labor data received: ${data.timeEntries.length} entries, ${data.currentlyClocked.length} clocked in`);
+      return data;
     } catch (error) {
-      console.error('[Toast API] Failed to fetch time entries:', error);
+      console.error('[Toast API] Failed to fetch labor data:', error);
       throw error;
     }
   }
@@ -150,38 +84,17 @@ class ToastAPI {
    * Get labor summary for a date range
    */
   async getLaborSummary(startDate: string, endDate: string): Promise<ToastLaborEntry[]> {
-    try {
-      const timeEntries = await this.getTimeEntries(startDate, endDate);
+    const data = await this.getLaborData(startDate, endDate);
+    return data.laborSummary;
+  }
 
-      // Group by employee
-      const employeeMap = new Map<string, ToastLaborEntry>();
-
-      timeEntries.forEach(entry => {
-        const existing = employeeMap.get(entry.employeeGuid);
-
-        if (existing) {
-          existing.totalHours += entry.totalHours;
-          existing.regularHours += entry.regularHours;
-          existing.overtimeHours += entry.overtimeHours;
-          existing.shifts += 1;
-        } else {
-          employeeMap.set(entry.employeeGuid, {
-            employeeGuid: entry.employeeGuid,
-            employeeName: entry.employeeName,
-            jobName: entry.jobName,
-            totalHours: entry.totalHours,
-            regularHours: entry.regularHours,
-            overtimeHours: entry.overtimeHours,
-            shifts: 1,
-          });
-        }
-      });
-
-      return Array.from(employeeMap.values()).sort((a, b) => b.totalHours - a.totalHours);
-    } catch (error) {
-      console.error('[Toast API] Failed to get labor summary:', error);
-      throw error;
-    }
+  /**
+   * Get employees currently clocked in
+   */
+  async getCurrentlyClocked(): Promise<ToastTimeEntry[]> {
+    const today = new Date().toISOString().split('T')[0];
+    const data = await this.getLaborData(today, today);
+    return data.currentlyClocked;
   }
 
   /**
@@ -190,17 +103,6 @@ class ToastAPI {
   async getTodaySales(): Promise<ToastSalesData> {
     const today = new Date().toISOString().split('T')[0];
     return this.getSalesData(today, today);
-  }
-
-  /**
-   * Get employees currently clocked in
-   */
-  async getCurrentlyClocked(): Promise<ToastTimeEntry[]> {
-    const today = new Date().toISOString().split('T')[0];
-    const allEntries = await this.getTimeEntries(today, today);
-
-    // Filter for entries without outDate (still clocked in)
-    return allEntries.filter(entry => !entry.outDate);
   }
 }
 

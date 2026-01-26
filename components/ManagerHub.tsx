@@ -387,24 +387,20 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
       const today = new Date().toISOString().split('T')[0];
 
       // Fetch all data in parallel
-      const [sales, labor, clockedIn] = await Promise.all([
+      const [sales, laborData] = await Promise.all([
         toastAPI.getTodaySales().catch(err => {
           console.error('[Toast] Sales fetch failed:', err);
           return null;
         }),
-        toastAPI.getLaborSummary(today, today).catch(err => {
+        toastAPI.getLaborData(today, today).catch(err => {
           console.error('[Toast] Labor fetch failed:', err);
-          return [];
-        }),
-        toastAPI.getCurrentlyClocked().catch(err => {
-          console.error('[Toast] Clocked-in fetch failed:', err);
-          return [];
+          return { laborSummary: [], currentlyClocked: [], timeEntries: [] };
         }),
       ]);
 
       setToastSales(sales);
-      setToastLabor(labor);
-      setToastClockedIn(clockedIn);
+      setToastLabor(laborData.laborSummary);
+      setToastClockedIn(laborData.currentlyClocked);
       console.log('[Toast] Data fetched successfully');
     } catch (error: any) {
       console.error('[Toast] Failed to fetch POS data:', error);
