@@ -5,10 +5,13 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-// Restaurant GUIDs
-const LOCATIONS: Record<string, string> = {
-  'littleelm': process.env.VITE_TOAST_RESTAURANT_GUID || '',
-  'prosper': process.env.VITE_TOAST_PROSPER_GUID || '',
+// Restaurant GUIDs - Prosper has multiple, try both
+const LOCATIONS: Record<string, string[]> = {
+  'littleelm': [process.env.VITE_TOAST_RESTAURANT_GUID || ''],
+  'prosper': [
+    'f5e036bc-d8d0-4da9-8ec7-aec94806253b',
+    'd1e0f278-e871-4635-8d33-74532858ccaf'
+  ],
 };
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -49,11 +52,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const startDateStr = Array.isArray(startDate) ? startDate[0] : startDate;
   const endDateStr = Array.isArray(endDate) ? endDate[0] : endDate;
   const locationKey = (Array.isArray(location) ? location[0] : location)?.toLowerCase() || 'littleelm';
-  
-  // Get restaurant GUID based on location
-  const restaurantGuid = LOCATIONS[locationKey] || LOCATIONS['littleelm'];
-  
-  if (!restaurantGuid) {
+
+  // Get restaurant GUIDs to try for this location
+  const restaurantGuids = LOCATIONS[locationKey] || LOCATIONS['littleelm'];
+
+  if (!restaurantGuids || restaurantGuids.length === 0) {
     return res.status(500).json({ error: 'Toast API not configured for this location' });
   }
 
@@ -61,14 +64,35 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const token = await getAuthToken();
     const start = new Date(`${startDateStr}T00:00:00.000`);
     const end = new Date(`${endDateStr}T23:59:59.999`);
-    
+
+    // Try each GUID until one works
+    let restaurantGuid: string | null = null;
+    let lastError: any = null;
+
+    for (const guid of restaurantGuids) {
+      try {
+        // Test this GUID with a small request
+        await fetchOrdersChunk(start.toISOString(), new Date(start.getTime() + 1000).toISOString(), token, guid);
+        restaurantGuid = guid;
+        console.log(`[Toast Sales] Using GUID: ${guid.substring(0, 8)}... for ${locationKey}`);
+        break;
+      } catch (err: any) {
+        lastError = err;
+        console.log(`[Toast Sales] GUID ${guid.substring(0, 8)}... failed: ${err.message}`);
+      }
+    }
+
+    if (!restaurantGuid) {
+      throw new Error(`No working GUID found for ${locationKey}: ${lastError?.message}`);
+    }
+
     const allOrders: any[] = [];
     let current = new Date(start);
     let requestCount = 0;
 
     while (current < end && requestCount < 25) {
       const chunkEnd = new Date(Math.min(current.getTime() + (60 * 60 * 1000), end.getTime()));
-      
+
       try {
         const orders = await fetchOrdersChunk(current.toISOString(), chunkEnd.toISOString(), token, restaurantGuid);
         allOrders.push(...orders);
@@ -81,7 +105,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           } catch (e) { /* continue */ }
         }
       }
-      
+
       current = chunkEnd;
       requestCount++;
       if (current < end) await delay(200);

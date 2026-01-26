@@ -28,12 +28,14 @@ class ToastAPI {
    * Fetch sales data for a specific date range via proxy
    * @param startDate - ISO date string (YYYY-MM-DD)
    * @param endDate - ISO date string (YYYY-MM-DD)
+   * @param location - Campus location (littleelm, prosper)
    */
-  async getSalesData(startDate: string, endDate: string): Promise<ToastSalesData> {
+  async getSalesData(startDate: string, endDate: string, location?: string): Promise<ToastSalesData> {
     try {
-      console.log(`[Toast API] Fetching sales data: ${startDate} to ${endDate}`);
+      const locationParam = location ? `&location=${location}` : '';
+      console.log(`[Toast API] Fetching sales data: ${startDate} to ${endDate} (${location || 'littleelm'})`);
 
-      const response = await fetch(`/api/toast-sales?startDate=${startDate}&endDate=${endDate}`);
+      const response = await fetch(`/api/toast-sales?startDate=${startDate}&endDate=${endDate}${locationParam}`);
 
       if (!response.ok) {
         const error = await response.json();
@@ -54,16 +56,18 @@ class ToastAPI {
    * Get labor data (time entries, summary, currently clocked) via proxy
    * @param startDate - ISO date string (YYYY-MM-DD)
    * @param endDate - ISO date string (YYYY-MM-DD)
+   * @param location - Campus location (littleelm, prosper)
    */
-  async getLaborData(startDate: string, endDate: string): Promise<{
+  async getLaborData(startDate: string, endDate: string, location?: string): Promise<{
     timeEntries: ToastTimeEntry[];
     laborSummary: ToastLaborEntry[];
     currentlyClocked: ToastTimeEntry[];
   }> {
     try {
-      console.log(`[Toast API] Fetching labor data: ${startDate} to ${endDate}`);
+      const locationParam = location ? `&location=${location}` : '';
+      console.log(`[Toast API] Fetching labor data: ${startDate} to ${endDate} (${location || 'littleelm'})`);
 
-      const response = await fetch(`/api/toast-labor?startDate=${startDate}&endDate=${endDate}`);
+      const response = await fetch(`/api/toast-labor?startDate=${startDate}&endDate=${endDate}${locationParam}`);
 
       if (!response.ok) {
         const error = await response.json();
@@ -99,10 +103,11 @@ class ToastAPI {
 
   /**
    * Get today's live sales snapshot
+   * @param location - Campus location (littleelm, prosper)
    */
-  async getTodaySales(): Promise<ToastSalesData> {
+  async getTodaySales(location?: string): Promise<ToastSalesData> {
     const today = new Date().toISOString().split('T')[0];
-    return this.getSalesData(today, today);
+    return this.getSalesData(today, today, location);
   }
 }
 

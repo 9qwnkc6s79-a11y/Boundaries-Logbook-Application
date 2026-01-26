@@ -405,17 +405,18 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
     try {
       console.log('[Toast] Fetching fresh POS data...');
       const today = new Date().toISOString().split('T')[0];
+      const location = currentStoreId.toLowerCase(); // Convert LITTLEELM/PROSPER to littleelm/prosper
 
       // Fetch all data in parallel
       const [sales, laborData] = await Promise.all([
-        toastAPI.getTodaySales().catch(err => {
+        toastAPI.getTodaySales(location).catch(err => {
           console.error('[Toast] Sales fetch failed:', err);
           if (err.message?.includes('Too Many Requests')) {
             throw new Error('Rate limited - please wait a few minutes and refresh');
           }
           return null;
         }),
-        toastAPI.getLaborData(today, today).catch(err => {
+        toastAPI.getLaborData(today, today, location).catch(err => {
           console.error('[Toast] Labor fetch failed:', err);
           if (err.message?.includes('Too Many Requests')) {
             throw new Error('Rate limited - please wait a few minutes and refresh');

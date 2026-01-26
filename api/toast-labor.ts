@@ -6,6 +6,15 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
+// Restaurant GUIDs - Prosper has multiple, try both
+const LOCATIONS: Record<string, string[]> = {
+  'littleelm': [process.env.VITE_TOAST_RESTAURANT_GUID || ''],
+  'prosper': [
+    'f5e036bc-d8d0-4da9-8ec7-aec94806253b',
+    'd1e0f278-e871-4635-8d33-74532858ccaf'
+  ],
+};
+
 async function getAuthToken(): Promise<string> {
   // Get credentials directly instead of calling another endpoint
   const clientId = process.env.VITE_TOAST_CLIENT_ID;
@@ -54,7 +63,7 @@ export default async function handler(
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { startDate, endDate } = req.query;
+  const { startDate, endDate, location } = req.query;
 
   if (!startDate || !endDate) {
     return res.status(400).json({ error: 'startDate and endDate are required' });
@@ -63,15 +72,17 @@ export default async function handler(
   // Ensure query params are strings (not arrays)
   const startDateStr = Array.isArray(startDate) ? startDate[0] : startDate;
   const endDateStr = Array.isArray(endDate) ? endDate[0] : endDate;
+  const locationKey = (Array.isArray(location) ? location[0] : location)?.toLowerCase() || 'littleelm';
 
-  const restaurantGuid = process.env.VITE_TOAST_RESTAURANT_GUID;
+  // Get restaurant GUIDs to try for this location
+  const restaurantGuids = LOCATIONS[locationKey] || LOCATIONS['littleelm'];
 
-  if (!restaurantGuid) {
-    return res.status(500).json({ error: 'Toast API not configured' });
+  if (!restaurantGuids || restaurantGuids.length === 0) {
+    return res.status(500).json({ error: 'Toast API not configured for this location' });
   }
 
   try {
-    console.log(`[Toast Labor] Fetching: ${startDateStr} to ${endDateStr}`);
+    console.log(`[Toast Labor] Fetching ${locationKey}: ${startDateStr} to ${endDateStr}`);
 
     // Get OAuth2 token
     const token = await getAuthToken();
@@ -79,28 +90,44 @@ export default async function handler(
     // Labor API uses businessDate format (YYYYMMDD)
     const businessDate = startDateStr.replace(/-/g, '');
 
-    // Call Toast Labor API
-    const laborUrl = `https://ws-api.toasttab.com/labor/v1/timeEntries?businessDate=${businessDate}`;
+    // Try each GUID until one works
+    let data: any = null;
+    let lastError: any = null;
 
-    const response = await fetch(laborUrl, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Toast-Restaurant-External-ID': restaurantGuid,
-        'Content-Type': 'application/json',
-      },
-    });
+    for (const guid of restaurantGuids) {
+      try {
+        const laborUrl = `https://ws-api.toasttab.com/labor/v1/timeEntries?businessDate=${businessDate}`;
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`[Toast Labor] Error ${response.status}: ${errorText}`);
-      return res.status(response.status).json({
-        error: `Toast API Error: ${response.statusText}`,
-        details: errorText
-      });
+        const response = await fetch(laborUrl, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Toast-Restaurant-External-ID': guid,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`${response.status}: ${errorText}`);
+        }
+
+        data = await response.json();
+        console.log(`[Toast Labor] Using GUID: ${guid.substring(0, 8)}... for ${locationKey}`);
+        break;
+      } catch (err: any) {
+        lastError = err;
+        console.log(`[Toast Labor] GUID ${guid.substring(0, 8)}... failed: ${err.message}`);
+      }
     }
 
-    const data = await response.json();
+    if (!data) {
+      console.error(`[Toast Labor] All GUIDs failed for ${locationKey}: ${lastError}`);
+      return res.status(500).json({
+        error: `Toast API Error for ${locationKey}`,
+        details: lastError?.message
+      });
+    }
 
     // Process time entries
     const timeEntries = (data.timeEntries || []).map((entry: any) => ({
