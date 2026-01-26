@@ -30,11 +30,13 @@ async function getAuthToken(): Promise<string> {
 
   if (!authResponse.ok) {
     const errorText = await authResponse.text();
-    console.error('[Toast Auth] Error:', errorText);
-    throw new Error(`Toast authentication failed: ${authResponse.statusText}`);
+    console.error('[Toast Auth] HTTP', authResponse.status, ':', errorText);
+    console.error('[Toast Auth] Client ID:', clientId?.substring(0, 10) + '...');
+    throw new Error(`Toast auth failed (${authResponse.status}): ${errorText}`);
   }
 
   const authData = await authResponse.json();
+  console.log('[Toast Auth] Response:', JSON.stringify(authData).substring(0, 200));
 
   // Extract token from nested structure
   if (!authData.token || !authData.token.accessToken) {
