@@ -138,9 +138,15 @@ export default async function handler(
 
   } catch (error: any) {
     console.error('[Toast Sales] Failed:', error);
+    console.error('[Toast Sales] Error details:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
     return res.status(500).json({
       error: 'Failed to fetch sales data',
-      message: error.message
+      message: error.message,
+      details: error.toString()
     });
   }
 }
@@ -170,7 +176,7 @@ async function fetchOrdersChunk(startDate: string, endDate: string, token: strin
       return [];
     }
 
-    throw new Error(`Toast API Error: ${response.statusText}`);
+    throw new Error(`Toast API Error (${response.status}): ${errorText || response.statusText}`);
   }
 
   const data = await response.json();
