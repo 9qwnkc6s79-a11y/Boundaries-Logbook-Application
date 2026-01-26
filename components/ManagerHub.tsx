@@ -380,16 +380,19 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
 
     setIsToastConfigured(true);
 
-    // Check cache first (5-minute cache to avoid rate limits)
-    const cacheKey = 'toast_data_cache';
-    const cacheTimeKey = 'toast_data_cache_time';
+    // Map store IDs to Toast location names
+    const location = currentStoreId === 'store-prosper' ? 'prosper' : 'littleelm';
+
+    // Check cache first (5-minute cache to avoid rate limits) - LOCATION-SPECIFIC
+    const cacheKey = `toast_data_cache_${location}`;
+    const cacheTimeKey = `toast_data_cache_time_${location}`;
     const cachedData = localStorage.getItem(cacheKey);
     const cacheTime = localStorage.getItem(cacheTimeKey);
 
     if (cachedData && cacheTime) {
       const age = Date.now() - parseInt(cacheTime);
       if (age < 5 * 60 * 1000) { // 5 minutes
-        console.log('[Toast] Using cached data (age: ' + Math.floor(age / 1000) + 's)');
+        console.log(`[Toast] Using cached ${location} data (age: ${Math.floor(age / 1000)}s)`);
         const parsed = JSON.parse(cachedData);
         setToastSales(parsed.sales);
         setToastLabor(parsed.labor);
@@ -403,11 +406,8 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
     setToastError(null);
 
     try {
-      console.log('[Toast] Fetching fresh POS data...');
+      console.log(`[Toast] Fetching fresh POS data for ${location}...`);
       const today = new Date().toISOString().split('T')[0];
-      // Map store IDs to Toast location names
-      const location = currentStoreId === 'store-prosper' ? 'prosper' : 'littleelm';
-      console.log(`[Toast] Using location: ${location} for storeId: ${currentStoreId}`);
 
       // Fetch all data in parallel
       const [sales, laborData] = await Promise.all([
