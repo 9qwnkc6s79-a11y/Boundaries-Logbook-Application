@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { User, UserRole, Store, ManualSection, Recipe, ToastSalesData } from '../types';
-import { Coffee, ClipboardCheck, GraduationCap, Users, LogOut, Menu, X, MapPin, ChevronDown, BookOpen, Cloud, CloudOff, Activity, Download, Share, Smartphone, Brain, Send, Sparkles, ChevronRight, Settings, DollarSign, TrendingUp } from 'lucide-react';
+import { User, UserRole, Store, ManualSection, Recipe, ToastSalesData, ToastTimeEntry } from '../types';
+import { Coffee, ClipboardCheck, GraduationCap, Users, LogOut, Menu, X, MapPin, ChevronDown, BookOpen, Cloud, CloudOff, Activity, Download, Share, Smartphone, Brain, Send, Sparkles, ChevronRight, Settings, DollarSign, TrendingUp, UserCheck } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
 
 interface LayoutProps {
@@ -23,13 +23,14 @@ interface LayoutProps {
   recipes: Recipe[];
   version: string;
   toastSales?: ToastSalesData | null;
+  toastClockedIn?: ToastTimeEntry[];
 }
 
 const Layout: React.FC<LayoutProps> = ({
   user, children, activeTab, onTabChange, onLogout,
   stores, currentStoreId, onStoreChange, onUserStoreChange, isSyncing = false,
   showInstallBanner = false, onInstall, onDismissInstall, canNativeInstall = false,
-  manual, recipes, version, toastSales
+  manual, recipes, version, toastSales, toastClockedIn = []
 }) => {
   const [isProfileOpen, setIsProfileOpen] = React.useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -170,6 +171,24 @@ User Question: ${userMsg}`,
                   {toastSales.totalOrders} orders
                 </span>
               )}
+            </div>
+          </div>
+
+          {/* Clocked In Staff Widget */}
+          <div className="bg-gradient-to-br from-blue-500/10 to-indigo-500/5 rounded-xl p-4 border border-blue-500/20">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[9px] font-black uppercase tracking-widest text-blue-300/60">
+                Clocked In
+              </span>
+              <UserCheck size={14} className="text-blue-400/40" />
+            </div>
+            <div className="flex items-baseline gap-1">
+              <span className="text-2xl font-black text-white tracking-tight">
+                {toastClockedIn.length}
+              </span>
+              <span className="text-[9px] font-bold text-blue-300/60 uppercase tracking-wider ml-1">
+                {toastClockedIn.length === 1 ? 'staff' : 'staff'}
+              </span>
             </div>
           </div>
         </div>

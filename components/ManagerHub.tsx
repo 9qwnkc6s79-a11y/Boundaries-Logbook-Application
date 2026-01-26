@@ -29,12 +29,13 @@ interface ManagerHubProps {
   currentStoreId: string;
   stores: Store[];
   onToastSalesUpdate?: (sales: ToastSalesData | null) => void;
+  onToastClockedInUpdate?: (clockedIn: ToastTimeEntry[]) => void;
 }
 
 const ManagerHub: React.FC<ManagerHubProps> = ({
   staff = [], allUsers = [], submissions = [], templates = [], curriculum = [], allProgress = [], manual = [], recipes = [], onReview, onOverrideAIFlag, onResetSubmission,
   onUpdateTemplate, onAddTemplate, onDeleteTemplate, onUpdateManual, onUpdateRecipes,
-  currentStoreId, stores = [], onToastSalesUpdate
+  currentStoreId, stores = [], onToastSalesUpdate, onToastClockedInUpdate
 }) => {
   const [activeSubTab, setActiveSubTab] = useState<'dashboard' | 'compliance' | 'editor' | 'staff' | 'gallery' | 'audit' | 'manual'>('dashboard');
   const [auditFilter, setAuditFilter] = useState<'pending' | 'approved' | 'all'>('pending');
@@ -399,6 +400,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
         setToastLabor(parsed.labor);
         setToastClockedIn(parsed.clockedIn);
         onToastSalesUpdate?.(parsed.sales);
+        onToastClockedInUpdate?.(parsed.clockedIn);
         setToastLoading(false);
         return;
       }
@@ -433,6 +435,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
       setToastLabor(laborData.laborSummary);
       setToastClockedIn(laborData.currentlyClocked);
       onToastSalesUpdate?.(sales);
+      onToastClockedInUpdate?.(laborData.currentlyClocked);
 
       // Cache the results
       localStorage.setItem(cacheKey, JSON.stringify({

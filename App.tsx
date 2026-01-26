@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { User, UserRole, UserProgress, ChecklistSubmission, ChecklistTemplate, Store, TrainingModule, ManualSection, Recipe, ToastSalesData } from './types';
+import { User, UserRole, UserProgress, ChecklistSubmission, ChecklistTemplate, Store, TrainingModule, ManualSection, Recipe, ToastSalesData, ToastTimeEntry } from './types';
 import { TRAINING_CURRICULUM, CHECKLIST_TEMPLATES, MOCK_USERS, MOCK_STORES, BOUNDARIES_MANUAL, BOUNDARIES_RECIPES } from './data/mockData';
 import { db } from './services/db';
 import Layout from './components/Layout';
@@ -21,8 +21,9 @@ const App: React.FC = () => {
   const [isSyncing, setIsSyncing] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
 
-  // Toast POS Data (for sidebar widget)
+  // Toast POS Data (for sidebar widgets)
   const [toastSales, setToastSales] = useState<ToastSalesData | null>(null);
+  const [toastClockedIn, setToastClockedIn] = useState<ToastTimeEntry[]>([]);
 
   // Persistent App Context (Shared with Team)
   const [allUsers, setAllUsers] = useState<User[]>([]);
@@ -381,6 +382,7 @@ const App: React.FC = () => {
       recipes={recipes}
       version={APP_VERSION}
       toastSales={toastSales}
+      toastClockedIn={toastClockedIn}
     >
       <div className="animate-in fade-in duration-500">
         {activeTab === 'training' && (
@@ -449,6 +451,7 @@ const App: React.FC = () => {
             currentStoreId={currentStoreId}
             stores={MOCK_STORES}
             onToastSalesUpdate={setToastSales}
+            onToastClockedInUpdate={setToastClockedIn}
           />
         )}
       </div>
