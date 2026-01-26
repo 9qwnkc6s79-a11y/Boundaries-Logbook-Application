@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { User, UserRole, UserProgress, ChecklistSubmission, ChecklistTemplate, Store, TrainingModule, ManualSection, Recipe } from './types';
+import { User, UserRole, UserProgress, ChecklistSubmission, ChecklistTemplate, Store, TrainingModule, ManualSection, Recipe, ToastSalesData } from './types';
 import { TRAINING_CURRICULUM, CHECKLIST_TEMPLATES, MOCK_USERS, MOCK_STORES, BOUNDARIES_MANUAL, BOUNDARIES_RECIPES } from './data/mockData';
 import { db } from './services/db';
 import Layout from './components/Layout';
@@ -20,6 +20,9 @@ const App: React.FC = () => {
   // System States
   const [isSyncing, setIsSyncing] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
+
+  // Toast POS Data (for sidebar widget)
+  const [toastSales, setToastSales] = useState<ToastSalesData | null>(null);
 
   // Persistent App Context (Shared with Team)
   const [allUsers, setAllUsers] = useState<User[]>([]);
@@ -377,6 +380,7 @@ const App: React.FC = () => {
       manual={manual}
       recipes={recipes}
       version={APP_VERSION}
+      toastSales={toastSales}
     >
       <div className="animate-in fade-in duration-500">
         {activeTab === 'training' && (
@@ -411,39 +415,40 @@ const App: React.FC = () => {
           />
         )}
         {activeTab === 'manager' && (
-          <ManagerHub 
-            staff={storeUsers} 
-            allUsers={allUsers} 
-            submissions={storeSubmissions} 
-            templates={storeTemplates} 
-            curriculum={curriculum} 
-            allProgress={storeProgress} 
-            manual={manual} 
-            recipes={recipes} 
+          <ManagerHub
+            staff={storeUsers}
+            allUsers={allUsers}
+            submissions={storeSubmissions}
+            templates={storeTemplates}
+            curriculum={curriculum}
+            allProgress={storeProgress}
+            manual={manual}
+            recipes={recipes}
             onReview={handleReview}
             onOverrideAIFlag={handleOverrideAIFlag}
             onResetSubmission={handleResetSubmission}
-            onUpdateTemplate={handleUpdateTemplate} 
+            onUpdateTemplate={handleUpdateTemplate}
             onAddTemplate={async (tpl) => {
               const next = [...templates, { ...tpl, storeId: currentStoreId }];
               setTemplates(next);
               await db.pushTemplates(next);
               performCloudSync(true);
-            }} 
+            }}
             onDeleteTemplate={async (id) => {
               const next = templates.filter(t => t.id !== id);
               setTemplates(next);
               await db.pushTemplates(next);
               performCloudSync(true);
-            }} 
+            }}
             onUpdateManual={async (next) => {
               setManual(next);
               await db.pushManual(next);
               performCloudSync(true);
-            }} 
+            }}
             onUpdateRecipes={handleUpdateRecipes}
             currentStoreId={currentStoreId}
             stores={MOCK_STORES}
+            onToastSalesUpdate={setToastSales}
           />
         )}
       </div>

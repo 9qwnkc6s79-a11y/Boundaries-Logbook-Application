@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { User, UserRole, Store, ManualSection, Recipe } from '../types';
-import { Coffee, ClipboardCheck, GraduationCap, Users, LogOut, Menu, X, MapPin, ChevronDown, BookOpen, Cloud, CloudOff, Activity, Download, Share, Smartphone, Brain, Send, Sparkles, ChevronRight, Settings } from 'lucide-react';
+import { User, UserRole, Store, ManualSection, Recipe, ToastSalesData } from '../types';
+import { Coffee, ClipboardCheck, GraduationCap, Users, LogOut, Menu, X, MapPin, ChevronDown, BookOpen, Cloud, CloudOff, Activity, Download, Share, Smartphone, Brain, Send, Sparkles, ChevronRight, Settings, DollarSign, TrendingUp } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
 
 interface LayoutProps {
@@ -22,13 +22,14 @@ interface LayoutProps {
   manual: ManualSection[];
   recipes: Recipe[];
   version: string;
+  toastSales?: ToastSalesData | null;
 }
 
-const Layout: React.FC<LayoutProps> = ({ 
-  user, children, activeTab, onTabChange, onLogout, 
+const Layout: React.FC<LayoutProps> = ({
+  user, children, activeTab, onTabChange, onLogout,
   stores, currentStoreId, onStoreChange, onUserStoreChange, isSyncing = false,
   showInstallBanner = false, onInstall, onDismissInstall, canNativeInstall = false,
-  manual, recipes, version
+  manual, recipes, version, toastSales
 }) => {
   const [isProfileOpen, setIsProfileOpen] = React.useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -152,14 +153,24 @@ User Question: ${userMsg}`,
             )}
           </div>
 
-          <div className="bg-white/5 rounded-xl p-4 border border-white/5 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className={`w-2 h-2 rounded-full ${isSyncing ? 'bg-blue-400 animate-pulse' : 'bg-green-400'} shadow-[0_0_8px_rgba(74,222,128,0.5)]`} />
-              <span className="text-[9px] font-black uppercase tracking-widest text-blue-200">
-                {isSyncing ? 'Syncing...' : 'Live Cloud'}
+          {/* Total Sales Widget */}
+          <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/5 rounded-xl p-4 border border-green-500/20">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[9px] font-black uppercase tracking-widest text-green-300/60">
+                Today's Sales
               </span>
+              <DollarSign size={14} className="text-green-400/40" />
             </div>
-            <Activity size={12} className="text-white/20" />
+            <div className="flex items-baseline gap-1">
+              <span className="text-2xl font-black text-white tracking-tight">
+                {toastSales ? `$${toastSales.totalSales.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '--'}
+              </span>
+              {toastSales && toastSales.totalOrders > 0 && (
+                <span className="text-[9px] font-bold text-green-300/60 uppercase tracking-wider ml-1">
+                  {toastSales.totalOrders} orders
+                </span>
+              )}
+            </div>
           </div>
         </div>
         
