@@ -119,6 +119,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       location: locationKey,
       startDate: startDateStr,
       endDate: endDateStr,
+      // Keep 'totalSales' for backward compatibility (now shows NET sales)
+      totalSales: Math.round(netSales * 100) / 100,
       netSales: Math.round(netSales * 100) / 100,
       totalTax: Math.round(totalTax * 100) / 100,
       grossSales: Math.round((netSales + totalTax) * 100) / 100,
