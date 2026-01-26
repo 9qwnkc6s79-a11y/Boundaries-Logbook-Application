@@ -60,6 +60,10 @@ export default async function handler(
     return res.status(400).json({ error: 'startDate and endDate are required' });
   }
 
+  // Ensure query params are strings (not arrays)
+  const startDateStr = Array.isArray(startDate) ? startDate[0] : startDate;
+  const endDateStr = Array.isArray(endDate) ? endDate[0] : endDate;
+
   const restaurantGuid = process.env.VITE_TOAST_RESTAURANT_GUID;
 
   if (!restaurantGuid) {
@@ -67,13 +71,13 @@ export default async function handler(
   }
 
   try {
-    console.log(`[Toast Labor] Fetching: ${startDate} to ${endDate}`);
+    console.log(`[Toast Labor] Fetching: ${startDateStr} to ${endDateStr}`);
 
     // Get OAuth2 token
     const token = await getAuthToken();
 
     // Labor API uses businessDate format (YYYYMMDD)
-    const businessDate = startDate.replace(/-/g, '');
+    const businessDate = startDateStr.replace(/-/g, '');
 
     // Call Toast Labor API
     const laborUrl = `https://ws-api.toasttab.com/labor/v1/timeEntries?businessDate=${businessDate}`;
