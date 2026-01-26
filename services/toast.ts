@@ -17,11 +17,11 @@ class ToastAPI {
    */
   isConfigured(): boolean {
     // Check if environment variables are set
-    const apiKey = import.meta.env.VITE_TOAST_API_KEY;
+    const clientId = import.meta.env.VITE_TOAST_CLIENT_ID;
+    const clientSecret = import.meta.env.VITE_TOAST_API_KEY;
     const restaurantGuid = import.meta.env.VITE_TOAST_RESTAURANT_GUID;
-    const managementGroupGuid = import.meta.env.VITE_TOAST_MANAGEMENT_GROUP_GUID;
 
-    return !!(apiKey && restaurantGuid && managementGroupGuid);
+    return !!(clientId && clientSecret && restaurantGuid);
   }
 
   /**

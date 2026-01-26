@@ -23,16 +23,19 @@ export default async function handler(
   }
 
   // Get Toast credentials from environment
-  const apiKey = process.env.VITE_TOAST_API_KEY;
+  const clientId = process.env.VITE_TOAST_CLIENT_ID;
+  const clientSecret = process.env.VITE_TOAST_API_KEY;
   const restaurantGuid = process.env.VITE_TOAST_RESTAURANT_GUID;
-  const managementGroupGuid = process.env.VITE_TOAST_MANAGEMENT_GROUP_GUID;
 
-  if (!apiKey || !restaurantGuid || !managementGroupGuid) {
+  if (!clientId || !clientSecret || !restaurantGuid) {
     return res.status(500).json({ error: 'Toast API not configured' });
   }
 
   try {
     console.log(`[Toast Proxy] Fetching sales: ${startDate} to ${endDate}`);
+
+    // Toast uses Basic Auth with Client ID and Client Secret
+    const authString = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
 
     // Call Toast Orders API
     const ordersUrl = `https://ws-api.toasttab.com/orders/v2/orders?startDate=${startDate}&endDate=${endDate}`;
@@ -40,7 +43,7 @@ export default async function handler(
     const response = await fetch(ordersUrl, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${apiKey}`,
+        'Authorization': `Basic ${authString}`,
         'Toast-Restaurant-External-ID': restaurantGuid,
         'Content-Type': 'application/json',
       },
