@@ -145,6 +145,8 @@ async function fetchOrdersChunk(startDate: string, endDate: string, token: strin
   // Use ordersBulk endpoint (returns full order objects)
   const url = `https://ws-api.toasttab.com/orders/v2/ordersBulk?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`;
 
+  console.log(`[Toast Sales] Fetching from: ${url}`);
+
   const response = await fetch(url, {
     method: 'GET',
     headers: {
@@ -157,8 +159,28 @@ async function fetchOrdersChunk(startDate: string, endDate: string, token: strin
   if (!response.ok) {
     const errorText = await response.text();
     console.error(`[Toast Sales] Chunk error ${response.status}: ${errorText}`);
+
+    // If 404, might mean no orders - return empty array
+    if (response.status === 404) {
+      console.log('[Toast Sales] No orders found (404), returning empty array');
+      return [];
+    }
+
     throw new Error(`Toast API Error: ${response.statusText}`);
   }
 
-  return response.json();
+  const data = await response.json();
+  console.log(`[Toast Sales] Response type: ${Array.isArray(data) ? 'array' : typeof data}, length: ${Array.isArray(data) ? data.length : 'N/A'}`);
+
+  // Handle both array response and object with data property
+  if (Array.isArray(data)) {
+    return data;
+  } else if (data && Array.isArray(data.data)) {
+    return data.data;
+  } else if (data && typeof data === 'object') {
+    console.log('[Toast Sales] Unexpected response format:', Object.keys(data));
+    return [];
+  }
+
+  return [];
 }
