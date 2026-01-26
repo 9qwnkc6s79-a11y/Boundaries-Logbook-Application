@@ -128,7 +128,7 @@ export interface Recipe {
   title: string;
   category: string; // e.g. "Espresso", "Lemonades", "Seasonal"
   type: 'ESPRESSO' | 'GRID' | 'BATCH' | 'STANDARD';
-  
+
   // Espresso Stats
   dose?: string;
   yield?: string;
@@ -141,7 +141,53 @@ export interface Recipe {
   // Batch / Standard Data
   ingredients?: { name: string; quantity: string }[];
   steps?: string[];
-  
+
   notes?: string;
   lastUpdated?: string;
+}
+
+// Toast POS Integration Types
+export interface ToastEmployee {
+  guid: string;
+  entityId: string;
+  firstName: string;
+  lastName: string;
+  email?: string;
+  externalEmployeeId?: string;
+  chosenName?: string;
+  deleted: boolean;
+}
+
+export interface ToastTimeEntry {
+  employeeGuid: string;
+  employeeName: string;
+  jobName: string;
+  inDate: string; // ISO timestamp
+  outDate?: string; // ISO timestamp (undefined if still clocked in)
+  regularHours: number;
+  overtimeHours: number;
+  totalHours: number;
+  deleted: boolean;
+}
+
+export interface ToastLaborEntry {
+  employeeGuid: string;
+  employeeName: string;
+  jobName: string;
+  totalHours: number;
+  regularHours: number;
+  overtimeHours: number;
+  shifts: number;
+}
+
+export interface ToastSalesData {
+  startDate: string;
+  endDate: string;
+  totalSales: number;
+  totalOrders: number;
+  averageCheck: number;
+  totalTips: number;
+  paymentMethods: Record<string, number>;
+  hourlySales: Record<number, number>;
+  lastUpdated: string;
 }
