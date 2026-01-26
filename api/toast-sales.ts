@@ -1,17 +1,24 @@
 /**
  * Vercel Serverless Function: Toast Sales API Proxy
  *
- * This function acts as a proxy to fetch sales data from Toast API
- * to avoid CORS issues with direct browser requests.
+ * Fetches sales data using OAuth2 authentication and ordersBulk endpoint
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+
+async function getAuthToken(): Promise<string> {
+  const response = await fetch(`${process.env.VERCEL_URL ? 'https://' + process.env.VERCEL_URL : 'http://localhost:3000'}/api/toast-auth`);
+  if (!response.ok) {
+    throw new Error('Failed to get auth token');
+  }
+  const data = await response.json();
+  return data.accessToken;
+}
 
 export default async function handler(
   req: VercelRequest,
   res: VercelResponse
 ) {
-  // Only allow GET requests
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -22,63 +29,57 @@ export default async function handler(
     return res.status(400).json({ error: 'startDate and endDate are required' });
   }
 
-  // Get Toast credentials from environment
-  const clientId = process.env.VITE_TOAST_CLIENT_ID;
-  const clientSecret = process.env.VITE_TOAST_API_KEY;
   const restaurantGuid = process.env.VITE_TOAST_RESTAURANT_GUID;
 
-  if (!clientId || !clientSecret || !restaurantGuid) {
+  if (!restaurantGuid) {
     return res.status(500).json({ error: 'Toast API not configured' });
   }
 
   try {
-    console.log(`[Toast Proxy] Fetching sales: ${startDate} to ${endDate}`);
+    console.log(`[Toast Sales] Fetching: ${startDate} to ${endDate}`);
 
-    // Toast uses Basic Auth with Client ID and Client Secret
-    const authString = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+    // Get OAuth2 token
+    const token = await getAuthToken();
 
-    // Convert dates to ISO 8601 format with timezone (Toast requires this format)
-    const startDateTime = `${startDate}T00:00:00.000Z`;
-    const endDateTime = `${endDate}T23:59:59.999Z`;
+    // Convert dates to full ISO format with milliseconds (required by Toast)
+    const start = new Date(`${startDate}T00:00:00.000Z`);
+    const end = new Date(`${endDate}T23:59:59.999Z`);
 
-    // Call Toast Orders API
-    const ordersUrl = `https://ws-api.toasttab.com/orders/v2/orders?startDate=${encodeURIComponent(startDateTime)}&endDate=${encodeURIComponent(endDateTime)}`;
+    // Toast Standard API: 1-hour limit per request
+    // Break into hourly chunks if needed
+    const hoursDiff = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+    const allOrders: any[] = [];
 
-    const response = await fetch(ordersUrl, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Basic ${authString}`,
-        'Toast-Restaurant-External-ID': restaurantGuid,
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`[Toast Proxy] Error ${response.status}: ${errorText}`);
-      return res.status(response.status).json({
-        error: `Toast API Error: ${response.statusText}`,
-        details: errorText
-      });
+    if (hoursDiff <= 1) {
+      // Single request
+      const orders = await fetchOrdersChunk(start.toISOString(), end.toISOString(), token, restaurantGuid);
+      allOrders.push(...orders);
+    } else {
+      // Multiple hourly requests
+      let current = new Date(start);
+      while (current < end) {
+        const chunkEnd = new Date(Math.min(current.getTime() + (60 * 60 * 1000), end.getTime()));
+        const orders = await fetchOrdersChunk(current.toISOString(), chunkEnd.toISOString(), token, restaurantGuid);
+        allOrders.push(...orders);
+        current = chunkEnd;
+      }
     }
 
-    const orders = await response.json();
+    // Process orders
+    const totalSales = allOrders.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
+    const totalOrders = allOrders.length;
+    const totalTips = allOrders.reduce((sum, order) => sum + (order.tip || 0), 0);
 
-    // Process orders to calculate totals
-    const totalSales = orders.reduce((sum: number, order: any) => sum + (order.totalAmount || 0), 0);
-    const totalOrders = orders.length;
-    const totalTips = orders.reduce((sum: number, order: any) => sum + (order.tip || 0), 0);
-
-    // Calculate payment method breakdown
+    // Payment methods
     const paymentMethods: Record<string, number> = {};
-    orders.forEach((order: any) => {
+    allOrders.forEach(order => {
       const method = order.paymentType || 'Unknown';
       paymentMethods[method] = (paymentMethods[method] || 0) + (order.totalAmount || 0);
     });
 
-    // Get hourly breakdown
+    // Hourly breakdown
     const hourlySales: Record<number, number> = {};
-    orders.forEach((order: any) => {
+    allOrders.forEach(order => {
       const hour = new Date(order.createdDate).getHours();
       hourlySales[hour] = (hourlySales[hour] || 0) + (order.totalAmount || 0);
     });
@@ -95,17 +96,38 @@ export default async function handler(
       lastUpdated: new Date().toISOString(),
     };
 
-    console.log(`[Toast Proxy] Success: ${totalOrders} orders, $${salesData.totalSales}`);
+    console.log(`[Toast Sales] Success: ${totalOrders} orders, $${salesData.totalSales.toFixed(2)}`);
 
-    // Cache for 2 minutes
     res.setHeader('Cache-Control', 's-maxage=120');
     return res.status(200).json(salesData);
 
   } catch (error: any) {
-    console.error('[Toast Proxy] Failed:', error);
+    console.error('[Toast Sales] Failed:', error);
     return res.status(500).json({
       error: 'Failed to fetch sales data',
       message: error.message
     });
   }
+}
+
+async function fetchOrdersChunk(startDate: string, endDate: string, token: string, restaurantGuid: string): Promise<any[]> {
+  // Use ordersBulk endpoint (returns full order objects)
+  const url = `https://ws-api.toasttab.com/orders/v2/ordersBulk?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`;
+
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Toast-Restaurant-External-ID': restaurantGuid,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error(`[Toast Sales] Chunk error ${response.status}: ${errorText}`);
+    throw new Error(`Toast API Error: ${response.statusText}`);
+  }
+
+  return response.json();
 }

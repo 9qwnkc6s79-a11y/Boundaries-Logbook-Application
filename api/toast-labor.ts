@@ -1,17 +1,24 @@
 /**
  * Vercel Serverless Function: Toast Labor API Proxy
  *
- * This function acts as a proxy to fetch labor/time entry data from Toast API
- * to avoid CORS issues with direct browser requests.
+ * Fetches labor/time entries using OAuth2 authentication
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+
+async function getAuthToken(): Promise<string> {
+  const response = await fetch(`${process.env.VERCEL_URL ? 'https://' + process.env.VERCEL_URL : 'http://localhost:3000'}/api/toast-auth`);
+  if (!response.ok) {
+    throw new Error('Failed to get auth token');
+  }
+  const data = await response.json();
+  return data.accessToken;
+}
 
 export default async function handler(
   req: VercelRequest,
   res: VercelResponse
 ) {
-  // Only allow GET requests
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -22,32 +29,28 @@ export default async function handler(
     return res.status(400).json({ error: 'startDate and endDate are required' });
   }
 
-  // Get Toast credentials from environment
-  const clientId = process.env.VITE_TOAST_CLIENT_ID;
-  const clientSecret = process.env.VITE_TOAST_API_KEY;
   const restaurantGuid = process.env.VITE_TOAST_RESTAURANT_GUID;
 
-  if (!clientId || !clientSecret || !restaurantGuid) {
+  if (!restaurantGuid) {
     return res.status(500).json({ error: 'Toast API not configured' });
   }
 
   try {
-    console.log(`[Toast Proxy] Fetching labor: ${startDate} to ${endDate}`);
+    console.log(`[Toast Labor] Fetching: ${startDate} to ${endDate}`);
 
-    // Toast uses Basic Auth with Client ID and Client Secret
-    const authString = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+    // Get OAuth2 token
+    const token = await getAuthToken();
 
-    // Convert dates to ISO 8601 format with timezone (Toast requires this format)
-    const startDateTime = `${startDate}T00:00:00.000Z`;
-    const endDateTime = `${endDate}T23:59:59.999Z`;
+    // Labor API uses businessDate format (YYYYMMDD)
+    const businessDate = startDate.replace(/-/g, '');
 
     // Call Toast Labor API
-    const laborUrl = `https://ws-api.toasttab.com/labor/v1/timeEntries?startDate=${encodeURIComponent(startDateTime)}&endDate=${encodeURIComponent(endDateTime)}`;
+    const laborUrl = `https://ws-api.toasttab.com/labor/v1/timeEntries?businessDate=${businessDate}`;
 
     const response = await fetch(laborUrl, {
       method: 'GET',
       headers: {
-        'Authorization': `Basic ${authString}`,
+        'Authorization': `Bearer ${token}`,
         'Toast-Restaurant-External-ID': restaurantGuid,
         'Content-Type': 'application/json',
       },
@@ -55,7 +58,7 @@ export default async function handler(
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`[Toast Proxy] Error ${response.status}: ${errorText}`);
+      console.error(`[Toast Labor] Error ${response.status}: ${errorText}`);
       return res.status(response.status).json({
         error: `Toast API Error: ${response.statusText}`,
         details: errorText
@@ -103,10 +106,10 @@ export default async function handler(
 
     const laborSummary = Array.from(employeeMap.values()).sort((a, b) => b.totalHours - a.totalHours);
 
-    // Get currently clocked in
+    // Currently clocked in (no outDate)
     const currentlyClocked = timeEntries.filter((entry: any) => !entry.outDate);
 
-    console.log(`[Toast Proxy] Success: ${timeEntries.length} time entries, ${currentlyClocked.length} clocked in`);
+    console.log(`[Toast Labor] Success: ${timeEntries.length} entries, ${currentlyClocked.length} clocked in`);
 
     const result = {
       timeEntries,
@@ -115,12 +118,11 @@ export default async function handler(
       lastUpdated: new Date().toISOString(),
     };
 
-    // Cache for 1 minute (labor data changes more frequently)
     res.setHeader('Cache-Control', 's-maxage=60');
     return res.status(200).json(result);
 
   } catch (error: any) {
-    console.error('[Toast Proxy] Failed:', error);
+    console.error('[Toast Labor] Failed:', error);
     return res.status(500).json({
       error: 'Failed to fetch labor data',
       message: error.message
