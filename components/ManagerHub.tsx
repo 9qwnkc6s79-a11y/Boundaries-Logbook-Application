@@ -231,21 +231,27 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
   const allPhotos = useMemo(() => {
     return (submissions || []).flatMap(s => {
       const tpl = templates.find(t => t.id === s.templateId);
-      return (s.taskResults || []).filter(tr => tr.photoUrl).map(tr => ({
-        id: `${s.id}-${tr.taskId}`,
-        submissionId: s.id,
-        taskId: tr.taskId,
-        url: tr.photoUrl!,
-        title: tpl?.tasks?.find(tk => tk.id === tr.taskId)?.title || 'Standard',
-        user: allUsers.find(u => u.id === tr.completedByUserId)?.name || 'Unknown',
-        date: s.date,
-        templateName: tpl?.name || 'Log',
-        aiFlagged: tr.aiFlagged,
-        aiReason: tr.aiReason,
-        managerOverride: tr.managerOverride,
-        overrideBy: tr.overrideBy,
-        overrideAt: tr.overrideAt
-      }));
+      return (s.taskResults || []).flatMap(tr => {
+        // Support both old photoUrl format and new photoUrls array format
+        const photoUrls = tr.photoUrls || (tr.photoUrl ? [tr.photoUrl] : []);
+
+        // Create an entry for each photo
+        return photoUrls.map((url, idx) => ({
+          id: `${s.id}-${tr.taskId}-${idx}`,
+          submissionId: s.id,
+          taskId: tr.taskId,
+          url: url,
+          title: tpl?.tasks?.find(tk => tk.id === tr.taskId)?.title || 'Standard',
+          user: allUsers.find(u => u.id === tr.completedByUserId)?.name || 'Unknown',
+          date: s.date,
+          templateName: tpl?.name || 'Log',
+          aiFlagged: tr.aiFlagged,
+          aiReason: tr.aiReason,
+          managerOverride: tr.managerOverride,
+          overrideBy: tr.overrideBy,
+          overrideAt: tr.overrideAt
+        }));
+      });
     }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [submissions, templates, allUsers]);
 
