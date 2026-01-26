@@ -37,8 +37,12 @@ export default async function handler(
     // Toast uses Basic Auth with Client ID and Client Secret
     const authString = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
 
+    // Convert dates to ISO 8601 format with timezone (Toast requires this format)
+    const startDateTime = `${startDate}T00:00:00.000Z`;
+    const endDateTime = `${endDate}T23:59:59.999Z`;
+
     // Call Toast Orders API
-    const ordersUrl = `https://ws-api.toasttab.com/orders/v2/orders?startDate=${startDate}&endDate=${endDate}`;
+    const ordersUrl = `https://ws-api.toasttab.com/orders/v2/orders?startDate=${encodeURIComponent(startDateTime)}&endDate=${encodeURIComponent(endDateTime)}`;
 
     const response = await fetch(ordersUrl, {
       method: 'GET',
