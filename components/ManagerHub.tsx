@@ -405,7 +405,9 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
     try {
       console.log('[Toast] Fetching fresh POS data...');
       const today = new Date().toISOString().split('T')[0];
-      const location = currentStoreId.toLowerCase(); // Convert LITTLEELM/PROSPER to littleelm/prosper
+      // Map store IDs to Toast location names
+      const location = currentStoreId === 'store-prosper' ? 'prosper' : 'littleelm';
+      console.log(`[Toast] Using location: ${location} for storeId: ${currentStoreId}`);
 
       // Fetch all data in parallel
       const [sales, laborData] = await Promise.all([
