@@ -1,13 +1,15 @@
 /**
  * Vercel Serverless Function: Toast Sales API Proxy
  *
- * Fetches sales data using OAuth2 authentication and ordersBulk endpoint
+ * Fetches sales data using OAuth2 authentication and orders endpoint
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
+// Helper to delay execution
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
 async function getAuthToken(): Promise<string> {
-  // Get credentials directly instead of calling another endpoint
   const clientId = process.env.VITE_TOAST_CLIENT_ID;
   const clientSecret = process.env.VITE_TOAST_API_KEY;
 
@@ -15,7 +17,6 @@ async function getAuthToken(): Promise<string> {
     throw new Error('Toast credentials not configured');
   }
 
-  // Authenticate with Toast
   const authResponse = await fetch('https://ws-api.toasttab.com/authentication/v1/authentication/login', {
     method: 'POST',
     headers: {
@@ -31,14 +32,10 @@ async function getAuthToken(): Promise<string> {
   if (!authResponse.ok) {
     const errorText = await authResponse.text();
     console.error('[Toast Auth] HTTP', authResponse.status, ':', errorText);
-    console.error('[Toast Auth] Client ID:', clientId?.substring(0, 10) + '...');
     throw new Error(`Toast auth failed (${authResponse.status}): ${errorText}`);
   }
 
   const authData = await authResponse.json();
-  console.log('[Toast Auth] Response:', JSON.stringify(authData).substring(0, 200));
-
-  // Extract token from nested structure
   if (!authData.token || !authData.token.accessToken) {
     throw new Error('Invalid auth response from Toast');
   }
@@ -60,10 +57,8 @@ export default async function handler(
     return res.status(400).json({ error: 'startDate and endDate are required' });
   }
 
-  // Ensure query params are strings (not arrays)
   const startDateStr = Array.isArray(startDate) ? startDate[0] : startDate;
   const endDateStr = Array.isArray(endDate) ? endDate[0] : endDate;
-
   const restaurantGuid = process.env.VITE_TOAST_RESTAURANT_GUID;
 
   if (!restaurantGuid) {
@@ -72,31 +67,59 @@ export default async function handler(
 
   try {
     console.log(`[Toast Sales] Fetching: ${startDateStr} to ${endDateStr}`);
-
-    // Get OAuth2 token
     const token = await getAuthToken();
 
-    // Convert dates to full ISO format with milliseconds (required by Toast)
-    const start = new Date(`${startDateStr}T00:00:00.000Z`);
-    const end = new Date(`${endDateStr}T23:59:59.999Z`);
-
-    // Toast Standard API: 1-hour limit per request
-    // Break into hourly chunks if needed
-    const hoursDiff = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+    // Toast ordersBulk supports up to 1 hour per request
+    // For a single day, we need to make multiple requests
+    const start = new Date(`${startDateStr}T00:00:00.000`);
+    const end = new Date(`${endDateStr}T23:59:59.999`);
+    
     const allOrders: any[] = [];
-
-    if (hoursDiff <= 1) {
-      // Single request
-      const orders = await fetchOrdersChunk(start.toISOString(), end.toISOString(), token, restaurantGuid);
-      allOrders.push(...orders);
-    } else {
-      // Multiple hourly requests
-      let current = new Date(start);
-      while (current < end) {
-        const chunkEnd = new Date(Math.min(current.getTime() + (60 * 60 * 1000), end.getTime()));
-        const orders = await fetchOrdersChunk(current.toISOString(), chunkEnd.toISOString(), token, restaurantGuid);
+    let current = new Date(start);
+    let requestCount = 0;
+    const maxRequests = 25; // Safety limit
+    
+    while (current < end && requestCount < maxRequests) {
+      // 1-hour chunks
+      const chunkEnd = new Date(Math.min(current.getTime() + (60 * 60 * 1000), end.getTime()));
+      
+      try {
+        const orders = await fetchOrdersChunk(
+          current.toISOString(),
+          chunkEnd.toISOString(),
+          token,
+          restaurantGuid
+        );
         allOrders.push(...orders);
-        current = chunkEnd;
+      } catch (chunkError: any) {
+        // If rate limited, wait and retry once
+        if (chunkError.message?.includes('429')) {
+          console.log('[Toast Sales] Rate limited, waiting 2s...');
+          await delay(2000);
+          try {
+            const orders = await fetchOrdersChunk(
+              current.toISOString(),
+              chunkEnd.toISOString(),
+              token,
+              restaurantGuid
+            );
+            allOrders.push(...orders);
+          } catch (retryError: any) {
+            console.error('[Toast Sales] Retry also failed:', retryError.message);
+            // Continue to next chunk instead of failing completely
+          }
+        } else if (!chunkError.message?.includes('404')) {
+          // Log but don't throw for non-404 errors
+          console.error('[Toast Sales] Chunk error:', chunkError.message);
+        }
+      }
+      
+      current = chunkEnd;
+      requestCount++;
+      
+      // Small delay between requests to avoid rate limiting
+      if (current < end) {
+        await delay(200);
       }
     }
 
@@ -122,27 +145,22 @@ export default async function handler(
     const salesData = {
       startDate: startDateStr,
       endDate: endDateStr,
-      totalSales: totalSales / 100, // Toast stores in cents
+      totalSales: totalSales / 100,
       totalOrders,
       averageCheck: totalOrders > 0 ? totalSales / totalOrders / 100 : 0,
       totalTips: totalTips / 100,
       paymentMethods,
       hourlySales,
+      requestsMade: requestCount,
       lastUpdated: new Date().toISOString(),
     };
 
     console.log(`[Toast Sales] Success: ${totalOrders} orders, $${salesData.totalSales.toFixed(2)}`);
-
-    res.setHeader('Cache-Control', 's-maxage=120');
+    res.setHeader('Cache-Control', 's-maxage=300');
     return res.status(200).json(salesData);
 
   } catch (error: any) {
     console.error('[Toast Sales] Failed:', error);
-    console.error('[Toast Sales] Error details:', {
-      message: error.message,
-      stack: error.stack,
-      name: error.name
-    });
     return res.status(500).json({
       error: 'Failed to fetch sales data',
       message: error.message,
@@ -151,11 +169,15 @@ export default async function handler(
   }
 }
 
-async function fetchOrdersChunk(startDate: string, endDate: string, token: string, restaurantGuid: string): Promise<any[]> {
-  // Use ordersBulk endpoint (returns full order objects)
+async function fetchOrdersChunk(
+  startDate: string,
+  endDate: string,
+  token: string,
+  restaurantGuid: string
+): Promise<any[]> {
   const url = `https://ws-api.toasttab.com/orders/v2/ordersBulk?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`;
-
-  console.log(`[Toast Sales] Fetching from: ${url}`);
+  
+  console.log(`[Toast Sales] Fetching chunk: ${startDate} to ${endDate}`);
 
   const response = await fetch(url, {
     method: 'GET',
@@ -168,29 +190,23 @@ async function fetchOrdersChunk(startDate: string, endDate: string, token: strin
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error(`[Toast Sales] Chunk error ${response.status}: ${errorText}`);
-
-    // If 404, might mean no orders - return empty array
+    console.error(`[Toast Sales] Chunk error ${response.status}: ${errorText.substring(0, 200)}`);
+    
     if (response.status === 404) {
-      console.log('[Toast Sales] No orders found (404), returning empty array');
-      return [];
+      return []; // No orders in this time range
     }
-
-    throw new Error(`Toast API Error (${response.status}): ${errorText || response.statusText}`);
+    
+    throw new Error(`Toast API Error (${response.status}): ${errorText.substring(0, 100)}`);
   }
 
   const data = await response.json();
-  console.log(`[Toast Sales] Response type: ${Array.isArray(data) ? 'array' : typeof data}, length: ${Array.isArray(data) ? data.length : 'N/A'}`);
+  console.log(`[Toast Sales] Got ${Array.isArray(data) ? data.length : 'N/A'} orders`);
 
-  // Handle both array response and object with data property
   if (Array.isArray(data)) {
     return data;
   } else if (data && Array.isArray(data.data)) {
     return data.data;
-  } else if (data && typeof data === 'object') {
-    console.log('[Toast Sales] Unexpected response format:', Object.keys(data));
-    return [];
   }
-
+  
   return [];
 }
