@@ -150,9 +150,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     });
 
-    // Calculate turn time statistics
+    // Calculate turn time statistics (keep decimal precision for seconds)
     const avgTurnTime = turnTimes.length > 0
-      ? Math.round(turnTimes.reduce((sum, t) => sum + t, 0) / turnTimes.length)
+      ? turnTimes.reduce((sum, t) => sum + t, 0) / turnTimes.length
       : 0;
 
     const salesData = {

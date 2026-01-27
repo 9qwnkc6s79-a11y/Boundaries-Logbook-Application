@@ -56,6 +56,18 @@ const Layout: React.FC<LayoutProps> = ({
 
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
 
+  // Format turn time from decimal minutes to "Xm Ys"
+  const formatTurnTime = (decimalMinutes: number): { minutes: number, seconds: number, formatted: string, formattedShort: string } => {
+    const minutes = Math.floor(decimalMinutes);
+    const seconds = Math.round((decimalMinutes - minutes) * 60);
+    return {
+      minutes,
+      seconds,
+      formatted: `${minutes}m ${seconds}s`,
+      formattedShort: `${minutes}:${seconds.toString().padStart(2, '0')}`
+    };
+  };
+
   const scrollToBottom = () => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -203,10 +215,10 @@ User Question: ${userMsg}`,
               </div>
               <div className="flex items-baseline gap-1">
                 <span className="text-xl font-black text-white tracking-tight">
-                  {toastSales.averageTurnTime}
+                  {formatTurnTime(toastSales.averageTurnTime).formatted}
                 </span>
                 <span className="text-[8px] font-bold text-amber-300/60 uppercase tracking-wider ml-1">
-                  mins avg
+                  avg
                 </span>
               </div>
             </div>
@@ -318,7 +330,7 @@ User Question: ${userMsg}`,
               {toastSales && toastSales.averageTurnTime > 0 && (
                 <div className="bg-gradient-to-br from-amber-500/10 to-orange-500/5 rounded-lg px-2.5 py-1.5 border border-amber-500/20 flex items-center gap-1.5">
                   <Clock size={12} className="text-amber-600" />
-                  <span className="text-xs font-black text-[#001F3F]">{toastSales.averageTurnTime}m</span>
+                  <span className="text-xs font-black text-[#001F3F]">{formatTurnTime(toastSales.averageTurnTime).formattedShort}</span>
                 </div>
               )}
             </div>
