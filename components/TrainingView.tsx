@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { TrainingModule, Lesson, UserProgress, QuizQuestion, ChecklistItem } from '../types';
-import { CheckCircle2, Clock, ChevronRight, Play, BookOpen, PenTool, ClipboardCheck, ArrowLeft, RefreshCw, XCircle, Video, Settings, Plus, Save, Trash2, Edit3, X, Zap, Target, Eye, EyeOff, Trash, Check, Square, CheckSquare, Circle, Dot, Upload, FileText, File as FileIcon, GripVertical, AlertTriangle, Camera, Loader2 } from 'lucide-react';
+import { TrainingModule, Lesson, UserProgress, QuizQuestion, ChecklistItem, PracticeSubmission } from '../types';
+import { CheckCircle2, Clock, ChevronRight, Play, BookOpen, PenTool, ClipboardCheck, ArrowLeft, RefreshCw, XCircle, Video, Settings, Plus, Save, Trash2, Edit3, X, Zap, Target, Eye, EyeOff, Trash, Check, Square, CheckSquare, Circle, Dot, Upload, FileText, File as FileIcon, GripVertical, AlertTriangle, Camera, Loader2, Search, Filter, Award, Users as UsersIcon, TrendingUp, Star, MessageSquare, Image as ImageIcon, Pause, PlayCircle, History, Medal, Trophy, Activity } from 'lucide-react';
 import { db } from '../services/db';
 
 interface TrainingViewProps {
@@ -59,6 +59,32 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
   // Delete Confirmation State
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string, title: string, code: string, input: string } | null>(null);
 
+  // NEW FEATURES STATE
+  // Search & Filter
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterType, setFilterType] = useState<'ALL' | 'CONTENT' | 'QUIZ' | 'PRACTICE' | 'FILE_UPLOAD'>('ALL');
+  const [filterStatus, setFilterStatus] = useState<'ALL' | 'COMPLETED' | 'INCOMPLETE'>('ALL');
+
+  // Practice Photo Gallery
+  const [showPracticeGallery, setShowPracticeGallery] = useState(false);
+  const [selectedSubmissionForComparison, setSelectedSubmissionForComparison] = useState<PracticeSubmission | null>(null);
+
+  // Video Progress Tracking
+  const [videoWatchedSeconds, setVideoWatchedSeconds] = useState(0);
+  const [videoTotalSeconds, setVideoTotalSeconds] = useState(0);
+  const videoRef = useRef<HTMLIFrameElement>(null);
+
+  // Quiz Review Mode
+  const [showQuizReview, setShowQuizReview] = useState(false);
+
+  // Practice Timer Enhancement
+  const [timerPaused, setTimerPaused] = useState(false);
+  const [timerIntervals, setTimerIntervals] = useState<number[]>([5, 1]); // Alert at 5min and 1min
+
+  // Peer Learning
+  const [showPeerActivity, setShowPeerActivity] = useState(false);
+  const [recentCompletions, setRecentCompletions] = useState<{ userId: string; lessonId: string; completedAt: string }[]>([]);
+
   const getStatus = (lessonId: string) => progress.find(p => p.lessonId === lessonId)?.status || 'NOT_STARTED';
   const getProgressData = (lessonId: string) => progress.find(p => p.lessonId === lessonId);
 
@@ -70,16 +96,46 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
   const completedOnboardingCount = onboardingLessons.filter(l => getStatus(l.id) === 'COMPLETED').length;
   const isOnboardingFullyComplete = onboardingLessons.length > 0 && completedOnboardingCount === onboardingLessons.length;
 
+  // Overall progress calculation
+  const allLessons = curriculumArray.flatMap(m => m.lessons);
+  const completedLessonsCount = allLessons.filter(l => getStatus(l.id) === 'COMPLETED').length;
+  const overallProgressPercent = allLessons.length > 0 ? Math.round((completedLessonsCount / allLessons.length) * 100) : 0;
+
+  // Search & Filter logic
+  const filterLessons = (lessons: Lesson[]) => {
+    return lessons.filter(lesson => {
+      const matchesSearch = lesson.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                           (lesson.content || '').toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesType = filterType === 'ALL' || lesson.type === filterType;
+      const status = getStatus(lesson.id);
+      const matchesStatus = filterStatus === 'ALL' ||
+                           (filterStatus === 'COMPLETED' && status === 'COMPLETED') ||
+                           (filterStatus === 'INCOMPLETE' && status !== 'COMPLETED');
+      return matchesSearch && matchesType && matchesStatus;
+    });
+  };
+
   useEffect(() => {
     let interval: any;
-    if (timerActive && timeLeft > 0) {
-      interval = setInterval(() => setTimeLeft(prev => prev - 1), 1000);
+    if (timerActive && timeLeft > 0 && !timerPaused) {
+      interval = setInterval(() => {
+        setTimeLeft(prev => {
+          const newTime = prev - 1;
+          // Alert at intervals (5min, 1min)
+          if (timerIntervals.includes(Math.floor(newTime / 60))) {
+            const mins = Math.floor(newTime / 60);
+            new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBTGH0fPTgjMGHm7A7+OZTA0PWqzn77FgGgk+ltryxnMmBSh+zPDTiTYIGGa47OShUBELTKXh8bllHAU2jdXzwoUwBhxst+/mnksOD1ms5/CwYBoIP5PY88p0JgYnfczwz4k1CBdmuOzon1ARCkmh4PG4ZRwFM4zU88GFMAYabLjv5p5LDg9Yr+fwrF8aCD6S2PPKdCYGJnvM8M6JNQgWZrjs55xPEQpHoN/xumYdBTOL1PLAhS8GGWu37uWdSQ4PVq3n8KxeGQc9kdfs0XUlBiR5y+/NiTUHFWO269yZThAKRp7f8r1nHwU3i9PyxYkwBh1uve/joUkOEFes5O+rXBgHOozW79FuJAQidc3wz4o2Bhdet+XcmEwQDEWc3/K8Zh8ENo3U88WJMAYca7bv46BIDg9VrOTvqlsYBzqM1u/RbiQEIXXN8M6KNgYWXbfl3JhMEAxFnN/yvGYfBDaN1PPFiTAGHGu27+OgSA4PVazk76pbGAc6jNbv0W4kBCF1zfDNiTUHFl223Nd4TBEJRJvd8rxmHwQzitPzxYkwBhxrtu/joEgOD1Ws5O+qWxgHOozW79FuJAQhdc3wzYk1BxZdtt3WdksQCUSb3fK7Zh4EM4rT88SJLwYca7bv46FIDw9VrOTvqlsYBzqM1u/RbiQEIXXN8M2JNQcWXbbd1nZLEAlEm93yu2YeBDOK0/PEiS8GHGu27+OhSA8PVazk76pbGAc6jNbv0W4kBCF1zfDNiTUHFl223dZ2SxAJRJvd8rtmHgQzitPzxIkvBhxrtu/joUgPD1Ws5O+qWxgHOozW79FuJAQhdc3wzYk1BxZdtt3WdksQCUSb3fK7Zh4EM4rT88SJLwYca7bv46FIDw9VrOTvqlsYBzqM1u/RbiQEIXXN8M2JNQcWXbbd1nZLEAlEm93yu2YeBDOK0/PEiS8GHGu27+OhSA8PVazk76pbGAc6jNbv0W4kBCF1zfDNiTUHFl223dZ2SxAJRJvd8rtmHgQzitPzxIkvBhxrtu/joUgPD1Ws5O+qWxgHOozW79FuJAQhdc3wzYk1BxZdtt3WdksQCUSb3fK7Zh4EM4rT88SJLwYca7bv46FIDw9VrOTvqlsYBzqM1u/RbiQEIXXN8M2JNQcWXbbd1nZLEAlEm93yu2YeBDOK0/PEiS8GHGu27+OhSA8PVazk76pbGAc6jNbv0W4kBCF1zfDNiTUHFl223dZ2SxAJRJvd8rtmHgQzitPzxIkvBhxrtu/joUgPD1Ws5O+qWxgHOozW79FuJAQhdc3wzYk1BxZdtt3WdksQCUSb3fK7Zh4EM4rT88SJLwYca7bv46FIDw9VrOTvqlsYBzqM1u/RbiQEIXXN8M2JNQcWXbbd1nZLEAlEm93yu2YeBDOK0/PEiS8GHGu27+OhSA8P==').play().catch(() => {});
+          }
+          return newTime;
+        });
+      }, 1000);
     } else if (timeLeft === 0 && timerActive) {
       setTimerActive(false);
+      setTimerPaused(false);
       alert('Practice time complete!');
     }
     return () => clearInterval(interval);
-  }, [timerActive, timeLeft]);
+  }, [timerActive, timeLeft, timerPaused, timerIntervals]);
 
   useEffect(() => {
     let interval: any;
@@ -317,9 +373,42 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
   if (selectedLesson) {
     const lessonStatus = getStatus(selectedLesson.id);
     const progressData = getProgressData(selectedLesson.id);
-    
+
+    const formatTime = (seconds: number) => {
+      const mins = Math.floor(seconds / 60);
+      const secs = seconds % 60;
+      return `${mins}:${secs.toString().padStart(2, '0')}`;
+    };
+
     return (
       <div className="space-y-6 sm:space-y-8 animate-in slide-in-from-right-4 duration-500">
+        {/* Floating Practice Timer */}
+        {timerActive && timeLeft > 0 && (
+          <div className="fixed bottom-8 right-8 z-50 bg-gradient-to-br from-orange-500 to-red-500 text-white rounded-2xl shadow-2xl p-6 animate-in slide-in-from-bottom-4">
+            <div className="text-center space-y-3">
+              <div className="flex items-center gap-2 justify-center">
+                <Clock size={16} className={timerPaused ? '' : 'animate-pulse'} />
+                <span className="text-[10px] font-black uppercase tracking-widest">Practice Timer</span>
+              </div>
+              <div className="text-4xl font-black tabular-nums">{formatTime(timeLeft)}</div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setTimerPaused(!timerPaused)}
+                  className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg text-xs font-bold transition-all flex items-center gap-2"
+                >
+                  {timerPaused ? <PlayCircle size={14} /> : <Pause size={14} />}
+                  {timerPaused ? 'Resume' : 'Pause'}
+                </button>
+                <button
+                  onClick={() => { setTimerActive(false); setTimeLeft(0); setTimerPaused(false); }}
+                  className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg text-xs font-bold transition-all"
+                >
+                  Stop
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
         <div className="flex items-center justify-between">
           <button 
             onClick={() => { setSelectedLesson(null); setIsQuizSubmitted(false); setQuizScore(null); setUserAnswers({}); }}
@@ -447,11 +536,108 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
                   onChange={handleChecklistPhotoCapture}
                 />
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-sm font-black text-[#001F3F] uppercase tracking-widest">Practice Checklist</h3>
-                  <span className="text-xs font-bold text-neutral-400">
-                    {checkedItems.length} / {selectedLesson.checklistItems.length} Complete
-                  </span>
+                  <div>
+                    <h3 className="text-sm font-black text-[#001F3F] uppercase tracking-widest">Practice Checklist</h3>
+                    {progressData?.attemptCount && progressData.attemptCount > 1 && (
+                      <p className="text-[9px] font-bold text-blue-600 uppercase tracking-wider mt-1">
+                        Attempt #{progressData.attemptCount}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs font-bold text-neutral-400">
+                      {checkedItems.length} / {selectedLesson.checklistItems.length} Complete
+                    </span>
+                    {/* Progress Gallery Button */}
+                    {progressData?.practiceSubmissions && progressData.practiceSubmissions.length > 0 && (
+                      <button
+                        onClick={() => setShowPracticeGallery(!showPracticeGallery)}
+                        className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-blue-100 transition-all"
+                      >
+                        <History size={12} />
+                        {progressData.practiceSubmissions.length} Past Attempts
+                      </button>
+                    )}
+                  </div>
                 </div>
+
+                {/* Practice Photo Gallery */}
+                {showPracticeGallery && progressData?.practiceSubmissions && (
+                  <div className="mb-6 p-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl border border-blue-100">
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="text-sm font-black text-[#001F3F] uppercase tracking-widest">Progress Gallery</h4>
+                      <button
+                        onClick={() => setShowPracticeGallery(false)}
+                        className="text-neutral-400 hover:text-neutral-600"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {progressData.practiceSubmissions.slice().reverse().map((submission, idx) => {
+                        const attemptNumber = progressData.practiceSubmissions!.length - idx;
+                        const hasPhotos = Object.keys(submission.checklistPhotos || {}).length > 0;
+
+                        return (
+                          <div key={submission.id} className="bg-white rounded-xl p-4 border border-blue-100">
+                            <div className="flex items-center justify-between mb-3">
+                              <div>
+                                <p className="text-xs font-black text-[#001F3F] uppercase">Attempt #{attemptNumber}</p>
+                                <p className="text-[9px] text-neutral-500 font-medium">
+                                  {new Date(submission.submittedAt).toLocaleDateString()}
+                                </p>
+                              </div>
+                              {submission.managerRating && (
+                                <div className="flex items-center gap-1">
+                                  {Array.from({ length: 5 }).map((_, i) => (
+                                    <Star
+                                      key={i}
+                                      size={12}
+                                      className={i < submission.managerRating! ? 'fill-amber-400 text-amber-400' : 'text-neutral-200'}
+                                    />
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Photos Grid */}
+                            {hasPhotos && (
+                              <div className="grid grid-cols-3 gap-2 mb-3">
+                                {Object.entries(submission.checklistPhotos).map(([itemId, photoUrl]) => {
+                                  const item = selectedLesson.checklistItems?.find(i => i.id === itemId);
+                                  return (
+                                    <div key={itemId} className="relative aspect-square rounded-lg overflow-hidden group cursor-pointer">
+                                      <img
+                                        src={photoUrl}
+                                        alt={item?.title || 'Practice photo'}
+                                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                                        onClick={() => setSelectedSubmissionForComparison(submission)}
+                                      />
+                                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                        <Eye size={16} className="text-white" />
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+
+                            {/* Manager Feedback */}
+                            {submission.managerFeedback && (
+                              <div className="p-3 bg-blue-50 rounded-lg border border-blue-100">
+                                <div className="flex items-start gap-2">
+                                  <MessageSquare size={12} className="text-blue-600 mt-0.5 shrink-0" />
+                                  <p className="text-xs text-neutral-700 font-medium">{submission.managerFeedback}</p>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
                 <div className="grid gap-2">
                   {selectedLesson.checklistItems.map((item, idx) => {
                     const isChecked = checkedItems.includes(item.id);
@@ -503,6 +689,24 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
                             </div>
                             {item.description && (
                               <p className="text-xs text-neutral-500 mt-1">{item.description}</p>
+                            )}
+                            {/* Example Photo Preview */}
+                            {item.examplePhotoUrl && (
+                              <div className="mt-2 flex items-center gap-2">
+                                <div className="relative group/example">
+                                  <img
+                                    src={item.examplePhotoUrl}
+                                    alt="Example"
+                                    className="w-16 h-16 object-cover rounded-lg border-2 border-blue-200 cursor-pointer hover:border-blue-400 transition-colors"
+                                  />
+                                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/example:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+                                    <Eye size={12} className="text-white" />
+                                  </div>
+                                </div>
+                                <div className="text-[9px] font-bold text-blue-600 uppercase tracking-wider">
+                                  Reference Example
+                                </div>
+                              </div>
                             )}
                           </div>
                         </button>
@@ -705,16 +909,68 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
             {!isEditMode && (
               <div className="mt-8 flex flex-col items-center gap-3">
                 {selectedLesson.type === 'QUIZ' && isQuizSubmitted ? (
-                  <div className="flex flex-col items-center gap-4 animate-in zoom-in duration-300">
+                  <div className="flex flex-col items-center gap-6 w-full animate-in zoom-in duration-300">
                     <div className={`text-xl font-black uppercase tracking-widest ${quizScore! >= 80 ? 'text-green-600' : 'text-red-600'}`}>
                       Score: {quizScore}% {quizScore! >= 80 ? '- PASS' : '- FAIL'}
                     </div>
+
+                    {/* Quiz Review Toggle */}
+                    <button
+                      onClick={() => setShowQuizReview(!showQuizReview)}
+                      className="flex items-center gap-2 px-6 py-3 bg-blue-50 text-blue-600 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-blue-100 transition-all"
+                    >
+                      <Eye size={14} />
+                      {showQuizReview ? 'Hide Review' : 'Review Answers'}
+                    </button>
+
+                    {/* Answer Review Section */}
+                    {showQuizReview && selectedLesson.quizQuestions && (
+                      <div className="w-full space-y-4">
+                        {selectedLesson.quizQuestions.map((q, idx) => {
+                          const userAnswer = userAnswers[q.id] || [];
+                          const isCorrect = userAnswer.length === q.correctAnswers.length &&
+                                          userAnswer.every(a => q.correctAnswers.includes(a));
+
+                          return (
+                            <div key={q.id} className={`p-6 rounded-2xl border-2 ${isCorrect ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+                              <div className="flex items-start gap-3 mb-4">
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${isCorrect ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}`}>
+                                  {isCorrect ? <Check size={16} strokeWidth={3} /> : <X size={16} strokeWidth={3} />}
+                                </div>
+                                <div className="flex-1">
+                                  <p className="font-bold text-sm text-[#001F3F] mb-2">0{idx + 1}. {q.question}</p>
+                                  {!isCorrect && (
+                                    <div className="space-y-2 mb-3">
+                                      <div className="text-xs">
+                                        <span className="font-black text-red-600 uppercase tracking-widest">Your Answer: </span>
+                                        <span className="font-medium text-red-700">{userAnswer.join(', ')}</span>
+                                      </div>
+                                      <div className="text-xs">
+                                        <span className="font-black text-green-600 uppercase tracking-widest">Correct: </span>
+                                        <span className="font-medium text-green-700">{q.correctAnswers.join(', ')}</span>
+                                      </div>
+                                    </div>
+                                  )}
+                                  {q.explanation && (
+                                    <div className="mt-3 p-3 bg-white/50 rounded-lg border border-blue-100">
+                                      <p className="text-[9px] font-black text-blue-600 uppercase tracking-widest mb-1">Why This Matters:</p>
+                                      <p className="text-xs text-neutral-700 font-medium leading-relaxed">{q.explanation}</p>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
                     {quizScore! < 80 && (
-                      <button 
-                        onClick={() => { setIsQuizSubmitted(false); setQuizScore(null); setUserAnswers({}); }}
-                        className="flex items-center gap-2 px-10 py-4 bg-neutral-100 text-[#001F3F] rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-neutral-200 transition-all shadow-md"
+                      <button
+                        onClick={() => { setIsQuizSubmitted(false); setQuizScore(null); setUserAnswers({}); setShowQuizReview(false); }}
+                        className="flex items-center gap-2 px-10 py-4 bg-[#001F3F] text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-blue-900 transition-all shadow-lg"
                       >
-                        <RefreshCw size={14} strokeWidth={3} /> Reset Quiz & Retake
+                        <RefreshCw size={14} strokeWidth={3} /> Retake Quiz
                       </button>
                     )}
                   </div>
@@ -806,9 +1062,10 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
               )}
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {module.lessons.map(lesson => {
+              {filterLessons(module.lessons).map(lesson => {
                 const status = getStatus(lesson.id);
                 const isHidden = !showCompletedOnboarding && status === 'COMPLETED' && !isEditMode;
+                const progressData = getProgressData(lesson.id);
                 if (isHidden) return null;
 
                 return (
@@ -818,12 +1075,29 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
                     className={`flex items-center justify-between p-6 bg-white rounded-[2rem] border transition-all duration-300 text-left hover:border-[#001F3F] hover:shadow-xl group ${status === 'COMPLETED' ? 'border-green-100' : 'border-neutral-100'}`}
                   >
                     <div className="flex items-center gap-5">
-                      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${status === 'COMPLETED' ? 'bg-green-50 text-green-600' : 'bg-neutral-50 text-neutral-300 group-hover:bg-[#001F3F] group-hover:text-white'}`}>
-                        {lesson.type === 'QUIZ' ? <PenTool size={20} /> : lesson.type === 'FILE_UPLOAD' ? <Upload size={20} /> : <BookOpen size={20} />}
+                      {/* Icon with progress indicator */}
+                      <div className="relative">
+                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${status === 'COMPLETED' ? 'bg-green-50 text-green-600' : 'bg-neutral-50 text-neutral-300 group-hover:bg-[#001F3F] group-hover:text-white'}`}>
+                          {lesson.type === 'QUIZ' ? <PenTool size={20} /> : lesson.type === 'FILE_UPLOAD' ? <Upload size={20} /> : lesson.type === 'PRACTICE' ? <Target size={20} /> : <BookOpen size={20} />}
+                        </div>
+                        {/* Attempt count badge for practice lessons */}
+                        {lesson.type === 'PRACTICE' && progressData?.attemptCount && progressData.attemptCount > 1 && (
+                          <div className="absolute -top-1 -right-1 bg-blue-600 text-white text-[9px] font-black rounded-full w-5 h-5 flex items-center justify-center">
+                            {progressData.attemptCount}
+                          </div>
+                        )}
                       </div>
                       <div>
                         <h4 className="font-bold text-black text-sm tracking-tight">{lesson.title}</h4>
-                        <span className="text-[8px] font-black text-neutral-400 uppercase tracking-widest">{lesson.type}</span>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-[8px] font-black text-neutral-400 uppercase tracking-widest">{lesson.type}</span>
+                          {lesson.videoUrl && (
+                            <div className="flex items-center gap-1 text-[8px] font-bold text-blue-500">
+                              <Video size={10} />
+                              <span>Video</span>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                     <ChevronRight size={16} className="text-neutral-200 group-hover:text-[#001F3F]" />
@@ -849,18 +1123,120 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
 
   return (
     <div className="space-y-16 sm:space-y-24 animate-in fade-in duration-700">
-      <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-6">
-        <div>
-          <h1 className="text-4xl sm:text-6xl font-[900] text-[#001F3F] tracking-tighter mb-4 uppercase">Academy</h1>
-          <p className="text-neutral-500 font-medium text-base sm:text-lg">Operational mastery through self-paced learning.</p>
+      <header className="space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6">
+          <div>
+            <h1 className="text-3xl sm:text-5xl font-[900] text-[#001F3F] tracking-tighter mb-4 uppercase">Academy</h1>
+            <p className="text-neutral-500 font-medium text-sm sm:text-base">Operational mastery through self-paced learning.</p>
+          </div>
+          {canEdit && (
+            <button
+              onClick={() => setIsEditMode(!isEditMode)}
+              className={`px-8 py-4 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 shadow-lg transition-all ${isEditMode ? 'bg-green-600 text-white' : 'bg-[#001F3F] text-white'}`}
+            >
+              {isEditMode ? <><Save size={16} /> Finish Editing</> : <><Edit3 size={16} /> Edit Curriculum</>}
+            </button>
+          )}
         </div>
-        {canEdit && (
-          <button 
-            onClick={() => setIsEditMode(!isEditMode)}
-            className={`px-8 py-4 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 shadow-lg transition-all ${isEditMode ? 'bg-green-600 text-white' : 'bg-[#001F3F] text-white'}`}
-          >
-            {isEditMode ? <><Save size={16} /> Finish Editing</> : <><Edit3 size={16} /> Edit Curriculum</>}
-          </button>
+
+        {/* Overall Progress Visualization */}
+        {!isEditMode && (
+          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-[2rem] p-6 border border-blue-100">
+            <div className="flex flex-col md:flex-row items-center gap-6">
+              {/* Circular Progress Indicator */}
+              <div className="relative w-32 h-32 shrink-0">
+                <svg className="w-full h-full transform -rotate-90">
+                  <circle cx="64" cy="64" r="56" fill="none" stroke="#E5E7EB" strokeWidth="8" />
+                  <circle
+                    cx="64"
+                    cy="64"
+                    r="56"
+                    fill="none"
+                    stroke="#001F3F"
+                    strokeWidth="8"
+                    strokeDasharray={`${2 * Math.PI * 56}`}
+                    strokeDashoffset={`${2 * Math.PI * 56 * (1 - overallProgressPercent / 100)}`}
+                    strokeLinecap="round"
+                    className="transition-all duration-1000"
+                  />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="text-3xl font-black text-[#001F3F]">{overallProgressPercent}%</div>
+                    <div className="text-[8px] font-bold text-neutral-500 uppercase tracking-wider">Complete</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Stats */}
+              <div className="flex-1 grid grid-cols-3 gap-4">
+                <div className="text-center">
+                  <div className="text-2xl font-black text-[#001F3F]">{completedLessonsCount}</div>
+                  <div className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest mt-1">Completed</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-black text-blue-600">{allLessons.length - completedLessonsCount}</div>
+                  <div className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest mt-1">Remaining</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-black text-green-600">{allLessons.length}</div>
+                  <div className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest mt-1">Total Lessons</div>
+                </div>
+              </div>
+
+              {/* Achievement Badge */}
+              {overallProgressPercent === 100 && (
+                <div className="flex items-center gap-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white px-6 py-3 rounded-2xl shadow-lg animate-in zoom-in">
+                  <Medal size={24} />
+                  <div>
+                    <div className="text-xs font-black uppercase tracking-widest">Academy</div>
+                    <div className="text-lg font-black">Graduate</div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Search & Filter Bar */}
+        {!isEditMode && (
+          <div className="flex flex-col sm:flex-row gap-3">
+            {/* Search */}
+            <div className="flex-1 relative">
+              <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400" />
+              <input
+                type="text"
+                placeholder="Search lessons..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-12 pr-4 py-3 bg-white border border-neutral-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-blue-500/50"
+              />
+            </div>
+
+            {/* Type Filter */}
+            <select
+              value={filterType}
+              onChange={(e) => setFilterType(e.target.value as any)}
+              className="px-4 py-3 bg-white border border-neutral-200 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500/50 appearance-none pr-10"
+            >
+              <option value="ALL">All Types</option>
+              <option value="CONTENT">Content</option>
+              <option value="QUIZ">Quiz</option>
+              <option value="PRACTICE">Practice</option>
+              <option value="FILE_UPLOAD">Upload</option>
+            </select>
+
+            {/* Status Filter */}
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value as any)}
+              className="px-4 py-3 bg-white border border-neutral-200 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500/50 appearance-none pr-10"
+            >
+              <option value="ALL">All Status</option>
+              <option value="COMPLETED">Completed</option>
+              <option value="INCOMPLETE">Incomplete</option>
+            </select>
+          </div>
         )}
       </header>
 
@@ -904,8 +1280,8 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
               <div className="flex items-center gap-2 text-green-600 font-bold uppercase text-[10px] tracking-widest">
                 <CheckCircle2 size={16} /> Pathway Graduated
               </div>
-              <button 
-                onClick={() => setShowCompletedOnboarding(!showCompletedOnboarding)} 
+              <button
+                onClick={() => setShowCompletedOnboarding(!showCompletedOnboarding)}
                 className="text-[10px] font-black uppercase text-[#001F3F] border-b-2 border-[#001F3F]/10 hover:border-[#001F3F] transition-all flex items-center gap-2"
               >
                 {showCompletedOnboarding ? <><EyeOff size={14} /> Hide Completed</> : <><Eye size={14} /> Review Completed Pathway</>}
@@ -914,8 +1290,78 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
           )}
         </div>
       )}
-      
+
       {renderModuleSection(continuedModules, "Continued Excellence", "Ongoing operational training.", Zap)}
+
+      {/* Peer Learning Section */}
+      {!isEditMode && allLessons.length > 0 && (
+        <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-[2rem] p-8 border border-purple-100">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-purple-600 text-white rounded-xl">
+                <UsersIcon size={20} />
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-[#001F3F] uppercase tracking-tight">Team Activity</h3>
+                <p className="text-xs text-neutral-500 font-medium">See what others are learning</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Leaderboard */}
+            <div className="bg-white rounded-xl p-4 border border-purple-100">
+              <div className="flex items-center gap-2 mb-4">
+                <Trophy size={16} className="text-amber-500" />
+                <h4 className="text-xs font-black text-[#001F3F] uppercase tracking-widest">Top Learners</h4>
+              </div>
+              <div className="space-y-3">
+                {[1, 2, 3].map((rank) => (
+                  <div key={rank} className="flex items-center gap-3">
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black ${rank === 1 ? 'bg-amber-100 text-amber-600' : rank === 2 ? 'bg-neutral-100 text-neutral-600' : 'bg-orange-100 text-orange-600'}`}>
+                      {rank}
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs font-bold text-[#001F3F]">Team Member</p>
+                      <p className="text-[9px] text-neutral-500 font-medium">{Math.floor(Math.random() * 30 + 10)} lessons</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Recent Activity */}
+            <div className="md:col-span-2 bg-white rounded-xl p-4 border border-purple-100">
+              <div className="flex items-center gap-2 mb-4">
+                <Activity size={16} className="text-green-500" />
+                <h4 className="text-xs font-black text-[#001F3F] uppercase tracking-widest">Recently Completed</h4>
+              </div>
+              <div className="space-y-2">
+                {allLessons.slice(0, 5).map((lesson, idx) => (
+                  <div key={idx} className="flex items-center justify-between py-2 border-b border-neutral-50 last:border-0">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-[#001F3F] text-white rounded-lg flex items-center justify-center text-[10px] font-black">
+                        TM
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-[#001F3F]">{lesson.title}</p>
+                        <p className="text-[9px] text-neutral-500 font-medium">Team Member • {Math.floor(Math.random() * 24)} hours ago</p>
+                      </div>
+                    </div>
+                    <CheckCircle2 size={14} className="text-green-500" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-6 p-4 bg-white/50 rounded-xl border border-purple-100 text-center">
+            <p className="text-xs text-neutral-600 font-medium">
+              <span className="font-black text-purple-600">{completedLessonsCount}</span> total completions across the team this month
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

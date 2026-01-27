@@ -33,6 +33,7 @@ export interface ChecklistItem {
   title: string;
   description?: string;
   requiresPhoto?: boolean;
+  examplePhotoUrl?: string; // Reference photo showing what the result should look like
 }
 
 export interface Lesson {
@@ -47,6 +48,7 @@ export interface Lesson {
   signOffRequired?: boolean;
   fileLabel?: string;
   checklistItems?: ChecklistItem[]; // For PRACTICE lessons with checkable items
+  requiredWatchPercentage?: number; // Minimum % of video required to watch (default 80)
 }
 
 export interface QuizQuestion {
@@ -55,6 +57,7 @@ export interface QuizQuestion {
   question: string;
   options?: string[];
   correctAnswers: string[];
+  explanation?: string; // Why this answer is correct / what trainees should know
 }
 
 export interface TrainingModule {
@@ -63,6 +66,26 @@ export interface TrainingModule {
   description: string;
   category: 'ONBOARDING' | 'CONTINUED' | 'BARISTA_SKILLS';
   lessons: Lesson[];
+}
+
+export interface PracticeSubmission {
+  id: string;
+  lessonId: string;
+  userId: string;
+  submittedAt: string;
+  checklistCompleted: string[];
+  checklistPhotos: Record<string, string>;
+  managerFeedback?: string; // Optional feedback from manager
+  managerRating?: number; // 1-5 star rating
+}
+
+export interface VideoProgress {
+  lessonId: string;
+  userId: string;
+  watchedSeconds: number;
+  totalSeconds: number;
+  lastWatchedAt: string;
+  completed: boolean;
 }
 
 export interface UserProgress {
@@ -74,8 +97,12 @@ export interface UserProgress {
   completedAt?: string;
   fileUrl?: string;
   fileName?: string;
-  checklistCompleted?: string[]; // IDs of completed checklist items
-  checklistPhotos?: Record<string, string>; // Photos for checklist items (itemId -> photoUrl)
+  checklistCompleted?: string[]; // IDs of completed checklist items (latest submission)
+  checklistPhotos?: Record<string, string>; // Photos for checklist items (latest submission)
+  practiceSubmissions?: PracticeSubmission[]; // History of all practice attempts
+  videoProgress?: VideoProgress; // Video watch tracking
+  attemptCount?: number; // Number of times lesson was attempted
+  lastAttemptDate?: string; // Date of most recent attempt
 }
 
 export interface ChecklistTask {
