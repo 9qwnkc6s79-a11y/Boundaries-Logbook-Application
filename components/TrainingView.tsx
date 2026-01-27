@@ -832,16 +832,62 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
             {selectedLesson.type === 'FILE_UPLOAD' && (
               <div className="bg-neutral-50 rounded-[2rem] p-10 border border-neutral-100 mb-8 text-center">
                 {lessonStatus === 'COMPLETED' ? (
-                  <div className="flex flex-col items-center gap-4">
+                  <div className="flex flex-col items-center gap-6">
                     <FileCheckIcon size={48} />
                     <p className="font-black text-[#001F3F] uppercase tracking-tight">Certification Logged: {progressData?.fileName}</p>
                     {progressData?.fileUrl && (
                       <button onClick={() => window.open(progressData.fileUrl)} className="text-xs font-bold text-[#001F3F] underline">View Copy</button>
                     )}
+
+                    {/* Navigation for completed file uploads */}
+                    {(() => {
+                      const currentModule = curriculumArray.find(m =>
+                        m.lessons.some(l => l.id === selectedLesson.id)
+                      );
+                      const currentLessonIndex = currentModule?.lessons.findIndex(l => l.id === selectedLesson.id) ?? -1;
+                      const previousLesson = currentLessonIndex > 0 ? currentModule?.lessons[currentLessonIndex - 1] : null;
+                      const nextLesson = currentModule && currentLessonIndex < currentModule.lessons.length - 1
+                        ? currentModule.lessons[currentLessonIndex + 1]
+                        : null;
+
+                      return (previousLesson || nextLesson) ? (
+                        <div className="flex flex-row items-center gap-3 w-full max-w-md mt-4">
+                          {previousLesson && (
+                            <button
+                              onClick={() => {
+                                setSelectedLesson(previousLesson);
+                                setIsQuizSubmitted(false);
+                                setQuizScore(null);
+                                setUserAnswers({});
+                              }}
+                              className="flex items-center justify-center gap-2 px-6 py-4 bg-neutral-100 text-neutral-700 rounded-2xl font-bold hover:bg-neutral-200 transition-all shadow-lg tracking-wide uppercase text-xs"
+                            >
+                              <ArrowLeft size={16} strokeWidth={3} />
+                              <span className="hidden sm:inline">Previous</span>
+                            </button>
+                          )}
+
+                          {nextLesson && (
+                            <button
+                              onClick={() => {
+                                setSelectedLesson(nextLesson);
+                                setIsQuizSubmitted(false);
+                                setQuizScore(null);
+                                setUserAnswers({});
+                              }}
+                              className="flex-1 flex items-center justify-center gap-2 px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-2xl font-bold hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg tracking-wide uppercase text-xs"
+                            >
+                              <span>Next Lesson</span>
+                              <ChevronRight size={16} strokeWidth={3} />
+                            </button>
+                          )}
+                        </div>
+                      ) : null;
+                    })()}
                   </div>
                 ) : (
                   <div className="space-y-6">
-                    <div 
+                    <div
                       onClick={() => fileInputRef.current?.click()}
                       className="border-2 border-dashed border-neutral-200 rounded-[2rem] p-12 hover:border-[#001F3F] hover:bg-white transition-all group cursor-pointer"
                     >
@@ -1049,14 +1095,66 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
                       </div>
                     )}
 
-                    {quizScore! < 80 && (
-                      <button
-                        onClick={() => { setIsQuizSubmitted(false); setQuizScore(null); setUserAnswers({}); setShowQuizReview(false); }}
-                        className="flex items-center gap-2 px-10 py-4 bg-[#001F3F] text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-blue-900 transition-all shadow-lg"
-                      >
-                        <RefreshCw size={14} strokeWidth={3} /> Retake Quiz
-                      </button>
-                    )}
+                    {/* Navigation and Actions */}
+                    {(() => {
+                      // Find current module and lesson position for navigation
+                      const currentModule = curriculumArray.find(m =>
+                        m.lessons.some(l => l.id === selectedLesson.id)
+                      );
+                      const currentLessonIndex = currentModule?.lessons.findIndex(l => l.id === selectedLesson.id) ?? -1;
+                      const previousLesson = currentLessonIndex > 0 ? currentModule?.lessons[currentLessonIndex - 1] : null;
+                      const nextLesson = currentModule && currentLessonIndex < currentModule.lessons.length - 1
+                        ? currentModule.lessons[currentLessonIndex + 1]
+                        : null;
+
+                      return (
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full">
+                          {/* Previous Lesson Button */}
+                          {previousLesson && (
+                            <button
+                              onClick={() => {
+                                setSelectedLesson(previousLesson);
+                                setIsQuizSubmitted(false);
+                                setQuizScore(null);
+                                setUserAnswers({});
+                                setShowQuizReview(false);
+                              }}
+                              className="flex items-center justify-center gap-2 px-6 py-4 bg-neutral-100 text-neutral-700 rounded-2xl font-bold hover:bg-neutral-200 transition-all shadow-lg tracking-wide uppercase text-xs"
+                            >
+                              <ArrowLeft size={16} strokeWidth={3} />
+                              <span className="hidden sm:inline">Previous</span>
+                            </button>
+                          )}
+
+                          {/* Retake Quiz Button (only if failed) */}
+                          {quizScore! < 80 && (
+                            <button
+                              onClick={() => { setIsQuizSubmitted(false); setQuizScore(null); setUserAnswers({}); setShowQuizReview(false); }}
+                              className="flex-1 flex items-center justify-center gap-2 px-10 py-4 bg-[#001F3F] text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-blue-900 transition-all shadow-lg"
+                            >
+                              <RefreshCw size={14} strokeWidth={3} /> Retake Quiz
+                            </button>
+                          )}
+
+                          {/* Next Lesson Button */}
+                          {nextLesson && (
+                            <button
+                              onClick={() => {
+                                setSelectedLesson(nextLesson);
+                                setIsQuizSubmitted(false);
+                                setQuizScore(null);
+                                setUserAnswers({});
+                                setShowQuizReview(false);
+                              }}
+                              className="flex items-center justify-center gap-2 px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-2xl font-bold hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg tracking-wide uppercase text-xs"
+                            >
+                              <span className="hidden sm:inline">Next</span>
+                              <ChevronRight size={16} strokeWidth={3} />
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
                 ) : (
                   selectedLesson.type !== 'FILE_UPLOAD' && (() => {
@@ -1066,27 +1164,72 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
                     const hasChecklist = selectedLesson.checklistItems && selectedLesson.checklistItems.length > 0;
                     const allItemsChecked = hasChecklist && checkedItems.length >= selectedLesson.checklistItems!.length;
 
+                    // Find current module and lesson position for navigation
+                    const currentModule = curriculumArray.find(m =>
+                      m.lessons.some(l => l.id === selectedLesson.id)
+                    );
+                    const currentLessonIndex = currentModule?.lessons.findIndex(l => l.id === selectedLesson.id) ?? -1;
+                    const previousLesson = currentLessonIndex > 0 ? currentModule?.lessons[currentLessonIndex - 1] : null;
+                    const nextLesson = currentModule && currentLessonIndex < currentModule.lessons.length - 1
+                      ? currentModule.lessons[currentLessonIndex + 1]
+                      : null;
+
                     return (
-                      <button
-                        onClick={() => {
-                          if (selectedLesson.type === 'QUIZ') {
-                            submitQuiz();
-                          } else if (hasChecklist) {
-                            onCompleteLesson(selectedLesson.id, undefined, undefined, checkedItems, checklistPhotos);
-                          } else {
-                            onCompleteLesson(selectedLesson.id);
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 w-full">
+                        {/* Previous Lesson Button */}
+                        {previousLesson && (
+                          <button
+                            onClick={() => {
+                              setSelectedLesson(previousLesson);
+                              setIsQuizSubmitted(false);
+                              setQuizScore(null);
+                              setUserAnswers({});
+                            }}
+                            className="flex items-center justify-center gap-2 px-6 py-4 bg-neutral-100 text-neutral-700 rounded-2xl font-bold hover:bg-neutral-200 transition-all shadow-lg tracking-wide uppercase text-xs"
+                          >
+                            <ArrowLeft size={16} strokeWidth={3} />
+                            <span className="hidden sm:inline">Previous</span>
+                          </button>
+                        )}
+
+                        {/* Complete Lesson Button */}
+                        <button
+                          onClick={() => {
+                            if (selectedLesson.type === 'QUIZ') {
+                              submitQuiz();
+                            } else if (hasChecklist) {
+                              onCompleteLesson(selectedLesson.id, undefined, undefined, checkedItems, checklistPhotos);
+                            } else {
+                              onCompleteLesson(selectedLesson.id);
+                            }
+                          }}
+                          disabled={
+                            lessonStatus === 'COMPLETED' ||
+                            (selectedLesson.type === 'QUIZ' && !allQuestionsAnswered) ||
+                            (hasChecklist && (!allItemsChecked || !allPhotosProvided))
                           }
-                        }}
-                        disabled={
-                          lessonStatus === 'COMPLETED' ||
-                          (selectedLesson.type === 'QUIZ' && !allQuestionsAnswered) ||
-                          (hasChecklist && (!allItemsChecked || !allPhotosProvided))
-                        }
-                        className="w-full sm:w-auto px-12 py-5 bg-[#001F3F] text-white rounded-2xl font-black hover:bg-blue-900 disabled:opacity-50 transition-all shadow-xl tracking-widest uppercase text-xs"
-                      >
-                        {selectedLesson.type === 'QUIZ' ? 'Submit Knowledge Check' :
-                         hasChecklist ? 'Submit Checklist' : 'Complete Lesson'}
-                      </button>
+                          className="flex-1 px-12 py-5 bg-[#001F3F] text-white rounded-2xl font-black hover:bg-blue-900 disabled:opacity-50 transition-all shadow-xl tracking-widest uppercase text-xs"
+                        >
+                          {selectedLesson.type === 'QUIZ' ? 'Submit Knowledge Check' :
+                           hasChecklist ? 'Submit Checklist' : 'Complete Lesson'}
+                        </button>
+
+                        {/* Next Lesson Button */}
+                        {nextLesson && (
+                          <button
+                            onClick={() => {
+                              setSelectedLesson(nextLesson);
+                              setIsQuizSubmitted(false);
+                              setQuizScore(null);
+                              setUserAnswers({});
+                            }}
+                            className="flex items-center justify-center gap-2 px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-2xl font-bold hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg tracking-wide uppercase text-xs"
+                          >
+                            <span className="hidden sm:inline">Next</span>
+                            <ChevronRight size={16} strokeWidth={3} />
+                          </button>
+                        )}
+                      </div>
                     );
                   })()
                 )}
