@@ -302,7 +302,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
       const tasksCompleted = sub?.taskResults?.filter(tr => tr.completed).length || 0;
       const totalTasks = tpl.tasks?.length || 1;
       const status = sub?.status || 'PENDING';
-      const percent = Math.round((tasksCompleted / totalTasks) * 100);
+      const percent = Math.min(100, Math.round((tasksCompleted / totalTasks) * 100));
 
       return { 
         id: sub?.id,
