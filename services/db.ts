@@ -261,6 +261,12 @@ class CloudAPI {
     await this.remoteSet(DOC_KEYS.PROGRESS, merged);
   }
 
+  async deleteProgress(userId: string, lessonId: string): Promise<void> {
+    const existing = await this.fetchProgress();
+    const filtered = existing.filter(p => !(p.userId === userId && p.lessonId === lessonId));
+    await this.remoteSet(DOC_KEYS.PROGRESS, filtered);
+  }
+
   async pushTemplates(templates: ChecklistTemplate[]): Promise<void> {
     await this.remoteSet(DOC_KEYS.TEMPLATES, templates);
   }

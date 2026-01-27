@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { TrainingModule, Lesson, UserProgress, QuizQuestion, ChecklistItem, PracticeSubmission } from '../types';
-import { CheckCircle2, Clock, ChevronRight, Play, BookOpen, PenTool, ClipboardCheck, ArrowLeft, RefreshCw, XCircle, Video, Settings, Plus, Save, Trash2, Edit3, X, Zap, Target, Eye, EyeOff, Trash, Check, Square, CheckSquare, Circle, Dot, Upload, FileText, File as FileIcon, GripVertical, AlertTriangle, Camera, Loader2, Search, Filter, Award, Users as UsersIcon, TrendingUp, Star, MessageSquare, Image as ImageIcon, Pause, PlayCircle, History, Medal, Trophy, Activity, CloudOff } from 'lucide-react';
+import { CheckCircle2, Clock, ChevronRight, Play, BookOpen, PenTool, ClipboardCheck, ArrowLeft, RefreshCw, XCircle, Video, Settings, Plus, Save, Trash2, Edit3, X, Zap, Target, Eye, EyeOff, Trash, Check, Square, CheckSquare, Circle, Dot, Upload, FileText, File as FileIcon, GripVertical, AlertTriangle, Camera, Loader2, Search, Filter, Award, Users as UsersIcon, TrendingUp, Star, MessageSquare, Image as ImageIcon, Pause, PlayCircle, History, Medal, Trophy, Activity, CloudOff, RotateCcw } from 'lucide-react';
 import { db } from '../services/db';
 
 interface TrainingViewProps {
@@ -11,9 +11,10 @@ interface TrainingViewProps {
   canEdit?: boolean;
   onUpdateCurriculum?: (curriculum: TrainingModule[]) => void;
   onResetCurriculum?: () => void;
+  onResetLessonProgress?: (lessonId: string) => void;
 }
 
-const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCompleteLesson, canEdit, onUpdateCurriculum, onResetCurriculum }) => {
+const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCompleteLesson, canEdit, onUpdateCurriculum, onResetCurriculum, onResetLessonProgress }) => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
   const [timerActive, setTimerActive] = useState(false);
@@ -487,9 +488,25 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
                 )}
               </div>
               {lessonStatus === 'COMPLETED' && !isEditMode && (
-                <div className="flex items-center gap-2 text-green-600 font-bold bg-green-50 px-4 py-2 rounded-xl border border-green-100 shadow-sm animate-in zoom-in duration-300">
-                  <CheckCircle2 size={18} />
-                  <span>COMPLETED</span>
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 text-green-600 font-bold bg-green-50 px-4 py-2 rounded-xl border border-green-100 shadow-sm animate-in zoom-in duration-300">
+                    <CheckCircle2 size={18} />
+                    <span>COMPLETED</span>
+                  </div>
+                  {selectedLesson.type === 'PRACTICE' && onResetLessonProgress && (
+                    <button
+                      onClick={() => {
+                        if (confirm('Reset your progress for this practice lesson? This will allow you to practice again and take new photos.')) {
+                          onResetLessonProgress(selectedLesson.id);
+                          setCheckedItems([]);
+                          setChecklistPhotos({});
+                        }
+                      }}
+                      className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-blue-700 transition-all"
+                    >
+                      <RotateCcw size={14} /> Practice Again
+                    </button>
+                  )}
                 </div>
               )}
             </div>

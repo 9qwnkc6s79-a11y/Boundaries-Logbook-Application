@@ -419,6 +419,14 @@ const App: React.FC = () => {
               setCurriculum(TRAINING_CURRICULUM);
               console.log('[App] Curriculum reset complete - reloading page...');
             }}
+            onResetLessonProgress={async (lessonId) => {
+              console.log(`[App] Resetting progress for lesson ${lessonId} for user ${currentUser.id}`);
+              await db.deleteProgress(currentUser.id, lessonId);
+              const updatedProgress = progress.filter(p => !(p.userId === currentUser.id && p.lessonId === lessonId));
+              setProgress(updatedProgress);
+              performCloudSync(true);
+              console.log(`[App] Progress reset complete - lesson should now show interactive elements`);
+            }}
           />
         )}
         {activeTab === 'recipes' && (
