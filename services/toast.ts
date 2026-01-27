@@ -96,7 +96,8 @@ class ToastAPI {
    * Get employees currently clocked in
    */
   async getCurrentlyClocked(): Promise<ToastTimeEntry[]> {
-    const today = new Date().toISOString().split('T')[0];
+    // Use Central Time (America/Chicago) for "today" instead of UTC
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Chicago' });
     const data = await this.getLaborData(today, today);
     return data.currentlyClocked;
   }
@@ -106,7 +107,9 @@ class ToastAPI {
    * @param location - Campus location (littleelm, prosper)
    */
   async getTodaySales(location?: string): Promise<ToastSalesData> {
-    const today = new Date().toISOString().split('T')[0];
+    // Use Central Time (America/Chicago) for "today" instead of UTC
+    // This ensures we get the current business day's sales, not tomorrow's
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Chicago' });
     return this.getSalesData(today, today, location);
   }
 }
