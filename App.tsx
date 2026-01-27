@@ -106,6 +106,13 @@ const App: React.FC = () => {
     }
   }, [currentUser]);
 
+  // Clear Toast POS data when switching stores to prevent showing wrong store's data
+  useEffect(() => {
+    console.log(`[App] Store changed to ${currentStoreId}, clearing Toast data`);
+    setToastSales(null);
+    setToastClockedIn([]);
+  }, [currentStoreId]);
+
   const effectiveUser = useMemo(() => {
     if (!currentUser) return null;
     const userProgress = progress.filter(p => p.userId === currentUser.id);

@@ -388,6 +388,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
 
     // Map store IDs to Toast location names
     const location = currentStoreId === 'store-prosper' ? 'prosper' : 'littleelm';
+    console.log(`[Toast] Fetching data for store: ${currentStoreId} -> location: ${location}`);
 
     // Check cache first (5-minute cache to avoid rate limits) - LOCATION-SPECIFIC
     const cacheKey = `toast_data_cache_${location}`;
@@ -400,6 +401,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
       if (age < 5 * 60 * 1000) { // 5 minutes
         console.log(`[Toast] Using cached ${location} data (age: ${Math.floor(age / 1000)}s)`);
         const parsed = JSON.parse(cachedData);
+        console.log(`[Toast] Cached data location verification: ${parsed.sales?.location || 'unknown'}`);
         setToastSales(parsed.sales);
         setToastLabor(parsed.labor);
         setToastClockedIn(parsed.clockedIn);
@@ -435,13 +437,19 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
         }),
       ]);
 
+      console.log(`[Toast] Fresh data fetched for ${location}:`, {
+        salesLocation: sales?.location,
+        totalSales: sales?.totalSales,
+        clockedIn: laborData.currentlyClocked.length
+      });
+
       setToastSales(sales);
       setToastLabor(laborData.laborSummary);
       setToastClockedIn(laborData.currentlyClocked);
       onToastSalesUpdate?.(sales);
       onToastClockedInUpdate?.(laborData.currentlyClocked);
 
-      // Cache the results
+      // Cache the results with location verification
       localStorage.setItem(cacheKey, JSON.stringify({
         sales,
         labor: laborData.laborSummary,
@@ -449,7 +457,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
       }));
       localStorage.setItem(cacheTimeKey, Date.now().toString());
 
-      console.log('[Toast] Data fetched and cached successfully');
+      console.log(`[Toast] Data cached successfully for ${location} at key: ${cacheKey}`);
     } catch (error: any) {
       console.error('[Toast] Failed to fetch POS data:', error);
       setToastError(error.message || 'Failed to connect to Toast POS');

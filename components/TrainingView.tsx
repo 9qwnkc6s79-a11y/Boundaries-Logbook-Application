@@ -1218,6 +1218,80 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
           )}
         </div>
 
+        {/* Handbook Upload Section (Edit Mode Only) */}
+        {isEditMode && (
+          <div className="bg-blue-50 rounded-2xl p-6 border-2 border-blue-200">
+            <h3 className="text-sm font-black text-[#001F3F] uppercase tracking-widest mb-4 flex items-center gap-2">
+              <FileIcon size={16} />
+              Upload Employee Handbook
+            </h3>
+            <p className="text-xs text-neutral-600 mb-4">
+              Upload a PDF of the current employee handbook. This will be linked in Module 1 for all trainees to review.
+            </p>
+            <input
+              type="file"
+              accept=".pdf"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+
+                if (file.type !== 'application/pdf') {
+                  alert('Please upload a PDF file');
+                  return;
+                }
+
+                const confirmed = confirm(`Upload "${file.name}" as the employee handbook? This will replace the current handbook link in Module 1.`);
+                if (!confirmed) return;
+
+                try {
+                  console.log('[Handbook] Uploading PDF to Firebase Storage...');
+                  const storageRef = (window as any).firebase.storage().ref('documents/employee-handbook.pdf');
+                  const uploadTask = await storageRef.put(file);
+                  const downloadURL = await uploadTask.ref.getDownloadURL();
+
+                  console.log('[Handbook] Upload complete:', downloadURL);
+
+                  // Update Module 1, Lesson 1 (l-handbook-review) with new URL
+                  const nextCurriculum = curriculumArray.map(module => {
+                    if (module.id === 'm-onboarding') {
+                      return {
+                        ...module,
+                        lessons: module.lessons.map(lesson => {
+                          if (lesson.id === 'l-handbook-review') {
+                            return {
+                              ...lesson,
+                              content: lesson.content?.replace(
+                                '[INSERT HANDBOOK LINK HERE - Ask your manager for the current handbook file]',
+                                downloadURL
+                              ).replace(
+                                /https:\/\/firebasestorage\.googleapis\.com[^\s]*/g,
+                                downloadURL
+                              ) || ''
+                            };
+                          }
+                          return lesson;
+                        })
+                      };
+                    }
+                    return module;
+                  });
+
+                  onUpdateCurriculum?.(nextCurriculum);
+                  alert('✓ Handbook uploaded successfully! The link has been updated in Module 1.');
+
+                  // Reset file input
+                  e.target.value = '';
+                } catch (error: any) {
+                  console.error('[Handbook] Upload failed:', error);
+                  alert(`Upload failed: ${error.message}`);
+                }
+              }}
+              className="block w-full text-sm text-neutral-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-[#001F3F] file:text-white hover:file:bg-[#003366] file:cursor-pointer cursor-pointer"
+            />
+          </div>
+        )}
+      </header>
+
         {/* Overall Progress Visualization */}
         {!isEditMode && (
           <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-[2rem] p-6 border border-blue-100">
