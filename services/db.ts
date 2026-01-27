@@ -328,9 +328,14 @@ class CloudAPI {
     }
 
     // Always push to ensure updates are saved
-    if (newModules.length > 0 || forceUpdateModuleIds.length > 0) {
-      console.log(`[Firestore] globalSync: Pushing updated curriculum to cloud...`);
+    const needsPush = newModules.length > 0 ||
+                     forceUpdateModuleIds.some(id => defaults.curriculum.find(m => m.id === id));
+
+    if (needsPush) {
+      console.log(`[Firestore] globalSync: Pushing updated curriculum (${newModules.length} new, ${forceUpdateModuleIds.length} force-updated)...`);
       await this.remoteSet(DOC_KEYS.CURRICULUM, curriculum);
+    } else {
+      console.log(`[Firestore] globalSync: No curriculum updates needed`);
     }
 
     // Merge new recipes from defaults that don't exist in cloud
