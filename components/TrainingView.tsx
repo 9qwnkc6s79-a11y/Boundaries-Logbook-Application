@@ -1202,9 +1202,9 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
               </button>
               {onResetCurriculum && (
                 <button
-                  onClick={() => {
+                  onClick={async () => {
                     if (confirm('Reset curriculum to latest version from code? This will update all modules including Module 12.')) {
-                      onResetCurriculum();
+                      await onResetCurriculum();
                       window.location.reload();
                     }
                   }}
