@@ -299,11 +299,37 @@ class CloudAPI {
     const cloudModuleIds = new Set(cloudCurriculum.map((m: TrainingModule) => m.id));
     const newModules = defaults.curriculum.filter(m => !cloudModuleIds.has(m.id));
 
-    let curriculum = cloudCurriculum;
+    // Force-update specific modules that have been restructured
+    const forceUpdateModuleIds = ['m-drink-making-basics']; // Module 12 with new practice structure
+
+    // Update existing modules - force replace modules in forceUpdateModuleIds list
+    const updatedModules = cloudCurriculum.map((cloudModule: TrainingModule) => {
+      const defaultModule = defaults.curriculum.find(m => m.id === cloudModule.id);
+
+      // Force update modules that need restructuring
+      if (defaultModule && forceUpdateModuleIds.includes(cloudModule.id)) {
+        console.log(`[Firestore] globalSync: Force-updating module ${cloudModule.id}`);
+        return defaultModule;
+      }
+
+      // Update if default has more lessons
+      if (defaultModule && defaultModule.lessons.length > cloudModule.lessons.length) {
+        console.log(`[Firestore] globalSync: Updating module ${cloudModule.id} with new lessons`);
+        return defaultModule;
+      }
+
+      return cloudModule;
+    });
+
+    let curriculum = updatedModules;
     if (newModules.length > 0) {
       console.log(`[Firestore] globalSync: Found ${newModules.length} new curriculum module(s), merging...`);
-      curriculum = [...cloudCurriculum, ...newModules];
-      // Push merged curriculum back to cloud
+      curriculum = [...updatedModules, ...newModules];
+    }
+
+    // Always push to ensure updates are saved
+    if (newModules.length > 0 || forceUpdateModuleIds.length > 0) {
+      console.log(`[Firestore] globalSync: Pushing updated curriculum to cloud...`);
       await this.remoteSet(DOC_KEYS.CURRICULUM, curriculum);
     }
 
