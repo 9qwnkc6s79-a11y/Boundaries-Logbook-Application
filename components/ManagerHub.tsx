@@ -377,7 +377,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
   };
 
   // Toast POS Data Fetching
-  const fetchToastData = async () => {
+  const fetchToastData = async (forceRefresh: boolean = false) => {
     if (!toastAPI.isConfigured()) {
       console.log('[Toast] API not configured, skipping fetch');
       setIsToastConfigured(false);
@@ -388,27 +388,44 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
 
     // Map store IDs to Toast location names
     const location = currentStoreId === 'store-prosper' ? 'prosper' : 'littleelm';
-    console.log(`[Toast] Fetching data for store: ${currentStoreId} -> location: ${location}`);
+    console.log(`[Toast] Fetching data for store: ${currentStoreId} -> location: ${location} (forceRefresh: ${forceRefresh})`);
 
     // Check cache first (5-minute cache to avoid rate limits) - LOCATION-SPECIFIC
     const cacheKey = `toast_data_cache_${location}`;
     const cacheTimeKey = `toast_data_cache_time_${location}`;
+
+    if (forceRefresh) {
+      console.log(`[Toast] Force refresh - clearing cache for ${location}`);
+      localStorage.removeItem(cacheKey);
+      localStorage.removeItem(cacheTimeKey);
+    }
+
     const cachedData = localStorage.getItem(cacheKey);
     const cacheTime = localStorage.getItem(cacheTimeKey);
 
-    if (cachedData && cacheTime) {
+    if (!forceRefresh && cachedData && cacheTime) {
       const age = Date.now() - parseInt(cacheTime);
       if (age < 5 * 60 * 1000) { // 5 minutes
         console.log(`[Toast] Using cached ${location} data (age: ${Math.floor(age / 1000)}s)`);
         const parsed = JSON.parse(cachedData);
         console.log(`[Toast] Cached data location verification: ${parsed.sales?.location || 'unknown'}`);
-        setToastSales(parsed.sales);
-        setToastLabor(parsed.labor);
-        setToastClockedIn(parsed.clockedIn);
-        onToastSalesUpdate?.(parsed.sales);
-        onToastClockedInUpdate?.(parsed.clockedIn);
-        setToastLoading(false);
-        return;
+
+        // Verify the cached data is for the correct location
+        if (parsed.sales && parsed.sales.location !== location) {
+          console.warn(`[Toast] Cache mismatch! Cached location: ${parsed.sales.location}, Expected: ${location}. Fetching fresh data.`);
+          localStorage.removeItem(cacheKey);
+          localStorage.removeItem(cacheTimeKey);
+        } else {
+          setToastSales(parsed.sales);
+          setToastLabor(parsed.labor);
+          setToastClockedIn(parsed.clockedIn);
+          onToastSalesUpdate?.(parsed.sales);
+          onToastClockedInUpdate?.(parsed.clockedIn);
+          setToastLoading(false);
+          return;
+        }
+      } else {
+        console.log(`[Toast] Cache expired for ${location} (age: ${Math.floor(age / 1000)}s), fetching fresh data`);
       }
     }
 
@@ -440,8 +457,16 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
       console.log(`[Toast] Fresh data fetched for ${location}:`, {
         salesLocation: sales?.location,
         totalSales: sales?.totalSales,
-        clockedIn: laborData.currentlyClocked.length
+        totalOrders: sales?.totalOrders,
+        clockedIn: laborData.currentlyClocked.length,
+        clockedInNames: laborData.currentlyClocked.map(e => e.employeeName)
       });
+
+      // Verify the fetched data matches the requested location
+      if (sales && sales.location !== location) {
+        console.error(`[Toast] API returned wrong location! Expected: ${location}, Got: ${sales.location}`);
+        throw new Error(`API returned data for wrong location: ${sales.location}`);
+      }
 
       setToastSales(sales);
       setToastLabor(laborData.laborSummary);
@@ -468,8 +493,12 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
 
   // Fetch Toast data on mount, when campus changes, and refresh every 5 minutes
   useEffect(() => {
-    fetchToastData();
-    const interval = setInterval(fetchToastData, 5 * 60 * 1000); // 5 minutes
+    console.log(`[Toast] Store changed to: ${currentStoreId}, forcing refresh`);
+    // Force refresh when store changes to clear cache and fetch new data
+    fetchToastData(true);
+
+    // Set up interval for automatic refreshes (without forcing)
+    const interval = setInterval(() => fetchToastData(false), 5 * 60 * 1000); // 5 minutes
     return () => clearInterval(interval);
   }, [currentStoreId]); // Re-fetch when campus changes
 

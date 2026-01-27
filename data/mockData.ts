@@ -1451,6 +1451,913 @@ THE GOAL: Make customers feel like you're helping them discover something great,
         ]
       }
     ]
+  },
+  {
+    id: 'm-hospitality-ritz',
+    title: 'Module 15: Hospitality Training',
+    description: 'Learn the Ritz Carlton service philosophy and Boundaries core values for exceptional guest experiences.',
+    category: 'ONBOARDING',
+    lessons: [
+      {
+        id: 'l-hospitality-ritz-video',
+        moduleId: 'm-hospitality-ritz',
+        title: 'Ritz Carlton Service Philosophy',
+        type: 'CONTENT',
+        content: `**WATCH: The Ritz Carlton Service Philosophy**
+
+Before continuing, watch this video to understand world-class hospitality:
+
+🎥 **[Watch: Ritz Carlton - Service Philosophy](https://www.youtube.com/watch?v=MOm7Gr-1BUc)**
+
+This 5-minute video demonstrates the gold standard of customer service. Pay attention to:
+
+• How they anticipate guest needs
+• The language they use
+• Their attention to small details
+• How they create memorable experiences
+• The mindset behind exceptional service
+
+**REFLECTION QUESTIONS:**
+
+After watching the video, think about:
+
+1. What surprised you about their approach?
+2. How can you apply these principles at Boundaries Coffee?
+3. What does "anticipating needs" look like in a coffee shop setting?
+4. How do small gestures create big impacts?
+
+═══════════════════════════════════════
+
+**KEY TAKEAWAY:**
+
+Hospitality isn't about the size of the building or the price point—it's about the heart behind the service. Whether it's a luxury hotel or a drive-thru coffee shop, the principles of genuine care, attention to detail, and going above and beyond remain the same.
+
+**At Boundaries, we bring Ritz Carlton-level hospitality to every cup, every order, every day.**`
+      },
+      {
+        id: 'l-hospitality-ritz-values',
+        moduleId: 'm-hospitality-ritz',
+        title: 'Boundaries Core Values',
+        type: 'CONTENT',
+        content: `**BOUNDARIES COFFEE CORE VALUES**
+
+These three values define who we are and how we serve:
+
+═══════════════════════════════════════
+
+**1. PASSION**
+
+We are passionate about:
+• Exceptional coffee and quality ingredients
+• Creating experiences, not just transactions
+• Continuous improvement and learning
+• Our community and the people we serve
+
+**In Action:**
+✓ Knowing the menu inside and out
+✓ Taking pride in every drink you make
+✓ Recommending drinks with genuine enthusiasm
+✓ Caring about the little details that matter
+
+═══════════════════════════════════════
+
+**2. HOSPITALITY**
+
+We believe hospitality is:
+• Treating every guest like a friend
+• Anticipating needs before they're expressed
+• Genuine warmth and authentic connection
+• Making people feel valued and welcomed
+
+**In Action:**
+✓ Smiling and making eye contact
+✓ Remembering regulars' names and orders
+✓ Going the extra mile to make things right
+✓ Creating a welcoming environment for everyone
+
+═══════════════════════════════════════
+
+**3. SELFLESSNESS**
+
+We serve others by:
+• Putting the team and guests first
+• Helping without being asked
+• Staying humble and coachable
+• Contributing to something bigger than ourselves
+
+**In Action:**
+✓ Jumping in to help a teammate during a rush
+✓ Staying late to finish closing tasks
+✓ Owning mistakes and fixing them quickly
+✓ Celebrating others' successes
+
+═══════════════════════════════════════
+
+**REMEMBER:**
+
+Values aren't just words on a wall—they're actions we take every single day. When you embody Passion, Hospitality, and Selflessness, you're not just serving coffee—you're building a culture and a community.`
+      },
+      {
+        id: 'l-hospitality-ritz-experience',
+        moduleId: 'm-hospitality-ritz',
+        title: 'The Boundaries Experience',
+        type: 'CONTENT',
+        content: `**THE BOUNDARIES VALUE PROPOSITION**
+
+We promise three things to every guest:
+
+**1. SPEED**
+We respect your time. From order to hand-off, we're fast—without cutting corners.
+
+**2. QUALITY**
+We use specialty-grade coffee, real ingredients, and never compromise on taste.
+
+**3. CONSISTENCY**
+Every visit should feel the same: fast, delicious, and welcoming.
+
+═══════════════════════════════════════
+
+**THE BOUNDARIES EXPERIENCE:**
+
+When a guest leaves Boundaries, they should think:
+
+> *"That was fast, it tasted amazing, and it's always like that."*
+
+This is what sets us apart from every other coffee shop.
+
+═══════════════════════════════════════
+
+**THREE STEPS OF SERVICE**
+
+Adapted from the Ritz Carlton philosophy, here's how we deliver world-class service:
+
+**STEP 1: WARM, SINCERE GREETING**
+Use the guest's name when possible. A genuine smile and friendly tone set the stage for the entire interaction.
+
+**STEP 2: ANTICIPATE AND FULFILL NEEDS**
+Listen actively, ask clarifying questions, and offer thoughtful recommendations. Make their experience effortless.
+
+**STEP 3: FOND FAREWELL**
+Thank them by name, wish them well, and leave them with a positive final impression. The last 10 seconds matter.
+
+═══════════════════════════════════════
+
+**EVERY INTERACTION COUNTS**
+
+You might serve 100+ customers in a shift. For you, it's one of many interactions. For them, it might be the highlight of their morning—or the moment that turns a bad day around.
+
+**Treat every guest like they're the only one that matters.**`
+      },
+      {
+        id: 'l-hospitality-ritz-skills',
+        moduleId: 'm-hospitality-ritz',
+        title: 'Key Hospitality Skills',
+        type: 'CONTENT',
+        content: `**KEY HOSPITALITY SKILLS**
+
+Master these four skills to deliver exceptional service every time:
+
+═══════════════════════════════════════
+
+**1. WARM WELCOME**
+
+**What It Looks Like:**
+✓ Greet guests within 3 seconds of eye contact
+✓ Smile genuinely (it shows in your voice, even on the phone)
+✓ Use their name when you know it
+✓ Make them feel like you're happy they're here
+
+**Avoid:**
+✗ Looking at your phone or away when a guest approaches
+✗ Monotone, scripted greetings
+✗ Ignoring guests while finishing another task
+
+═══════════════════════════════════════
+
+**2. ATTENTIVE LISTENING**
+
+**What It Looks Like:**
+✓ Maintain eye contact while they order
+✓ Nod and acknowledge as they speak
+✓ Repeat the order back for confirmation
+✓ Ask clarifying questions if needed
+
+**Avoid:**
+✗ Interrupting or finishing their sentences
+✗ Rushing them through their order
+✗ Typing while they're talking without acknowledgment
+
+═══════════════════════════════════════
+
+**3. PERSONALIZATION**
+
+**What It Looks Like:**
+✓ Remember regulars' names and favorite orders
+✓ Make recommendations based on their preferences
+✓ Adjust your approach (fast for rushed guests, thorough for first-timers)
+✓ Add thoughtful touches (extra napkins for kids, a kind note on the cup)
+
+**Avoid:**
+✗ Treating every guest the same without reading the room
+✗ Generic, robotic interactions
+✗ Forgetting details about regulars
+
+═══════════════════════════════════════
+
+**4. POSITIVE, SOLUTION-FOCUSED COMMUNICATION**
+
+**What It Looks Like:**
+✓ Say "I can" instead of "I can't"
+✓ Offer alternatives when something isn't available
+✓ Stay calm and professional, even under pressure
+✓ Turn problems into opportunities to exceed expectations
+
+**Avoid:**
+✗ Saying "We're out of that" without offering an alternative
+✗ Using negative language or making excuses
+✗ Blaming others for mistakes
+
+═══════════════════════════════════════
+
+**PRACTICE DAILY:**
+
+Hospitality is a skill, not a talent. The more you practice these behaviors, the more natural they become. Challenge yourself to improve 1% every shift—over time, those small improvements create exceptional service.`
+      },
+      {
+        id: 'l-hospitality-ritz-quiz',
+        moduleId: 'm-hospitality-ritz',
+        title: 'Hospitality Training Knowledge Check',
+        type: 'QUIZ',
+        quizQuestions: [
+          { id: 'hr1', type: 'MULTIPLE_CHOICE', question: 'What are the three Boundaries Coffee core values?', options: ['Quality, Service, Speed', 'Passion, Hospitality, Selflessness', 'Excellence, Integrity, Community', 'Speed, Quality, Consistency'], correctAnswers: ['Passion, Hospitality, Selflessness'] },
+          { id: 'hr2', type: 'MULTIPLE_CHOICE', question: 'What is the Boundaries value proposition?', options: ['Best coffee in town', 'Speed, Quality, Consistency', 'Lowest prices, fastest service', 'Premium drinks, premium experience'], correctAnswers: ['Speed, Quality, Consistency'] },
+          { id: 'hr3', type: 'MULTIPLE_CHOICE', question: 'What should guests think after leaving Boundaries?', options: ['"That was expensive but worth it"', '"That was fast, it tasted amazing, and it\'s always like that"', '"That was the best coffee I\'ve ever had"', '"That was a nice experience"'], correctAnswers: ['"That was fast, it tasted amazing, and it\'s always like that"'] },
+          { id: 'hr4', type: 'MULTIPLE_CHOICE', question: 'What is Step 1 of the Three Steps of Service?', options: ['Anticipate needs', 'Warm, sincere greeting using name', 'Fond farewell', 'Take the order'], correctAnswers: ['Warm, sincere greeting using name'] },
+          { id: 'hr5', type: 'MULTIPLE_CHOICE', question: 'What is Step 2 of the Three Steps of Service?', options: ['Take payment', 'Anticipate and fulfill needs', 'Make the drink', 'Confirm the order'], correctAnswers: ['Anticipate and fulfill needs'] },
+          { id: 'hr6', type: 'MULTIPLE_CHOICE', question: 'What is Step 3 of the Three Steps of Service?', options: ['Hand off the drink', 'Fond farewell using name', 'Ask for feedback', 'Clean the counter'], correctAnswers: ['Fond farewell using name'] },
+          { id: 'hr7', type: 'TRUE_FALSE', question: 'Hospitality principles from the Ritz Carlton can be applied in a drive-thru coffee shop setting.', correctAnswers: ['True'] },
+          { id: 'hr8', type: 'MULTIPLE_CHOICE', question: 'Which core value is demonstrated by helping a teammate during a rush without being asked?', options: ['Passion', 'Hospitality', 'Selflessness', 'Consistency'], correctAnswers: ['Selflessness'] },
+          { id: 'hr9', type: 'MULTIPLE_CHOICE', question: 'Which core value is demonstrated by remembering a regular customer\'s name and favorite order?', options: ['Passion', 'Hospitality', 'Selflessness', 'Speed'], correctAnswers: ['Hospitality'] },
+          { id: 'hr10', type: 'MULTIPLE_CHOICE', question: 'Which core value is demonstrated by knowing the menu inside and out and recommending drinks enthusiastically?', options: ['Passion', 'Hospitality', 'Selflessness', 'Quality'], correctAnswers: ['Passion'] },
+          { id: 'hr11', type: 'MULTIPLE_CHOICE', question: 'How quickly should you greet a guest after making eye contact?', options: ['Within 1 second', 'Within 3 seconds', 'Within 5 seconds', 'Within 10 seconds'], correctAnswers: ['Within 3 seconds'] },
+          { id: 'hr12', type: 'TRUE_FALSE', question: 'Smiling shows in your voice, even when guests can\'t see you.', correctAnswers: ['True'] },
+          { id: 'hr13', type: 'MULTIPLE_CHOICE', question: 'What is attentive listening?', options: ['Listening while multitasking', 'Maintaining eye contact, nodding, and repeating orders back', 'Hearing the order and typing it in', 'Listening to the guest while helping another customer'], correctAnswers: ['Maintaining eye contact, nodding, and repeating orders back'] },
+          { id: 'hr14', type: 'TRUE_FALSE', question: 'You should treat every guest exactly the same to ensure consistency.', correctAnswers: ['False'] },
+          { id: 'hr15', type: 'MULTIPLE_CHOICE', question: 'What should you do when an item is out of stock?', options: ['Tell them we\'re out and move on', 'Offer an alternative recommendation', 'Apologize repeatedly', 'Blame the inventory team'], correctAnswers: ['Offer an alternative recommendation'] },
+          { id: 'hr16', type: 'MULTIPLE_CHOICE', question: 'What is an example of personalization in hospitality?', options: ['Using a script for every guest', 'Remembering regulars\' names and favorite orders', 'Making drinks as fast as possible', 'Offering discounts to everyone'], correctAnswers: ['Remembering regulars\' names and favorite orders'] },
+          { id: 'hr17', type: 'TRUE_FALSE', question: 'The last 10 seconds of an interaction (the farewell) are just as important as the greeting.', correctAnswers: ['True'] },
+          { id: 'hr18', type: 'MULTIPLE_CHOICE', question: 'What does "anticipate needs" mean?', options: ['Guess what guests want without asking', 'Read body language and context to offer proactive help', 'Always upsell add-ons', 'Prepare drinks before they order'], correctAnswers: ['Read body language and context to offer proactive help'] },
+          { id: 'hr19', type: 'TRUE_FALSE', question: 'Hospitality is a skill that can be practiced and improved over time.', correctAnswers: ['True'] },
+          { id: 'hr20', type: 'MULTIPLE_CHOICE', question: 'What should you say instead of "I can\'t" when facing a limitation?', options: ['"That\'s not possible"', '"I can" and offer an alternative solution', '"We don\'t do that"', '"Ask the manager"'], correctAnswers: ['"I can" and offer an alternative solution'] }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'm-order-taking',
+    title: 'Module 16: Order Taking',
+    description: 'Master the 8-step greeting script, flow management, and efficient order-taking techniques.',
+    category: 'ONBOARDING',
+    lessons: [
+      {
+        id: 'l-order-taking-intro',
+        moduleId: 'm-order-taking',
+        title: 'Order Taking Position Overview',
+        type: 'CONTENT',
+        content: `**THE ORDER TAKER'S ROLE**
+
+The Order Taker is the first point of contact for many guests—you set the tone for both speed and hospitality.
+
+**WHEN IS AN ORDER TAKER DEPLOYED?**
+
+When 3 or more people are clocked in, the Order Taker stands outside by the menu board with:
+• Boundaries satchel (with Toast Go 2 handheld POS inside)
+• Professional, welcoming presence
+• High energy and readiness to engage
+
+**YOUR IMPACT:**
+
+✓ Reduce window wait times dramatically
+✓ Create personal connections before guests reach the window
+✓ Increase accuracy by taking orders without distractions
+✓ Set the tone for exceptional hospitality
+
+**POSITION PRIORITIES:**
+
+1. **SPEED** - Keep the line moving efficiently
+2. **ACCURACY** - Get every order right the first time
+3. **HOSPITALITY** - Make every guest feel welcomed and valued
+
+The Order Taker role is about balancing efficiency with genuine connection—smile, be present, and keep things moving!`
+      },
+      {
+        id: 'l-order-taking-script',
+        moduleId: 'm-order-taking',
+        title: '8-Step Greeting Script',
+        type: 'CONTENT',
+        content: `**THE 8-STEP GREETING SCRIPT**
+
+Memorize this script—it's the foundation of excellent order-taking:
+
+**STEP 1: Warm Greeting**
+"Good [morning/afternoon/evening]! Welcome to Boundaries!"
+
+**STEP 2: Acknowledge Wait (if applicable)**
+"Thank you for your patience!"
+
+**STEP 3: Ask for Name**
+"Can I get a name for your order?"
+
+**STEP 4: Take Order**
+"What can I get started for you today?"
+
+**STEP 5: Confirm & Upsell**
+"Did you want to add [pastry/food item] to your order?"
+
+**STEP 6: Repeat Order**
+"So I have [repeat full order]. Does that sound correct?"
+
+**STEP 7: Total & Payment Prompt**
+"Your total is $X.XX. How would you like to pay today?"
+
+**STEP 8: Thank You & Instructions**
+"Thank you! Pull forward to the window, and we'll have that ready for you!"
+
+═══════════════════════════════════════
+
+**IMPORTANT NOTES:**
+
+• Use the guest's name when possible ("Thanks, Sarah!")
+• Maintain eye contact and smile genuinely
+• Speak clearly and at a moderate pace
+• Be flexible—adapt the script to the situation, but hit all 8 steps
+
+**PRACTICE TIP:** Repeat this script 10 times out loud until it feels natural.`
+      },
+      {
+        id: 'l-order-taking-flow',
+        moduleId: 'm-order-taking',
+        title: 'Flow Management & Time Goals',
+        type: 'CONTENT',
+        content: `**FLOW MANAGEMENT**
+
+Keeping the line moving efficiently without sacrificing hospitality is an art. Here's how to master it:
+
+**TIME GOALS:**
+
+• **Total Visit Time:** <3.5 minutes (from arrival to departure)
+• **Window Time:** ≤60 seconds (at the pickup window)
+• **Order-Taking Time:** ~60-90 seconds per car
+
+**EFFICIENCY TECHNIQUES:**
+
+**1. MULTI-TASKING**
+While greeting one car, glance at the next to gauge their readiness.
+
+**2. PRE-QUALIFYING QUESTIONS**
+"Are we doing hot, iced, or frozen today?" narrows down options quickly.
+
+**3. QUICK CLARIFICATIONS**
+"Did you want that with our house 2% milk or an alt milk?"
+
+**4. READING THE SITUATION**
+• Rushed customer? Skip the upsell, get them through fast.
+• Relaxed regular? Engage, build rapport, suggest new items.
+
+**5. COMMUNICATING WITH THE TEAM**
+Use the Toast POS notes field to add special instructions: "Extra hot," "No ice," "Light sweet cream."
+
+**WHEN THE LINE GETS LONG:**
+
+• Stay calm and confident
+• Acknowledge waiting guests: "We'll be with you shortly!"
+• Focus on accuracy over speed—mistakes slow everyone down
+• Call for backup if needed
+
+═══════════════════════════════════════
+
+**THE BALANCE:**
+
+Fast service doesn't mean rushed service. Efficiency comes from:
+✓ Knowing the menu inside and out
+✓ Using the POS confidently
+✓ Communicating clearly
+✓ Staying organized and focused
+
+**REMEMBER:** Every second saved adds up—but never at the cost of making a guest feel rushed or undervalued.`
+      },
+      {
+        id: 'l-order-taking-practice',
+        moduleId: 'm-order-taking',
+        title: 'Hands-On Practice Scenarios',
+        type: 'CONTENT',
+        content: `**PRACTICE ORDER SCENARIOS**
+
+Work with your trainer to practice these real-world orders. Focus on speed, accuracy, and using the full 8-step script.
+
+**SCENARIO 1: Simple Single Order**
+Guest: "I'll take a large iced Texas Delight with oat milk and half sweet."
+
+*Practice: Enter the order, confirm, and suggest a pastry pairing.*
+
+**SCENARIO 2: Hot Drink with Add-On**
+Guest: "Medium hot Hill Country, and can you add an extra shot?"
+
+*Practice: Navigate to the correct drink, add the size, add the $1 upcharge for the extra shot.*
+
+**SCENARIO 3: Frozen Specialty**
+Guest: "I want a large frozen Salted Sweetheart with sweet cream on top."
+
+*Practice: Enter frozen modifier, size, and sweet cream (+$0.75).*
+
+**SCENARIO 4: Multiple Drinks**
+Guest: "I need an Electric B energy drink and a Unicorn Latte."
+
+*Practice: Add both items to the same order, confirm each.*
+
+**SCENARIO 5: Food + Drink**
+Guest: "Cookie Butter Nitro and a bacon breakfast taco."
+
+*Practice: Navigate between drink and food menus efficiently.*
+
+**SCENARIO 6: Complex Modifications**
+Guest: "Strawberry Dream Matcha, iced, almond milk, extra sweet."
+
+*Practice: Apply all modifiers correctly in order.*
+
+**SCENARIO 7: Tea + Food**
+Guest: "Hot Honey Bee tea and a chocolate croissant."
+
+*Practice: Find tea category, add food item, upsell gently.*
+
+**SCENARIO 8: Large Multi-Item Order**
+Guest: "Two large iced drinks—one Lavender Sunrise and one Harvest Moon."
+
+*Practice: Manage multiple items, confirm each, ensure accuracy.*
+
+═══════════════════════════════════════
+
+**TRAINER NOTES:**
+
+Work through each scenario until the trainee can:
+✓ Navigate the POS confidently
+✓ Apply modifiers correctly
+✓ Complete orders in under 90 seconds
+✓ Use the 8-step script naturally
+✓ Maintain friendly, professional energy throughout`
+      },
+      {
+        id: 'l-order-taking-quiz',
+        moduleId: 'm-order-taking',
+        title: 'Order Taking Knowledge Check',
+        type: 'QUIZ',
+        quizQuestions: [
+          { id: 'ot1', type: 'MULTIPLE_CHOICE', question: 'When is an Order Taker deployed?', options: ['When 2 or more people are clocked in', 'When 3 or more people are clocked in', 'Only during rush hours', 'Whenever a manager decides'], correctAnswers: ['When 3 or more people are clocked in'] },
+          { id: 'ot2', type: 'MULTIPLE_CHOICE', question: 'What is Step 3 of the 8-step greeting script?', options: ['Take order', 'Ask for name', 'Warm greeting', 'Confirm order'], correctAnswers: ['Ask for name'] },
+          { id: 'ot3', type: 'MULTIPLE_CHOICE', question: 'What is Step 6 of the 8-step greeting script?', options: ['Thank you & instructions', 'Repeat order', 'Total & payment prompt', 'Confirm & upsell'], correctAnswers: ['Repeat order'] },
+          { id: 'ot4', type: 'MULTIPLE_CHOICE', question: 'What is the target total visit time?', options: ['Less than 2 minutes', 'Less than 3 minutes', 'Less than 3.5 minutes', 'Less than 5 minutes'], correctAnswers: ['Less than 3.5 minutes'] },
+          { id: 'ot5', type: 'MULTIPLE_CHOICE', question: 'What is the target window time?', options: ['30 seconds or less', '45 seconds or less', '60 seconds or less', '90 seconds or less'], correctAnswers: ['60 seconds or less'] },
+          { id: 'ot6', type: 'MULTIPLE_CHOICE', question: 'Where is the Toast Go 2 handheld stored when taking orders outside?', options: ['In your pocket', 'In the Boundaries satchel', 'On the counter', 'In the register drawer'], correctAnswers: ['In the Boundaries satchel'] },
+          { id: 'ot7', type: 'TRUE_FALSE', question: 'When the line is long, you should prioritize speed over accuracy to move customers through faster.', correctAnswers: ['False'] },
+          { id: 'ot8', type: 'MULTIPLE_CHOICE', question: 'What should you do if a customer appears rushed?', options: ['Take extra time to explain menu options', 'Skip the upsell and get them through efficiently', 'Suggest multiple add-ons', 'Ask them to wait'], correctAnswers: ['Skip the upsell and get them through efficiently'] },
+          { id: 'ot9', type: 'MULTIPLE_CHOICE', question: 'What is the Order Taker\'s primary role?', options: ['Make drinks quickly', 'Set the tone for speed and hospitality', 'Collect payment only', 'Clean the drive-thru area'], correctAnswers: ['Set the tone for speed and hospitality'] },
+          { id: 'ot10', type: 'TRUE_FALSE', question: 'The Order Taker should maintain eye contact and smile genuinely with guests.', correctAnswers: ['True'] },
+          { id: 'ot11', type: 'MULTIPLE_CHOICE', question: 'What are the three position priorities for Order Takers?', options: ['Speed, Accuracy, Hospitality', 'Speed, Sales, Service', 'Efficiency, Quality, Profit', 'Greeting, Selling, Closing'], correctAnswers: ['Speed, Accuracy, Hospitality'] },
+          { id: 'ot12', type: 'MULTIPLE_CHOICE', question: 'What is Step 1 of the 8-step greeting script?', options: ['Ask for name', 'Take order', 'Warm greeting', 'Acknowledge wait'], correctAnswers: ['Warm greeting'] },
+          { id: 'ot13', type: 'MULTIPLE_CHOICE', question: 'What should you say in Step 8 (Thank you & instructions)?', options: ['"Have a nice day!"', '"Thank you! Pull forward to the window."', '"Your order is ready."', '"Come back soon!"'], correctAnswers: ['"Thank you! Pull forward to the window."'] },
+          { id: 'ot14', type: 'MULTIPLE_CHOICE', question: 'What is a good pre-qualifying question to speed up orders?', options: ['"What\'s your favorite drink?"', '"Are we doing hot, iced, or frozen today?"', '"Do you want coffee or tea?"', '"What size do you prefer?"'], correctAnswers: ['"Are we doing hot, iced, or frozen today?"'] },
+          { id: 'ot15', type: 'TRUE_FALSE', question: 'You should use the guest\'s name when possible during the interaction.', correctAnswers: ['True'] },
+          { id: 'ot16', type: 'MULTIPLE_CHOICE', question: 'How long should order-taking time be per car?', options: ['30-45 seconds', '60-90 seconds', '2-3 minutes', 'As long as it takes'], correctAnswers: ['60-90 seconds'] },
+          { id: 'ot17', type: 'TRUE_FALSE', question: 'If a regular customer is relaxed, it\'s okay to engage more and suggest new menu items.', correctAnswers: ['True'] },
+          { id: 'ot18', type: 'MULTIPLE_CHOICE', question: 'Where can you add special instructions like "extra hot" or "light ice"?', options: ['On a sticky note', 'In the Toast POS notes field', 'Verbally tell the barista', 'Write on the cup'], correctAnswers: ['In the Toast POS notes field'] },
+          { id: 'ot19', type: 'MULTIPLE_CHOICE', question: 'What should you do when waiting guests are in line?', options: ['Ignore them and focus on current order', 'Acknowledge them: "We\'ll be with you shortly!"', 'Rush through the current order', 'Tell them to go somewhere else'], correctAnswers: ['Acknowledge them: "We\'ll be with you shortly!"'] },
+          { id: 'ot20', type: 'MULTIPLE_CHOICE', question: 'What is Step 5 of the 8-step greeting script?', options: ['Repeat order', 'Take order', 'Confirm & upsell', 'Total & payment'], correctAnswers: ['Confirm & upsell'] }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'm-toast-pos',
+    title: 'Module 17: Toast POS Navigation',
+    description: 'Learn to navigate the Toast POS system, process orders, handle payments, and manage common scenarios.',
+    category: 'ONBOARDING',
+    lessons: [
+      {
+        id: 'l-toast-intro',
+        moduleId: 'm-toast-pos',
+        title: 'Toast POS System Overview',
+        type: 'CONTENT',
+        content: `**TOAST POS SYSTEM OVERVIEW**
+
+Boundaries Coffee uses the **Toast Point of Sale (POS)** system to take orders, process payments, and manage customer transactions.
+
+═══════════════════════════════════════
+
+**TRAINING VIDEOS**
+
+Before hands-on practice, complete these Toast Central training modules:
+
+**1. Toast Classroom – Front of House**
+🔗 [central.toasttab.com/s/toast-classroom](https://central.toasttab.com/s/toast-classroom)
+
+**2. Front of House Skills 101**
+🔗 [central.toasttab.com/s/front-of-house-skills-101](https://central.toasttab.com/s/front-of-house-skills-101)
+
+**3. POS Practice Sandbox**
+Navigate to: Toast Classroom → Getting Started with POS Functionality
+
+*Note: Toast Central requires login. Ask your manager for access credentials.*
+
+═══════════════════════════════════════
+
+**HARDWARE OVERVIEW**
+
+**Toast Go 2 Handheld Device:**
+• Touchscreen interface for order entry
+• Built-in card reader (swipe, chip, contactless tap)
+• Portable and wireless
+• Stored in the **Boundaries satchel** when taking orders outside
+
+**Key Features:**
+✓ Fast, intuitive menu navigation
+✓ Integrated payment processing
+✓ Real-time order transmission to kitchen
+✓ Customer-facing display for order confirmation
+
+═══════════════════════════════════════
+
+**WHY TOAST MATTERS**
+
+Mastering the Toast POS allows you to:
+• Take orders quickly and accurately
+• Process payments efficiently
+• Minimize errors and remakes
+• Provide a seamless customer experience
+• Focus on hospitality instead of struggling with technology
+
+**Next lessons will cover order entry, payment processing, and troubleshooting common scenarios.**`
+      },
+      {
+        id: 'l-toast-order-flow',
+        moduleId: 'm-toast-pos',
+        title: 'Order Entry Flow',
+        type: 'CONTENT',
+        content: `**ORDER ENTRY FLOW**
+
+Follow these 6 steps every time you take an order:
+
+═══════════════════════════════════════
+
+**STEP 1: TAB NAME**
+Enter the guest's name to identify the order.
+
+**STEP 2: ADD ITEM**
+Select the drink or food category, then tap the specific item.
+
+**STEP 3: SELECT SIZE**
+Choose the size: Small, Medium, Large (varies by drink type).
+
+**STEP 4: SELECT MODIFIERS**
+Add customizations:
+• Milk type
+• Sweetness level
+• Extras (shots, cream, drizzle)
+• Temperature (Hot, Iced, Frozen)
+
+**STEP 5: DONE**
+Confirm the item to add it to the order.
+
+**STEP 6: SEND TO KITCHEN**
+Fire the order to transmit it to the bar for preparation.
+
+═══════════════════════════════════════
+
+**COMMON MODIFIERS**
+
+**Milk Options:**
+• Whole
+• 2%
+• Oat
+• Almond
+• Coconut
+• Fairlife
+
+**Sweetness Options:**
+• Regular (standard)
+• Half Sweet
+• Extra Sweet
+
+**Extras (with upcharges):**
+• Extra Shot: **+$1.00**
+• Sweet Cream: **+$0.75**
+• Drizzle: **+$0.25**
+
+**Temperature Options:**
+• Hot
+• Iced
+• Frozen
+
+═══════════════════════════════════════
+
+**PRO TIPS:**
+
+✓ **Navigate efficiently** - Know where each drink category is located
+✓ **Confirm modifiers** - Repeat customizations back to the guest
+✓ **Use the Done button** - Don't skip this step or the item won't save
+✓ **Send orders promptly** - Don't wait too long or drinks will be delayed
+
+**REMEMBER:** Accuracy is more important than speed. A correct order the first time is always faster than remaking a mistake.`
+      },
+      {
+        id: 'l-toast-payment',
+        moduleId: 'm-toast-pos',
+        title: 'Payment Processing',
+        type: 'CONTENT',
+        content: `**PAYMENT PROCESSING**
+
+Once the order is complete, process payment using one of these methods:
+
+═══════════════════════════════════════
+
+**CREDIT / DEBIT CARD**
+
+1. Tap **Pay**
+2. Select **Lane** (credit/debit)
+3. Guest can:
+   - **Tap** (contactless/NFC)
+   - **Insert** (chip card)
+   - **Swipe** (magnetic stripe)
+4. Wait for approval confirmation
+
+═══════════════════════════════════════
+
+**CASH**
+
+1. Tap **Pay**
+2. Select **Cash**
+3. Enter the **amount tendered** by the guest (e.g., if total is $8.50 and they give you $10, enter $10)
+4. The system will calculate and display the change due
+5. Give change to the guest
+
+═══════════════════════════════════════
+
+**GIFT CARD**
+
+1. Tap **Pay**
+2. Select **Gift Card**
+3. **Scan** the gift card barcode or **manually enter** the card number
+4. System will deduct from the card balance
+
+═══════════════════════════════════════
+
+**BOUNDARIES APP (DIGITAL GIFT CARD)**
+
+⚠️ **IMPORTANT:** When a guest pays with the Boundaries App, select **Gift Card** as the payment method.
+
+**Why?**
+The Boundaries App generates a **digital gift card QR code** for payment. This is NOT the same as a credit card payment.
+
+**Process:**
+1. Tap **Pay**
+2. Select **Gift Card**
+3. Scan the QR code from the guest's phone
+4. Payment complete
+
+**DO NOT select "Credit Card" for Boundaries App payments.**
+
+═══════════════════════════════════════
+
+**MOBILE WALLET (Apple Pay / Google Pay)**
+
+1. Tap **Pay**
+2. Select **Lane**
+3. Guest taps their phone or watch on the card reader
+4. Wait for approval confirmation
+
+═══════════════════════════════════════
+
+**APPLYING REWARDS**
+
+To apply rewards to an order:
+1. Before payment, tap **Rewards** or **Phone Number**
+2. Enter the guest's phone number
+3. Available rewards will automatically apply to the order
+4. Proceed with payment
+
+═══════════════════════════════════════
+
+**COMMON PAYMENT ISSUES**
+
+**Card Declined:**
+• Politely inform the guest
+• Offer alternative payment method
+
+**Gift Card Insufficient Balance:**
+• System will show remaining balance
+• Offer to split payment (use gift card first, then another payment method for the remainder)
+
+**App Not Scanning:**
+• Increase screen brightness
+• Try manual gift card entry if QR won't scan`
+      },
+      {
+        id: 'l-toast-editing',
+        moduleId: 'm-toast-pos',
+        title: 'Editing Orders & Troubleshooting',
+        type: 'CONTENT',
+        content: `**EDITING ORDERS**
+
+Mistakes happen. Here's how to fix them:
+
+═══════════════════════════════════════
+
+**MODIFY AN ITEM**
+
+If you need to change a modifier (milk, size, etc.):
+1. **Tap the item** on the order screen
+2. Make the needed changes
+3. Tap **Done** to save changes
+
+═══════════════════════════════════════
+
+**REMOVE AN ITEM**
+
+If you need to delete an item from the order:
+1. **Swipe left** on the item
+2. Tap **Delete** to confirm removal
+
+═══════════════════════════════════════
+
+**VOID vs. REFUND**
+
+**VOID (Before Payment):**
+Use this to remove an item or cancel an order **before** payment is processed.
+
+• Tap the item
+• Swipe left and delete
+• No manager approval needed (usually)
+
+**REFUND (After Payment):**
+Use this if the guest has already paid and needs money back.
+
+• Requires **manager approval** (depending on settings)
+• Process through the Toast refund menu
+• Document the reason for the refund
+
+⚠️ **Important:** Void before payment whenever possible. Refunds create more paperwork and require manager sign-off.
+
+═══════════════════════════════════════
+
+**COMMON SCENARIOS**
+
+**Guest Changes Their Mind Mid-Order:**
+• Tap the item to modify or swipe left to delete
+• Add the new item
+• Confirm with the guest before proceeding
+
+**Wrong Size Selected:**
+• Tap the item
+• Change the size modifier
+• Tap Done
+
+**Forgot to Add Extra Shot:**
+• Tap the item
+• Add the extra shot modifier (+$1)
+• Tap Done
+
+**Guest Paid But Wants a Refund:**
+• Call your manager or shift lead
+• Explain the situation
+• Manager will process the refund through the POS
+
+═══════════════════════════════════════
+
+**TROUBLESHOOTING TIPS**
+
+**POS is Frozen or Slow:**
+• Restart the Toast device
+• Check Wi-Fi connection
+• Alert your manager if the issue persists
+
+**Payment Won't Process:**
+• Check card reader connection
+• Try a different payment method
+• Use backup payment terminal if available
+
+**Order Didn't Fire to Kitchen:**
+• Check if "Send to Kitchen" was pressed
+• Manually communicate the order to the bar
+• Resend if needed
+
+═══════════════════════════════════════
+
+**BEST PRACTICES:**
+
+✓ Always double-check orders before sending
+✓ Confirm payment method with the guest
+✓ Keep the POS screen clean and responsive
+✓ Communicate with your team if issues arise
+✓ Ask for help—don't guess if you're unsure`
+      },
+      {
+        id: 'l-toast-practice',
+        moduleId: 'm-toast-pos',
+        title: 'Hands-On Practice Checklist',
+        type: 'CONTENT',
+        content: `**HANDS-ON PRACTICE CHECKLIST**
+
+Work with your trainer to complete these practice tasks. Initial each task once you've successfully completed it.
+
+═══════════════════════════════════════
+
+**PART A: TOAST NAVIGATION**
+
+Complete each task multiple times until you feel confident:
+
+☐ Enter a tab name (3 times)
+☐ Navigate to Originals category (3 times)
+☐ Navigate to Energy/Bubbly category (3 times)
+☐ Navigate to Kids Drinks category (3 times)
+☐ Add size modifier (5 times)
+☐ Add each milk type - all 6 options (Whole, 2%, Oat, Almond, Coconut, Fairlife)
+☐ Add sweetness modifier (Half Sweet, Extra Sweet) (3 times)
+☐ Remove an item using swipe left (3 times)
+☐ Edit item modifiers after adding (3 times)
+
+═══════════════════════════════════════
+
+**PART B: ORDER SCENARIOS**
+
+Practice entering these real-world orders:
+
+☐ Large Iced Texas Delight, oat milk, half sweet
+☐ Medium Hot Hill Country with extra shot (+$1)
+☐ Frozen Salted Sweetheart, large, sweet cream (+$0.75)
+☐ Electric B Energy + Unicorn Latte (two items)
+☐ Cookie Butter Nitro + Bacon Taco (drink + food)
+☐ Strawberry Dream Matcha, iced, almond milk, extra sweet
+☐ Hot Honey Bee Tea + Chocolate Croissant
+☐ 2 Large Iced: Lavender Sunrise + Harvest Moon
+
+═══════════════════════════════════════
+
+**PART C: PAYMENT PROCESSING**
+
+Complete each payment type multiple times:
+
+☐ Card payment using **tap** (contactless) (3 times)
+☐ Card payment using **chip** insert (2 times)
+☐ Cash payment with change calculation (3 times)
+☐ Apply rewards using phone number (3 times)
+☐ Gift card payment - scan or enter (2 times)
+☐ **Boundaries App payment** (use Gift Card method!) (2 times)
+☐ Sell a new gift card (1 time)
+☐ Void an item before payment (2 times)
+☐ Process a refund with trainer supervision (1 time)
+
+═══════════════════════════════════════
+
+**TRAINER SIGN-OFF**
+
+Once the trainee has completed all tasks and demonstrated proficiency, the trainer should sign and date below:
+
+**Trainer Name:** _________________________
+
+**Signature:** _________________________
+
+**Date:** _________________________
+
+**Notes:**`
+      },
+      {
+        id: 'l-toast-quiz',
+        moduleId: 'm-toast-pos',
+        title: 'Toast POS Navigation Knowledge Check',
+        type: 'QUIZ',
+        quizQuestions: [
+          { id: 'tp1', type: 'MULTIPLE_CHOICE', question: 'What is the correct order entry flow?', options: ['Add Item → Size → Tab Name → Modifiers', 'Tab Name → Add Item → Size → Modifiers → Done → Send', 'Size → Item → Modifiers → Name', 'Item → Modifiers → Size → Pay'], correctAnswers: ['Tab Name → Add Item → Size → Modifiers → Done → Send'] },
+          { id: 'tp2', type: 'MULTIPLE_CHOICE', question: 'How do you remove an item from an order?', options: ['Press the delete button', 'Swipe left on the item', 'Long press the item', 'Tap the trash icon'], correctAnswers: ['Swipe left on the item'] },
+          { id: 'tp3', type: 'MULTIPLE_CHOICE', question: 'What is the upcharge for an extra shot?', options: ['$0.50', '$0.75', '$1.00', '$1.25'], correctAnswers: ['$1.00'] },
+          { id: 'tp4', type: 'MULTIPLE_CHOICE', question: 'What is the upcharge for sweet cream?', options: ['$0.25', '$0.50', '$0.75', '$1.00'], correctAnswers: ['$0.75'] },
+          { id: 'tp5', type: 'MULTIPLE_CHOICE', question: 'How do you process a Boundaries App payment?', options: ['Select Credit Card and scan', 'Select Gift Card and scan the QR code', 'Select Mobile Wallet', 'Select Boundaries App button'], correctAnswers: ['Select Gift Card and scan the QR code'] },
+          { id: 'tp6', type: 'MULTIPLE_CHOICE', question: 'What milk options are available?', options: ['Whole, Skim, 2%', 'Whole, 2%, Oat, Almond, Coconut, Fairlife', 'Whole, Oat, Soy', '2%, Almond, Cashew'], correctAnswers: ['Whole, 2%, Oat, Almond, Coconut, Fairlife'] },
+          { id: 'tp7', type: 'MULTIPLE_CHOICE', question: 'What are the sweetness modifier options?', options: ['Light, Regular, Extra', 'Half Sweet, Extra Sweet', 'Less Sugar, More Sugar', '25%, 50%, 100%'], correctAnswers: ['Half Sweet, Extra Sweet'] },
+          { id: 'tp8', type: 'MULTIPLE_CHOICE', question: 'How do you apply rewards to an order?', options: ['Scan the app QR code', 'Enter the guest\'s phone number', 'Ask for their email', 'Look up their name'], correctAnswers: ['Enter the guest\'s phone number'] },
+          { id: 'tp9', type: 'MULTIPLE_CHOICE', question: 'What handheld device does Boundaries use?', options: ['Toast Go 1', 'Toast Go 2', 'Toast Flex', 'Toast Kiosk'], correctAnswers: ['Toast Go 2'] },
+          { id: 'tp10', type: 'MULTIPLE_CHOICE', question: 'What is Step 1 of the order entry flow?', options: ['Add Item', 'Tab Name', 'Select Size', 'Send to Kitchen'], correctAnswers: ['Tab Name'] },
+          { id: 'tp11', type: 'MULTIPLE_CHOICE', question: 'How do you edit an item\'s modifiers after adding it?', options: ['Delete and re-add', 'Tap the item to modify', 'Press the edit button', 'Cannot be edited'], correctAnswers: ['Tap the item to modify'] },
+          { id: 'tp12', type: 'MULTIPLE_CHOICE', question: 'What is the upcharge for adding a drizzle?', options: ['$0.25', '$0.50', '$0.75', '$1.00'], correctAnswers: ['$0.25'] },
+          { id: 'tp13', type: 'MULTIPLE_CHOICE', question: 'When processing a cash payment, what do you enter?', options: ['The total amount due', 'The amount tendered by the guest', 'The change amount', 'The tip amount'], correctAnswers: ['The amount tendered by the guest'] },
+          { id: 'tp14', type: 'MULTIPLE_CHOICE', question: 'What does "Void" mean?', options: ['Complete the order', 'Remove an item before payment', 'Process a refund', 'Close the register'], correctAnswers: ['Remove an item before payment'] },
+          { id: 'tp15', type: 'MULTIPLE_CHOICE', question: 'When might manager approval be required?', options: ['Adding modifiers', 'Processing refunds', 'Entering tab names', 'Selecting sizes'], correctAnswers: ['Processing refunds'] },
+          { id: 'tp16', type: 'MULTIPLE_CHOICE', question: 'How do you sell a new gift card?', options: ['Select Gift Card payment', 'Add Gift Card item → Select amount → Process payment → Activate', 'Scan an existing card', 'Enter the card number manually'], correctAnswers: ['Add Gift Card item → Select amount → Process payment → Activate'] },
+          { id: 'tp17', type: 'MULTIPLE_CHOICE', question: 'What should you do if a guest changes their order?', options: ['Start over completely', 'Tap to edit or swipe left to delete items', 'Ask them to order again at the window', 'Call a manager'], correctAnswers: ['Tap to edit or swipe left to delete items'] },
+          { id: 'tp18', type: 'MULTIPLE_CHOICE', question: 'Where is the Toast handheld stored when taking orders outside?', options: ['In your pocket', 'In the Boundaries satchel', 'On a lanyard', 'At the register'], correctAnswers: ['In the Boundaries satchel'] },
+          { id: 'tp19', type: 'MULTIPLE_CHOICE', question: 'What temperature options are available for drinks?', options: ['Warm, Room Temp, Cold', 'Hot, Iced, Frozen', 'Hot, Cold', 'Steaming, Lukewarm, Chilled'], correctAnswers: ['Hot, Iced, Frozen'] },
+          { id: 'tp20', type: 'MULTIPLE_CHOICE', question: 'Why is it important to use Gift Card for Boundaries App payments?', options: ['It\'s faster', 'The app generates a digital gift card QR code', 'Credit Card doesn\'t work', 'It gives bonus points'], correctAnswers: ['The app generates a digital gift card QR code'] }
+        ]
+      }
+    ]
   }
 ];
 
