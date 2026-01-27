@@ -552,6 +552,32 @@ export const TRAINING_CURRICULUM: TrainingModule[] = [
     category: 'ONBOARDING',
     lessons: [
       {
+        id: 'l-handbook-review',
+        moduleId: 'm-onboarding',
+        title: 'Company Handbook Review',
+        type: 'CONTENT',
+        content: `Welcome to Boundaries Coffee! Before beginning your training, please review our company handbook thoroughly.
+
+The handbook covers important policies including:
+
+• Employment policies and expectations
+• Pay, scheduling, and time off
+• Dress code and appearance standards
+• Food safety and hygiene requirements
+• Customer service standards
+• Workplace conduct and ethics
+• Safety procedures and emergency protocols
+
+DOWNLOAD THE HANDBOOK:
+
+📄 Boundaries Coffee Employee Handbook (2024)
+   [INSERT HANDBOOK LINK HERE - Ask your manager for the current handbook file]
+
+Take your time to read through the entire handbook. You'll verify that you've reviewed it in the next lesson.
+
+If you have any questions about policies in the handbook, please ask your trainer or manager before proceeding.`
+      },
+      {
         id: 'l-logistics-quiz',
         moduleId: 'm-onboarding',
         title: 'System & Logistics Verification',
@@ -569,7 +595,26 @@ export const TRAINING_CURRICULUM: TrainingModule[] = [
         moduleId: 'm-onboarding',
         title: 'Certification Verification',
         type: 'FILE_UPLOAD',
-        fileLabel: 'Upload your Texas Food Handler Certificate here.'
+        content: `All food service employees in Texas are required to complete a Texas Food Handler Certification within 60 days of hire.
+
+APPROVED WEBSITES TO GET YOUR CERTIFICATION:
+
+1. TABC (Texas Alcoholic Beverage Commission) - FREE
+   https://www.tabc.texas.gov/food-handler-training/
+
+2. StateFoodSafety.com - $10
+   https://www.statefoodsafety.com/food-handler/texas
+
+3. Learn2Serve - $10
+   https://www.learn2serve.com/texas-food-handlers-card
+
+4. 360training.com - $10
+   https://www.360training.com/food-manager-training/texas
+
+The certification typically takes 2 hours to complete and is valid for 2 years. Once you finish, you'll receive a certificate that you need to upload below.
+
+If you have any questions about which site to use or need help with the process, ask your trainer or manager.`,
+        fileLabel: 'Upload your Texas Food Handler Certificate (PDF, JPG, or PNG)'
       }
     ]
   },
