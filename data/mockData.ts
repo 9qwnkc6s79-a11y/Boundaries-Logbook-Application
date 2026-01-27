@@ -1240,221 +1240,8 @@ Sugar-Free Options: Vanilla, Dark Chocolate, Caramel`
     ]
   },
   {
-    id: 'm-hospitality',
-    title: 'Module 14: Hospitality Excellence',
-    description: 'Master customer service, communication, and creating memorable guest experiences.',
-    category: 'ONBOARDING',
-    lessons: [
-      {
-        id: 'l-hospitality-intro',
-        moduleId: 'm-hospitality',
-        title: 'The Heart of Hospitality',
-        type: 'CONTENT',
-        content: `At Boundaries Coffee, hospitality isn't just about serving drinks—it's about creating genuine connections and memorable experiences for every guest.
-
-THE BOUNDARIES HOSPITALITY PHILOSOPHY:
-
-1. AUTHENTIC CONNECTION
-   Every customer is a person with a story. Make eye contact, smile genuinely, and be present in the moment. Learn names when possible and remember details about regular customers.
-
-2. ANTICIPATE NEEDS
-   Read body language and context. A parent with three kids needs efficiency. Someone working on a laptop values a quiet acknowledgment. A first-timer needs patient guidance.
-
-3. RECOVERY MINDSET
-   Mistakes happen. What matters is how we respond. Own it, fix it quickly, and go above and beyond to make it right.
-
-4. CONTAGIOUS POSITIVITY
-   Your energy sets the tone. Enthusiasm is infectious. Even on hard days, bring your best self to every interaction.
-
-THE THREE-FOOT RULE:
-When a customer is within three feet, acknowledge them. A smile, a "I'll be right with you," or a friendly nod shows they matter.
-
-FIRST IMPRESSIONS:
-You have 7 seconds to make a first impression. Walk with purpose, maintain good posture, and greet every customer warmly within those crucial seconds.`
-      },
-      {
-        id: 'l-hospitality-communication',
-        moduleId: 'm-hospitality',
-        title: 'Effective Communication Skills',
-        type: 'CONTENT',
-        content: `Communication in hospitality goes beyond words—it's tone, body language, and timing.
-
-VERBAL COMMUNICATION:
-
-• CLEAR & CONFIDENT: Speak clearly at a moderate pace. Don't mumble or rush.
-• POSITIVE LANGUAGE: Say "I can" instead of "I can't." Offer solutions, not limitations.
-• AVOID JARGON: Not everyone knows coffee terms. Translate when needed.
-• ASK OPEN QUESTIONS: "What sounds good today?" beats "What do you want?"
-
-NON-VERBAL COMMUNICATION:
-
-• EYE CONTACT: Shows respect and attention. Don't stare at the register or your phone.
-• SMILE: A genuine smile is universal. It costs nothing and means everything.
-• POSTURE: Stand tall, face the customer, keep arms uncrossed.
-• ACTIVE LISTENING: Nod, lean in slightly, repeat orders back for confirmation.
-
-PHONE ETIQUETTE:
-
-1. Answer within 3 rings
-2. "Thank you for calling Boundaries Coffee, this is [Name], how can I help you?"
-3. Speak clearly and enthusiastically
-4. Take detailed messages if needed
-5. End with "Thank you, have a great day!"
-
-MANAGING LINES:
-
-• Acknowledge waiting customers: "I'll be with you in just a moment!"
-• Work efficiently without sacrificing quality
-• Call for backup when needed—there's no shame in asking for help
-• If someone's been waiting long, apologize sincerely: "Thank you for your patience!"
-
-REMEMBER: You can say almost anything if you say it with kindness and sincerity.`
-      },
-      {
-        id: 'l-hospitality-difficult',
-        moduleId: 'm-hospitality',
-        title: 'Handling Difficult Situations',
-        type: 'CONTENT',
-        content: `Every service job includes challenging moments. Your response defines the experience.
-
-THE UPSET CUSTOMER:
-
-STEP 1 - LISTEN FULLY
-Let them express frustration without interrupting. Sometimes people just need to be heard.
-
-STEP 2 - EMPATHIZE & VALIDATE
-"I completely understand why that's frustrating." Validation ≠ Agreement. You're acknowledging their feelings.
-
-STEP 3 - APOLOGIZE SINCERELY
-Even if it wasn't your fault: "I'm so sorry that happened. Let me make this right."
-
-STEP 4 - SOLVE QUICKLY
-Offer a concrete solution: remake the drink, provide a refund, add a free pastry. Empower yourself to fix problems.
-
-STEP 5 - FOLLOW UP
-"Is there anything else I can do?" Make sure they leave satisfied.
-
-COMMON SCENARIOS:
-
-WRONG ORDER:
-"I'm so sorry about that! Let me remake it exactly how you want it. This one's on us, and I'll have it ready in 2 minutes."
-
-LONG WAIT TIME:
-"Thank you so much for your patience. I know the wait was longer than it should have been. Can I add a free pastry or upgrade your size?"
-
-RUDE BEHAVIOR:
-Stay professional. Don't take it personally. Kill them with kindness. If it escalates, calmly ask for manager assistance.
-
-PRICE COMPLAINT:
-"I understand. Quality ingredients cost more, but we use local, specialty-grade coffee and fresh, real ingredients—no powders or shortcuts. Would you like a recommendation for best value?"
-
-WHEN TO ESCALATE:
-
-• Customer demands something against policy (alcohol, breaking health code, etc.)
-• Aggressive or threatening behavior
-• Requests for large refunds or comp'd orders
-• Situations you're uncomfortable handling
-
-NEVER:
-• Argue or raise your voice
-• Be sarcastic or passive-aggressive
-• Walk away without explanation
-• Make promises you can't keep
-
-ALWAYS:
-• Stay calm and professional
-• Protect your team members
-• Document serious incidents for manager review`
-      },
-      {
-        id: 'l-hospitality-upselling',
-        moduleId: 'm-hospitality',
-        title: 'Creating Value Through Suggestions',
-        type: 'CONTENT',
-        content: `Upselling isn't about pushing products—it's about enhancing experiences and introducing customers to things they'll love.
-
-THE BOUNDARIES APPROACH:
-
-We don't "upsell." We make thoughtful recommendations that add genuine value.
-
-EFFECTIVE SUGGESTION TECHNIQUES:
-
-1. PAIR WITH CONTEXT
-"That latte pairs perfectly with our cinnamon roll—it's fresh out of the oven."
-
-2. SEASONAL HIGHLIGHTS
-"Have you tried our Harvest Moon yet? It's our fall favorite with maple and white chocolate."
-
-3. SIZE UPGRADES
-"For just $1 more, you can upgrade to a 16oz—it's our most popular size."
-
-4. ADD-ONS THAT ENHANCE
-"Want to add a shot of espresso? It gives the matcha a nice kick."
-
-5. NEW CUSTOMER EDUCATION
-"If you like vanilla lattes, you'll love our Texas Delight—it's our signature drink with honey, vanilla, and cinnamon."
-
-READING THE ROOM:
-
-• REGULARS: "Your usual, or feeling adventurous today?"
-• RUSHED CUSTOMERS: Quick, don't suggest extras. Get them in and out.
-• FIRST-TIMERS: Educate and guide. Build trust before suggesting add-ons.
-• INDECISIVE CUSTOMERS: "Can I make a recommendation based on what you like?"
-
-POWER PHRASES:
-
-• "Have you tried...?"
-• "A lot of people pair that with..."
-• "If you like X, you'll love Y."
-• "This is one of my favorites because..."
-• "Want to make it extra special with...?"
-
-RESPECTFUL BOUNDARIES:
-
-If someone says "No thanks," respect it immediately. Don't push. Overpushing creates discomfort and resentment.
-
-FOOD PAIRING SUGGESTIONS:
-
-• Espresso drinks → Pastries, cookies
-• Lattes → Cinnamon rolls, muffins
-• Cold drinks → Light snacks
-• Morning orders → Breakfast sandwiches
-
-THE GOAL: Make customers feel like you're helping them discover something great, not selling them something they don't need.`
-      },
-      {
-        id: 'l-hospitality-quiz',
-        moduleId: 'm-hospitality',
-        title: 'Hospitality Knowledge Check',
-        type: 'QUIZ',
-        quizQuestions: [
-          { id: 'h1', type: 'MULTIPLE_CHOICE', question: 'What is the "Three-Foot Rule"?', options: ['Stand at least three feet away from customers', 'Acknowledge customers when they\'re within three feet', 'Clean tables within three feet of customers', 'Greet customers within three feet of the door'], correctAnswers: ['Acknowledge customers when they\'re within three feet'] },
-          { id: 'h2', type: 'MULTIPLE_CHOICE', question: 'How many seconds do you have to make a first impression?', options: ['3 seconds', '5 seconds', '7 seconds', '10 seconds'], correctAnswers: ['7 seconds'] },
-          { id: 'h3', type: 'MULTIPLE_CHOICE', question: 'When handling an upset customer, what should you do FIRST?', options: ['Offer a solution immediately', 'Listen fully without interrupting', 'Call the manager', 'Explain why the mistake happened'], correctAnswers: ['Listen fully without interrupting'] },
-          { id: 'h4', type: 'MULTIPLE_CHOICE', question: 'What is the proper way to answer the phone at Boundaries Coffee?', options: ['Hello?', 'Boundaries Coffee', 'Thank you for calling Boundaries Coffee, this is [Name], how can I help you?', 'What can I get for you?'], correctAnswers: ['Thank you for calling Boundaries Coffee, this is [Name], how can I help you?'] },
-          { id: 'h5', type: 'TRUE_FALSE', question: 'It\'s okay to use coffee jargon like "pull a shot" or "tamp" when talking to customers who may not be familiar with coffee terms.', correctAnswers: ['False'] },
-          { id: 'h6', type: 'MULTIPLE_CHOICE', question: 'What does "positive language" mean in customer service?', options: ['Always smile and be happy', 'Say "I can" instead of "I can\'t" and offer solutions', 'Compliment customers on their orders', 'Use upbeat words like "awesome" and "amazing"'], correctAnswers: ['Say "I can" instead of "I can\'t" and offer solutions'] },
-          { id: 'h7', type: 'MULTIPLE_CHOICE', question: 'When should you call for backup during a rush?', options: ['Never - it shows weakness', 'Only if you\'re completely overwhelmed', 'When the line gets long and you need help - there\'s no shame in asking', 'Only if a manager tells you to'], correctAnswers: ['When the line gets long and you need help - there\'s no shame in asking'] },
-          { id: 'h8', type: 'TRUE_FALSE', question: 'If a customer is rude, it\'s okay to be sarcastic or passive-aggressive as long as you\'re still technically polite.', correctAnswers: ['False'] },
-          { id: 'h9', type: 'MULTIPLE_CHOICE', question: 'What is the best way to suggest an upsell or add-on?', options: ['Push it multiple times until they say yes', 'Make a thoughtful recommendation that adds genuine value', 'Always suggest the most expensive option', 'Wait for them to ask about it'], correctAnswers: ['Make a thoughtful recommendation that adds genuine value'] },
-          { id: 'h10', type: 'TRUE_FALSE', question: 'Empathizing with a customer means you agree with their complaint, even if you don\'t.', correctAnswers: ['False'] },
-          { id: 'h11', type: 'MULTIPLE_CHOICE', question: 'When a customer says "No thanks" to an add-on suggestion, you should:', options: ['Suggest something else immediately', 'Respect it and move on without pushing', 'Explain why they should reconsider', 'Ask if they\'re sure'], correctAnswers: ['Respect it and move on without pushing'] },
-          { id: 'h12', type: 'MULTIPLE_CHOICE', question: 'What should you do if a customer has been waiting longer than usual?', options: ['Ignore it and keep working', 'Apologize sincerely and thank them for their patience', 'Blame the delay on being short-staffed', 'Rush their order and skip quality checks'], correctAnswers: ['Apologize sincerely and thank them for their patience'] },
-          { id: 'h13', type: 'MULTIPLE_CHOICE', question: 'What does "reading the room" mean in hospitality?', options: ['Reading the daily schedule', 'Understanding customer needs based on context and body language', 'Knowing which tables are clean', 'Memorizing the menu'], correctAnswers: ['Understanding customer needs based on context and body language'] },
-          { id: 'h14', type: 'TRUE_FALSE', question: 'Eye contact, posture, and smiling are all examples of non-verbal communication.', correctAnswers: ['True'] },
-          { id: 'h15', type: 'MULTIPLE_CHOICE', question: 'When should you escalate a situation to a manager?', options: ['Anytime a customer complains', 'Only for aggressive or threatening behavior, policy violations, or situations you\'re uncomfortable handling', 'Never - you should handle everything yourself', 'When you don\'t want to deal with it'], correctAnswers: ['Only for aggressive or threatening behavior, policy violations, or situations you\'re uncomfortable handling'] },
-          { id: 'h16', type: 'MULTIPLE_CHOICE', question: 'What is the goal of Boundaries Coffee hospitality?', options: ['Sell as much as possible', 'Create genuine connections and memorable experiences', 'Get customers in and out quickly', 'Follow a script perfectly'], correctAnswers: ['Create genuine connections and memorable experiences'] },
-          { id: 'h17', type: 'TRUE_FALSE', question: 'If you make a mistake with a customer\'s order, you should explain why it happened before apologizing.', correctAnswers: ['False'] },
-          { id: 'h18', type: 'MULTIPLE_CHOICE', question: 'What is active listening?', options: ['Listening while doing other tasks', 'Nodding, leaning in, and repeating orders back for confirmation', 'Hearing what the customer says but not responding', 'Listening to music while working'], correctAnswers: ['Nodding, leaning in, and repeating orders back for confirmation'] },
-          { id: 'h19', type: 'TRUE_FALSE', question: 'Your energy and attitude can set the tone for the customer\'s entire experience.', correctAnswers: ['True'] },
-          { id: 'h20', type: 'MULTIPLE_CHOICE', question: 'What is the Boundaries approach to upselling?', options: ['Push products aggressively to maximize sales', 'Make thoughtful recommendations that add genuine value', 'Only suggest upsells to regulars', 'Never suggest anything - let customers decide on their own'], correctAnswers: ['Make thoughtful recommendations that add genuine value'] }
-        ]
-      }
-    ]
-  },
-  {
     id: 'm-hospitality-ritz',
-    title: 'Module 15: Hospitality Training',
+    title: 'Module 14: Hospitality Training',
     description: 'Learn the Ritz Carlton service philosophy and Boundaries core values for exceptional guest experiences.',
     category: 'ONBOARDING',
     lessons: [
@@ -1462,20 +1249,9 @@ THE GOAL: Make customers feel like you're helping them discover something great,
         id: 'l-hospitality-ritz-video',
         moduleId: 'm-hospitality-ritz',
         title: 'Ritz Carlton Service Philosophy',
-        type: 'CONTENT',
-        content: `**WATCH: The Ritz Carlton Service Philosophy**
-
-Before continuing, watch this video to understand world-class hospitality:
-
-🎥 **[Watch: Ritz Carlton - Service Philosophy](https://www.youtube.com/watch?v=MOm7Gr-1BUc)**
-
-This 5-minute video demonstrates the gold standard of customer service. Pay attention to:
-
-• How they anticipate guest needs
-• The language they use
-• Their attention to small details
-• How they create memorable experiences
-• The mindset behind exceptional service
+        type: 'VIDEO',
+        videoUrl: 'https://www.youtube.com/watch?v=MOm7Gr-1BUc',
+        content: `Watch this video to understand world-class hospitality and how it applies to Boundaries Coffee.
 
 **REFLECTION QUESTIONS:**
 
@@ -1485,8 +1261,6 @@ After watching the video, think about:
 2. How can you apply these principles at Boundaries Coffee?
 3. What does "anticipating needs" look like in a coffee shop setting?
 4. How do small gestures create big impacts?
-
-═══════════════════════════════════════
 
 **KEY TAKEAWAY:**
 
@@ -1715,7 +1489,7 @@ Hospitality is a skill, not a talent. The more you practice these behaviors, the
   },
   {
     id: 'm-order-taking',
-    title: 'Module 16: Order Taking',
+    title: 'Module 15: Order Taking',
     description: 'Master the 8-step greeting script, flow management, and efficient order-taking techniques.',
     category: 'ONBOARDING',
     lessons: [
@@ -1938,7 +1712,7 @@ Work through each scenario until the trainee can:
   },
   {
     id: 'm-toast-pos',
-    title: 'Module 17: Toast POS Navigation',
+    title: 'Module 16: Toast POS Navigation',
     description: 'Learn to navigate the Toast POS system, process orders, handle payments, and manage common scenarios.',
     category: 'ONBOARDING',
     lessons: [
