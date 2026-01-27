@@ -29,12 +29,17 @@ if (typeof firebase !== 'undefined') {
   console.error('[Firebase] Firebase SDK not loaded! Check that CDN scripts are in index.html');
 }
 
+// Increment this version whenever curriculum structure or lesson properties change
+// This forces Firebase to update cached curriculum data
+const CURRICULUM_VERSION = 3;
+
 const DOC_KEYS = {
   USERS: 'users',
   PROGRESS: 'progress',
   SUBMISSIONS: 'submissions',
   TEMPLATES: 'templates',
   CURRICULUM: 'curriculum',
+  CURRICULUM_VERSION: 'curriculum_version',
   MANUAL: 'manual',
   RECIPES: 'recipes',
 };
@@ -290,28 +295,62 @@ class CloudAPI {
     manual: ManualSection[],
     recipes: Recipe[]
   }) {
-    const [users, submissions, progress, templates, cloudCurriculum, manual, recipes] = await Promise.all([
+    const [users, submissions, progress, templates, cloudCurriculum, manual, recipes, cloudVersion] = await Promise.all([
       this.fetchUsers(defaults.users),
       this.fetchSubmissions(),
       this.fetchProgress(),
       this.remoteGet(DOC_KEYS.TEMPLATES, defaults.templates),
       this.remoteGet(DOC_KEYS.CURRICULUM, defaults.curriculum),
       this.remoteGet(DOC_KEYS.MANUAL, defaults.manual),
-      this.remoteGet(DOC_KEYS.RECIPES, defaults.recipes)
+      this.remoteGet(DOC_KEYS.RECIPES, defaults.recipes),
+      this.remoteGet(DOC_KEYS.CURRICULUM_VERSION, 0)
     ]);
+
+    // Check if we need to force update due to version change
+    const needsVersionUpdate = cloudVersion < CURRICULUM_VERSION;
+    if (needsVersionUpdate) {
+      console.log(`[Firestore] globalSync: Curriculum version updated (${cloudVersion} → ${CURRICULUM_VERSION}), forcing full refresh`);
+    }
 
     // Merge new modules from defaults that don't exist in cloud
     // This ensures new modules added to mockData.ts appear in the app
     const cloudModuleIds = new Set(cloudCurriculum.map((m: TrainingModule) => m.id));
     const newModules = defaults.curriculum.filter(m => !cloudModuleIds.has(m.id));
 
-    // Update existing modules if default has more lessons
+    // Update existing modules if:
+    // 1. Version changed (force update all)
+    // 2. Default has more lessons
+    // 3. Lesson properties changed (type, videoUrl, title)
     const updatedModules = cloudCurriculum.map((cloudModule: TrainingModule) => {
       const defaultModule = defaults.curriculum.find(m => m.id === cloudModule.id);
 
+      if (!defaultModule) return cloudModule;
+
+      // Force update if version changed
+      if (needsVersionUpdate) {
+        console.log(`[Firestore] globalSync: Force updating module ${cloudModule.id} due to version change`);
+        return defaultModule;
+      }
+
       // Update if default has more lessons
-      if (defaultModule && defaultModule.lessons.length > cloudModule.lessons.length) {
+      if (defaultModule.lessons.length > cloudModule.lessons.length) {
         console.log(`[Firestore] globalSync: Updating module ${cloudModule.id} with new lessons`);
+        return defaultModule;
+      }
+
+      // Check if any lesson properties changed
+      const hasLessonChanges = defaultModule.lessons.some((defaultLesson, idx) => {
+        const cloudLesson = cloudModule.lessons[idx];
+        if (!cloudLesson) return true; // New lesson added
+
+        // Check critical properties that affect display
+        return defaultLesson.type !== cloudLesson.type ||
+               defaultLesson.videoUrl !== cloudLesson.videoUrl ||
+               defaultLesson.title !== cloudLesson.title;
+      });
+
+      if (hasLessonChanges) {
+        console.log(`[Firestore] globalSync: Updating module ${cloudModule.id} - lesson properties changed`);
         return defaultModule;
       }
 
@@ -319,10 +358,27 @@ class CloudAPI {
     });
 
     let curriculum = updatedModules;
+    let needsCurriculumUpdate = false;
+
     if (newModules.length > 0) {
       console.log(`[Firestore] globalSync: Found ${newModules.length} new curriculum module(s), merging...`);
       curriculum = [...updatedModules, ...newModules];
-      await this.remoteSet(DOC_KEYS.CURRICULUM, curriculum);
+      needsCurriculumUpdate = true;
+    }
+
+    // Check if any modules were updated
+    const modulesUpdated = updatedModules.some((module, idx) => module !== cloudCurriculum[idx]);
+    if (modulesUpdated) {
+      needsCurriculumUpdate = true;
+    }
+
+    // Save curriculum and version if changes detected
+    if (needsCurriculumUpdate || needsVersionUpdate) {
+      console.log(`[Firestore] globalSync: Saving updated curriculum to Firebase`);
+      await Promise.all([
+        this.remoteSet(DOC_KEYS.CURRICULUM, curriculum),
+        this.remoteSet(DOC_KEYS.CURRICULUM_VERSION, CURRICULUM_VERSION)
+      ]);
     }
 
     // Merge new recipes from defaults that don't exist in cloud

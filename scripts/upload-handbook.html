@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Upload Handbook to Firebase</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 600px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .card {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #001F3F;
+      margin-top: 0;
+    }
+    input[type="file"] {
+      display: none;
+    }
+    .btn {
+      background: #001F3F;
+      color: white;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .btn:hover {
+      background: #003366;
+    }
+    .btn:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    #status {
+      margin-top: 20px;
+      padding: 12px;
+      border-radius: 8px;
+      display: none;
+    }
+    .success { background: #d4edda; color: #155724; display: block; }
+    .error { background: #f8d7da; color: #721c24; display: block; }
+    .info { background: #d1ecf1; color: #0c5460; display: block; }
+    .url-box {
+      margin-top: 10px;
+      padding: 10px;
+      background: #f8f9fa;
+      border-radius: 4px;
+      word-break: break-all;
+      font-family: monospace;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>📄 Upload Employee Handbook</h1>
+    <p>Select your Employee Handbook PDF to upload to Firebase Storage:</p>
+
+    <input type="file" id="fileInput" accept=".pdf" />
+    <button class="btn" onclick="document.getElementById('fileInput').click()">
+      Choose PDF File
+    </button>
+    <button class="btn" id="uploadBtn" onclick="uploadFile()" style="display:none; margin-left: 10px;">
+      Upload to Firebase
+    </button>
+
+    <div id="status"></div>
+  </div>
+
+  <script>
+    // Firebase configuration (same as your app)
+    const firebaseConfig = {
+      apiKey: "AIzaSyDbOuTQGRW2LtQUpRFHmcXj782Zp4tEKvQ",
+      authDomain: "boundaries-logbook-app.firebaseapp.com",
+      projectId: "boundaries-logbook-app",
+      storageBucket: "boundaries-logbook-app.firebasestorage.app",
+      messagingSenderId: "240460663130",
+      appId: "1:240460663130:web:8976e8a967f8a101898b63"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const storage = firebase.storage();
+
+    let selectedFile = null;
+
+    document.getElementById('fileInput').addEventListener('change', (e) => {
+      selectedFile = e.target.files[0];
+      if (selectedFile) {
+        const status = document.getElementById('status');
+        status.className = 'info';
+        status.textContent = `Selected: ${selectedFile.name} (${(selectedFile.size / 1024 / 1024).toFixed(2)} MB)`;
+        document.getElementById('uploadBtn').style.display = 'inline-block';
+      }
+    });
+
+    async function uploadFile() {
+      if (!selectedFile) {
+        alert('Please select a file first');
+        return;
+      }
+
+      const status = document.getElementById('status');
+      const uploadBtn = document.getElementById('uploadBtn');
+
+      uploadBtn.disabled = true;
+      status.className = 'info';
+      status.textContent = 'Uploading... This may take a minute...';
+
+      try {
+        // Upload to Firebase Storage at /documents/employee-handbook.pdf
+        const storageRef = storage.ref('documents/employee-handbook.pdf');
+        const uploadTask = storageRef.put(selectedFile);
+
+        uploadTask.on('state_changed',
+          (snapshot) => {
+            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+            status.textContent = `Uploading... ${Math.round(progress)}%`;
+          },
+          (error) => {
+            console.error('Upload error:', error);
+            status.className = 'error';
+            status.textContent = `Upload failed: ${error.message}`;
+            uploadBtn.disabled = false;
+          },
+          async () => {
+            // Upload complete, get download URL
+            const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
+
+            status.className = 'success';
+            status.innerHTML = `
+              <strong>✓ Upload Successful!</strong>
+              <div class="url-box">${downloadURL}</div>
+              <p style="margin-top: 10px; font-size: 12px;">
+                Copy this URL and send it to Claude to update the handbook link in the app.
+              </p>
+            `;
+          }
+        );
+      } catch (error) {
+        console.error('Error:', error);
+        status.className = 'error';
+        status.textContent = `Error: ${error.message}`;
+        uploadBtn.disabled = false;
+      }
+    }
+  </script>
+</body>
+</html>
