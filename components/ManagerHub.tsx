@@ -525,19 +525,30 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
           </div>
           <h1 className="text-3xl sm:text-4xl font-extrabold text-[#001F3F] uppercase tracking-tighter leading-none">Manager Hub</h1>
         </div>
-        <div className="flex bg-neutral-100 p-1 rounded-xl sm:rounded-2xl border border-neutral-200 overflow-x-auto no-scrollbar">
-          {[
-            { id: 'dashboard', label: 'DASHBOARD', icon: LayoutDashboard },
-            { id: 'compliance', label: 'COMPLIANCE', icon: Timer },
-            { id: 'staff', label: 'STAFF', icon: Users },
-            { id: 'gallery', label: 'AUDIT', icon: ImageIcon },
-            { id: 'manual', label: 'MANUAL', icon: FileText },
-            { id: 'editor', label: 'PROTOCOLS', icon: Settings }
-          ].map(tab => (
-            <button key={tab.id} onClick={() => setActiveSubTab(tab.id as any)} className={`px-5 py-2.5 text-[9px] font-black rounded-lg transition-all flex items-center gap-2 whitespace-nowrap tracking-widest ${activeSubTab === tab.id ? 'bg-[#001F3F] text-white shadow-lg' : 'text-neutral-500 hover:text-[#001F3F]'}`}>
-              <tab.icon size={14} /> {tab.label}
-            </button>
-          ))}
+
+        {/* Tab navigation with scroll indicators */}
+        <div className="relative">
+          {/* Left fade gradient - mobile only */}
+          <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-white via-white/80 to-transparent z-10 pointer-events-none md:hidden" />
+
+          {/* Tabs */}
+          <div className="flex bg-neutral-100 p-1 rounded-xl sm:rounded-2xl border border-neutral-200 overflow-x-auto no-scrollbar">
+            {[
+              { id: 'dashboard', label: 'DASHBOARD', icon: LayoutDashboard },
+              { id: 'compliance', label: 'COMPLIANCE', icon: Timer },
+              { id: 'staff', label: 'STAFF', icon: Users },
+              { id: 'gallery', label: 'AUDIT', icon: ImageIcon },
+              { id: 'manual', label: 'MANUAL', icon: FileText },
+              { id: 'editor', label: 'PROTOCOLS', icon: Settings }
+            ].map(tab => (
+              <button key={tab.id} onClick={() => setActiveSubTab(tab.id as any)} className={`px-5 py-2.5 text-[9px] font-black rounded-lg transition-all flex items-center gap-2 whitespace-nowrap tracking-widest ${activeSubTab === tab.id ? 'bg-[#001F3F] text-white shadow-lg' : 'text-neutral-500 hover:text-[#001F3F]'}`}>
+                <tab.icon size={14} /> {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Right fade gradient - mobile only */}
+          <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white via-white/80 to-transparent z-10 pointer-events-none md:hidden" />
         </div>
       </header>
 
@@ -1018,8 +1029,29 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
         )}
 
         {activeSubTab === 'staff' && (
-          <section className="animate-in fade-in grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {staff.map(member => {
+          <section className="animate-in fade-in">
+            {staff.length === 0 ? (
+              <div className="bg-white p-16 rounded-[2.5rem] border border-neutral-100 shadow-sm text-center">
+                <div className="max-w-md mx-auto space-y-6">
+                  <div className="w-20 h-20 bg-neutral-100 text-neutral-300 rounded-full flex items-center justify-center mx-auto">
+                    <Users size={40} />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-black text-[#001F3F] uppercase tracking-tight mb-3">No Staff Assigned</h3>
+                    <p className="text-neutral-500 font-medium text-sm leading-relaxed">
+                      There are no staff members assigned to <span className="font-black text-[#001F3F]">{currentStoreName}</span> yet. Staff will appear here once they're added to the system.
+                    </p>
+                  </div>
+                  <div className="pt-4">
+                    <p className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">
+                      Contact your administrator to add staff members
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {staff.map(member => {
               const stats = trainingStats.find(s => s.userId === member.id);
               const perf = performanceData.find(p => p.id === member.id);
               const isExpanded = expandedStaffId === member.id;
@@ -1039,7 +1071,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                    <div className="space-y-4">
                       <div className="flex justify-between text-[9px] font-black uppercase text-neutral-400 tracking-widest"><span>Compliance Score</span><span>{perf?.score || 0}%</span></div>
                       <div className="w-full h-2.5 bg-neutral-100 rounded-full overflow-hidden border border-neutral-200">
-                        <div className="h-full bg-[#001F3F] transition-all duration-1000" style={{ width: `${perf?.score || 0}%` }} />
+                        <div className={`h-full transition-all duration-1000 ${(perf?.score || 0) === 100 ? 'bg-green-500' : (perf?.score || 0) > 0 ? 'bg-blue-500' : 'bg-neutral-300'}`} style={{ width: `${perf?.score || 0}%` }} />
                       </div>
                    </div>
                    <div className="grid grid-cols-2 gap-4">
@@ -1092,6 +1124,8 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                 </div>
               );
             })}
+              </div>
+            )}
           </section>
         )}
 
