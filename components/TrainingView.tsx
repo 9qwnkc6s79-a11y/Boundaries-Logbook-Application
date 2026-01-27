@@ -10,11 +10,10 @@ interface TrainingViewProps {
   onCompleteLesson: (lessonId: string, score?: number, fileData?: { url: string, name: string }, checklistCompleted?: string[], checklistPhotos?: Record<string, string>) => void;
   canEdit?: boolean;
   onUpdateCurriculum?: (curriculum: TrainingModule[]) => void;
-  onResetCurriculum?: () => void;
   onResetLessonProgress?: (lessonId: string) => void;
 }
 
-const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCompleteLesson, canEdit, onUpdateCurriculum, onResetCurriculum, onResetLessonProgress }) => {
+const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCompleteLesson, canEdit, onUpdateCurriculum, onResetLessonProgress }) => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
   const [timerActive, setTimerActive] = useState(false);
@@ -1210,27 +1209,12 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
             <p className="text-neutral-500 font-medium text-sm sm:text-base">Operational mastery through self-paced learning.</p>
           </div>
           {canEdit && (
-            <div className="flex gap-3">
-              <button
-                onClick={() => setIsEditMode(!isEditMode)}
-                className={`px-8 py-4 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 shadow-lg transition-all ${isEditMode ? 'bg-green-600 text-white' : 'bg-[#001F3F] text-white'}`}
-              >
-                {isEditMode ? <><Save size={16} /> Finish Editing</> : <><Edit3 size={16} /> Edit Curriculum</>}
-              </button>
-              {onResetCurriculum && (
-                <button
-                  onClick={async () => {
-                    if (confirm('Reset curriculum to latest version from code? This will update all modules including Module 12.')) {
-                      await onResetCurriculum();
-                      window.location.reload();
-                    }
-                  }}
-                  className="px-8 py-4 bg-red-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 shadow-lg transition-all hover:bg-red-700"
-                >
-                  <RefreshCw size={16} /> Reset Curriculum
-                </button>
-              )}
-            </div>
+            <button
+              onClick={() => setIsEditMode(!isEditMode)}
+              className={`px-8 py-4 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 shadow-lg transition-all ${isEditMode ? 'bg-green-600 text-white' : 'bg-[#001F3F] text-white'}`}
+            >
+              {isEditMode ? <><Save size={16} /> Finish Editing</> : <><Edit3 size={16} /> Edit Curriculum</>}
+            </button>
           )}
         </div>
 
