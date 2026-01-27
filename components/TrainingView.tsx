@@ -1290,7 +1290,6 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
             />
           </div>
         )}
-      </header>
 
         {/* Overall Progress Visualization */}
         {!isEditMode && (
