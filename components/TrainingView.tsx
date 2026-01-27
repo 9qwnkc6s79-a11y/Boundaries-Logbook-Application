@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { TrainingModule, Lesson, UserProgress, QuizQuestion, ChecklistItem, PracticeSubmission } from '../types';
-import { CheckCircle2, Clock, ChevronRight, Play, BookOpen, PenTool, ClipboardCheck, ArrowLeft, RefreshCw, XCircle, Video, Settings, Plus, Save, Trash2, Edit3, X, Zap, Target, Eye, EyeOff, Trash, Check, Square, CheckSquare, Circle, Dot, Upload, FileText, File as FileIcon, GripVertical, AlertTriangle, Camera, Loader2, Search, Filter, Award, Users as UsersIcon, TrendingUp, Star, MessageSquare, Image as ImageIcon, Pause, PlayCircle, History, Medal, Trophy, Activity } from 'lucide-react';
+import { CheckCircle2, Clock, ChevronRight, Play, BookOpen, PenTool, ClipboardCheck, ArrowLeft, RefreshCw, XCircle, Video, Settings, Plus, Save, Trash2, Edit3, X, Zap, Target, Eye, EyeOff, Trash, Check, Square, CheckSquare, Circle, Dot, Upload, FileText, File as FileIcon, GripVertical, AlertTriangle, Camera, Loader2, Search, Filter, Award, Users as UsersIcon, TrendingUp, Star, MessageSquare, Image as ImageIcon, Pause, PlayCircle, History, Medal, Trophy, Activity, CloudOff } from 'lucide-react';
 import { db } from '../services/db';
 
 interface TrainingViewProps {
@@ -84,6 +84,22 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
   // Peer Learning
   const [showPeerActivity, setShowPeerActivity] = useState(false);
   const [recentCompletions, setRecentCompletions] = useState<{ userId: string; lessonId: string; completedAt: string }[]>([]);
+
+  // Offline Support
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   const getStatus = (lessonId: string) => progress.find(p => p.lessonId === lessonId)?.status || 'NOT_STARTED';
   const getProgressData = (lessonId: string) => progress.find(p => p.lessonId === lessonId);
@@ -478,24 +494,45 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
             </div>
 
             {(selectedLesson.videoUrl || isEditMode) && (
-              <div className="mb-8 sm:mb-12 rounded-[1.5rem] sm:rounded-[2.5rem] overflow-hidden bg-black aspect-video shadow-2xl border-4 border-[#001F3F]/10 group relative">
-                {selectedLesson.videoUrl ? (
-                  <iframe
-                    width="100%"
-                    height="100%"
-                    src={getEmbedUrl(selectedLesson.videoUrl)}
-                    title={selectedLesson.title}
-                    frameBorder="0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                    className="w-full h-full"
-                  ></iframe>
-                ) : (
-                  <div className="w-full h-full flex flex-col items-center justify-center text-neutral-500 gap-4">
-                    <Video size={32} />
-                    <p className="font-bold uppercase tracking-widest text-[8px] sm:text-[10px]">No Video Linked</p>
+              <div className="mb-8 sm:mb-12 space-y-4">
+                {/* Video Progress Bar */}
+                {selectedLesson.videoUrl && progressData?.videoProgress && (
+                  <div className="bg-blue-50 rounded-xl p-3 border border-blue-100">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Watch Progress</span>
+                      <span className="text-[10px] font-bold text-blue-600">
+                        {Math.round((progressData.videoProgress.watchedSeconds / progressData.videoProgress.totalSeconds) * 100)}%
+                      </span>
+                    </div>
+                    <div className="w-full h-2 bg-blue-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-blue-600 transition-all duration-300"
+                        style={{ width: `${Math.min(100, (progressData.videoProgress.watchedSeconds / progressData.videoProgress.totalSeconds) * 100)}%` }}
+                      />
+                    </div>
                   </div>
                 )}
+
+                <div className="rounded-[1.5rem] sm:rounded-[2.5rem] overflow-hidden bg-black aspect-video shadow-2xl border-4 border-[#001F3F]/10 group relative">
+                  {selectedLesson.videoUrl ? (
+                    <iframe
+                      ref={videoRef}
+                      width="100%"
+                      height="100%"
+                      src={getEmbedUrl(selectedLesson.videoUrl)}
+                      title={selectedLesson.title}
+                      frameBorder="0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                      className="w-full h-full"
+                    ></iframe>
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center text-neutral-500 gap-4">
+                      <Video size={32} />
+                      <p className="font-bold uppercase tracking-widest text-[8px] sm:text-[10px]">No Video Linked</p>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
@@ -836,13 +873,25 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
 
                     <div className="mb-6">
                       {isEditMode ? (
-                        <div className="space-y-2">
-                          <label className="text-[8px] font-black text-neutral-400 uppercase tracking-widest block">Question 0{idx + 1}</label>
-                          <input 
-                            value={q.question}
-                            onChange={(e) => handleUpdateQuizQuestion(q.id, { question: e.target.value })}
-                            className="w-full font-bold text-lg bg-transparent border-none p-0 focus:ring-0 text-[#001F3F]"
-                          />
+                        <div className="space-y-4">
+                          <div className="space-y-2">
+                            <label className="text-[8px] font-black text-neutral-400 uppercase tracking-widest block">Question 0{idx + 1}</label>
+                            <input
+                              value={q.question}
+                              onChange={(e) => handleUpdateQuizQuestion(q.id, { question: e.target.value })}
+                              className="w-full font-bold text-lg bg-transparent border-none p-0 focus:ring-0 text-[#001F3F]"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-[8px] font-black text-neutral-400 uppercase tracking-widest block">Explanation (Why This Matters)</label>
+                            <textarea
+                              value={q.explanation || ''}
+                              onChange={(e) => handleUpdateQuizQuestion(q.id, { explanation: e.target.value })}
+                              placeholder="Help trainees understand why this answer is correct..."
+                              rows={2}
+                              className="w-full bg-white border border-neutral-200 rounded-lg px-3 py-2 text-sm font-medium outline-none focus:ring-2 focus:ring-blue-500/50"
+                            />
+                          </div>
                         </div>
                       ) : (
                         <p className="font-bold text-lg text-[#001F3F]">0{idx + 1}. {q.question}</p>
@@ -1123,6 +1172,19 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
 
   return (
     <div className="space-y-16 sm:space-y-24 animate-in fade-in duration-700">
+      {/* Offline Indicator */}
+      {isOffline && (
+        <div className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-6 py-4 rounded-2xl flex items-center justify-between shadow-lg animate-in slide-in-from-top-4">
+          <div className="flex items-center gap-3">
+            <CloudOff size={20} />
+            <div>
+              <p className="text-sm font-black uppercase tracking-tight">Offline Mode</p>
+              <p className="text-xs font-medium opacity-90">Some features may be limited. Content will sync when you're back online.</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <header className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6">
           <div>
