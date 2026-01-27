@@ -168,16 +168,21 @@ export default async function handler(
 
     const laborSummary = Array.from(employeeMap.values()).sort((a, b) => b.totalHours - a.totalHours);
 
-    // Currently clocked in (no outDate)
-    const currentlyClocked = timeEntries.filter((entry: any) => !entry.outDate);
+    // Currently clocked in (no outDate or null outDate)
+    const currentlyClocked = timeEntries.filter((entry: any) => !entry.outDate || entry.outDate === null);
 
-    console.log(`[Toast Labor] Success: ${timeEntries.length} entries, ${currentlyClocked.length} clocked in`);
+    console.log(`[Toast Labor] SUCCESS for ${locationKey}: ${timeEntries.length} total entries`);
+    console.log(`[Toast Labor] Currently clocked in: ${currentlyClocked.length}`);
 
     if (currentlyClocked.length > 0) {
-      console.log(`[Toast Labor] Currently clocked in:`, currentlyClocked.map(e => `${e.employeeName} (${e.jobName})`).join(', '));
+      console.log(`[Toast Labor] WHO'S CLOCKED IN:`, currentlyClocked.map(e =>
+        `${e.employeeName} (${e.jobName}) - IN: ${e.inDate?.substring(11,19) || 'unknown'}`
+      ).join(', '));
     } else {
-      console.log(`[Toast Labor] No staff currently clocked in`);
-      console.log(`[Toast Labor] All entries:`, timeEntries.map(e => `${e.employeeName} (in: ${e.inDate?.substring(11, 16)}, out: ${e.outDate?.substring(11, 16) || 'OPEN'})`).join(', '));
+      console.log(`[Toast Labor] ⚠️ NO STAFF CLOCKED IN - Showing all entries for debugging:`);
+      timeEntries.slice(0, 10).forEach((e: any) => {
+        console.log(`  - ${e.employeeName}: IN=${e.inDate?.substring(11,19) || 'null'}, OUT=${e.outDate?.substring(11,19) || 'NONE'}, deleted=${e.deleted}`);
+      });
     }
 
     const result = {

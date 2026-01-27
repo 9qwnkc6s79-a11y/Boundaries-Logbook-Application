@@ -173,6 +173,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       lastUpdated: new Date().toISOString(),
     };
 
+    console.log(`[Toast Sales] SUCCESS for ${locationKey}: $${salesData.totalSales}, ${salesData.totalOrders} orders`);
+
     res.setHeader('Cache-Control', 's-maxage=300');
     return res.status(200).json(salesData);
 
