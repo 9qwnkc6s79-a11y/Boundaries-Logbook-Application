@@ -54,6 +54,8 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
   const [localManual, setLocalManual] = useState<ManualSection[]>(manual);
   const [savingStatus, setSavingStatus] = useState<Record<string, 'IDLE' | 'SAVING' | 'SAVED'>>({});
   const [isDirty, setIsDirty] = useState(false);
+  const [expandedStaffId, setExpandedStaffId] = useState<string | null>(null);
+  const [expandedProtocolId, setExpandedProtocolId] = useState<string | null>(null);
 
   // Toast POS Integration State
   const [toastSales, setToastSales] = useState<ToastSalesData | null>(null);
@@ -589,10 +591,18 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                     <div className="flex items-center gap-2">
                       <SearchCheck size={16} className="text-red-500" />
                       <h3 className="text-[11px] font-black text-red-600 uppercase tracking-widest">Audit Alerts</h3>
+                      {allPhotos.filter(p => p.aiFlagged && !p.managerOverride).length > 5 && (
+                        <span className="px-2 py-1 bg-red-50 text-red-500 text-[9px] font-bold rounded-lg">
+                          Showing 5 of {allPhotos.filter(p => p.aiFlagged && !p.managerOverride).length}
+                        </span>
+                      )}
                     </div>
-                    {concernNotes.length > 0 && (
-                      <span className="px-2 py-1 bg-red-100 text-red-600 text-[9px] font-black rounded-full">{concernNotes.length} pending</span>
-                    )}
+                    <button
+                      onClick={() => setActiveSubTab('gallery')}
+                      className="flex items-center gap-2 px-3 py-2 bg-red-50 text-red-600 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-red-100 transition-all"
+                    >
+                      View All Alerts <ArrowRight size={12} />
+                    </button>
                   </div>
                   <div className="space-y-4">
                     {concernNotes.length > 0 ? concernNotes.map((concern, idx) => (
@@ -953,6 +963,37 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                     </tbody>
                   </table>
                 </div>
+
+                {/* Legend */}
+                <div className="mt-8 pt-6 border-t border-neutral-100">
+                  <p className="text-[8px] font-black text-neutral-400 uppercase tracking-widest mb-4 px-2">Status Legend</p>
+                  <div className="flex flex-wrap gap-6 px-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-lg bg-green-100 text-green-600 flex items-center justify-center">
+                        <Check size={12} strokeWidth={3}/>
+                      </div>
+                      <span className="text-[10px] font-bold text-neutral-600 uppercase tracking-wider">On-Time</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center">
+                        <Clock size={12} strokeWidth={3}/>
+                      </div>
+                      <span className="text-[10px] font-bold text-neutral-600 uppercase tracking-wider">Late</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-lg bg-red-100 text-red-600 flex items-center justify-center">
+                        <X size={12} strokeWidth={3}/>
+                      </div>
+                      <span className="text-[10px] font-bold text-neutral-600 uppercase tracking-wider">Missed</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-lg bg-neutral-50 flex items-center justify-center">
+                        <div className="w-1.5 h-1.5 rounded-full bg-neutral-300" />
+                      </div>
+                      <span className="text-[10px] font-bold text-neutral-600 uppercase tracking-wider">Pending</span>
+                    </div>
+                  </div>
+                </div>
              </div>
 
              <div className="bg-white p-8 rounded-[2.5rem] border border-neutral-100 shadow-sm">
@@ -981,6 +1022,11 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
             {staff.map(member => {
               const stats = trainingStats.find(s => s.userId === member.id);
               const perf = performanceData.find(p => p.id === member.id);
+              const isExpanded = expandedStaffId === member.id;
+              const recentSubmissions = submissions
+                .filter(s => s.taskResults?.some(tr => tr.completedByUserId === member.id))
+                .slice(0, 5);
+
               return (
                 <div key={member.id} className="bg-white p-8 rounded-[2.5rem] border border-neutral-100 shadow-sm space-y-6">
                    <div className="flex items-center gap-4">
@@ -1005,6 +1051,43 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                          <p className="text-[7px] font-black text-neutral-400 uppercase tracking-widest mb-1.5">Academy</p>
                          <p className="text-lg font-black text-[#001F3F]">{stats?.continuedPercent || 0}%</p>
                       </div>
+                   </div>
+
+                   {/* Quick Actions */}
+                   <div className="pt-6 border-t border-neutral-100 space-y-3">
+                     <button
+                       onClick={() => setExpandedStaffId(isExpanded ? null : member.id)}
+                       className="w-full py-3 bg-[#001F3F] text-white rounded-xl font-black uppercase text-[9px] tracking-widest hover:bg-blue-900 transition-all flex items-center justify-center gap-2"
+                     >
+                       <ClipboardList size={14} />
+                       {isExpanded ? 'Hide Recent Logs' : 'View Recent Logs'}
+                     </button>
+
+                     {isExpanded && recentSubmissions.length > 0 && (
+                       <div className="space-y-2 max-h-48 overflow-y-auto animate-in slide-in-from-top-2">
+                         {recentSubmissions.map(sub => {
+                           const tpl = templates.find(t => t.id === sub.templateId);
+                           const userTasks = sub.taskResults?.filter(tr => tr.completedByUserId === member.id).length || 0;
+                           return (
+                             <div key={sub.id} className="p-3 bg-neutral-50 rounded-xl border border-neutral-100">
+                               <div className="flex items-center justify-between">
+                                 <div>
+                                   <p className="text-[9px] font-black text-[#001F3F] uppercase tracking-tight">{tpl?.name || 'Log'}</p>
+                                   <p className="text-[8px] text-neutral-500 font-bold uppercase tracking-widest">{sub.date}</p>
+                                 </div>
+                                 <span className="text-[10px] font-bold text-neutral-400">{userTasks} tasks</span>
+                               </div>
+                             </div>
+                           );
+                         })}
+                       </div>
+                     )}
+
+                     {isExpanded && recentSubmissions.length === 0 && (
+                       <div className="p-6 border-2 border-dashed border-neutral-100 rounded-xl text-center">
+                         <p className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest">No recent submissions</p>
+                       </div>
+                     )}
                    </div>
                 </div>
               );
@@ -1038,30 +1121,70 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
             </div>
             
             <div className="space-y-8">
-              {localTemplates.map(tpl => (
+              {localTemplates.map(tpl => {
+                const isExpanded = expandedProtocolId === tpl.id;
+                const criticalCount = tpl.tasks.filter(t => t.isCritical).length;
+                const photoCount = tpl.tasks.filter(t => t.requiresPhoto || (t.requiredPhotos || 0) > 0).length;
+
+                return (
                 <div key={tpl.id} className="bg-white rounded-[2.5rem] border border-neutral-100 shadow-sm overflow-hidden group relative">
                   <div className="p-8 bg-neutral-50 flex flex-col sm:flex-row sm:items-center justify-between gap-6 border-b border-neutral-100">
                     <div className="flex-1 space-y-5">
-                      <input value={tpl.name} onChange={e => handleUpdateTemplateLocal(tpl.id, { name: e.target.value })} className="text-2xl font-black text-[#001F3F] uppercase bg-transparent outline-none w-full focus:ring-0 border-none p-0" />
-                      <div className="flex flex-wrap gap-6">
-                        <div className="space-y-2">
-                           <label className="text-[8px] font-black text-neutral-400 uppercase tracking-[0.2em] block ml-1">Due Time (24h)</label>
-                           <input type="number" value={tpl.deadlineHour} onChange={e => handleUpdateTemplateLocal(tpl.id, { deadlineHour: parseInt(e.target.value) || 0 })} className="w-24 bg-white border border-neutral-200 p-3 rounded-xl text-sm font-black text-[#001F3F] outline-none shadow-inner" />
-                        </div>
-                        <div className="space-y-2">
-                           <label className="text-[8px] font-black text-neutral-400 uppercase tracking-[0.2em] block ml-1">Refresh Time (24h)</label>
-                           <input type="number" value={tpl.unlockHour} onChange={e => handleUpdateTemplateLocal(tpl.id, { unlockHour: parseInt(e.target.value) || 0 })} className="w-24 bg-white border border-neutral-200 p-3 rounded-xl text-sm font-black text-blue-600 outline-none shadow-inner" />
-                        </div>
-                        <div className="space-y-2">
-                           <label className="text-[8px] font-black text-neutral-400 uppercase tracking-[0.2em] block ml-1">Category</label>
-                           <select value={tpl.type} onChange={e => handleUpdateTemplateLocal(tpl.id, { type: e.target.value as any })} className="w-40 bg-white border border-neutral-200 p-3 rounded-xl text-[10px] font-black uppercase tracking-widest outline-none shadow-inner appearance-none">
-                              <option value="OPENING">OPENING</option>
-                              <option value="CLOSING">CLOSING</option>
-                              <option value="SHIFT_CHANGE">SHIFT CHANGE</option>
-                              <option value="WEEKLY">WEEKLY</option>
-                           </select>
-                        </div>
+                      <div className="flex items-center gap-4">
+                        <input value={tpl.name} onChange={e => handleUpdateTemplateLocal(tpl.id, { name: e.target.value })} className="text-2xl font-black text-[#001F3F] uppercase bg-transparent outline-none flex-1 focus:ring-0 border-none p-0" />
+                        <button
+                          onClick={() => setExpandedProtocolId(isExpanded ? null : tpl.id)}
+                          className="px-4 py-2 bg-white text-[#001F3F] rounded-xl font-black uppercase text-[9px] tracking-widest hover:bg-neutral-100 transition-all flex items-center gap-2 border border-neutral-200"
+                        >
+                          {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                          {isExpanded ? 'Collapse' : `${tpl.tasks.length} Tasks`}
+                        </button>
                       </div>
+
+                      {/* Summary badges when collapsed */}
+                      {!isExpanded && (
+                        <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white rounded-lg border border-neutral-200">
+                            <ListTodo size={12} className="text-neutral-400" />
+                            <span className="text-[9px] font-black text-neutral-600 uppercase">{tpl.tasks.length} Standards</span>
+                          </div>
+                          {criticalCount > 0 && (
+                            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 rounded-lg border border-red-100">
+                              <AlertTriangle size={12} className="text-red-500" />
+                              <span className="text-[9px] font-black text-red-600 uppercase">{criticalCount} Critical</span>
+                            </div>
+                          )}
+                          {photoCount > 0 && (
+                            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 rounded-lg border border-blue-100">
+                              <Camera size={12} className="text-blue-500" />
+                              <span className="text-[9px] font-black text-blue-600 uppercase">{photoCount} Photo Tasks</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Configuration fields - always visible */}
+                      {isExpanded && (
+                        <div className="flex flex-wrap gap-6">
+                          <div className="space-y-2">
+                             <label className="text-[8px] font-black text-neutral-400 uppercase tracking-[0.2em] block ml-1">Due Time (24h)</label>
+                             <input type="number" value={tpl.deadlineHour} onChange={e => handleUpdateTemplateLocal(tpl.id, { deadlineHour: parseInt(e.target.value) || 0 })} className="w-24 bg-white border border-neutral-200 p-3 rounded-xl text-sm font-black text-[#001F3F] outline-none shadow-inner" />
+                          </div>
+                          <div className="space-y-2">
+                             <label className="text-[8px] font-black text-neutral-400 uppercase tracking-[0.2em] block ml-1">Refresh Time (24h)</label>
+                             <input type="number" value={tpl.unlockHour} onChange={e => handleUpdateTemplateLocal(tpl.id, { unlockHour: parseInt(e.target.value) || 0 })} className="w-24 bg-white border border-neutral-200 p-3 rounded-xl text-sm font-black text-blue-600 outline-none shadow-inner" />
+                          </div>
+                          <div className="space-y-2">
+                             <label className="text-[8px] font-black text-neutral-400 uppercase tracking-[0.2em] block ml-1">Category</label>
+                             <select value={tpl.type} onChange={e => handleUpdateTemplateLocal(tpl.id, { type: e.target.value as any })} className="w-40 bg-white border border-neutral-200 p-3 rounded-xl text-[10px] font-black uppercase tracking-widest outline-none shadow-inner appearance-none">
+                                <option value="OPENING">OPENING</option>
+                                <option value="CLOSING">CLOSING</option>
+                                <option value="SHIFT_CHANGE">SHIFT CHANGE</option>
+                                <option value="WEEKLY">WEEKLY</option>
+                             </select>
+                          </div>
+                        </div>
+                      )}
                     </div>
                     <div className="flex flex-col gap-3">
                       <button onClick={() => handleSaveTemplate(tpl.id)} disabled={savingStatus[tpl.id] === 'SAVING'} className={`px-10 py-4 rounded-2xl font-black uppercase text-[11px] tracking-widest shadow-xl transition-all active:scale-95 ${savingStatus[tpl.id] === 'SAVED' ? 'bg-green-600 text-white' : 'bg-[#001F3F] text-white'}`}>
@@ -1071,7 +1194,10 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                       <button onClick={() => setDeleteConfirm({ type: 'TEMPLATE', id: tpl.id, title: tpl.name })} className="px-10 py-4 bg-red-50 text-red-600 rounded-2xl font-black uppercase text-[11px] tracking-widest hover:bg-red-100 transition-all">Delete Protocol</button>
                     </div>
                   </div>
-                  <div className="p-8 space-y-4">
+
+                  {/* Task list - only show when expanded */}
+                  {isExpanded && (
+                    <div className="p-8 space-y-4">
                     {tpl.tasks.map((task, taskIndex) => (
                       <div key={task.id} className="flex items-center gap-4 bg-neutral-50/50 p-5 rounded-2xl border border-neutral-100 hover:bg-white transition-all shadow-sm group/task">
                         <div className="flex flex-col gap-1">
@@ -1169,8 +1295,10 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                       handleUpdateTemplateLocal(tpl.id, { tasks: [...tpl.tasks, newTask] });
                     }} className="w-full py-6 border-2 border-dashed border-neutral-200 rounded-2xl text-neutral-400 font-black uppercase text-[10px] tracking-[0.2em] hover:bg-neutral-50 hover:text-[#001F3F] hover:border-[#001F3F] transition-all flex items-center justify-center gap-2"><Plus size={18}/> Append Standard</button>
                   </div>
+                  )}
                 </div>
-              ))}
+              );
+            })}
             </div>
           </section>
         )}
