@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { TrainingModule, Lesson, UserProgress, QuizQuestion, ChecklistItem, PracticeSubmission } from '../types';
-import { CheckCircle2, Clock, ChevronRight, Play, BookOpen, PenTool, ClipboardCheck, ArrowLeft, RefreshCw, XCircle, Video, Settings, Plus, Save, Trash2, Edit3, X, Zap, Target, Eye, EyeOff, Trash, Check, Square, CheckSquare, Circle, Dot, Upload, FileText, File as FileIcon, GripVertical, AlertTriangle, Camera, Loader2, Search, Filter, Award, Users as UsersIcon, TrendingUp, Star, MessageSquare, Image as ImageIcon, Pause, PlayCircle, History, Medal, Trophy, Activity, CloudOff, RotateCcw } from 'lucide-react';
+import { CheckCircle2, Clock, ChevronRight, Play, BookOpen, PenTool, ClipboardCheck, ArrowLeft, RefreshCw, XCircle, Video, Settings, Plus, Save, Trash2, Edit3, X, Zap, Target, Eye, EyeOff, Trash, Check, Square, CheckSquare, Circle, Dot, Upload, FileText, File as FileIcon, GripVertical, AlertTriangle, Camera, Loader2, Search, Filter, Award, Users as UsersIcon, TrendingUp, Star, MessageSquare, Image as ImageIcon, Pause, PlayCircle, History, Medal, Trophy, Activity, CloudOff, RotateCcw, Store } from 'lucide-react';
 import { db } from '../services/db';
 
 interface TrainingViewProps {
@@ -510,7 +510,7 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
               )}
             </div>
 
-            {(selectedLesson.videoUrl || isEditMode) && (
+            {(selectedLesson.type === 'VIDEO' || selectedLesson.videoUrl || isEditMode) && (
               <div className="mb-8 sm:mb-12 space-y-4">
                 {/* Video Progress Bar */}
                 {selectedLesson.videoUrl && progressData?.videoProgress && (
@@ -580,6 +580,24 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
             {/* Checklist UI for PRACTICE lessons with checklistItems */}
             {selectedLesson.type === 'PRACTICE' && selectedLesson.checklistItems && selectedLesson.checklistItems.length > 0 && (
               <div className="space-y-3 mb-8 sm:mb-12">
+                {/* In-Store Only Banner */}
+                <div className="bg-gradient-to-r from-amber-500 to-orange-500 rounded-2xl p-6 mb-6 shadow-lg border-2 border-amber-400">
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center shrink-0">
+                      <Store size={24} className="text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-white text-lg font-black uppercase tracking-tight mb-2 flex items-center gap-2">
+                        <AlertTriangle size={20} />
+                        In-Store Practice Required
+                      </h3>
+                      <p className="text-white/90 text-sm font-medium leading-relaxed">
+                        This practice module must be completed on-site at your Boundaries location with a trainer. You'll need hands-on equipment access to complete these tasks.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Hidden camera input for checklist photos */}
                 <input
                   type="file"
