@@ -386,16 +386,22 @@ const App: React.FC = () => {
     >
       <div className="animate-in fade-in duration-500">
         {activeTab === 'training' && (
-          <TrainingView 
-            curriculum={curriculum} 
-            progress={progress.filter(p => p.userId === currentUser.id)} 
-            onCompleteLesson={handleLessonComplete} 
-            canEdit={currentUser.email.toLowerCase().endsWith('@boundariescoffee.com')} 
+          <TrainingView
+            curriculum={curriculum}
+            progress={progress.filter(p => p.userId === currentUser.id)}
+            onCompleteLesson={handleLessonComplete}
+            canEdit={currentUser.email.toLowerCase().endsWith('@boundariescoffee.com')}
             onUpdateCurriculum={async (next) => {
               setCurriculum(next);
               await db.pushCurriculum(next);
               performCloudSync(true);
-            }} 
+            }}
+            onResetCurriculum={async () => {
+              console.log('[App] Forcing curriculum reset from latest code...');
+              await db.pushCurriculum(TRAINING_CURRICULUM);
+              setCurriculum(TRAINING_CURRICULUM);
+              console.log('[App] Curriculum reset complete - Module 12 should now have interactive photo submission');
+            }}
           />
         )}
         {activeTab === 'recipes' && (
