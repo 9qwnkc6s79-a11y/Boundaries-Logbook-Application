@@ -963,19 +963,33 @@ export const TRAINING_CURRICULUM: TrainingModule[] = [
         moduleId: 'm-drink-making-basics',
         title: 'Module Overview',
         type: 'CONTENT',
-        content: `This module covers the fundamentals of making espresso-based hot drinks at Boundaries Coffee. By the end of this training, you will understand espresso extraction, the drink making process, milk steaming, dialing in, and cleaning procedures.
+        content: `This module teaches you to make espresso-based hot drinks at Boundaries Coffee. You'll learn espresso extraction, milk steaming, dialing in, and cleaning procedures.
 
-**Training Components:**
-1. Review this overview with your instructor
-2. Complete the Required Practice Drinks checklist (21 items)
-3. Pass the Knowledge Quiz (minimum 80%)`
+HOW TO COMPLETE THIS MODULE:
+
+1. Read this overview with your trainer
+2. Click "Required Practice Drinks" below to access the 21-item practice checklist
+3. Submit photos of each drink you make (18 photos required)
+4. Pass the Knowledge Quiz with 80% or higher
+
+Your trainer will work with you through each drink. You'll take photos of your work to track your progress and improvement over time.
+
+Once you're ready, complete the lesson below and move on to the practice checklist.`
       },
       {
         id: 'l-drink-basics-practice',
         moduleId: 'm-drink-making-basics',
         title: 'Required Practice Drinks',
         type: 'PRACTICE',
-        content: `Complete each drink under trainer supervision. Check off each item as you complete it. All items must be checked before you can submit.`,
+        content: `Work through this checklist with your trainer. Make each drink, take a photo, and check it off when complete.
+
+WHAT YOU NEED TO DO:
+- Complete all 21 items with your trainer
+- Take photos of the 18 drinks that require them (camera icon shown)
+- Check off each item as you finish
+- Submit when all items are complete
+
+Your photos will be saved in your Progress Gallery so you can see your improvement over time. Let's get started!`,
         checklistItems: [
           // Espresso Shots (5)
           { id: 'esp-1', title: 'Espresso Shot #1 (Dialed In)', description: 'Pull a properly dialed-in shot. Target: 19g dose, 24s brew time.', requiresPhoto: true },
