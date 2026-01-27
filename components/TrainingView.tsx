@@ -1144,7 +1144,7 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
                       {/* Icon with progress indicator */}
                       <div className="relative">
                         <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${status === 'COMPLETED' ? 'bg-green-50 text-green-600' : 'bg-neutral-50 text-neutral-300 group-hover:bg-[#001F3F] group-hover:text-white'}`}>
-                          {lesson.type === 'QUIZ' ? <PenTool size={20} /> : lesson.type === 'FILE_UPLOAD' ? <Upload size={20} /> : lesson.type === 'PRACTICE' ? <Target size={20} /> : <BookOpen size={20} />}
+                          {lesson.type === 'QUIZ' ? <PenTool size={20} /> : lesson.type === 'FILE_UPLOAD' ? <Upload size={20} /> : lesson.type === 'PRACTICE' ? <Target size={20} /> : lesson.type === 'VIDEO' || lesson.videoUrl ? <PlayCircle size={20} /> : <BookOpen size={20} />}
                         </div>
                         {/* Attempt count badge for practice lessons */}
                         {lesson.type === 'PRACTICE' && progressData?.attemptCount && progressData.attemptCount > 1 && (
