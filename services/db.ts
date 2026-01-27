@@ -299,18 +299,9 @@ class CloudAPI {
     const cloudModuleIds = new Set(cloudCurriculum.map((m: TrainingModule) => m.id));
     const newModules = defaults.curriculum.filter(m => !cloudModuleIds.has(m.id));
 
-    // Force-update specific modules that have been restructured
-    const forceUpdateModuleIds = ['m-drink-making-basics']; // Module 12 with new practice structure
-
-    // Update existing modules - force replace modules in forceUpdateModuleIds list
+    // Update existing modules if default has more lessons
     const updatedModules = cloudCurriculum.map((cloudModule: TrainingModule) => {
       const defaultModule = defaults.curriculum.find(m => m.id === cloudModule.id);
-
-      // Force update modules that need restructuring
-      if (defaultModule && forceUpdateModuleIds.includes(cloudModule.id)) {
-        console.log(`[Firestore] globalSync: Force-updating module ${cloudModule.id}`);
-        return defaultModule;
-      }
 
       // Update if default has more lessons
       if (defaultModule && defaultModule.lessons.length > cloudModule.lessons.length) {
@@ -325,17 +316,7 @@ class CloudAPI {
     if (newModules.length > 0) {
       console.log(`[Firestore] globalSync: Found ${newModules.length} new curriculum module(s), merging...`);
       curriculum = [...updatedModules, ...newModules];
-    }
-
-    // Always push to ensure updates are saved
-    const needsPush = newModules.length > 0 ||
-                     forceUpdateModuleIds.some(id => defaults.curriculum.find(m => m.id === id));
-
-    if (needsPush) {
-      console.log(`[Firestore] globalSync: Pushing updated curriculum (${newModules.length} new, ${forceUpdateModuleIds.length} force-updated)...`);
       await this.remoteSet(DOC_KEYS.CURRICULUM, curriculum);
-    } else {
-      console.log(`[Firestore] globalSync: No curriculum updates needed`);
     }
 
     // Merge new recipes from defaults that don't exist in cloud

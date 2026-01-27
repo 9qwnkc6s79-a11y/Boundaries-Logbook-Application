@@ -398,9 +398,26 @@ const App: React.FC = () => {
             }}
             onResetCurriculum={async () => {
               console.log('[App] Forcing curriculum reset from latest code...');
+              const module12 = TRAINING_CURRICULUM.find(m => m.id === 'm-drink-making-basics');
+              console.log('[App] Module 12 from code has lessons:', module12?.lessons.map(l => ({ id: l.id, type: l.type, checklistItems: l.checklistItems?.length })));
+
+              console.log('[App] Writing curriculum to Firestore...');
               await db.pushCurriculum(TRAINING_CURRICULUM);
+
+              console.log('[App] Verifying write by reading back...');
+              const verified = await db.globalSync({
+                users: MOCK_USERS,
+                templates: CHECKLIST_TEMPLATES,
+                curriculum: TRAINING_CURRICULUM,
+                manual: BOUNDARIES_MANUAL,
+                recipes: BOUNDARIES_RECIPES
+              });
+
+              const verifiedModule12 = verified.curriculum.find((m: any) => m.id === 'm-drink-making-basics');
+              console.log('[App] Module 12 after write has lessons:', verifiedModule12?.lessons.map((l: any) => ({ id: l.id, type: l.type, checklistItems: l.checklistItems?.length })));
+
               setCurriculum(TRAINING_CURRICULUM);
-              console.log('[App] Curriculum reset complete - Module 12 should now have interactive photo submission');
+              console.log('[App] Curriculum reset complete - reloading page...');
             }}
           />
         )}
