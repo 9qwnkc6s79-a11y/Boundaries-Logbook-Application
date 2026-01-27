@@ -187,6 +187,7 @@ export interface ToastSalesData {
   totalOrders: number;
   averageCheck: number;
   totalTips: number;
+  averageTurnTime: number; // in minutes
   paymentMethods: Record<string, number>;
   hourlySales: Record<number, number>;
   lastUpdated: string;

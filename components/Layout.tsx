@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { User, UserRole, Store, ManualSection, Recipe, ToastSalesData, ToastTimeEntry } from '../types';
-import { Coffee, ClipboardCheck, GraduationCap, Users, LogOut, Menu, X, MapPin, ChevronDown, BookOpen, Cloud, CloudOff, Activity, Download, Share, Smartphone, Brain, Send, Sparkles, ChevronRight, Settings, DollarSign, TrendingUp, UserCheck } from 'lucide-react';
+import { Coffee, ClipboardCheck, GraduationCap, Users, LogOut, Menu, X, MapPin, ChevronDown, BookOpen, Cloud, CloudOff, Activity, Download, Share, Smartphone, Brain, Send, Sparkles, ChevronRight, Settings, DollarSign, TrendingUp, UserCheck, Clock } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
 
 interface LayoutProps {
@@ -191,6 +191,26 @@ User Question: ${userMsg}`,
               </span>
             </div>
           </div>
+
+          {/* Turn Time Widget */}
+          {toastSales && toastSales.averageTurnTime > 0 && (
+            <div className="bg-gradient-to-br from-amber-500/10 to-orange-500/5 rounded-xl p-3 border border-amber-500/20 mt-2">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[8px] font-black uppercase tracking-widest text-amber-300/60">
+                  Turn Time
+                </span>
+                <Clock size={12} className="text-amber-400/40" />
+              </div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-xl font-black text-white tracking-tight">
+                  {toastSales.averageTurnTime}
+                </span>
+                <span className="text-[8px] font-bold text-amber-300/60 uppercase tracking-wider ml-1">
+                  mins avg
+                </span>
+              </div>
+            </div>
+          )}
         </div>
 
         <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto no-scrollbar">
@@ -295,6 +315,12 @@ User Question: ${userMsg}`,
                 <UserCheck size={12} className="text-blue-600" />
                 <span className="text-xs font-black text-[#001F3F]">{toastClockedIn.length}</span>
               </div>
+              {toastSales && toastSales.averageTurnTime > 0 && (
+                <div className="bg-gradient-to-br from-amber-500/10 to-orange-500/5 rounded-lg px-2.5 py-1.5 border border-amber-500/20 flex items-center gap-1.5">
+                  <Clock size={12} className="text-amber-600" />
+                  <span className="text-xs font-black text-[#001F3F]">{toastSales.averageTurnTime}m</span>
+                </div>
+              )}
             </div>
             <button
               onClick={() => setIsProfileOpen(!isProfileOpen)}

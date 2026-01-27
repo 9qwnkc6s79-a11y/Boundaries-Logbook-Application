@@ -117,6 +117,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     let totalTips = 0;
     const paymentMethods: Record<string, number> = {};
     const hourlySales: Record<number, number> = {};
+    const turnTimes: number[] = [];
 
     allOrders.forEach(order => {
       const checks = order.checks || [];
@@ -125,7 +126,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         // Total = check.totalAmount (includes tax + tip)
         netSales += check.amount || 0;
         totalTax += check.taxAmount || 0;
-        
+
         const payments = check.payments || [];
         payments.forEach((payment: any) => {
           totalTips += payment.tipAmount || 0;
@@ -133,11 +134,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           paymentMethods[method] = (paymentMethods[method] || 0) + (payment.amount || 0);
         });
       });
-      
+
       // Hourly breakdown (using net sales)
       const hour = new Date(order.openedDate || order.createdDate).getHours();
       hourlySales[hour] = (hourlySales[hour] || 0) + checks.reduce((sum: number, c: any) => sum + (c.amount || 0), 0);
+
+      // Calculate turn time (order open to close) in minutes
+      if (order.openedDate && order.closedDate) {
+        const opened = new Date(order.openedDate).getTime();
+        const closed = new Date(order.closedDate).getTime();
+        const turnTimeMinutes = (closed - opened) / 1000 / 60;
+        if (turnTimeMinutes > 0 && turnTimeMinutes < 120) { // Filter out outliers (< 2 hours)
+          turnTimes.push(turnTimeMinutes);
+        }
+      }
     });
+
+    // Calculate turn time statistics
+    const avgTurnTime = turnTimes.length > 0
+      ? Math.round(turnTimes.reduce((sum, t) => sum + t, 0) / turnTimes.length)
+      : 0;
 
     const salesData = {
       location: locationKey,
@@ -151,6 +167,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       totalOrders: allOrders.length,
       averageCheck: allOrders.length > 0 ? Math.round((netSales / allOrders.length) * 100) / 100 : 0,
       totalTips: Math.round(totalTips * 100) / 100,
+      averageTurnTime: avgTurnTime, // in minutes
       paymentMethods,
       hourlySales,
       lastUpdated: new Date().toISOString(),
