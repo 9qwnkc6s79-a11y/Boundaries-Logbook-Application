@@ -202,6 +202,20 @@ User Question: ${userMsg}`,
                 {toastClockedIn.length === 1 ? 'staff' : 'staff'}
               </span>
             </div>
+            {toastClockedIn.length > 0 && (
+              <div className="mt-2 space-y-1">
+                {toastClockedIn.slice(0, 3).map((entry, i) => (
+                  <div key={i} className="text-[8px] text-blue-300/80 font-medium truncate">
+                    {entry.employeeName}
+                  </div>
+                ))}
+                {toastClockedIn.length > 3 && (
+                  <div className="text-[7px] text-blue-300/60 font-bold">
+                    +{toastClockedIn.length - 3} more
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Turn Time Widget */}

@@ -173,6 +173,13 @@ export default async function handler(
 
     console.log(`[Toast Labor] Success: ${timeEntries.length} entries, ${currentlyClocked.length} clocked in`);
 
+    if (currentlyClocked.length > 0) {
+      console.log(`[Toast Labor] Currently clocked in:`, currentlyClocked.map(e => `${e.employeeName} (${e.jobName})`).join(', '));
+    } else {
+      console.log(`[Toast Labor] No staff currently clocked in`);
+      console.log(`[Toast Labor] All entries:`, timeEntries.map(e => `${e.employeeName} (in: ${e.inDate?.substring(11, 16)}, out: ${e.outDate?.substring(11, 16) || 'OPEN'})`).join(', '));
+    }
+
     const result = {
       timeEntries,
       laborSummary,
