@@ -583,28 +583,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                 ))}
               </div>
 
-              <div className="pt-10 border-t border-neutral-100 grid grid-cols-1 lg:grid-cols-2 gap-10">
-                <div className="space-y-6">
-                  <div className="flex items-center gap-2">
-                    <History size={16} className="text-neutral-400" />
-                    <h3 className="text-[11px] font-black text-[#001F3F] uppercase tracking-widest">Trailing Summary</h3>
-                  </div>
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="p-4 bg-neutral-50 rounded-2xl border border-neutral-100 text-center">
-                      <p className="text-[7px] font-black text-neutral-400 uppercase tracking-widest mb-1">Success Rate</p>
-                      <p className={`text-xl font-black ${trailingSummary.completionRate > 85 ? 'text-green-600' : 'text-amber-600'}`}>{trailingSummary.completionRate}%</p>
-                    </div>
-                    <div className="p-4 bg-neutral-50 rounded-2xl border border-neutral-100 text-center">
-                      <p className="text-[7px] font-black text-neutral-400 uppercase tracking-widest mb-1">On-Time</p>
-                      <p className="text-xl font-black text-[#001F3F]">{trailingSummary.punctualityRate}%</p>
-                    </div>
-                    <div className="p-4 bg-red-50 rounded-2xl border border-red-100 text-center">
-                      <p className="text-[7px] font-black text-red-400 uppercase tracking-widest mb-1">Missed</p>
-                      <p className="text-xl font-black text-red-600">{trailingSummary.totalMissed}</p>
-                    </div>
-                  </div>
-                </div>
-
+              <div className="pt-10 border-t border-neutral-100">
                 <div className="space-y-6">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -685,185 +664,17 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
               </div>
             </section>
 
-            {/* Toast POS Integration Section */}
-            {isToastConfigured && (
-              <section className="bg-white p-8 rounded-[2.5rem] border border-neutral-100 shadow-sm overflow-hidden">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-green-50 text-green-600 rounded-xl"><DollarSign size={20} /></div>
-                    <div>
-                      <h2 className="text-xl font-black text-[#001F3F] uppercase tracking-tight">Toast POS Data</h2>
-                      <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">Live Sales & Labor Tracking</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={fetchToastData}
-                      disabled={toastLoading}
-                      className="px-4 py-2 bg-neutral-100 hover:bg-neutral-200 rounded-xl text-[10px] font-black uppercase tracking-widest text-neutral-600 transition-all flex items-center gap-2 disabled:opacity-50"
-                    >
-                      <RefreshCw size={14} className={toastLoading ? 'animate-spin' : ''} />
-                      Refresh
-                    </button>
-                    {toastSales && (
-                      <span className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest">
-                        Updated {new Date(toastSales.lastUpdated).toLocaleTimeString()}
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {toastError && (
-                  <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-start gap-3">
-                    <AlertTriangle size={20} className="text-amber-600 shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-xs font-black text-amber-900 uppercase tracking-tight mb-1">Toast API Error</p>
-                      <p className="text-[10px] text-amber-700 font-medium">{toastError}</p>
-                    </div>
-                  </div>
-                )}
-
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                  {/* Sales Section */}
-                  <div className="space-y-6">
-                    <h3 className="text-[11px] font-black text-[#001F3F] uppercase tracking-widest flex items-center gap-2">
-                      <DollarSign size={14} /> Today's Sales
-                    </h3>
-                    {toastSales ? (
-                      <div className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="p-5 bg-green-50 rounded-2xl border border-green-100">
-                            <p className="text-[7px] font-black text-green-600 uppercase tracking-widest mb-1">Total Sales</p>
-                            <p className="text-2xl font-black text-green-700">${toastSales.totalSales.toFixed(2)}</p>
-                          </div>
-                          <div className="p-5 bg-blue-50 rounded-2xl border border-blue-100">
-                            <p className="text-[7px] font-black text-blue-600 uppercase tracking-widest mb-1">Orders</p>
-                            <p className="text-2xl font-black text-blue-700">{toastSales.totalOrders}</p>
-                          </div>
-                          <div className="p-5 bg-purple-50 rounded-2xl border border-purple-100">
-                            <p className="text-[7px] font-black text-purple-600 uppercase tracking-widest mb-1">Avg Check</p>
-                            <p className="text-2xl font-black text-purple-700">${toastSales.averageCheck.toFixed(2)}</p>
-                          </div>
-                          <div className="p-5 bg-amber-50 rounded-2xl border border-amber-100">
-                            <p className="text-[7px] font-black text-amber-600 uppercase tracking-widest mb-1">Tips</p>
-                            <p className="text-2xl font-black text-amber-700">${toastSales.totalTips.toFixed(2)}</p>
-                          </div>
-                        </div>
-                      </div>
-                    ) : toastLoading ? (
-                      <div className="flex items-center justify-center p-12">
-                        <RefreshCw size={24} className="animate-spin text-neutral-300" />
-                      </div>
-                    ) : (
-                      <div className="p-8 border-2 border-dashed border-neutral-100 rounded-2xl text-center">
-                        <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">No sales data available</p>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Labor Section */}
-                  <div className="space-y-6">
-                    <h3 className="text-[11px] font-black text-[#001F3F] uppercase tracking-widest flex items-center gap-2">
-                      <UserCheck size={14} /> Currently Clocked In
-                    </h3>
-                    {toastClockedIn.length > 0 ? (
-                      <div className="space-y-3">
-                        {toastClockedIn.slice(0, 5).map((entry, idx) => (
-                          <div key={idx} className="p-4 bg-neutral-50 rounded-2xl border border-neutral-100 flex items-center justify-between">
-                            <div>
-                              <p className="text-xs font-black text-[#001F3F] uppercase tracking-tight">{entry.employeeName}</p>
-                              <p className="text-[9px] text-neutral-500 font-bold uppercase tracking-widest">{entry.jobName}</p>
-                            </div>
-                            <div className="text-right">
-                              <p className="text-xs font-black text-green-600">{Math.floor(entry.totalHours)}h {Math.round((entry.totalHours % 1) * 60)}m</p>
-                              <p className="text-[8px] text-neutral-400 font-bold uppercase">On Clock</p>
-                            </div>
-                          </div>
-                        ))}
-                        {toastClockedIn.length > 5 && (
-                          <p className="text-center text-[9px] font-bold text-neutral-400 uppercase tracking-widest">
-                            +{toastClockedIn.length - 5} more
-                          </p>
-                        )}
-                      </div>
-                    ) : toastLoading ? (
-                      <div className="flex items-center justify-center p-12">
-                        <RefreshCw size={24} className="animate-spin text-neutral-300" />
-                      </div>
-                    ) : (
-                      <div className="p-8 border-2 border-dashed border-neutral-100 rounded-2xl text-center">
-                        <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">No staff currently clocked in</p>
-                      </div>
-                    )}
-
-                    {toastLabor.length > 0 && (
-                      <div className="mt-6 pt-6 border-t border-neutral-100">
-                        <h4 className="text-[10px] font-black text-neutral-400 uppercase tracking-widest mb-3">Labor Summary (Today)</h4>
-                        <div className="grid grid-cols-3 gap-3">
-                          <div className="p-3 bg-neutral-50 rounded-xl text-center">
-                            <p className="text-[7px] font-black text-neutral-400 uppercase mb-1">Total Hours</p>
-                            <p className="text-lg font-black text-[#001F3F]">
-                              {toastLabor.reduce((sum, e) => sum + e.totalHours, 0).toFixed(1)}
-                            </p>
-                          </div>
-                          <div className="p-3 bg-neutral-50 rounded-xl text-center">
-                            <p className="text-[7px] font-black text-neutral-400 uppercase mb-1">Shifts</p>
-                            <p className="text-lg font-black text-[#001F3F]">
-                              {toastLabor.reduce((sum, e) => sum + e.shifts, 0)}
-                            </p>
-                          </div>
-                          <div className="p-3 bg-neutral-50 rounded-xl text-center">
-                            <p className="text-[7px] font-black text-neutral-400 uppercase mb-1">Staff</p>
-                            <p className="text-lg font-black text-[#001F3F]">{toastLabor.length}</p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </section>
-            )}
-
-            {!isToastConfigured && (
-              <section className="bg-gradient-to-r from-blue-50 to-purple-50 p-8 rounded-[2.5rem] border border-blue-100 shadow-sm">
-                <div className="flex flex-col md:flex-row items-center gap-6">
-                  <div className="p-4 bg-white rounded-2xl shadow-sm">
-                    <Coffee size={40} className="text-[#001F3F]" />
-                  </div>
-                  <div className="flex-1 text-center md:text-left">
-                    <h3 className="text-xl font-black text-[#001F3F] uppercase tracking-tight mb-2">Connect Toast POS</h3>
-                    <p className="text-sm text-neutral-600 font-medium mb-4">
-                      Sync sales and labor data from your Toast POS system to get real-time insights in your dashboard.
-                    </p>
-                    <div className="flex flex-col sm:flex-row gap-3 items-center">
-                      <a
-                        href="https://pos.toasttab.com/login"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="px-6 py-3 bg-[#001F3F] text-white rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-blue-900 transition-all flex items-center gap-2 shadow-lg"
-                      >
-                        <ExternalLink size={14} />
-                        Get Toast API Keys
-                      </a>
-                      <span className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest">
-                        Add credentials to .env.local
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </section>
-            )}
-
-            <section className="bg-[#001F3F] p-8 rounded-[2.5rem] text-white flex flex-col md:flex-row items-center justify-between gap-8">
-              <div className="space-y-4 text-center md:text-left">
-                <h2 className="text-2xl font-black uppercase tracking-tight flex items-center justify-center md:justify-start gap-3"><BrainCircuit size={28}/> Barista Brain Auditor</h2>
-                <p className="text-blue-100 text-sm max-w-md">Let AI analyze current compliance trends and team educational progress to identify operational risks.</p>
-              </div>
-              <button onClick={generateAiInsight} disabled={isGenerating} className="px-10 py-5 bg-white text-[#001F3F] rounded-2xl font-black uppercase text-xs shadow-2xl active:scale-95 disabled:opacity-50 flex items-center gap-3 shrink-0">
-                {isGenerating ? <RefreshCw className="animate-spin" size={18}/> : <Sparkles size={18}/>}
-                {isGenerating ? 'Analyzing...' : 'Generate AI Report'}
+            {/* Barista Brain - Compact Button */}
+            <div className="flex justify-center">
+              <button
+                onClick={generateAiInsight}
+                disabled={isGenerating}
+                className="px-8 py-4 bg-[#001F3F] text-white rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-blue-900 transition-all flex items-center gap-3 shadow-lg active:scale-95 disabled:opacity-50"
+              >
+                {isGenerating ? <RefreshCw className="animate-spin" size={16}/> : <BrainCircuit size={16}/>}
+                {isGenerating ? 'Analyzing Store Data...' : 'Run Barista Brain Audit'}
               </button>
-            </section>
+            </div>
 
             {aiInsight && (
               <div className="bg-white p-10 rounded-[3rem] border border-blue-100 shadow-xl animate-in slide-in-from-bottom-4">
@@ -1078,6 +889,31 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
 
         {activeSubTab === 'compliance' && (
           <section className="animate-in fade-in space-y-12">
+             {/* Trailing Summary Stats */}
+             <div className="bg-white p-8 rounded-[2.5rem] border border-neutral-100 shadow-sm">
+                <div className="flex items-center gap-2 mb-8">
+                  <History size={18} className="text-neutral-400" />
+                  <h3 className="text-lg font-black text-[#001F3F] uppercase tracking-tight">7-Day Performance Summary</h3>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="p-8 bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl border border-green-100 text-center">
+                    <p className="text-[9px] font-black text-green-600/60 uppercase tracking-widest mb-3">Completion Rate</p>
+                    <p className={`text-5xl font-black mb-2 ${trailingSummary.completionRate > 85 ? 'text-green-600' : 'text-amber-600'}`}>{trailingSummary.completionRate}%</p>
+                    <p className="text-[10px] font-bold text-green-700/60 uppercase tracking-wider">Of protocols completed</p>
+                  </div>
+                  <div className="p-8 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl border border-blue-100 text-center">
+                    <p className="text-[9px] font-black text-blue-600/60 uppercase tracking-widest mb-3">On-Time Rate</p>
+                    <p className="text-5xl font-black text-blue-600 mb-2">{trailingSummary.punctualityRate}%</p>
+                    <p className="text-[10px] font-bold text-blue-700/60 uppercase tracking-wider">Submitted before deadline</p>
+                  </div>
+                  <div className="p-8 bg-gradient-to-br from-red-50 to-pink-50 rounded-2xl border border-red-100 text-center">
+                    <p className="text-[9px] font-black text-red-600/60 uppercase tracking-widest mb-3">Missed Protocols</p>
+                    <p className="text-5xl font-black text-red-600 mb-2">{trailingSummary.totalMissed}</p>
+                    <p className="text-[10px] font-bold text-red-700/60 uppercase tracking-wider">Total missed submissions</p>
+                  </div>
+                </div>
+             </div>
+
              <div className="bg-white p-8 rounded-[2.5rem] border border-neutral-100 shadow-sm overflow-hidden">
                 <h3 className="text-xs font-black text-neutral-400 uppercase tracking-widest mb-8 px-2">Operational Pulse (Last 7 Days)</h3>
                 <div className="overflow-x-auto no-scrollbar">
