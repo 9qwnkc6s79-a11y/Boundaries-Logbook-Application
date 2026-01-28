@@ -667,8 +667,8 @@ If you have any questions about which site to use or need help with the process,
       {
         id: 'l-morning-video',
         moduleId: 'm-morning',
-        title: 'Video: A Barista\'s Morning Routine',
-        type: 'CONTENT',
+        title: 'A Barista\'s Morning Routine',
+        type: 'VIDEO',
         videoUrl: 'https://youtube.com/watch?v=qiSpThw_S-o',
         content: 'Watch the full routine of opening the cafe, from sanitation to initial brew tests.'
       },
@@ -703,8 +703,8 @@ If you have any questions about which site to use or need help with the process,
       {
         id: 'l-ordering-video',
         moduleId: 'm-ordering',
-        title: 'Video: How to Order at a Coffee Shop',
-        type: 'CONTENT',
+        title: 'How to Order at a Coffee Shop',
+        type: 'VIDEO',
         videoUrl: 'https://youtube.com/watch?v=uv4d3qpbd80',
         content: 'Learn how to accurately take orders and the science behind our standard drink builds.'
       },
@@ -737,8 +737,8 @@ If you have any questions about which site to use or need help with the process,
       {
         id: 'l-specialty-video',
         moduleId: 'm-specialty',
-        title: 'Video: What is Specialty Coffee?',
-        type: 'CONTENT',
+        title: 'What is Specialty Coffee?',
+        type: 'VIDEO',
         videoUrl: 'https://youtube.com/watch?v=kM_UlQ9fr2c',
         content: 'Understand the technical 100-point scoring system and the mission of SCA.'
       },
@@ -769,8 +769,8 @@ If you have any questions about which site to use or need help with the process,
       {
         id: 'l-seed-video',
         moduleId: 'm-seed',
-        title: 'Video: Coffee Seed to Cup',
-        type: 'CONTENT',
+        title: 'Coffee Seed to Cup',
+        type: 'VIDEO',
         videoUrl: 'https://youtube.com/watch?v=Dmpnrtey3YU',
         content: 'Understand altitude, processing methods (washed vs natural), and the stages of coffee maturation.'
       },
@@ -806,8 +806,8 @@ If you have any questions about which site to use or need help with the process,
       {
         id: 'l-onyx-video',
         moduleId: 'm-onyx',
-        title: 'Video: Onyx Coffee Lab Quality Standards',
-        type: 'CONTENT',
+        title: 'Onyx Coffee Lab Quality Standards',
+        type: 'VIDEO',
         videoUrl: 'https://youtube.com/watch?v=WYZQGE6M4Tc',
         content: 'Observe the "Never Settle" philosophy in action through color-sorting and precision roasting.'
       },
@@ -837,8 +837,8 @@ If you have any questions about which site to use or need help with the process,
       {
         id: 'l-ideal-video',
         moduleId: 'm-ideal',
-        title: 'Video: The Ideal Team Player (Lencioni)',
-        type: 'CONTENT',
+        title: 'The Ideal Team Player (Lencioni)',
+        type: 'VIDEO',
         videoUrl: 'https://youtube.com/watch?v=PRh80RyT74I',
         content: 'Understand the three virtues that make a Boundaries team member successful.'
       },
@@ -874,7 +874,7 @@ If you have any questions about which site to use or need help with the process,
         id: 'l-espresso-video',
         moduleId: 'm-espresso-fundamentals',
         title: 'Espresso Crash Course',
-        type: 'CONTENT',
+        type: 'VIDEO',
         videoUrl: 'https://www.youtube.com/watch?v=ZuQu12vMQZM',
         content: 'Watch this Prima Coffee video to learn espresso fundamentals before taking the quiz.'
       },
@@ -918,7 +918,7 @@ If you have any questions about which site to use or need help with the process,
         id: 'l-troubleshooting-video',
         moduleId: 'm-espresso-troubleshooting',
         title: 'Espresso Troubleshooting',
-        type: 'CONTENT',
+        type: 'VIDEO',
         videoUrl: 'https://www.youtube.com/watch?v=441CyJjIM9o',
         content: 'Watch this Prima Coffee video on troubleshooting espresso before taking the quiz.'
       },
@@ -962,7 +962,7 @@ If you have any questions about which site to use or need help with the process,
         id: 'l-milk-steaming-video',
         moduleId: 'm-milk-steaming',
         title: 'How to Steam Milk',
-        type: 'CONTENT',
+        type: 'VIDEO',
         videoUrl: 'https://www.youtube.com/watch?v=wJnMXLG_qR4',
         content: 'Watch this Lance Hedrick video on milk steaming before taking the quiz.'
       },
@@ -1245,29 +1245,6 @@ Sugar-Free Options: Vanilla, Dark Chocolate, Caramel`
     description: 'Learn the Ritz Carlton service philosophy and Boundaries core values for exceptional guest experiences.',
     category: 'ONBOARDING',
     lessons: [
-      {
-        id: 'l-hospitality-ritz-video',
-        moduleId: 'm-hospitality-ritz',
-        title: 'Ritz Carlton Service Philosophy',
-        type: 'VIDEO',
-        videoUrl: 'https://www.youtube.com/watch?v=MOm7Gr-1BUc',
-        content: `Watch this video to understand world-class hospitality and how it applies to Boundaries Coffee.
-
-**REFLECTION QUESTIONS:**
-
-After watching the video, think about:
-
-1. What surprised you about their approach?
-2. How can you apply these principles at Boundaries Coffee?
-3. What does "anticipating needs" look like in a coffee shop setting?
-4. How do small gestures create big impacts?
-
-**KEY TAKEAWAY:**
-
-Hospitality isn't about the size of the building or the price point—it's about the heart behind the service. Whether it's a luxury hotel or a drive-thru coffee shop, the principles of genuine care, attention to detail, and going above and beyond remain the same.
-
-**At Boundaries, we bring Ritz Carlton-level hospitality to every cup, every order, every day.**`
-      },
       {
         id: 'l-hospitality-ritz-values',
         moduleId: 'm-hospitality-ritz',

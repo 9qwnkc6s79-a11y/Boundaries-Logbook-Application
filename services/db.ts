@@ -31,7 +31,7 @@ if (typeof firebase !== 'undefined') {
 
 // Increment this version whenever curriculum structure or lesson properties change
 // This forces Firebase to update cached curriculum data
-const CURRICULUM_VERSION = 3;
+const CURRICULUM_VERSION = 4;
 
 const DOC_KEYS = {
   USERS: 'users',
