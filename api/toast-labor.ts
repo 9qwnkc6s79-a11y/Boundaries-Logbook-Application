@@ -114,23 +114,22 @@ export default async function handler(
 
     const { startDate, endDate, location } = req.query;
 
-  if (!startDate || !endDate) {
-    return res.status(400).json({ error: 'startDate and endDate are required' });
-  }
+    if (!startDate || !endDate) {
+      return res.status(400).json({ error: 'startDate and endDate are required' });
+    }
 
-  // Ensure query params are strings (not arrays)
-  const startDateStr = Array.isArray(startDate) ? startDate[0] : startDate;
-  const endDateStr = Array.isArray(endDate) ? endDate[0] : endDate;
-  const locationKey = (Array.isArray(location) ? location[0] : location)?.toLowerCase() || 'littleelm';
+    // Ensure query params are strings (not arrays)
+    const startDateStr = Array.isArray(startDate) ? startDate[0] : startDate;
+    const endDateStr = Array.isArray(endDate) ? endDate[0] : endDate;
+    const locationKey = (Array.isArray(location) ? location[0] : location)?.toLowerCase() || 'littleelm';
 
-  // Get restaurant GUIDs to try for this location
-  const restaurantGuids = LOCATIONS[locationKey] || LOCATIONS['littleelm'];
+    // Get restaurant GUIDs to try for this location
+    const restaurantGuids = LOCATIONS[locationKey] || LOCATIONS['littleelm'];
 
-  if (!restaurantGuids || restaurantGuids.length === 0) {
-    return res.status(500).json({ error: 'Toast API not configured for this location' });
-  }
+    if (!restaurantGuids || restaurantGuids.length === 0) {
+      return res.status(500).json({ error: 'Toast API not configured for this location' });
+    }
 
-  try {
     console.log(`[Toast Labor] Fetching ${locationKey}: ${startDateStr} to ${endDateStr}`);
 
     // Get OAuth2 token
