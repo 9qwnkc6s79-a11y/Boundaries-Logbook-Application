@@ -43,14 +43,15 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
   const [isGenerating, setIsGenerating] = useState(false);
   const [fullscreenPhoto, setFullscreenPhoto] = useState<{url: string, title: string, user: string, aiReview?: { flagged: boolean, reason: string }} | null>(null);
 
-  // Cash Audit State
-  const [cashAudits, setCashAudits] = useState<any[]>([]); // TODO: Add type from db
-  const [showAuditForm, setShowAuditForm] = useState(false);
-  const [auditFormData, setAuditFormData] = useState({
-    expectedCash: '',
-    actualCash: '',
+  // Cash Deposit State
+  const [cashDeposits, setCashDeposits] = useState<any[]>([]); // TODO: Load from Firebase
+  const [toastCashData, setToastCashData] = useState<any | null>(null); // Cash entries from Toast
+  const [showDepositForm, setShowDepositForm] = useState(false);
+  const [depositFormData, setDepositFormData] = useState({
+    actualDeposit: '',
     notes: ''
   });
+  const [lastDepositDate, setLastDepositDate] = useState<string | null>(null);
   
   const [deleteConfirm, setDeleteConfirm] = useState<{
     type: 'TASK' | 'TEMPLATE' | 'RESET_LOG',

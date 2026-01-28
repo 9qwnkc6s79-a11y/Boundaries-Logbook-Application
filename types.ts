@@ -220,29 +220,51 @@ export interface ToastSalesData {
   lastUpdated: string;
 }
 
-// Cash Audit Types
-export interface CashAudit {
+// Toast Cash Management Types
+export interface ToastCashData {
+  location: string;
+  startDate: string;
+  endDate: string;
+  cashIn: number; // Cash added to drawer
+  cashOut: number; // Cash removed to safe (safe drops)
+  payOuts: number; // Cash paid out for goods/services
+  tipOuts: number; // Cash paid out for tips
+  netCashRemoved: number; // Total cash removed (cashOut + payOuts + tipOuts)
+  entries: {
+    type: string;
+    amount: number;
+    createdDate: string;
+    reason?: string;
+    employeeName: string;
+  }[];
+  lastUpdated: string;
+}
+
+// Cash Deposit Tracking (Bank Deposits)
+export interface CashDeposit {
   id: string;
   storeId: string;
-  date: string; // ISO date string
-  auditedBy: string; // User ID of manager who performed audit
-  auditedByName: string; // Name for display
-  auditedAt: string; // ISO timestamp when audit was performed
-  expectedCash: number; // Expected cash based on sales/transactions
-  actualCash: number; // Actual cash counted in drawer
-  variance: number; // Difference (actualCash - expectedCash)
-  status: 'PASS' | 'FAIL' | 'REVIEW'; // Based on variance threshold
-  notes?: string; // Optional notes about the audit
-  denominations?: { // Optional breakdown by denomination
-    hundreds: number;
-    fifties: number;
-    twenties: number;
-    tens: number;
-    fives: number;
-    ones: number;
-    quarters: number;
-    dimes: number;
-    nickels: number;
-    pennies: number;
-  };
+  depositDate: string; // ISO date string when deposit was made to bank
+  depositedBy: string; // User ID of manager who made deposit
+  depositedByName: string; // Name for display
+  depositedAt: string; // ISO timestamp when deposit was recorded in app
+
+  // Calculation period
+  periodStart: string; // Start date for this deposit period
+  periodEnd: string; // End date for this deposit period
+
+  // Expected cash calculation
+  expectedDeposit: number; // Expected cash from sales minus safe drops
+  actualDeposit: number; // Actual cash deposited at bank
+  variance: number; // Difference (actualDeposit - expectedDeposit)
+  variancePercent: number; // Variance as percentage of expected
+
+  // Status based on variance
+  status: 'PASS' | 'REVIEW' | 'FAIL';
+
+  // Breakdown
+  totalCashSales: number; // Total cash sales in period
+  totalCashRemoved: number; // Total cash drops + pay-outs in period
+
+  notes?: string; // Optional notes about the deposit
 }
