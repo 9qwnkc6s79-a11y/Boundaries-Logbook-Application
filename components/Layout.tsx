@@ -45,11 +45,11 @@ const Layout: React.FC<LayoutProps> = ({
   const currentStore = stores.find(s => s.id === currentStoreId);
 
   const navItems = [
+    { id: 'manager', label: 'MANAGER', icon: Users, roles: [UserRole.MANAGER, UserRole.ADMIN] },
     { id: 'dashboard', label: 'DASHBOARD', icon: LayoutDashboard, roles: [UserRole.TRAINEE, UserRole.TRAINER] },
     { id: 'training', label: 'ACADEMY', icon: GraduationCap, roles: [UserRole.TRAINEE, UserRole.TRAINER, UserRole.MANAGER, UserRole.ADMIN] },
     { id: 'ops', label: 'LOGBOOK', icon: ClipboardCheck, roles: [UserRole.TRAINEE, UserRole.TRAINER, UserRole.MANAGER, UserRole.ADMIN] },
     { id: 'recipes', label: 'RECIPES', icon: BookOpen, roles: [UserRole.TRAINEE, UserRole.TRAINER, UserRole.MANAGER, UserRole.ADMIN] },
-    { id: 'manager', label: 'MANAGER', icon: Users, roles: [UserRole.MANAGER, UserRole.ADMIN] },
   ];
 
   const filteredNav = navItems.filter(item => item.roles.includes(user.role));
@@ -320,65 +320,65 @@ User Question: ${userMsg}`,
       </aside>
 
       {/* Mobile Header */}
-      <div className="md:hidden glass-effect border-b border-neutral-100 p-3 flex flex-col gap-3 sticky top-0 z-50 shadow-sm">
-        <div className="flex justify-between items-center w-full">
-          <div className="flex items-center gap-2">
+      <div className="md:hidden glass-effect border-b border-neutral-100 p-2.5 flex flex-col gap-2.5 sticky top-0 z-50 shadow-sm">
+        <div className="flex justify-between items-center w-full gap-2">
+          <div className="flex items-center gap-2 flex-shrink-0">
             <div className="bg-[#001F3F] p-1.5 rounded-lg">
               <Coffee className="text-white w-4 h-4" />
             </div>
             <span className="font-black tracking-tighter text-[#001F3F] text-sm uppercase leading-none">Boundaries</span>
-            <div className={`ml-1.5 w-1.5 h-1.5 rounded-full ${isSyncing ? 'bg-blue-500 animate-pulse' : 'bg-green-500'}`} />
+            <div className={`ml-1 w-1.5 h-1.5 rounded-full ${isSyncing ? 'bg-blue-500 animate-pulse' : 'bg-green-500'}`} />
           </div>
-          <div className="flex items-center gap-2">
-            {/* Mobile Toast Widgets */}
-            <div className="flex items-center gap-2">
-              <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/5 rounded-lg px-2.5 py-1.5 border border-green-500/20 flex items-center gap-1.5">
-                <DollarSign size={12} className="text-green-600" />
-                <span className="text-xs font-black text-[#001F3F]">
-                  {toastSales ? `$${Math.round(toastSales.totalSales)}` : '--'}
+          <div className="flex items-center gap-1.5 flex-shrink min-w-0">
+            {/* Mobile Toast Widgets - Compact */}
+            <div className="flex items-center gap-1.5 min-w-0">
+              <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/5 rounded-lg px-2 py-1 border border-green-500/20 flex items-center gap-1">
+                <DollarSign size={11} className="text-green-600 flex-shrink-0" />
+                <span className="text-[11px] font-black text-[#001F3F] tabular-nums">
+                  {toastSales ? `${Math.round(toastSales.totalSales / 1000)}k` : '--'}
                 </span>
               </div>
-              <div className="bg-gradient-to-br from-blue-500/10 to-indigo-500/5 rounded-lg px-2.5 py-1.5 border border-blue-500/20 flex items-center gap-1.5">
-                <UserCheck size={12} className="text-blue-600" />
-                <span className="text-xs font-black text-[#001F3F]">{toastClockedIn.length}</span>
+              <div className="bg-gradient-to-br from-blue-500/10 to-indigo-500/5 rounded-lg px-2 py-1 border border-blue-500/20 flex items-center gap-1">
+                <UserCheck size={11} className="text-blue-600 flex-shrink-0" />
+                <span className="text-[11px] font-black text-[#001F3F] tabular-nums">{toastClockedIn.length}</span>
               </div>
               {toastSales && toastSales.averageTurnTime > 0 && (
-                <div className="bg-gradient-to-br from-amber-500/10 to-orange-500/5 rounded-lg px-2.5 py-1.5 border border-amber-500/20 flex items-center gap-1.5">
-                  <Clock size={12} className="text-amber-600" />
-                  <span className="text-xs font-black text-[#001F3F]">{formatTurnTime(toastSales.averageTurnTime).formattedShort}</span>
+                <div className="bg-gradient-to-br from-amber-500/10 to-orange-500/5 rounded-lg px-2 py-1 border border-amber-500/20 flex items-center gap-1 hidden xs:flex">
+                  <Clock size={11} className="text-amber-600 flex-shrink-0" />
+                  <span className="text-[11px] font-black text-[#001F3F] tabular-nums">{formatTurnTime(toastSales.averageTurnTime).formattedShort}</span>
                 </div>
               )}
             </div>
             <button
               onClick={() => setIsProfileOpen(!isProfileOpen)}
-              className="w-8 h-8 rounded-full bg-[#001F3F] text-white flex items-center justify-center text-[10px] font-black border-2 border-white shadow-lg active:scale-90 transition-transform"
+              className="w-8 h-8 rounded-full bg-[#001F3F] text-white flex items-center justify-center text-[10px] font-black border-2 border-white shadow-lg active:scale-90 transition-transform flex-shrink-0"
             >
               {user.name.charAt(0)}
             </button>
           </div>
         </div>
-        
-        <div className="px-1">
+
+        <div className="px-0.5">
           {canSwitchStore ? (
             <div className="relative group">
               <select
                 value={currentStoreId}
                 onChange={(e) => onStoreChange(e.target.value)}
-                className="w-full bg-neutral-100 border-none rounded-xl pl-9 pr-9 py-2 text-[10px] font-black uppercase tracking-widest outline-none text-[#001F3F] appearance-none shadow-inner"
+                className="w-full bg-neutral-100 border-none rounded-xl pl-8 pr-8 py-2 text-[10px] font-black uppercase tracking-widest outline-none text-[#001F3F] appearance-none shadow-inner"
               >
                 {stores.map(s => (
                   <option key={s.id} value={s.id}>{s.name.replace('Boundaries ', '')}</option>
                 ))}
               </select>
               <div className="absolute left-2.5 top-1/2 -translate-y-1/2 text-neutral-400">
-                <MapPin size={12} strokeWidth={3} />
+                <MapPin size={11} strokeWidth={3} />
               </div>
               <div className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400">
-                <ChevronDown size={12} strokeWidth={3} />
+                <ChevronDown size={11} strokeWidth={3} />
               </div>
             </div>
           ) : (
-            <div className="text-[9px] font-black text-[#001F3F] uppercase flex items-center gap-1 bg-neutral-100/50 self-start px-3 py-2 rounded-xl border border-neutral-100 shadow-inner">
+            <div className="text-[9px] font-black text-[#001F3F] uppercase flex items-center gap-1 bg-neutral-100/50 self-start px-2.5 py-1.5 rounded-xl border border-neutral-100 shadow-inner">
               <MapPin size={10} strokeWidth={3} /> {currentStore?.name.replace('Boundaries ', '')}
             </div>
           )}
@@ -513,24 +513,24 @@ User Question: ${userMsg}`,
       </button>
 
       {/* Mobile Bottom Tab Bar */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 glass-effect border-t border-neutral-100 px-3 py-2 flex items-center justify-around z-50 pb-safe shadow-[0_-10px_30px_rgba(0,0,0,0.03)]">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 glass-effect border-t border-neutral-100 px-1 py-3 flex items-center justify-around z-50 pb-safe shadow-[0_-10px_30px_rgba(0,0,0,0.03)]">
         {filteredNav.map(item => {
           const isActive = activeTab === item.id;
           return (
             <button
               key={item.id}
               onClick={() => onTabChange(item.id)}
-              className={`flex flex-col items-center gap-0.5 transition-all relative ${
+              className={`flex flex-col items-center gap-1 transition-all relative flex-1 max-w-[80px] ${
                 isActive ? 'text-[#001F3F]' : 'text-neutral-300'
               }`}
             >
-              <div className={`p-1.5 rounded-lg transition-all duration-300 ${isActive ? 'bg-blue-50' : 'bg-transparent'}`}>
-                <item.icon size={20} strokeWidth={isActive ? 2.5 : 2} />
+              <div className={`p-2 rounded-xl transition-all duration-300 ${isActive ? 'bg-blue-50' : 'bg-transparent'}`}>
+                <item.icon size={22} strokeWidth={isActive ? 2.5 : 2} />
               </div>
-              <span className={`text-[8px] font-black uppercase tracking-[0.1em] transition-opacity ${isActive ? 'opacity-100' : 'opacity-40'}`}>
+              <span className={`text-[7px] font-black uppercase tracking-tight leading-tight text-center transition-opacity ${isActive ? 'opacity-100' : 'opacity-50'}`}>
                 {item.label}
               </span>
-              {isActive && <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-1 h-1 bg-[#001F3F] rounded-full" />}
+              {isActive && <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-[#001F3F] rounded-full" />}
             </button>
           );
         })}
