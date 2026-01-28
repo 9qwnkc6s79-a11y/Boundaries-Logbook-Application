@@ -1384,25 +1384,106 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
           </section>
         )}
 
-        {activeSubTab === 'cash-audit' && (
-          <section className="animate-in fade-in space-y-8">
-            {/* Header with New Audit Button */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-8 rounded-[2rem] border border-neutral-100 shadow-sm">
-              <div>
-                <h2 className="text-2xl font-black text-[#001F3F] uppercase tracking-tight flex items-center gap-3">
-                  <DollarSign size={28} />
-                  Cash Audit
-                </h2>
-                <p className="text-neutral-400 text-xs font-bold uppercase tracking-widest mt-1">Track drawer counts & variances</p>
+        {activeSubTab === 'cash-audit' && (() => {
+          // Calculate expected cash from Toast sales data
+          const expectedCashFromSales = toastSales?.paymentMethods?.['CASH'] ||
+                                         toastSales?.paymentMethods?.['Cash'] ||
+                                         toastSales?.paymentMethods?.['cash'] || 0;
+          const hasCashData = expectedCashFromSales > 0;
+
+          return (
+            <section className="animate-in fade-in space-y-8">
+              {/* Alert Banner for Cash Issues */}
+              {!toastLoading && hasCashData && cashAudits.length === 0 && (
+                <div className="bg-yellow-50 border-2 border-yellow-200 rounded-2xl p-6">
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 bg-yellow-500 text-white rounded-xl flex items-center justify-center shrink-0">
+                      <AlertOctagon size={24} />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-black text-yellow-900 text-lg uppercase tracking-tight mb-2">Cash Drawer Not Audited Today</h3>
+                      <p className="text-yellow-800 text-sm font-medium mb-4">
+                        Expected cash from today's sales: <span className="font-black">${expectedCashFromSales.toFixed(2)}</span>
+                      </p>
+                      <p className="text-yellow-700 text-xs">
+                        Record a cash count to verify the drawer matches sales data.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Toast Data Status */}
+              {!toastLoading && !hasCashData && (
+                <div className="bg-blue-50 border-2 border-blue-200 rounded-2xl p-6">
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 bg-blue-500 text-white rounded-xl flex items-center justify-center shrink-0">
+                      <Info size={24} />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-black text-blue-900 text-sm uppercase tracking-tight mb-2">No Cash Sales Data Available</h3>
+                      <p className="text-blue-700 text-xs">
+                        {toastSales ? 'No cash transactions recorded today yet.' : 'Toast POS data is loading...'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Header with New Audit Button */}
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-8 rounded-[2rem] border border-neutral-100 shadow-sm">
+                <div>
+                  <h2 className="text-2xl font-black text-[#001F3F] uppercase tracking-tight flex items-center gap-3">
+                    <DollarSign size={28} />
+                    Cash Audit
+                  </h2>
+                  <p className="text-neutral-400 text-xs font-bold uppercase tracking-widest mt-1">Track drawer counts & variances</p>
+                  {hasCashData && (
+                    <p className="text-green-600 text-xs font-bold mt-2">
+                      Expected from today's sales: ${expectedCashFromSales.toFixed(2)}
+                    </p>
+                  )}
+                </div>
+                <button
+                  onClick={() => {
+                    if (!showAuditForm && hasCashData) {
+                      setAuditFormData({
+                        expectedCash: expectedCashFromSales.toFixed(2),
+                        actualCash: '',
+                        notes: ''
+                      });
+                    }
+                    setShowAuditForm(!showAuditForm);
+                  }}
+                  className="px-8 py-4 bg-[#001F3F] text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-blue-900 transition-all shadow-lg flex items-center gap-2"
+                >
+                  <Plus size={18} />
+                  {showAuditForm ? 'Cancel' : 'Count Drawer'}
+                </button>
               </div>
-              <button
-                onClick={() => setShowAuditForm(!showAuditForm)}
-                className="px-8 py-4 bg-[#001F3F] text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-blue-900 transition-all shadow-lg flex items-center gap-2"
-              >
-                <Plus size={18} />
-                {showAuditForm ? 'Cancel' : 'New Audit'}
-              </button>
-            </div>
+
+            {/* Payment Method Breakdown */}
+              {toastSales && toastSales.paymentMethods && (
+                <div className="bg-white p-8 rounded-[2rem] border border-neutral-100 shadow-sm">
+                  <h3 className="text-lg font-black text-[#001F3F] uppercase tracking-tight mb-6">Today's Payment Breakdown</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {Object.entries(toastSales.paymentMethods).map(([method, amount]) => (
+                      <div key={method} className="bg-neutral-50 p-4 rounded-xl border border-neutral-200">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-neutral-400 mb-2">{method}</p>
+                        <p className={`text-2xl font-black ${method.toLowerCase().includes('cash') ? 'text-green-600' : 'text-neutral-700'}`}>
+                          ${(amount as number).toFixed(2)}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-4 p-4 bg-blue-50 rounded-xl">
+                    <p className="text-xs text-blue-700 font-medium flex items-center gap-2">
+                      <Info size={14} />
+                      Cash amount shown is what should be in your drawer from today's sales. Credit/debit goes directly to your account.
+                    </p>
+                  </div>
+                </div>
+              )}
 
             {/* New Audit Form */}
             {showAuditForm && (
@@ -1410,7 +1491,9 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                 <h3 className="text-lg font-black text-[#001F3F] uppercase tracking-tight mb-6">Record Cash Count</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-xs font-black text-neutral-600 uppercase tracking-widest mb-2">Expected Cash</label>
+                    <label className="block text-xs font-black text-neutral-600 uppercase tracking-widest mb-2">
+                      Expected Cash (from Toast POS)
+                    </label>
                     <div className="relative">
                       <span className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400 font-bold">$</span>
                       <input
@@ -1419,9 +1502,15 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                         value={auditFormData.expectedCash}
                         onChange={(e) => setAuditFormData({ ...auditFormData, expectedCash: e.target.value })}
                         placeholder="0.00"
-                        className="w-full pl-8 pr-4 py-4 rounded-xl border-2 border-neutral-200 focus:border-[#001F3F] outline-none font-bold text-lg"
+                        className="w-full pl-8 pr-4 py-4 rounded-xl border-2 border-green-200 bg-green-50 focus:border-green-500 outline-none font-bold text-lg"
+                        readOnly={hasCashData}
                       />
                     </div>
+                    {hasCashData && (
+                      <p className="text-[10px] text-green-600 font-bold uppercase tracking-widest mt-2">
+                        Auto-filled from today's sales
+                      </p>
+                    )}
                   </div>
                   <div>
                     <label className="block text-xs font-black text-neutral-600 uppercase tracking-widest mb-2">Actual Cash Counted</label>
@@ -1562,7 +1651,8 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
               )}
             </div>
           </section>
-        )}
+          );
+        })()}
       </div>
     </div>
   );
