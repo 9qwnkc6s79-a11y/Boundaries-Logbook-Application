@@ -750,171 +750,321 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
 
       <div className="space-y-8 sm:space-y-12">
         {activeSubTab === 'dashboard' && (
-          <div className="space-y-10 animate-in fade-in duration-500">
-            <section className="bg-white p-8 rounded-[2.5rem] border border-neutral-100 shadow-sm overflow-hidden relative">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+          <div className="space-y-6 animate-in fade-in duration-500">
+            {/* Live Store Performance - Top Priority */}
+            <section className="bg-gradient-to-br from-blue-600 to-indigo-700 p-8 rounded-[2.5rem] shadow-xl text-white">
+              <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-blue-50 text-blue-600 rounded-xl"><Activity size={20} /></div>
-                  <h2 className="text-xl font-black text-[#001F3F] uppercase tracking-tight">Today's Store Snapshot</h2>
+                  <div className="p-2 bg-white/20 rounded-xl"><Gauge size={20} /></div>
+                  <h2 className="text-xl font-black uppercase tracking-tight">Live Store Performance</h2>
                 </div>
-                <div className="flex items-center gap-2 bg-neutral-50 px-3 py-1.5 rounded-full border border-neutral-100">
-                   <Clock size={12} className="text-neutral-400" />
-                   <span className="text-[10px] font-black text-[#001F3F] uppercase tracking-widest">Real-Time Sync</span>
+                <div className="flex items-center gap-2 bg-white/20 backdrop-blur-sm px-3 py-1.5 rounded-full">
+                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                  <span className="text-[10px] font-black uppercase tracking-widest">Live</span>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
-                {realTimeCompliance.map((stat, i) => (
-                  <div key={i} className="p-6 bg-neutral-50/50 rounded-3xl border border-neutral-100 group hover:shadow-lg transition-all relative">
-                    <div className="flex justify-between items-start mb-4">
-                      <div className="flex flex-col pr-8">
-                        <h3 className="text-[10px] font-black text-[#001F3F] uppercase tracking-widest truncate">{stat.name}</h3>
-                        {stat.isYesterday && <span className="text-[7px] font-bold text-amber-500 uppercase tracking-tighter">Archives Visible</span>}
-                      </div>
-                      {stat.id && (
-                        <button 
-                          onClick={() => setDeleteConfirm({ type: 'RESET_LOG', id: stat.id!, title: stat.name })}
-                          className="absolute top-6 right-6 p-1.5 text-neutral-300 hover:text-amber-500 hover:bg-amber-50 rounded-lg transition-all"
-                          title="Force Reset (Wipe Submission)"
-                        >
-                          <RotateCcw size={14} />
-                        </button>
-                      )}
-                    </div>
-                    <div className="flex items-end justify-between mb-2">
-                      <span className="text-3xl font-black text-[#001F3F] tabular-nums">{stat.percent}%</span>
-                      <span className="text-[10px] font-bold text-neutral-400 uppercase">{stat.completed}/{stat.total}</span>
-                    </div>
-                    <div className="w-full h-2 bg-white rounded-full overflow-hidden border border-neutral-200">
-                      <div className={`h-full transition-all duration-1000 ${stat.percent === 100 ? 'bg-green-500' : 'bg-blue-500'}`} style={{ width: `${stat.percent}%` }} />
-                    </div>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                {/* Today's Sales */}
+                <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
+                  <div className="flex items-center gap-2 mb-3">
+                    <DollarSign size={16} className="text-green-300" />
+                    <h3 className="text-[10px] font-black uppercase tracking-widest text-white/80">Today's Sales</h3>
                   </div>
-                ))}
-              </div>
+                  <div className="text-3xl font-black mb-2">${toastSales?.totalSales?.toFixed(0) || '—'}</div>
+                  <div className="text-[10px] font-bold text-white/60">{toastSales?.totalOrders || 0} orders • ${toastSales?.averageCheck?.toFixed(2) || '—'} avg</div>
+                </div>
 
-              <div className="pt-10 border-t border-neutral-100">
-                <div className="space-y-6">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <SearchCheck size={16} className="text-red-500" />
-                      <h3 className="text-[11px] font-black text-red-600 uppercase tracking-widest">Audit Alerts</h3>
-                      {allPhotos.filter(p => p.aiFlagged && !p.managerOverride).length > 5 && (
-                        <span className="px-2 py-1 bg-red-50 text-red-500 text-[9px] font-bold rounded-lg">
-                          Showing 5 of {allPhotos.filter(p => p.aiFlagged && !p.managerOverride).length}
-                        </span>
-                      )}
-                    </div>
-                    <button
-                      onClick={() => setActiveSubTab('gallery')}
-                      className="flex items-center gap-2 px-3 py-2 bg-red-50 text-red-600 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-red-100 transition-all"
-                    >
-                      View All Alerts <ArrowRight size={12} />
-                    </button>
+                {/* Turn Time - Critical Metric */}
+                <div className={`backdrop-blur-sm rounded-2xl p-6 border-2 ${
+                  !toastSales?.averageTurnTime ? 'bg-white/10 border-white/20' :
+                  toastSales.averageTurnTime < 5 ? 'bg-green-500/30 border-green-300' :
+                  toastSales.averageTurnTime < 6 ? 'bg-blue-500/30 border-blue-300' :
+                  toastSales.averageTurnTime < 7 ? 'bg-amber-500/30 border-amber-300' :
+                  'bg-red-500/30 border-red-300'
+                }`}>
+                  <div className="flex items-center gap-2 mb-3">
+                    <Timer size={16} className="text-white" />
+                    <h3 className="text-[10px] font-black uppercase tracking-widest text-white/80">Turn Time</h3>
                   </div>
-                  <div className="space-y-4">
-                    {concernNotes.length > 0 ? concernNotes.map((concern, idx) => (
-                      <div key={idx} className="bg-red-50 rounded-2xl border border-red-200 overflow-hidden">
-                        <div className="flex gap-4 p-4">
-                          {/* Photo thumbnail - clickable to view full size */}
-                          <div
-                            className="w-20 h-20 rounded-xl overflow-hidden shrink-0 border-2 border-red-300 cursor-pointer hover:border-red-400 transition-colors bg-red-100"
-                            onClick={() => {
-                              // Find the actual task result to get existing comment
-                              const submission = submissions.find(s => s.id === concern.submissionId);
-                              const taskResult = submission?.taskResults.find(tr => tr.taskId === concern.taskId);
-                              setFullscreenPhoto({
-                                url: concern.url,
-                                title: concern.title,
-                                user: concern.user,
-                                aiReview: { flagged: true, reason: concern.aiReason || '' },
-                                submissionId: concern.submissionId,
-                                taskId: concern.taskId,
-                                existingComment: taskResult?.managerPhotoComment
-                              });
-                            }}
-                          >
-                            {concern.url ? (
-                              <img
-                                src={concern.url}
-                                className="w-full h-full object-cover"
-                                alt={concern.title}
-                                onError={(e) => {
-                                  console.error('[Image Error] Failed to load:', concern.url);
-                                  const target = e.target as HTMLImageElement;
-                                  target.style.display = 'none';
-                                  target.parentElement!.innerHTML = '<div class="w-full h-full flex items-center justify-center text-red-400"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg></div>';
-                                }}
-                                onLoad={() => console.log('[Image Loaded]', concern.url)}
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-red-400">
-                                <ImageIcon size={24} />
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Info section */}
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs font-black text-red-800 uppercase tracking-tight mb-1">{concern.title}</p>
-                            <p className="text-[10px] text-red-600 font-medium line-clamp-2 mb-2">{concern.aiReason || 'Flagged for review'}</p>
-                            <p className="text-[9px] text-red-500 font-bold uppercase tracking-widest">{concern.user} • {concern.date}</p>
-                          </div>
-                        </div>
-
-                        {/* Action buttons */}
-                        <div className="flex gap-2 px-4 pb-4">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onOverrideAIFlag(concern.submissionId, concern.taskId, true);
-                            }}
-                            className="flex-1 py-2.5 bg-green-600 text-white rounded-xl font-black uppercase text-[9px] tracking-widest flex items-center justify-center gap-1.5 hover:bg-green-700 transition-all active:scale-95 shadow-sm"
-                          >
-                            <Check size={14} /> Approve Override
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onOverrideAIFlag(concern.submissionId, concern.taskId, false);
-                            }}
-                            className="flex-1 py-2.5 bg-neutral-200 text-neutral-600 rounded-xl font-black uppercase text-[9px] tracking-widest flex items-center justify-center gap-1.5 hover:bg-neutral-300 transition-all"
-                          >
-                            <X size={14} /> Keep Flagged
-                          </button>
-                        </div>
-                      </div>
-                    )) : (
-                      <div className="p-8 border-2 border-dashed border-neutral-100 rounded-2xl flex flex-col items-center justify-center text-center">
-                        <ShieldCheck size={24} className="text-green-500 mb-2" />
-                        <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest leading-relaxed">No AI flags detected.</p>
-                      </div>
-                    )}
+                  <div className="text-3xl font-black mb-2">{toastSales?.averageTurnTime?.toFixed(1) || '—'}<span className="text-xl ml-1">min</span></div>
+                  <div className="text-[10px] font-bold text-white/80">
+                    {!toastSales?.averageTurnTime ? 'No data' :
+                     toastSales.averageTurnTime < 5 ? 'Excellent (40pts)' :
+                     toastSales.averageTurnTime < 6 ? 'Good (35pts)' :
+                     toastSales.averageTurnTime < 7 ? 'Fair (25pts)' : 'Needs Improvement (15pts)'}
                   </div>
+                </div>
+
+                {/* Staff Clocked In */}
+                <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Users size={16} className="text-blue-300" />
+                    <h3 className="text-[10px] font-black uppercase tracking-widest text-white/80">Staff On Duty</h3>
+                  </div>
+                  <div className="text-3xl font-black mb-2">{toastClockedIn.length}</div>
+                  <div className="text-[10px] font-bold text-white/60 truncate">
+                    {toastClockedIn.length > 0 ? toastClockedIn.slice(0, 2).map(e => e.employeeName.split(' ')[0]).join(', ') + (toastClockedIn.length > 2 ? '...' : '') : 'No one clocked in'}
+                  </div>
+                </div>
+
+                {/* Current Leader */}
+                <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Trophy size={16} className="text-amber-300" />
+                    <h3 className="text-[10px] font-black uppercase tracking-widest text-white/80">Shift Leader</h3>
+                  </div>
+                  {(() => {
+                    const leaders = detectLeaders(toastClockedIn, allUsers);
+                    const highestPriority = leaders.length > 0 ? Math.min(...leaders.map(l => l.priority)) : 999;
+                    const activeLeaders = leaders.filter(l => l.priority === highestPriority);
+
+                    if (activeLeaders.length === 0) {
+                      return (
+                        <>
+                          <div className="text-2xl font-black mb-2">—</div>
+                          <div className="text-[10px] font-bold text-amber-300">No leader on duty</div>
+                        </>
+                      );
+                    }
+
+                    if (activeLeaders.length > 1) {
+                      return (
+                        <>
+                          <div className="text-lg font-black mb-2">Multiple</div>
+                          <div className="text-[10px] font-bold text-red-300">⚠️ {activeLeaders.length} leaders</div>
+                        </>
+                      );
+                    }
+
+                    return (
+                      <>
+                        <div className="text-lg font-black mb-2 truncate">{activeLeaders[0].name}</div>
+                        <div className="text-[10px] font-bold text-white/60 truncate">{activeLeaders[0].jobTitle}</div>
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
             </section>
 
-            {/* Barista Brain - Compact Button */}
-            <div className="flex justify-center">
-              <button
-                onClick={generateAiInsight}
-                disabled={isGenerating}
-                className="px-8 py-4 bg-[#001F3F] text-white rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-blue-900 transition-all flex items-center gap-3 shadow-lg active:scale-95 disabled:opacity-50"
-              >
-                {isGenerating ? <RefreshCw className="animate-spin" size={16}/> : <BrainCircuit size={16}/>}
-                {isGenerating ? 'Analyzing Store Data...' : 'Run Barista Brain Audit'}
-              </button>
+            {/* Action Items Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Pending Checklists */}
+              <div className="bg-white p-6 rounded-2xl border border-neutral-100 shadow-sm">
+                <div className="flex items-center gap-2 mb-4">
+                  <ClipboardList size={16} className={realTimeCompliance.filter(c => c.percent < 100).length > 0 ? 'text-amber-500' : 'text-green-500'} />
+                  <h3 className="text-sm font-black text-[#001F3F] uppercase tracking-tight">Today's Protocols</h3>
+                </div>
+                <div className="space-y-3">
+                  {realTimeCompliance.length === 0 ? (
+                    <p className="text-xs text-neutral-400 font-medium">No protocols due today</p>
+                  ) : (
+                    realTimeCompliance.slice(0, 3).map((stat, i) => (
+                      <div key={i} className="flex items-center justify-between">
+                        <div className="flex-1 min-w-0">
+                          <div className="text-xs font-bold text-neutral-700 truncate">{stat.name}</div>
+                          <div className="text-[9px] text-neutral-400 font-medium">{stat.completed}/{stat.total} tasks</div>
+                        </div>
+                        <div className={`px-2 py-1 rounded-lg text-[9px] font-black ${
+                          stat.percent === 100 ? 'bg-green-100 text-green-700' :
+                          stat.percent > 0 ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'
+                        }`}>
+                          {stat.percent}%
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+                {realTimeCompliance.length > 3 && (
+                  <button
+                    onClick={() => setActiveSubTab('compliance')}
+                    className="mt-4 w-full py-2 bg-neutral-50 hover:bg-neutral-100 rounded-xl text-[9px] font-black text-neutral-600 uppercase tracking-widest transition-all"
+                  >
+                    View All Protocols
+                  </button>
+                )}
+              </div>
+
+              {/* Audit Alerts */}
+              <div className="bg-white p-6 rounded-2xl border border-neutral-100 shadow-sm">
+                <div className="flex items-center gap-2 mb-4">
+                  <AlertTriangle size={16} className={concernNotes.length > 0 ? 'text-red-500' : 'text-green-500'} />
+                  <h3 className="text-sm font-black text-[#001F3F] uppercase tracking-tight">Audit Alerts</h3>
+                </div>
+                {concernNotes.length === 0 ? (
+                  <div className="text-center py-8">
+                    <ShieldCheck size={32} className="text-green-500 mx-auto mb-2" />
+                    <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">All Clear</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="space-y-3">
+                      {concernNotes.slice(0, 2).map((concern, idx) => (
+                        <div
+                          key={idx}
+                          className="flex gap-3 p-3 bg-red-50 rounded-xl border border-red-100 cursor-pointer hover:border-red-200 transition-colors"
+                          onClick={() => {
+                            const submission = submissions.find(s => s.id === concern.submissionId);
+                            const taskResult = submission?.taskResults.find(tr => tr.taskId === concern.taskId);
+                            setFullscreenPhoto({
+                              url: concern.url,
+                              title: concern.title,
+                              user: concern.user,
+                              aiReview: { flagged: true, reason: concern.aiReason || '' },
+                              submissionId: concern.submissionId,
+                              taskId: concern.taskId,
+                              existingComment: taskResult?.managerPhotoComment
+                            });
+                          }}
+                        >
+                          <div className="w-12 h-12 rounded-lg overflow-hidden shrink-0 border border-red-200 bg-red-100">
+                            {concern.url && (
+                              <img src={concern.url} className="w-full h-full object-cover" alt={concern.title} />
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[10px] font-black text-red-800 uppercase tracking-tight truncate">{concern.title}</p>
+                            <p className="text-[9px] text-red-600 font-medium truncate">{concern.aiReason || 'Flagged'}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <button
+                      onClick={() => setActiveSubTab('gallery')}
+                      className="mt-4 w-full py-2 bg-red-50 hover:bg-red-100 rounded-xl text-[9px] font-black text-red-600 uppercase tracking-widest transition-all"
+                    >
+                      Review All ({concernNotes.length})
+                    </button>
+                  </>
+                )}
+              </div>
+
+              {/* Cash Status */}
+              <div className="bg-white p-6 rounded-2xl border border-neutral-100 shadow-sm">
+                <div className="flex items-center gap-2 mb-4">
+                  <DollarSign size={16} className="text-green-600" />
+                  <h3 className="text-sm font-black text-[#001F3F] uppercase tracking-tight">Cash Status</h3>
+                </div>
+                {(() => {
+                  const lastDeposit = cashDeposits[0];
+                  const daysSinceDeposit = lastDeposit ? Math.floor((Date.now() - new Date(lastDeposit.depositDate).getTime()) / (1000 * 60 * 60 * 24)) : 999;
+
+                  // Calculate expected cash accumulation since last deposit
+                  const cashSalesSinceDeposit = toastSales?.totalSales ? toastSales.totalSales * 0.15 : 0; // Estimate 15% cash
+                  const safeDropsSinceDeposit = toastCashData?.cashOut || 0;
+                  const expectedSafe = cashSalesSinceDeposit - safeDropsSinceDeposit;
+
+                  return (
+                    <div className="space-y-4">
+                      <div>
+                        <div className="text-[10px] font-black text-neutral-400 uppercase tracking-widest mb-1">Est. Safe Balance</div>
+                        <div className="text-2xl font-black text-green-600">${expectedSafe.toFixed(0)}</div>
+                        <div className="text-[9px] text-neutral-500 font-medium mt-1">
+                          Based on ~15% cash sales
+                        </div>
+                      </div>
+
+                      <div className="pt-4 border-t border-neutral-100">
+                        <div className="flex justify-between text-[9px] mb-2">
+                          <span className="font-bold text-neutral-500">Last Deposit:</span>
+                          <span className="font-black text-neutral-700">
+                            {lastDeposit ? `${daysSinceDeposit}d ago` : 'Never'}
+                          </span>
+                        </div>
+                        {daysSinceDeposit > 7 && (
+                          <div className="bg-amber-50 border border-amber-200 rounded-lg p-2 text-center">
+                            <p className="text-[9px] font-bold text-amber-700 uppercase tracking-wide">Deposit Due Soon</p>
+                          </div>
+                        )}
+                      </div>
+
+                      <button
+                        onClick={() => setActiveSubTab('cash-audit')}
+                        className="w-full py-2 bg-green-50 hover:bg-green-100 rounded-xl text-[9px] font-black text-green-700 uppercase tracking-widest transition-all"
+                      >
+                        Cash Audit
+                      </button>
+                    </div>
+                  );
+                })()}
+              </div>
             </div>
 
-            {aiInsight && (
-              <div className="bg-white p-10 rounded-[3rem] border border-blue-100 shadow-xl animate-in slide-in-from-bottom-4">
-                 <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-2xl font-black text-[#001F3F] uppercase flex items-center gap-3"><ShieldCheck className="text-blue-500"/> Auditor Observations</h3>
-                    <button onClick={() => setAiInsight(null)} className="text-neutral-400 hover:text-neutral-600"><X size={20}/></button>
-                 </div>
-                 <div className="prose text-sm text-neutral-600 whitespace-pre-wrap leading-relaxed font-medium">{aiInsight}</div>
+            {/* Quick Stats Bar */}
+            <section className="bg-white p-6 rounded-2xl border border-neutral-100 shadow-sm">
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
+                <div className="text-center">
+                  <div className="text-2xl font-black text-[#001F3F] mb-1">{staff.length}</div>
+                  <div className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest">Total Staff</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-black text-[#001F3F] mb-1">
+                    {submissions.filter(s => s.status === 'PENDING').length}
+                  </div>
+                  <div className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest">Pending Reviews</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-black text-[#001F3F] mb-1">
+                    {allProgress.filter(p => p.status === 'COMPLETED').length}
+                  </div>
+                  <div className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest">Lessons Completed</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-black text-[#001F3F] mb-1">
+                    {templates.length}
+                  </div>
+                  <div className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest">Active Protocols</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-black text-green-600 mb-1">
+                    {Math.round((submissions.filter(s => s.status === 'APPROVED').length / Math.max(submissions.length, 1)) * 100)}%
+                  </div>
+                  <div className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest">Approval Rate</div>
+                </div>
               </div>
+            </section>
+
+            {/* Barista Brain AI Audit */}
+            <section className="bg-gradient-to-br from-purple-50 to-blue-50 p-6 rounded-2xl border border-purple-100">
+              <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-purple-100 rounded-xl">
+                    <BrainCircuit size={20} className="text-purple-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black text-[#001F3F] uppercase tracking-tight">Barista Brain Audit</h3>
+                    <p className="text-[9px] font-bold text-neutral-500 uppercase tracking-widest mt-0.5">AI-powered store analysis</p>
+                  </div>
+                </div>
+                <button
+                  onClick={generateAiInsight}
+                  disabled={isGenerating}
+                  className="px-6 py-3 bg-purple-600 text-white rounded-xl font-black uppercase text-[9px] tracking-widest hover:bg-purple-700 transition-all flex items-center gap-2 shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isGenerating ? <RefreshCw className="animate-spin" size={14}/> : <Sparkles size={14}/>}
+                  {isGenerating ? 'Analyzing...' : 'Run Audit'}
+                </button>
+              </div>
+            </section>
+
+            {aiInsight && (
+              <section className="bg-white p-8 rounded-2xl border border-purple-100 shadow-xl animate-in slide-in-from-bottom-4">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-xl font-black text-[#001F3F] uppercase flex items-center gap-3">
+                    <BrainCircuit className="text-purple-500" size={24} />
+                    Audit Results
+                  </h3>
+                  <button onClick={() => setAiInsight(null)} className="text-neutral-400 hover:text-neutral-600 transition-colors">
+                    <X size={20}/>
+                  </button>
+                </div>
+                <div className="prose prose-sm max-w-none text-neutral-600 whitespace-pre-wrap leading-relaxed">
+                  {aiInsight}
+                </div>
+              </section>
             )}
+
           </div>
         )}
 
