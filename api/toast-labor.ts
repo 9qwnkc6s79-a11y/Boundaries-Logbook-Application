@@ -309,10 +309,13 @@ export default async function handler(
     console.error('[Toast Labor] UNHANDLED ERROR:', error);
     console.error('[Toast Labor] Error stack:', error.stack);
     console.error('[Toast Labor] Error type:', error.constructor.name);
+
+    // Ensure we always return JSON, never HTML
+    res.setHeader('Content-Type', 'application/json');
     return res.status(500).json({
       error: 'Failed to fetch labor data',
-      message: error.message,
-      type: error.constructor.name,
+      message: error.message || 'Unknown error',
+      type: error.constructor?.name || 'Error',
       stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
