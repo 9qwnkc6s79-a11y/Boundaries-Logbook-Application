@@ -25,6 +25,12 @@ const App: React.FC = () => {
   // Toast POS Data (for sidebar widgets)
   const [toastSales, setToastSales] = useState<ToastSalesData | null>(null);
   const [toastClockedIn, setToastClockedIn] = useState<ToastTimeEntry[]>([]);
+  const [salesComparison, setSalesComparison] = useState<{
+    salesDiff: number;
+    salesPercent: number;
+    ordersDiff: number;
+    ordersPercent: number;
+  } | null>(null);
 
   // Persistent App Context (Shared with Team)
   const [allUsers, setAllUsers] = useState<User[]>([]);
@@ -391,6 +397,7 @@ const App: React.FC = () => {
       version={APP_VERSION}
       toastSales={toastSales}
       toastClockedIn={toastClockedIn}
+      salesComparison={salesComparison}
     >
       <div className="animate-in fade-in duration-500">
         {activeTab === 'training' && (
@@ -508,6 +515,7 @@ const App: React.FC = () => {
             stores={MOCK_STORES}
             onToastSalesUpdate={setToastSales}
             onToastClockedInUpdate={setToastClockedIn}
+            onSalesComparisonUpdate={setSalesComparison}
           />
         )}
       </div>

@@ -33,12 +33,18 @@ interface ManagerHubProps {
   stores: Store[];
   onToastSalesUpdate?: (sales: ToastSalesData | null) => void;
   onToastClockedInUpdate?: (clockedIn: ToastTimeEntry[]) => void;
+  onSalesComparisonUpdate?: (comparison: {
+    salesDiff: number;
+    salesPercent: number;
+    ordersDiff: number;
+    ordersPercent: number;
+  } | null) => void;
 }
 
 const ManagerHub: React.FC<ManagerHubProps> = ({
   staff = [], allUsers = [], submissions = [], templates = [], curriculum = [], allProgress = [], manual = [], recipes = [], onReview, onOverrideAIFlag, onResetSubmission,
   onUpdateTemplate, onAddTemplate, onDeleteTemplate, onUpdateManual, onUpdateRecipes, onPhotoComment,
-  currentStoreId, stores = [], onToastSalesUpdate, onToastClockedInUpdate
+  currentStoreId, stores = [], onToastSalesUpdate, onToastClockedInUpdate, onSalesComparisonUpdate
 }) => {
   const [activeSubTab, setActiveSubTab] = useState<'dashboard' | 'compliance' | 'editor' | 'staff' | 'gallery' | 'audit' | 'manual' | 'cash-audit' | 'performance'>('dashboard');
   const [auditFilter, setAuditFilter] = useState<'pending' | 'approved' | 'all'>('pending');
@@ -88,6 +94,12 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
   const [toastLoading, setToastLoading] = useState(false);
   const [toastError, setToastError] = useState<string | null>(null);
   const [isToastConfigured, setIsToastConfigured] = useState(false);
+  const [salesComparison, setSalesComparison] = useState<{
+    salesDiff: number;
+    salesPercent: number;
+    ordersDiff: number;
+    ordersPercent: number;
+  } | null>(null);
 
   const currentStoreName = useMemo(() => stores.find(s => s.id === currentStoreId)?.name || 'Unknown Store', [currentStoreId, stores]);
 
@@ -450,10 +462,12 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
           localStorage.removeItem(cacheTimeKey);
         } else {
           setToastSales(parsed.sales);
+          setSalesComparison(parsed.comparison || null);
           setToastLabor(parsed.labor);
           setToastClockedIn(parsed.clockedIn);
           onToastSalesUpdate?.(parsed.sales);
           onToastClockedInUpdate?.(parsed.clockedIn);
+          onSalesComparisonUpdate?.(parsed.comparison || null);
           setToastLoading(false);
           return;
         }
@@ -469,14 +483,14 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
       console.log(`[Toast] Fetching fresh POS data for ${location}...`);
       const today = new Date().toISOString().split('T')[0];
 
-      // Fetch all data in parallel
-      const [sales, laborData] = await Promise.all([
-        toastAPI.getTodaySales(location).catch(err => {
+      // Fetch all data in parallel - including last week comparison
+      const [salesWithComparison, laborData] = await Promise.all([
+        toastAPI.getTodaySalesWithComparison(location).catch(err => {
           console.error('[Toast] Sales fetch failed:', err);
           if (err.message?.includes('Too Many Requests')) {
             throw new Error('Rate limited - please wait a few minutes and refresh');
           }
-          return null;
+          return { today: null, lastWeek: null, comparison: null };
         }),
         toastAPI.getLaborData(today, today, location).catch(err => {
           console.error('[Toast] Labor fetch failed:', err);
@@ -487,10 +501,13 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
         }),
       ]);
 
+      const sales = salesWithComparison.today;
+
       console.log(`[Toast] Fresh data fetched for ${location}:`, {
         salesLocation: sales?.location,
         totalSales: sales?.totalSales,
         totalOrders: sales?.totalOrders,
+        comparison: salesWithComparison.comparison,
         clockedIn: laborData.currentlyClocked.length,
         clockedInNames: laborData.currentlyClocked.map(e => e.employeeName)
       });
@@ -502,14 +519,17 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
       }
 
       setToastSales(sales);
+      setSalesComparison(salesWithComparison.comparison);
       setToastLabor(laborData.laborSummary);
       setToastClockedIn(laborData.currentlyClocked);
       onToastSalesUpdate?.(sales);
       onToastClockedInUpdate?.(laborData.currentlyClocked);
+      onSalesComparisonUpdate?.(salesWithComparison.comparison);
 
       // Cache the results with location verification
       localStorage.setItem(cacheKey, JSON.stringify({
         sales,
+        comparison: salesWithComparison.comparison,
         labor: laborData.laborSummary,
         clockedIn: laborData.currentlyClocked
       }));
@@ -772,7 +792,19 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                     <h3 className="text-[10px] font-black uppercase tracking-widest text-white/80">Today's Sales</h3>
                   </div>
                   <div className="text-3xl font-black mb-2">${toastSales?.totalSales?.toFixed(0) || '—'}</div>
-                  <div className="text-[10px] font-bold text-white/60">{toastSales?.totalOrders || 0} orders • ${toastSales?.averageCheck?.toFixed(2) || '—'} avg</div>
+                  <div className="text-[10px] font-bold text-white/60">
+                    {toastSales?.totalOrders || 0} orders • ${toastSales?.averageCheck?.toFixed(2) || '—'} avg
+                  </div>
+                  {salesComparison && (
+                    <div className={`mt-2 flex items-center gap-1.5 text-[9px] font-black ${
+                      salesComparison.salesPercent >= 0 ? 'text-green-300' : 'text-red-300'
+                    }`}>
+                      {salesComparison.salesPercent >= 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
+                      <span>
+                        {salesComparison.salesPercent >= 0 ? '+' : ''}{salesComparison.salesPercent.toFixed(1)}% vs last week
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Turn Time - Critical Metric */}
@@ -1644,6 +1676,16 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                           <div className="text-[10px] font-black text-neutral-400 uppercase tracking-widest mb-2">Total Sales</div>
                           <div className="text-2xl font-black text-[#001F3F]">${toastSales.totalSales?.toFixed(0) || '—'}</div>
                           <div className="text-[9px] font-bold text-neutral-500 uppercase tracking-wide mt-1">{toastSales.totalOrders || 0} orders</div>
+                          {salesComparison && (
+                            <div className={`mt-2 flex items-center gap-1 text-[9px] font-black ${
+                              salesComparison.salesPercent >= 0 ? 'text-green-600' : 'text-red-600'
+                            }`}>
+                              {salesComparison.salesPercent >= 0 ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
+                              <span>
+                                {salesComparison.salesPercent >= 0 ? '+' : ''}{salesComparison.salesPercent.toFixed(1)}% vs last wk
+                              </span>
+                            </div>
+                          )}
                         </div>
                         <div className="bg-neutral-50 p-6 rounded-2xl border border-neutral-200">
                           <div className="text-[10px] font-black text-neutral-400 uppercase tracking-widest mb-2">Avg Check</div>

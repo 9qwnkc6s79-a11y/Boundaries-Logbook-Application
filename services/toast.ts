@@ -112,6 +112,63 @@ class ToastAPI {
     const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Chicago' });
     return this.getSalesData(today, today, location);
   }
+
+  /**
+   * Get sales data from last week (same day of week, same time)
+   * @param location - Campus location (littleelm, prosper)
+   */
+  async getLastWeekSales(location?: string): Promise<ToastSalesData> {
+    // Get current time in Central Time
+    const now = new Date();
+    const lastWeek = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const lastWeekDate = lastWeek.toLocaleDateString('en-CA', { timeZone: 'America/Chicago' });
+    return this.getSalesData(lastWeekDate, lastWeekDate, location);
+  }
+
+  /**
+   * Get today's sales with comparison to last week
+   * @param location - Campus location (littleelm, prosper)
+   */
+  async getTodaySalesWithComparison(location?: string): Promise<{
+    today: ToastSalesData;
+    lastWeek: ToastSalesData | null;
+    comparison: {
+      salesDiff: number;
+      salesPercent: number;
+      ordersDiff: number;
+      ordersPercent: number;
+    } | null;
+  }> {
+    try {
+      const [today, lastWeek] = await Promise.all([
+        this.getTodaySales(location),
+        this.getLastWeekSales(location).catch(err => {
+          console.warn('[Toast API] Failed to fetch last week data:', err);
+          return null;
+        })
+      ]);
+
+      let comparison = null;
+      if (lastWeek && lastWeek.totalSales > 0) {
+        const salesDiff = today.totalSales - lastWeek.totalSales;
+        const salesPercent = (salesDiff / lastWeek.totalSales) * 100;
+        const ordersDiff = today.totalOrders - lastWeek.totalOrders;
+        const ordersPercent = lastWeek.totalOrders > 0 ? (ordersDiff / lastWeek.totalOrders) * 100 : 0;
+
+        comparison = {
+          salesDiff,
+          salesPercent,
+          ordersDiff,
+          ordersPercent
+        };
+      }
+
+      return { today, lastWeek, comparison };
+    } catch (error) {
+      console.error('[Toast API] Failed to fetch sales with comparison:', error);
+      throw error;
+    }
+  }
 }
 
 // Export singleton instance

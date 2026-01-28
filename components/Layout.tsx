@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { User, UserRole, Store, ManualSection, Recipe, ToastSalesData, ToastTimeEntry } from '../types';
-import { Coffee, ClipboardCheck, GraduationCap, Users, LogOut, Menu, X, MapPin, ChevronDown, BookOpen, Cloud, CloudOff, Activity, Download, Share, Smartphone, Brain, Send, Sparkles, ChevronRight, Settings, DollarSign, TrendingUp, UserCheck, Clock, LayoutDashboard } from 'lucide-react';
+import { Coffee, ClipboardCheck, GraduationCap, Users, LogOut, Menu, X, MapPin, ChevronDown, BookOpen, Cloud, CloudOff, Activity, Download, Share, Smartphone, Brain, Send, Sparkles, ChevronRight, Settings, DollarSign, TrendingUp, TrendingDown, UserCheck, Clock, LayoutDashboard } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
 
 interface LayoutProps {
@@ -24,13 +24,19 @@ interface LayoutProps {
   version: string;
   toastSales?: ToastSalesData | null;
   toastClockedIn?: ToastTimeEntry[];
+  salesComparison?: {
+    salesDiff: number;
+    salesPercent: number;
+    ordersDiff: number;
+    ordersPercent: number;
+  } | null;
 }
 
 const Layout: React.FC<LayoutProps> = ({
   user, children, activeTab, onTabChange, onLogout,
   stores, currentStoreId, onStoreChange, onUserStoreChange, isSyncing = false,
   showInstallBanner = false, onInstall, onDismissInstall, canNativeInstall = false,
-  manual, recipes, version, toastSales, toastClockedIn = []
+  manual, recipes, version, toastSales, toastClockedIn = [], salesComparison = null
 }) => {
   const [isProfileOpen, setIsProfileOpen] = React.useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -185,6 +191,16 @@ User Question: ${userMsg}`,
                 </span>
               )}
             </div>
+            {salesComparison && (
+              <div className={`mt-1.5 flex items-center gap-1 text-[8px] font-black ${
+                salesComparison.salesPercent >= 0 ? 'text-green-300' : 'text-red-300'
+              }`}>
+                {salesComparison.salesPercent >= 0 ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
+                <span>
+                  {salesComparison.salesPercent >= 0 ? '+' : ''}{salesComparison.salesPercent.toFixed(1)}% vs last week
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Clocked In Staff Widget */}
