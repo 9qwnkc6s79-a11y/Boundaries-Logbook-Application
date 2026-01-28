@@ -271,3 +271,83 @@ export interface CashDeposit {
 
   notes?: string; // Optional notes about the deposit
 }
+
+// Team Leader Performance Tracking
+export interface ShiftOwnership {
+  id: string;
+  storeId: string;
+  date: string; // ISO date (YYYY-MM-DD)
+  shiftType: 'OPENING' | 'SHIFT_CHANGE' | 'CLOSING';
+
+  // Leadership
+  leaders: {
+    userId: string;
+    name: string;
+    jobTitle: string;
+    priority: number; // 1 = GM, 2 = Team Leader
+    employeeGuid: string; // Toast employee GUID
+  }[];
+  multipleLeadersOnDuty: boolean; // True if 2+ leaders (both penalized)
+  noLeaderOnDuty: boolean; // True if no leader clocked in
+
+  // Team members (non-leaders)
+  teamMembers: {
+    userId: string;
+    name: string;
+    jobTitle: string;
+  }[];
+
+  // Checklist accountability
+  checklistSubmittedBy?: string; // User ID who submitted
+  checklistSubmittedAt?: string; // Timestamp
+  checklistDueAt: string; // When it was due
+  checklistOnTime: boolean;
+  submissionDelayMinutes: number; // Negative if early, positive if late
+
+  // Performance data (from Toast)
+  averageTurnTime?: number; // Minutes
+  totalSales?: number;
+  totalOrders?: number;
+
+  // Calculated scores
+  timelinessScore: number; // 0-40
+  turnTimeScore: number; // 0-40
+  salesScore: number; // 0-20
+  totalScore: number; // 0-100
+}
+
+export interface TeamLeaderPerformance {
+  userId: string;
+  name: string;
+  storeId: string;
+  period: {
+    startDate: string;
+    endDate: string;
+  };
+
+  // Shift statistics
+  totalShiftsLed: number;
+  shiftsWithMultipleLeaders: number; // How many times shared responsibility
+
+  // Timeliness
+  onTimeSubmissions: number;
+  lateSubmissions: number;
+  averageDelayMinutes: number;
+  timelinessScore: number; // Average across all shifts
+
+  // Turn time
+  averageTurnTime: number; // Across all shifts they led
+  bestTurnTime: number;
+  worstTurnTime: number;
+  turnTimeScore: number;
+
+  // Sales
+  averageSalesPerShift: number;
+  totalSalesGenerated: number;
+  salesScore: number;
+
+  // Overall
+  overallScore: number; // 0-100
+  rank: number; // 1 = best, compared to other leaders
+  trend: 'UP' | 'DOWN' | 'STABLE'; // Compared to last period
+}

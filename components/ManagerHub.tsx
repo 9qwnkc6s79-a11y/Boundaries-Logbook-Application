@@ -4,11 +4,12 @@ import {
   CheckCircle2, AlertCircle, Eye, User as UserIcon, Calendar, Check, X,
   Sparkles, Settings, Plus, Trash2, Edit3, BarChart3, ListTodo, BrainCircuit, Clock, TrendingDown, TrendingUp,
   ArrowRight, MessageSquare, Save, Users, LayoutDashboard, Flag, Activity, GraduationCap, Award, FileText, MoveUp, MoveDown, Coffee, Camera, Hash, AlertTriangle, ExternalLink, FileText as FileIcon, Image as ImageIcon, Search, ShieldCheck,
-  RefreshCw, RotateCcw, CalendarDays, Timer, Store as StoreIcon, MapPin, GripVertical, AlertOctagon, Info, Zap, Gauge, History, SearchCheck, ChevronUp, ChevronDown, ClipboardList, DollarSign, TrendingUp as TrendingUpIcon, UserCheck
+  RefreshCw, RotateCcw, CalendarDays, Timer, Store as StoreIcon, MapPin, GripVertical, AlertOctagon, Info, Zap, Gauge, History, SearchCheck, ChevronUp, ChevronDown, ClipboardList, DollarSign, TrendingUp as TrendingUpIcon, UserCheck, Target, Trophy
 } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
 import { toastAPI } from '../services/toast';
 import { db } from '../services/db';
+import { detectLeaders, calculateTimelinessScore, calculateTurnTimeScore, calculateSalesScore, determineShiftOwnership } from '../utils/leadershipTracking';
 
 interface ManagerHubProps {
   staff: User[];
@@ -39,7 +40,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
   onUpdateTemplate, onAddTemplate, onDeleteTemplate, onUpdateManual, onUpdateRecipes, onPhotoComment,
   currentStoreId, stores = [], onToastSalesUpdate, onToastClockedInUpdate
 }) => {
-  const [activeSubTab, setActiveSubTab] = useState<'dashboard' | 'compliance' | 'editor' | 'staff' | 'gallery' | 'audit' | 'manual' | 'cash-audit'>('dashboard');
+  const [activeSubTab, setActiveSubTab] = useState<'dashboard' | 'compliance' | 'editor' | 'staff' | 'gallery' | 'audit' | 'manual' | 'cash-audit' | 'performance'>('dashboard');
   const [auditFilter, setAuditFilter] = useState<'pending' | 'approved' | 'all'>('pending');
   const [aiInsight, setAiInsight] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -729,6 +730,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
             {[
               { id: 'dashboard', label: 'DASHBOARD', icon: LayoutDashboard },
               { id: 'compliance', label: 'COMPLIANCE', icon: Timer },
+              { id: 'performance', label: 'PERFORMANCE', icon: Target },
               { id: 'staff', label: 'STAFF', icon: Users },
               { id: 'gallery', label: 'AUDIT', icon: ImageIcon },
               { id: 'cash-audit', label: 'CASH', icon: DollarSign },
@@ -1348,6 +1350,317 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
               </div>
             )}
           </section>
+        )}
+
+        {activeSubTab === 'performance' && (
+          <div className="space-y-8 animate-in fade-in duration-500">
+            {/* Current Shift Leadership */}
+            <section className="bg-white p-8 rounded-[2.5rem] border border-neutral-100 shadow-sm">
+              <div className="flex items-center gap-3 mb-8">
+                <div className="p-2 bg-blue-50 text-blue-600 rounded-xl"><Target size={20} /></div>
+                <h2 className="text-xl font-black text-[#001F3F] uppercase tracking-tight">Current Shift Leadership</h2>
+              </div>
+
+              {(() => {
+                // Detect current leaders
+                const currentLeaders = detectLeaders(toastClockedIn, allUsers);
+
+                if (currentLeaders.length === 0) {
+                  return (
+                    <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 text-center">
+                      <AlertTriangle size={32} className="text-amber-600 mx-auto mb-3" />
+                      <h3 className="text-sm font-black text-amber-900 uppercase tracking-tight mb-2">No Leader On Duty</h3>
+                      <p className="text-xs text-amber-700 font-medium">No team leader or GM is currently clocked in. Performance metrics cannot be tracked.</p>
+                    </div>
+                  );
+                }
+
+                // Check for multiple leaders at same priority
+                const priorityGroups = new Map<number, typeof currentLeaders>();
+                currentLeaders.forEach(leader => {
+                  const group = priorityGroups.get(leader.priority) || [];
+                  group.push(leader);
+                  priorityGroups.set(leader.priority, group);
+                });
+
+                const highestPriority = Math.min(...currentLeaders.map(l => l.priority));
+                const highestPriorityLeaders = priorityGroups.get(highestPriority) || [];
+                const multipleLeaders = highestPriorityLeaders.length > 1;
+
+                return (
+                  <div className="space-y-6">
+                    {multipleLeaders && (
+                      <div className="bg-red-50 border border-red-200 rounded-2xl p-6">
+                        <div className="flex items-start gap-3">
+                          <AlertOctagon size={24} className="text-red-600 flex-shrink-0 mt-0.5" />
+                          <div>
+                            <h3 className="text-sm font-black text-red-900 uppercase tracking-tight mb-2">Multiple Leaders Detected</h3>
+                            <p className="text-xs text-red-700 font-medium mb-3">
+                              Multiple leaders at the same priority level are clocked in. Both will share accountability for this shift's performance.
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                              {highestPriorityLeaders.map(leader => (
+                                <div key={leader.userId} className="bg-red-100 text-red-800 px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-wide">
+                                  {leader.name} ({leader.jobTitle})
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {currentLeaders.map(leader => (
+                        <div key={leader.userId} className={`p-6 rounded-2xl border-2 ${leader.priority === highestPriority ? 'bg-blue-50 border-blue-200' : 'bg-neutral-50 border-neutral-200'}`}>
+                          <div className="flex items-center gap-3 mb-4">
+                            <div className="w-12 h-12 bg-[#001F3F] text-white rounded-xl flex items-center justify-center font-black text-lg">
+                              {leader.name.charAt(0)}
+                            </div>
+                            <div>
+                              <h3 className="font-black text-base text-[#001F3F] uppercase tracking-tight leading-none">{leader.name}</h3>
+                              <p className="text-[9px] font-bold text-neutral-500 uppercase tracking-widest mt-1">{leader.jobTitle}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {leader.priority === highestPriority ? (
+                              <>
+                                <Trophy size={14} className="text-blue-600" />
+                                <span className="text-[9px] font-black text-blue-600 uppercase tracking-widest">Shift Owner</span>
+                              </>
+                            ) : (
+                              <span className="text-[9px] font-black text-neutral-400 uppercase tracking-widest">On Duty</span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {toastSales && (
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+                        <div className="bg-neutral-50 p-6 rounded-2xl border border-neutral-200">
+                          <div className="text-[10px] font-black text-neutral-400 uppercase tracking-widest mb-2">Turn Time</div>
+                          <div className="text-2xl font-black text-[#001F3F]">{toastSales.averageTurnTime?.toFixed(1) || '—'} min</div>
+                          <div className={`text-[9px] font-bold uppercase tracking-wide mt-1 ${
+                            (toastSales.averageTurnTime || 0) < 5 ? 'text-green-600' :
+                            (toastSales.averageTurnTime || 0) < 6 ? 'text-blue-600' :
+                            (toastSales.averageTurnTime || 0) < 7 ? 'text-amber-600' : 'text-red-600'
+                          }`}>
+                            {(toastSales.averageTurnTime || 0) < 5 ? '40 pts' :
+                             (toastSales.averageTurnTime || 0) < 6 ? '35 pts' :
+                             (toastSales.averageTurnTime || 0) < 7 ? '25 pts' : '15 pts'}
+                          </div>
+                        </div>
+                        <div className="bg-neutral-50 p-6 rounded-2xl border border-neutral-200">
+                          <div className="text-[10px] font-black text-neutral-400 uppercase tracking-widest mb-2">Total Sales</div>
+                          <div className="text-2xl font-black text-[#001F3F]">${toastSales.totalSales?.toFixed(0) || '—'}</div>
+                          <div className="text-[9px] font-bold text-neutral-500 uppercase tracking-wide mt-1">{toastSales.totalOrders || 0} orders</div>
+                        </div>
+                        <div className="bg-neutral-50 p-6 rounded-2xl border border-neutral-200">
+                          <div className="text-[10px] font-black text-neutral-400 uppercase tracking-widest mb-2">Avg Check</div>
+                          <div className="text-2xl font-black text-[#001F3F]">${toastSales.averageCheck?.toFixed(2) || '—'}</div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+            </section>
+
+            {/* Team Leader Leaderboard */}
+            <section className="bg-white p-8 rounded-[2.5rem] border border-neutral-100 shadow-sm">
+              <div className="flex items-center gap-3 mb-8">
+                <div className="p-2 bg-amber-50 text-amber-600 rounded-xl"><Trophy size={20} /></div>
+                <h2 className="text-xl font-black text-[#001F3F] uppercase tracking-tight">Team Leader Leaderboard</h2>
+                <span className="text-[9px] font-black text-neutral-400 uppercase tracking-widest ml-auto">Last 7 Days</span>
+              </div>
+
+              {(() => {
+                // Calculate leader performance from submissions
+                const sevenDaysAgo = new Date();
+                sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+                // Get recent submissions
+                const recentSubmissions = submissions.filter(sub =>
+                  sub.submittedAt && new Date(sub.submittedAt) >= sevenDaysAgo
+                );
+
+                // Group by template and date to determine shift ownership
+                const shiftData = new Map<string, any>();
+
+                recentSubmissions.forEach(sub => {
+                  const template = templates.find(t => t.id === sub.templateId);
+                  if (!template) return;
+
+                  const key = `${sub.date}-${sub.templateId}`;
+
+                  // Calculate deadline
+                  const deadline = new Date(sub.date);
+                  deadline.setHours(template.deadlineHour, 0, 0, 0);
+
+                  // Calculate delay
+                  const submittedDate = sub.submittedAt ? new Date(sub.submittedAt) : null;
+                  const delayMinutes = submittedDate ? Math.floor((submittedDate.getTime() - deadline.getTime()) / 60000) : 9999;
+                  const onTime = delayMinutes <= 0;
+
+                  shiftData.set(key, {
+                    date: sub.date,
+                    template: template,
+                    submittedBy: sub.userId,
+                    onTime,
+                    delayMinutes,
+                    submittedAt: sub.submittedAt
+                  });
+                });
+
+                // Get leaders who submitted
+                const leaderStats = new Map<string, any>();
+
+                shiftData.forEach(shift => {
+                  const user = allUsers.find(u => u.id === shift.submittedBy);
+                  if (!user) return;
+
+                  // Only count submissions from users, we'll need to correlate with Toast data later
+                  // For now, just track submissions
+                  const existing = leaderStats.get(shift.submittedBy);
+                  if (existing) {
+                    existing.totalShifts++;
+                    if (shift.onTime) existing.onTimeSubmissions++;
+                    else existing.lateSubmissions++;
+                    existing.totalDelayMinutes += Math.max(0, shift.delayMinutes);
+                  } else {
+                    leaderStats.set(shift.submittedBy, {
+                      userId: shift.submittedBy,
+                      name: user.name,
+                      totalShifts: 1,
+                      onTimeSubmissions: shift.onTime ? 1 : 0,
+                      lateSubmissions: shift.onTime ? 0 : 1,
+                      totalDelayMinutes: Math.max(0, shift.delayMinutes)
+                    });
+                  }
+                });
+
+                const leaderArray = Array.from(leaderStats.values())
+                  .map(leader => {
+                    const avgDelay = leader.totalDelayMinutes / leader.totalShifts;
+                    const onTimeRate = (leader.onTimeSubmissions / leader.totalShifts) * 100;
+                    return { ...leader, avgDelay, onTimeRate };
+                  })
+                  .sort((a, b) => b.onTimeRate - a.onTimeRate);
+
+                if (leaderArray.length === 0) {
+                  return (
+                    <div className="text-center py-12">
+                      <Users size={48} className="text-neutral-300 mx-auto mb-4" />
+                      <p className="text-neutral-400 font-bold text-sm">No shift data available for the last 7 days</p>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="space-y-4">
+                    {leaderArray.map((leader, index) => (
+                      <div key={leader.userId} className={`p-6 rounded-2xl border-2 transition-all ${
+                        index === 0 ? 'bg-amber-50 border-amber-200' :
+                        index === 1 ? 'bg-neutral-50 border-neutral-200' :
+                        index === 2 ? 'bg-orange-50 border-orange-200' :
+                        'bg-neutral-50 border-neutral-100'
+                      }`}>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-4">
+                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-black text-xl ${
+                              index === 0 ? 'bg-amber-500 text-white' :
+                              index === 1 ? 'bg-neutral-400 text-white' :
+                              index === 2 ? 'bg-orange-400 text-white' :
+                              'bg-neutral-200 text-neutral-600'
+                            }`}>
+                              #{index + 1}
+                            </div>
+                            <div>
+                              <h3 className="font-black text-lg text-[#001F3F] uppercase tracking-tight">{leader.name}</h3>
+                              <p className="text-[9px] font-bold text-neutral-500 uppercase tracking-widest mt-1">
+                                {leader.totalShifts} shifts led
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-8">
+                            <div className="text-right">
+                              <div className="text-[9px] font-black text-neutral-400 uppercase tracking-widest mb-1">On-Time Rate</div>
+                              <div className={`text-2xl font-black ${
+                                leader.onTimeRate >= 90 ? 'text-green-600' :
+                                leader.onTimeRate >= 70 ? 'text-blue-600' :
+                                leader.onTimeRate >= 50 ? 'text-amber-600' : 'text-red-600'
+                              }`}>
+                                {leader.onTimeRate.toFixed(0)}%
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-[9px] font-black text-neutral-400 uppercase tracking-widest mb-1">Avg Delay</div>
+                              <div className="text-lg font-black text-neutral-600">
+                                {leader.avgDelay > 0 ? `+${leader.avgDelay.toFixed(0)}m` : '—'}
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-[9px] font-black text-neutral-400 uppercase tracking-widest mb-1">Score</div>
+                              <div className="text-lg font-black text-[#001F3F]">
+                                {leader.onTimeSubmissions > 0 ? '40' : leader.totalShifts > 0 ? '25' : '0'}/40
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+            </section>
+
+            {/* Performance Scoring Guide */}
+            <section className="bg-gradient-to-br from-blue-50 to-indigo-50 p-8 rounded-[2.5rem] border border-blue-100">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-2 bg-blue-100 text-blue-600 rounded-xl"><Info size={20} /></div>
+                <h2 className="text-lg font-black text-[#001F3F] uppercase tracking-tight">Performance Scoring Guide</h2>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="bg-white p-6 rounded-2xl border border-blue-100">
+                  <h3 className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-4">Timeliness (40 pts)</h3>
+                  <div className="space-y-2 text-xs">
+                    <div className="flex justify-between"><span className="font-bold text-neutral-600">On time:</span><span className="font-black text-green-600">40 pts</span></div>
+                    <div className="flex justify-between"><span className="font-bold text-neutral-600">Late &lt;1hr:</span><span className="font-black text-amber-600">25 pts</span></div>
+                    <div className="flex justify-between"><span className="font-bold text-neutral-600">Late &gt;1hr:</span><span className="font-black text-red-600">10 pts</span></div>
+                    <div className="flex justify-between"><span className="font-bold text-neutral-600">Not submitted:</span><span className="font-black text-neutral-400">0 pts</span></div>
+                  </div>
+                </div>
+
+                <div className="bg-white p-6 rounded-2xl border border-blue-100">
+                  <h3 className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-4">Turn Time (40 pts)</h3>
+                  <div className="space-y-2 text-xs">
+                    <div className="flex justify-between"><span className="font-bold text-neutral-600">Under 5 min:</span><span className="font-black text-green-600">40 pts</span></div>
+                    <div className="flex justify-between"><span className="font-bold text-neutral-600">5-6 min:</span><span className="font-black text-blue-600">35 pts</span></div>
+                    <div className="flex justify-between"><span className="font-bold text-neutral-600">6-7 min:</span><span className="font-black text-amber-600">25 pts</span></div>
+                    <div className="flex justify-between"><span className="font-bold text-neutral-600">7+ min:</span><span className="font-black text-red-600">15 pts</span></div>
+                  </div>
+                </div>
+
+                <div className="bg-white p-6 rounded-2xl border border-blue-100">
+                  <h3 className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-4">Sales (20 pts)</h3>
+                  <div className="space-y-2 text-xs">
+                    <div className="flex justify-between"><span className="font-bold text-neutral-600">Above target:</span><span className="font-black text-green-600">20 pts</span></div>
+                    <div className="flex justify-between"><span className="font-bold text-neutral-600">Within 10%:</span><span className="font-black text-amber-600">15 pts</span></div>
+                    <div className="flex justify-between"><span className="font-bold text-neutral-600">Below target:</span><span className="font-black text-red-600">10 pts</span></div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6 bg-white/50 p-4 rounded-xl border border-blue-100">
+                <p className="text-xs font-bold text-neutral-600 leading-relaxed">
+                  <span className="font-black text-[#001F3F]">Note:</span> Leaders are accountable for their shift's performance. If multiple leaders at the same priority level are clocked in, both share accountability and scoring.
+                </p>
+              </div>
+            </section>
+          </div>
         )}
 
         {activeSubTab === 'editor' && (
