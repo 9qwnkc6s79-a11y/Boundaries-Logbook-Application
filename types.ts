@@ -40,7 +40,7 @@ export interface Lesson {
   id: string;
   moduleId: string;
   title: string;
-  type: 'CONTENT' | 'PRACTICE' | 'QUIZ' | 'SIGN_OFF' | 'FILE_UPLOAD';
+  type: 'CONTENT' | 'VIDEO' | 'PRACTICE' | 'QUIZ' | 'SIGN_OFF' | 'FILE_UPLOAD';
   content?: string;
   videoUrl?: string;
   durationMinutes?: number;
@@ -218,4 +218,31 @@ export interface ToastSalesData {
   paymentMethods: Record<string, number>;
   hourlySales: Record<number, number>;
   lastUpdated: string;
+}
+
+// Cash Audit Types
+export interface CashAudit {
+  id: string;
+  storeId: string;
+  date: string; // ISO date string
+  auditedBy: string; // User ID of manager who performed audit
+  auditedByName: string; // Name for display
+  auditedAt: string; // ISO timestamp when audit was performed
+  expectedCash: number; // Expected cash based on sales/transactions
+  actualCash: number; // Actual cash counted in drawer
+  variance: number; // Difference (actualCash - expectedCash)
+  status: 'PASS' | 'FAIL' | 'REVIEW'; // Based on variance threshold
+  notes?: string; // Optional notes about the audit
+  denominations?: { // Optional breakdown by denomination
+    hundreds: number;
+    fifties: number;
+    twenties: number;
+    tens: number;
+    fives: number;
+    ones: number;
+    quarters: number;
+    dimes: number;
+    nickels: number;
+    pennies: number;
+  };
 }

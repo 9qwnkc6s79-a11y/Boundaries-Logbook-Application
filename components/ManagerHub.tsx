@@ -37,11 +37,20 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
   onUpdateTemplate, onAddTemplate, onDeleteTemplate, onUpdateManual, onUpdateRecipes,
   currentStoreId, stores = [], onToastSalesUpdate, onToastClockedInUpdate
 }) => {
-  const [activeSubTab, setActiveSubTab] = useState<'dashboard' | 'compliance' | 'editor' | 'staff' | 'gallery' | 'audit' | 'manual'>('dashboard');
+  const [activeSubTab, setActiveSubTab] = useState<'dashboard' | 'compliance' | 'editor' | 'staff' | 'gallery' | 'audit' | 'manual' | 'cash-audit'>('dashboard');
   const [auditFilter, setAuditFilter] = useState<'pending' | 'approved' | 'all'>('pending');
   const [aiInsight, setAiInsight] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [fullscreenPhoto, setFullscreenPhoto] = useState<{url: string, title: string, user: string, aiReview?: { flagged: boolean, reason: string }} | null>(null);
+
+  // Cash Audit State
+  const [cashAudits, setCashAudits] = useState<any[]>([]); // TODO: Add type from db
+  const [showAuditForm, setShowAuditForm] = useState(false);
+  const [auditFormData, setAuditFormData] = useState({
+    expectedCash: '',
+    actualCash: '',
+    notes: ''
+  });
   
   const [deleteConfirm, setDeleteConfirm] = useState<{
     type: 'TASK' | 'TEMPLATE' | 'RESET_LOG',
@@ -575,6 +584,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
               { id: 'compliance', label: 'COMPLIANCE', icon: Timer },
               { id: 'staff', label: 'STAFF', icon: Users },
               { id: 'gallery', label: 'AUDIT', icon: ImageIcon },
+              { id: 'cash-audit', label: 'CASH', icon: DollarSign },
               { id: 'manual', label: 'MANUAL', icon: FileText },
               { id: 'editor', label: 'PROTOCOLS', icon: Settings }
             ].map(tab => (
@@ -1370,6 +1380,186 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                 </div>
               );
             })}
+            </div>
+          </section>
+        )}
+
+        {activeSubTab === 'cash-audit' && (
+          <section className="animate-in fade-in space-y-8">
+            {/* Header with New Audit Button */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-8 rounded-[2rem] border border-neutral-100 shadow-sm">
+              <div>
+                <h2 className="text-2xl font-black text-[#001F3F] uppercase tracking-tight flex items-center gap-3">
+                  <DollarSign size={28} />
+                  Cash Audit
+                </h2>
+                <p className="text-neutral-400 text-xs font-bold uppercase tracking-widest mt-1">Track drawer counts & variances</p>
+              </div>
+              <button
+                onClick={() => setShowAuditForm(!showAuditForm)}
+                className="px-8 py-4 bg-[#001F3F] text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-blue-900 transition-all shadow-lg flex items-center gap-2"
+              >
+                <Plus size={18} />
+                {showAuditForm ? 'Cancel' : 'New Audit'}
+              </button>
+            </div>
+
+            {/* New Audit Form */}
+            {showAuditForm && (
+              <div className="bg-white p-8 rounded-[2rem] border border-neutral-100 shadow-sm">
+                <h3 className="text-lg font-black text-[#001F3F] uppercase tracking-tight mb-6">Record Cash Count</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-xs font-black text-neutral-600 uppercase tracking-widest mb-2">Expected Cash</label>
+                    <div className="relative">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400 font-bold">$</span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={auditFormData.expectedCash}
+                        onChange={(e) => setAuditFormData({ ...auditFormData, expectedCash: e.target.value })}
+                        placeholder="0.00"
+                        className="w-full pl-8 pr-4 py-4 rounded-xl border-2 border-neutral-200 focus:border-[#001F3F] outline-none font-bold text-lg"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-black text-neutral-600 uppercase tracking-widest mb-2">Actual Cash Counted</label>
+                    <div className="relative">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400 font-bold">$</span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={auditFormData.actualCash}
+                        onChange={(e) => setAuditFormData({ ...auditFormData, actualCash: e.target.value })}
+                        placeholder="0.00"
+                        className="w-full pl-8 pr-4 py-4 rounded-xl border-2 border-neutral-200 focus:border-[#001F3F] outline-none font-bold text-lg"
+                      />
+                    </div>
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-xs font-black text-neutral-600 uppercase tracking-widest mb-2">Notes (Optional)</label>
+                    <textarea
+                      value={auditFormData.notes}
+                      onChange={(e) => setAuditFormData({ ...auditFormData, notes: e.target.value })}
+                      placeholder="Add any notes about this audit..."
+                      rows={3}
+                      className="w-full px-4 py-4 rounded-xl border-2 border-neutral-200 focus:border-[#001F3F] outline-none font-medium resize-none"
+                    />
+                  </div>
+                </div>
+
+                {/* Variance Preview */}
+                {auditFormData.expectedCash && auditFormData.actualCash && (() => {
+                  const expected = parseFloat(auditFormData.expectedCash);
+                  const actual = parseFloat(auditFormData.actualCash);
+                  const variance = actual - expected;
+                  const status = Math.abs(variance) <= 5 ? 'PASS' : Math.abs(variance) <= 20 ? 'REVIEW' : 'FAIL';
+
+                  return (
+                    <div className={`mt-6 p-6 rounded-2xl ${status === 'PASS' ? 'bg-green-50 border-2 border-green-200' : status === 'REVIEW' ? 'bg-yellow-50 border-2 border-yellow-200' : 'bg-red-50 border-2 border-red-200'}`}>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs font-black uppercase tracking-widest text-neutral-600 mb-1">Variance</p>
+                          <p className={`text-3xl font-black ${variance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {variance >= 0 ? '+' : ''}{variance.toFixed(2)}
+                          </p>
+                        </div>
+                        <div className={`px-6 py-3 rounded-xl font-black uppercase text-xs tracking-widest ${status === 'PASS' ? 'bg-green-600 text-white' : status === 'REVIEW' ? 'bg-yellow-600 text-white' : 'bg-red-600 text-white'}`}>
+                          {status}
+                        </div>
+                      </div>
+                      <p className="text-xs text-neutral-600 mt-3 font-medium">
+                        {status === 'PASS' && 'Variance is within acceptable range (±$5)'}
+                        {status === 'REVIEW' && 'Variance requires manager review (±$5-$20)'}
+                        {status === 'FAIL' && 'Variance exceeds threshold (>$20) - requires immediate attention'}
+                      </p>
+                    </div>
+                  );
+                })()}
+
+                <div className="flex gap-4 mt-6">
+                  <button
+                    onClick={() => {
+                      // TODO: Save audit to Firebase
+                      console.log('Saving audit:', auditFormData);
+                      setShowAuditForm(false);
+                      setAuditFormData({ expectedCash: '', actualCash: '', notes: '' });
+                    }}
+                    disabled={!auditFormData.expectedCash || !auditFormData.actualCash}
+                    className="flex-1 px-8 py-4 bg-[#001F3F] text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-blue-900 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg"
+                  >
+                    Save Audit
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowAuditForm(false);
+                      setAuditFormData({ expectedCash: '', actualCash: '', notes: '' });
+                    }}
+                    className="px-8 py-4 bg-neutral-100 text-neutral-600 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-neutral-200 transition-all"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Audit History */}
+            <div className="bg-white p-8 rounded-[2rem] border border-neutral-100 shadow-sm">
+              <h3 className="text-lg font-black text-[#001F3F] uppercase tracking-tight mb-6">Audit History</h3>
+
+              {cashAudits.length === 0 ? (
+                <div className="text-center py-16">
+                  <div className="w-20 h-20 bg-neutral-100 text-neutral-300 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <DollarSign size={32} />
+                  </div>
+                  <p className="text-neutral-400 font-bold uppercase text-xs tracking-widest">No cash audits recorded yet</p>
+                  <p className="text-neutral-300 text-xs mt-2">Click "New Audit" to record your first cash count</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {cashAudits.map((audit: any) => {
+                    const variance = audit.actualCash - audit.expectedCash;
+                    const status = Math.abs(variance) <= 5 ? 'PASS' : Math.abs(variance) <= 20 ? 'REVIEW' : 'FAIL';
+
+                    return (
+                      <div key={audit.id} className="border-2 border-neutral-100 rounded-2xl p-6 hover:border-neutral-200 transition-all">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <p className="font-black text-neutral-800">{new Date(audit.auditedAt).toLocaleDateString()}</p>
+                              <p className="text-xs text-neutral-400 font-medium">{new Date(audit.auditedAt).toLocaleTimeString()}</p>
+                              <div className={`px-3 py-1 rounded-lg font-black uppercase text-[10px] tracking-widest ${status === 'PASS' ? 'bg-green-100 text-green-700' : status === 'REVIEW' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`}>
+                                {status}
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-3 gap-4 text-sm mt-3">
+                              <div>
+                                <p className="text-[10px] font-black uppercase tracking-widest text-neutral-400 mb-1">Expected</p>
+                                <p className="font-bold text-neutral-700">${audit.expectedCash.toFixed(2)}</p>
+                              </div>
+                              <div>
+                                <p className="text-[10px] font-black uppercase tracking-widest text-neutral-400 mb-1">Actual</p>
+                                <p className="font-bold text-neutral-700">${audit.actualCash.toFixed(2)}</p>
+                              </div>
+                              <div>
+                                <p className="text-[10px] font-black uppercase tracking-widest text-neutral-400 mb-1">Variance</p>
+                                <p className={`font-bold ${variance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                  {variance >= 0 ? '+' : ''}{variance.toFixed(2)}
+                                </p>
+                              </div>
+                            </div>
+                            {audit.notes && (
+                              <p className="text-xs text-neutral-500 mt-3 italic">{audit.notes}</p>
+                            )}
+                            <p className="text-[10px] text-neutral-400 font-medium mt-2">Audited by {audit.auditedByName}</p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </section>
         )}
