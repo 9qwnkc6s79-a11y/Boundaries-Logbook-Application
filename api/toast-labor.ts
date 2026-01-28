@@ -188,7 +188,9 @@ export default async function handler(
     }
 
     // Process time entries
-    const timeEntries = (data.timeEntries || []).map((entry: any) => {
+    // IMPORTANT: With ?open=true, Toast returns array directly, not wrapped in {timeEntries: [...]}
+    const rawEntries = Array.isArray(data) ? data : (data.timeEntries || []);
+    const timeEntries = rawEntries.map((entry: any) => {
       const employeeGuid = entry.employeeReference?.guid || entry.employee?.guid || '';
 
       // First, try to get name from employee map (most reliable)
