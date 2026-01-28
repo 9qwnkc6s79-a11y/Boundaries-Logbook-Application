@@ -549,7 +549,14 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
 
   // Fetch Toast data on mount, when campus changes, and refresh every 5 minutes
   useEffect(() => {
-    console.log(`[Toast] Store changed to: ${currentStoreId}, forcing refresh`);
+    console.log(`[Toast] Store changed to: ${currentStoreId}, forcing refresh and clearing all caches`);
+
+    // Clear ALL Toast cache keys (both locations) when store changes
+    localStorage.removeItem('toast_data_cache_littleelm');
+    localStorage.removeItem('toast_data_cache_time_littleelm');
+    localStorage.removeItem('toast_data_cache_prosper');
+    localStorage.removeItem('toast_data_cache_time_prosper');
+
     // Force refresh when store changes to clear cache and fetch new data
     fetchToastData(true);
     fetchCashData(); // Also fetch cash entry data
