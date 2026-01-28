@@ -1,6 +1,6 @@
 
 // No imports needed - Firebase is loaded globally via CDN script tags in index.html
-import { User, UserProgress, ChecklistSubmission, ChecklistTemplate, TrainingModule, ManualSection, Recipe, CashDeposit } from '../types';
+import { User, UserProgress, ChecklistSubmission, ChecklistTemplate, TrainingModule, ManualSection, Recipe, CashDeposit, ChatMessage } from '../types';
 
 declare const firebase: any;
 
@@ -313,6 +313,22 @@ class CloudAPI {
     const success = await this.remoteSet(DOC_KEYS.DEPOSITS, next);
     console.log(`[DB] pushDeposit END: success=${success}`);
     return success;
+  }
+
+  private chatDocKey(storeId: string): string {
+    return `chat_${storeId}`;
+  }
+
+  async fetchChatMessages(storeId: string): Promise<ChatMessage[]> {
+    return this.remoteGet(this.chatDocKey(storeId), [] as ChatMessage[]);
+  }
+
+  async pushChatMessage(message: ChatMessage): Promise<boolean> {
+    const all = await this.fetchChatMessages(message.storeId);
+    const next = [...all, message];
+    // Keep last 200 messages per store to stay within Firestore doc limits
+    const trimmed = next.slice(-200);
+    return this.remoteSet(this.chatDocKey(message.storeId), trimmed);
   }
 
   async globalSync(defaults: {

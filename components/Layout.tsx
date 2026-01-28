@@ -1,8 +1,9 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { User, UserRole, Store, ManualSection, Recipe, ToastSalesData, ToastTimeEntry } from '../types';
-import { Coffee, ClipboardCheck, GraduationCap, Users, LogOut, Menu, X, MapPin, ChevronDown, BookOpen, Cloud, CloudOff, Activity, Download, Share, Smartphone, Brain, Send, Sparkles, ChevronRight, Settings, DollarSign, TrendingUp, TrendingDown, UserCheck, Clock, LayoutDashboard } from 'lucide-react';
+import { User, UserRole, Store, ManualSection, Recipe, ToastSalesData, ToastTimeEntry, ChatMessage } from '../types';
+import { Coffee, ClipboardCheck, GraduationCap, Users, LogOut, Menu, X, MapPin, ChevronDown, BookOpen, Cloud, CloudOff, Activity, Download, Share, Smartphone, Brain, Send, Sparkles, ChevronRight, Settings, DollarSign, TrendingUp, TrendingDown, UserCheck, Clock, LayoutDashboard, MessageCircle } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
+import StoreChat from './StoreChat';
 
 interface LayoutProps {
   user: User;
@@ -30,23 +31,29 @@ interface LayoutProps {
     ordersDiff: number;
     ordersPercent: number;
   } | null;
+  chatMessages?: ChatMessage[];
+  onSendChatMessage?: (text: string) => void;
 }
 
 const Layout: React.FC<LayoutProps> = ({
   user, children, activeTab, onTabChange, onLogout,
   stores, currentStoreId, onStoreChange, onUserStoreChange, isSyncing = false,
   showInstallBanner = false, onInstall, onDismissInstall, canNativeInstall = false,
-  manual, recipes, version, toastSales, toastClockedIn = [], salesComparison = null
+  manual, recipes, version, toastSales, toastClockedIn = [], salesComparison = null,
+  chatMessages: storeChatMessages = [], onSendChatMessage
 }) => {
   const [isProfileOpen, setIsProfileOpen] = React.useState(false);
   const [showSettings, setShowSettings] = useState(false);
   
-  // Chat State
+  // Barista Brain AI Chat State
   const [chatOpen, setChatOpen] = useState(false);
   const [chatInput, setChatInput] = useState('');
-  const [chatMessages, setChatMessages] = useState<{ role: 'user' | 'ai', content: string }[]>([]);
+  const [aiMessages, setAiMessages] = useState<{ role: 'user' | 'ai', content: string }[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
+
+  // Store Team Chat State
+  const [storeChatOpen, setStoreChatOpen] = useState(false);
 
   const currentStore = stores.find(s => s.id === currentStoreId);
 
@@ -81,14 +88,14 @@ const Layout: React.FC<LayoutProps> = ({
 
   useEffect(() => {
     scrollToBottom();
-  }, [chatMessages, chatOpen]);
+  }, [aiMessages, chatOpen]);
 
   const handleSendChat = async (e?: React.FormEvent) => {
     e?.preventDefault();
     if (!chatInput.trim() || isTyping) return;
 
     const userMsg = chatInput.trim();
-    setChatMessages(prev => [...prev, { role: 'user', content: userMsg }]);
+    setAiMessages(prev => [...prev, { role: 'user', content: userMsg }]);
     setChatInput('');
     setIsTyping(true);
 
@@ -115,18 +122,18 @@ User Question: ${userMsg}`,
       });
 
       let fullResponse = '';
-      setChatMessages(prev => [...prev, { role: 'ai', content: '' }]);
+      setAiMessages(prev => [...prev, { role: 'ai', content: '' }]);
 
       for await (const chunk of responseStream) {
         fullResponse += chunk.text;
-        setChatMessages(prev => {
+        setAiMessages(prev => {
           const newMsgs = [...prev];
           newMsgs[newMsgs.length - 1].content = fullResponse;
           return newMsgs;
         });
       }
     } catch (error) {
-      setChatMessages(prev => [...prev, { role: 'ai', content: "Network error. Please try again." }]);
+      setAiMessages(prev => [...prev, { role: 'ai', content: "Network error. Please try again." }]);
     } finally {
       setIsTyping(false);
     }
@@ -273,7 +280,14 @@ User Question: ${userMsg}`,
           ))}
         </nav>
 
-        <div className="px-3 pb-3">
+        <div className="px-3 pb-3 space-y-2">
+          <button
+            onClick={() => setStoreChatOpen(true)}
+            className="w-full flex items-center gap-2.5 px-4 py-3 rounded-xl bg-indigo-500/10 text-indigo-200 hover:bg-indigo-500/20 hover:text-white transition-all border border-indigo-500/20"
+          >
+            <MessageCircle size={16} />
+            <span className="text-[10px] font-black tracking-widest uppercase">Team Chat</span>
+          </button>
           <button
             onClick={() => setChatOpen(true)}
             className="w-full flex items-center gap-2.5 px-4 py-3 rounded-xl bg-blue-500/10 text-blue-200 hover:bg-blue-500/20 hover:text-white transition-all border border-blue-500/20"
@@ -520,7 +534,13 @@ User Question: ${userMsg}`,
         </div>
       </main>
 
-      {/* Mobile Floating Action Button for Chat */}
+      {/* Mobile Floating Action Buttons */}
+      <button
+        onClick={() => setStoreChatOpen(true)}
+        className="md:hidden fixed bottom-[8.5rem] right-3 w-12 h-12 bg-indigo-600 text-white rounded-full shadow-2xl flex items-center justify-center z-40 active:scale-90 transition-transform border border-indigo-400/30"
+      >
+        <MessageCircle size={20} />
+      </button>
       <button
         onClick={() => setChatOpen(true)}
         className="md:hidden fixed bottom-24 right-3 w-12 h-12 bg-[#001F3F] text-white rounded-full shadow-2xl flex items-center justify-center z-40 active:scale-90 transition-transform border border-white/10"
@@ -552,6 +572,16 @@ User Question: ${userMsg}`,
         })}
       </nav>
 
+      {/* Store Team Chat Modal */}
+      <StoreChat
+        open={storeChatOpen}
+        onClose={() => setStoreChatOpen(false)}
+        messages={storeChatMessages}
+        onSend={(text) => onSendChatMessage?.(text)}
+        currentUser={user}
+        storeName={currentStore?.name.replace('Boundaries ', '') || 'Store'}
+      />
+
       {/* Barista Brain Chat Modal */}
       {chatOpen && (
         <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-3 sm:p-6 bg-[#001F3F]/60 backdrop-blur-md animate-in fade-in duration-300">
@@ -570,7 +600,7 @@ User Question: ${userMsg}`,
             </header>
 
             <div className="flex-1 overflow-y-auto p-6 space-y-4 no-scrollbar">
-              {chatMessages.length === 0 && (
+              {aiMessages.length === 0 && (
                 <div className="h-full flex flex-col items-center justify-center text-center p-8 space-y-4">
                   <Sparkles size={40} className="text-blue-100" />
                   <p className="text-neutral-400 font-bold uppercase tracking-widest text-[10px]">
@@ -578,7 +608,7 @@ User Question: ${userMsg}`,
                   </p>
                 </div>
               )}
-              {chatMessages.map((msg, i) => (
+              {aiMessages.map((msg, i) => (
                 <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom-2`}>
                   <div className={`max-w-[85%] p-4 rounded-2xl text-xs font-medium leading-relaxed ${
                     msg.role === 'user' 

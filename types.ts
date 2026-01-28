@@ -272,6 +272,16 @@ export interface CashDeposit {
   notes?: string; // Optional notes about the deposit
 }
 
+// Store Chat
+export interface ChatMessage {
+  id: string;
+  storeId: string;
+  userId: string;
+  userName: string;
+  message: string;
+  timestamp: string; // ISO string
+}
+
 // Team Leader Performance Tracking
 export interface ShiftOwnership {
   id: string;

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { User, UserRole, UserProgress, ChecklistSubmission, ChecklistTemplate, Store, TrainingModule, ManualSection, Recipe, ToastSalesData, ToastTimeEntry } from './types';
+import { User, UserRole, UserProgress, ChecklistSubmission, ChecklistTemplate, Store, TrainingModule, ManualSection, Recipe, ToastSalesData, ToastTimeEntry, ChatMessage } from './types';
 import { TRAINING_CURRICULUM, CHECKLIST_TEMPLATES, MOCK_USERS, MOCK_STORES, BOUNDARIES_MANUAL, BOUNDARIES_RECIPES } from './data/mockData';
 import { db } from './services/db';
 import Layout from './components/Layout';
@@ -40,6 +40,7 @@ const App: React.FC = () => {
   const [curriculum, setCurriculum] = useState<TrainingModule[]>([]);
   const [manual, setManual] = useState<ManualSection[]>([]);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
 
   // Track the last time we updated a submission locally to avoid the "sync overwrite flicker"
   const lastSubmissionUpdateRef = useRef<number>(0);
@@ -113,12 +114,25 @@ const App: React.FC = () => {
     }
   }, [currentUser]);
 
-  // Clear Toast POS data when switching stores to prevent showing wrong store's data
+  // Clear Toast POS data and reload chat when switching stores
   useEffect(() => {
     console.log(`[App] Store changed to ${currentStoreId}, clearing Toast data`);
     setToastSales(null);
     setToastClockedIn([]);
+    setChatMessages([]);
+    // Load chat for new store
+    db.fetchChatMessages(currentStoreId).then(msgs => setChatMessages(msgs));
   }, [currentStoreId]);
+
+  // Chat sync - poll for new messages alongside heartbeat
+  useEffect(() => {
+    if (!currentUser) return;
+    const chatInterval = setInterval(async () => {
+      const msgs = await db.fetchChatMessages(currentStoreId);
+      setChatMessages(msgs);
+    }, 5000);
+    return () => clearInterval(chatInterval);
+  }, [currentUser, currentStoreId]);
 
   const effectiveUser = useMemo(() => {
     if (!currentUser) return null;
@@ -350,6 +364,20 @@ const App: React.FC = () => {
     performCloudSync(true);
   };
 
+  const handleSendChatMessage = async (text: string) => {
+    if (!currentUser) return;
+    const msg: ChatMessage = {
+      id: `chat-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      storeId: currentStoreId,
+      userId: currentUser.id,
+      userName: currentUser.name,
+      message: text,
+      timestamp: new Date().toISOString()
+    };
+    setChatMessages(prev => [...prev, msg]);
+    await db.pushChatMessage(msg);
+  };
+
   if (isInitialLoading) {
     return (
       <div className="min-h-screen bg-[#001F3F] flex flex-col items-center justify-center text-white p-12 text-center">
@@ -398,6 +426,8 @@ const App: React.FC = () => {
       toastSales={toastSales}
       toastClockedIn={toastClockedIn}
       salesComparison={salesComparison}
+      chatMessages={chatMessages}
+      onSendChatMessage={handleSendChatMessage}
     >
       <div className="animate-in fade-in duration-500">
         {activeTab === 'training' && (
