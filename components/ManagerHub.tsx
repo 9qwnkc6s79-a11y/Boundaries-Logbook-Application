@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { User, ChecklistSubmission, ChecklistTemplate, ChecklistTask, UserRole, TrainingModule, UserProgress, ManualSection, Recipe, Store, ToastSalesData, ToastLaborEntry, ToastTimeEntry } from '../types';
+import { User, ChecklistSubmission, ChecklistTemplate, ChecklistTask, UserRole, TrainingModule, UserProgress, ManualSection, Recipe, Store, ToastSalesData, ToastLaborEntry, ToastTimeEntry, CashDeposit } from '../types';
 import {
   CheckCircle2, AlertCircle, Eye, User as UserIcon, Calendar, Check, X,
   Sparkles, Settings, Plus, Trash2, Edit3, BarChart3, ListTodo, BrainCircuit, Clock, TrendingDown, TrendingUp,
@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
 import { toastAPI } from '../services/toast';
+import { db } from '../services/db';
 
 interface ManagerHubProps {
   staff: User[];
@@ -44,7 +45,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
   const [fullscreenPhoto, setFullscreenPhoto] = useState<{url: string, title: string, user: string, aiReview?: { flagged: boolean, reason: string }} | null>(null);
 
   // Cash Deposit State
-  const [cashDeposits, setCashDeposits] = useState<any[]>([]); // TODO: Load from Firebase
+  const [cashDeposits, setCashDeposits] = useState<CashDeposit[]>([]);
   const [toastCashData, setToastCashData] = useState<any | null>(null); // Cash entries from Toast
   const [showDepositForm, setShowDepositForm] = useState(false);
   const [depositFormData, setDepositFormData] = useState({
@@ -52,6 +53,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
     notes: ''
   });
   const [lastDepositDate, setLastDepositDate] = useState<string | null>(null);
+  const [depositSaving, setDepositSaving] = useState(false);
   
   const [deleteConfirm, setDeleteConfirm] = useState<{
     type: 'TASK' | 'TEMPLATE' | 'RESET_LOG',
@@ -501,12 +503,37 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
     }
   };
 
+  // Load deposits from Firebase
+  const loadDeposits = async () => {
+    try {
+      console.log('[Deposits] Loading from Firebase...');
+      const allDeposits = await db.fetchDeposits();
+
+      // Filter by current store and sort by deposit date descending
+      const storeDeposits = allDeposits
+        .filter(d => d.storeId === currentStoreId)
+        .sort((a, b) => new Date(b.depositDate).getTime() - new Date(a.depositDate).getTime());
+
+      setCashDeposits(storeDeposits);
+
+      // Set last deposit date to reset cash accumulation period
+      if (storeDeposits.length > 0) {
+        setLastDepositDate(storeDeposits[0].depositDate);
+      }
+
+      console.log(`[Deposits] Loaded ${storeDeposits.length} deposits for store ${currentStoreId}`);
+    } catch (error: any) {
+      console.error('[Deposits] Failed to load deposits:', error);
+    }
+  };
+
   // Fetch Toast data on mount, when campus changes, and refresh every 5 minutes
   useEffect(() => {
     console.log(`[Toast] Store changed to: ${currentStoreId}, forcing refresh`);
     // Force refresh when store changes to clear cache and fetch new data
     fetchToastData(true);
     fetchCashData(); // Also fetch cash entry data
+    loadDeposits(); // Load cash deposits from Firebase
 
     // Set up interval for automatic refreshes (without forcing)
     const interval = setInterval(() => {
@@ -1582,18 +1609,64 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
 
                     <div className="flex gap-4">
                       <button
-                        onClick={() => {
-                          // TODO: Save deposit to Firebase
-                          console.log('Saving deposit:', { expectedCashOnHand, ...depositFormData });
-                          alert('Deposit recorded! (Firebase persistence coming soon)');
-                          setShowDepositForm(false);
-                          setDepositFormData({ actualDeposit: '', notes: '' });
-                          setLastDepositDate(new Date().toISOString().split('T')[0]);
+                        onClick={async () => {
+                          if (!depositFormData.actualDeposit) return;
+
+                          setDepositSaving(true);
+
+                          try {
+                            const actual = parseFloat(depositFormData.actualDeposit);
+                            const variance = actual - expectedCashOnHand;
+                            const variancePercent = expectedCashOnHand > 0 ? (variance / expectedCashOnHand) * 100 : 0;
+                            const status = Math.abs(variance) <= 10 ? 'PASS' : Math.abs(variance) <= 50 ? 'REVIEW' : 'FAIL';
+
+                            const deposit: CashDeposit = {
+                              id: `dep-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                              storeId: currentStoreId,
+                              depositDate: new Date().toISOString().split('T')[0],
+                              depositedBy: 'current-user', // TODO: Replace with actual user ID
+                              depositedByName: 'Manager', // TODO: Replace with actual user name
+                              depositedAt: new Date().toISOString(),
+                              periodStart: lastDepositDate || new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
+                              periodEnd: new Date().toISOString().split('T')[0],
+                              expectedDeposit: expectedCashOnHand,
+                              actualDeposit: actual,
+                              variance: variance,
+                              variancePercent: variancePercent,
+                              status: status as 'PASS' | 'REVIEW' | 'FAIL',
+                              totalCashSales: totalCashSales,
+                              totalCashRemoved: totalCashRemoved,
+                              notes: depositFormData.notes
+                            };
+
+                            console.log('[Deposits] Saving deposit:', deposit);
+
+                            const success = await db.pushDeposit(deposit);
+
+                            if (success) {
+                              console.log('[Deposits] Save successful');
+                              // Reload deposits to show the new one
+                              await loadDeposits();
+                              setShowDepositForm(false);
+                              setDepositFormData({ actualDeposit: '', notes: '' });
+                              setLastDepositDate(new Date().toISOString().split('T')[0]);
+                              // Clear cash data to start fresh
+                              setToastCashData(null);
+                            } else {
+                              console.error('[Deposits] Save failed');
+                              alert('Failed to save deposit. Please try again.');
+                            }
+                          } catch (error: any) {
+                            console.error('[Deposits] Error saving deposit:', error);
+                            alert(`Failed to save deposit: ${error.message}`);
+                          } finally {
+                            setDepositSaving(false);
+                          }
                         }}
-                        disabled={!depositFormData.actualDeposit}
+                        disabled={!depositFormData.actualDeposit || depositSaving}
                         className="flex-1 px-8 py-4 bg-[#001F3F] text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-blue-900 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg"
                       >
-                        Save Deposit
+                        {depositSaving ? 'Saving...' : 'Save Deposit'}
                       </button>
                       <button
                         onClick={() => {

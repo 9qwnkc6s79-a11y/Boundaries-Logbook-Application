@@ -1,6 +1,6 @@
 
 // No imports needed - Firebase is loaded globally via CDN script tags in index.html
-import { User, UserProgress, ChecklistSubmission, ChecklistTemplate, TrainingModule, ManualSection, Recipe } from '../types';
+import { User, UserProgress, ChecklistSubmission, ChecklistTemplate, TrainingModule, ManualSection, Recipe, CashDeposit } from '../types';
 
 declare const firebase: any;
 
@@ -42,6 +42,7 @@ const DOC_KEYS = {
   CURRICULUM_VERSION: 'curriculum_version',
   MANUAL: 'manual',
   RECIPES: 'recipes',
+  DEPOSITS: 'deposits',
 };
 
 function removeUndefined(obj: any): any {
@@ -286,6 +287,32 @@ class CloudAPI {
 
   async pushRecipes(recipes: Recipe[]): Promise<void> {
     await this.remoteSet(DOC_KEYS.RECIPES, recipes);
+  }
+
+  async fetchDeposits(): Promise<CashDeposit[]> {
+    return this.remoteGet(DOC_KEYS.DEPOSITS, []);
+  }
+
+  async pushDeposit(deposit: CashDeposit): Promise<boolean> {
+    console.log(`[DB] pushDeposit START: id=${deposit.id}, storeId=${deposit.storeId}`);
+
+    const all = await this.fetchDeposits();
+    console.log(`[DB] pushDeposit: Fetched ${all.length} existing deposits`);
+
+    const existingIdx = all.findIndex(d => d.id === deposit.id);
+    let next;
+    if (existingIdx > -1) {
+      console.log(`[DB] pushDeposit: Updating existing deposit at index ${existingIdx}`);
+      next = all.map((d, i) => i === existingIdx ? deposit : d);
+    } else {
+      console.log(`[DB] pushDeposit: Adding new deposit`);
+      next = [deposit, ...all];
+    }
+
+    console.log(`[DB] pushDeposit: Saving ${next.length} total deposits`);
+    const success = await this.remoteSet(DOC_KEYS.DEPOSITS, next);
+    console.log(`[DB] pushDeposit END: success=${success}`);
+    return success;
   }
 
   async globalSync(defaults: {
