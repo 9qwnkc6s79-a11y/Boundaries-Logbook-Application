@@ -506,11 +506,42 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
     console.log(`[Toast] Store changed to: ${currentStoreId}, forcing refresh`);
     // Force refresh when store changes to clear cache and fetch new data
     fetchToastData(true);
+    fetchCashData(); // Also fetch cash entry data
 
     // Set up interval for automatic refreshes (without forcing)
-    const interval = setInterval(() => fetchToastData(false), 5 * 60 * 1000); // 5 minutes
+    const interval = setInterval(() => {
+      fetchToastData(false);
+      fetchCashData();
+    }, 5 * 60 * 1000); // 5 minutes
     return () => clearInterval(interval);
   }, [currentStoreId]); // Re-fetch when campus changes
+
+  // Fetch Toast Cash Entry Data
+  const fetchCashData = async () => {
+    if (!toastAPI.isConfigured()) return;
+
+    const location = currentStoreId === 'store-prosper' ? 'prosper' : 'littleelm';
+
+    try {
+      // Determine start date (last deposit or beginning of month)
+      const startDate = lastDepositDate || new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+      const endDate = new Date().toISOString().split('T')[0];
+
+      console.log(`[Toast Cash] Fetching cash entries from ${startDate} to ${endDate}`);
+
+      const response = await fetch(`/api/toast-cash?startDate=${startDate}&endDate=${endDate}&location=${location}`);
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch cash data');
+      }
+
+      const data = await response.json();
+      setToastCashData(data);
+      console.log(`[Toast Cash] Fetched: Cash Out: $${data.cashOut}, Pay Outs: $${data.payOuts}, Tip Outs: $${data.tipOuts}`);
+    } catch (error: any) {
+      console.error('[Toast Cash] Failed to fetch cash data:', error);
+    }
+  };
 
   return (
     <div className="space-y-6 sm:space-y-8 pb-20">
@@ -1386,274 +1417,253 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
         )}
 
         {activeSubTab === 'cash-audit' && (() => {
-          // Calculate expected cash from Toast sales data
-          const expectedCashFromSales = toastSales?.paymentMethods?.['CASH'] ||
-                                         toastSales?.paymentMethods?.['Cash'] ||
-                                         toastSales?.paymentMethods?.['cash'] || 0;
-          const hasCashData = expectedCashFromSales > 0;
+          // Calculate expected cash on hand for theft detection
+          const totalCashSales = toastSales?.paymentMethods?.['CASH'] || toastSales?.paymentMethods?.['Cash'] || 0;
+          const totalCashRemoved = (toastCashData?.cashOut || 0) + (toastCashData?.payOuts || 0) + (toastCashData?.tipOuts || 0);
+          const expectedCashOnHand = totalCashSales - totalCashRemoved;
+
+          const hasCashData = totalCashSales > 0 || totalCashRemoved > 0;
 
           return (
             <section className="animate-in fade-in space-y-8">
-              {/* Alert Banner for Cash Issues */}
-              {!toastLoading && hasCashData && cashAudits.length === 0 && (
-                <div className="bg-yellow-50 border-2 border-yellow-200 rounded-2xl p-6">
+              {/* Theft Detection Alert */}
+              {hasCashData && expectedCashOnHand > 500 && (
+                <div className="bg-yellow-50 border-2 border-yellow-300 rounded-2xl p-6">
                   <div className="flex items-start gap-4">
                     <div className="w-12 h-12 bg-yellow-500 text-white rounded-xl flex items-center justify-center shrink-0">
                       <AlertOctagon size={24} />
                     </div>
                     <div className="flex-1">
-                      <h3 className="font-black text-yellow-900 text-lg uppercase tracking-tight mb-2">Cash Drawer Not Audited Today</h3>
-                      <p className="text-yellow-800 text-sm font-medium mb-4">
-                        Expected cash from today's sales: <span className="font-black">${expectedCashFromSales.toFixed(2)}</span>
+                      <h3 className="font-black text-yellow-900 text-lg uppercase tracking-tight mb-2">Cash Deposit Needed</h3>
+                      <p className="text-yellow-800 text-sm font-medium mb-3">
+                        Expected cash on hand: <span className="font-black text-2xl">${expectedCashOnHand.toFixed(2)}</span>
                       </p>
-                      <p className="text-yellow-700 text-xs">
-                        Record a cash count to verify the drawer matches sales data.
-                      </p>
+                      <p className="text-yellow-700 text-xs">Make a bank deposit soon to reduce cash risk and verify accuracy.</p>
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* Toast Data Status */}
-              {!toastLoading && !hasCashData && (
-                <div className="bg-blue-50 border-2 border-blue-200 rounded-2xl p-6">
-                  <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 bg-blue-500 text-white rounded-xl flex items-center justify-center shrink-0">
-                      <Info size={24} />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-black text-blue-900 text-sm uppercase tracking-tight mb-2">No Cash Sales Data Available</h3>
-                      <p className="text-blue-700 text-xs">
-                        {toastSales ? 'No cash transactions recorded today yet.' : 'Toast POS data is loading...'}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Header with New Audit Button */}
+              {/* Header */}
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-8 rounded-[2rem] border border-neutral-100 shadow-sm">
                 <div>
                   <h2 className="text-2xl font-black text-[#001F3F] uppercase tracking-tight flex items-center gap-3">
                     <DollarSign size={28} />
-                    Cash Audit
+                    Bank Deposit Tracking
                   </h2>
-                  <p className="text-neutral-400 text-xs font-bold uppercase tracking-widest mt-1">Track drawer counts & variances</p>
-                  {hasCashData && (
-                    <p className="text-green-600 text-xs font-bold mt-2">
-                      Expected from today's sales: ${expectedCashFromSales.toFixed(2)}
-                    </p>
-                  )}
+                  <p className="text-neutral-400 text-xs font-bold uppercase tracking-widest mt-1">Detect theft & cash discrepancies</p>
                 </div>
                 <button
                   onClick={() => {
-                    if (!showAuditForm && hasCashData) {
-                      setAuditFormData({
-                        expectedCash: expectedCashFromSales.toFixed(2),
-                        actualCash: '',
-                        notes: ''
-                      });
+                    if (!showDepositForm && hasCashData) {
+                      setDepositFormData({ actualDeposit: '', notes: '' });
                     }
-                    setShowAuditForm(!showAuditForm);
+                    setShowDepositForm(!showDepositForm);
                   }}
-                  className="px-8 py-4 bg-[#001F3F] text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-blue-900 transition-all shadow-lg flex items-center gap-2"
+                  disabled={!hasCashData}
+                  className="px-8 py-4 bg-[#001F3F] text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-blue-900 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg flex items-center gap-2"
                 >
                   <Plus size={18} />
-                  {showAuditForm ? 'Cancel' : 'Count Drawer'}
+                  {showDepositForm ? 'Cancel' : 'Record Deposit'}
                 </button>
               </div>
 
-            {/* Payment Method Breakdown */}
-              {toastSales && toastSales.paymentMethods && (
+              {/* Expected Cash Breakdown */}
+              {hasCashData && (
                 <div className="bg-white p-8 rounded-[2rem] border border-neutral-100 shadow-sm">
-                  <h3 className="text-lg font-black text-[#001F3F] uppercase tracking-tight mb-6">Today's Payment Breakdown</h3>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {Object.entries(toastSales.paymentMethods).map(([method, amount]) => (
-                      <div key={method} className="bg-neutral-50 p-4 rounded-xl border border-neutral-200">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-neutral-400 mb-2">{method}</p>
-                        <p className={`text-2xl font-black ${method.toLowerCase().includes('cash') ? 'text-green-600' : 'text-neutral-700'}`}>
-                          ${(amount as number).toFixed(2)}
-                        </p>
-                      </div>
-                    ))}
+                  <h3 className="text-lg font-black text-[#001F3F] uppercase tracking-tight mb-6">Current Cash Status</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <div className="bg-green-50 p-6 rounded-2xl border-2 border-green-200">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-green-600 mb-2">Cash Sales</p>
+                      <p className="text-3xl font-black text-green-700">${totalCashSales.toFixed(2)}</p>
+                      <p className="text-xs text-green-600 mt-2">Money in</p>
+                    </div>
+                    <div className="bg-red-50 p-6 rounded-2xl border-2 border-red-200">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-red-600 mb-2">Safe Drops</p>
+                      <p className="text-3xl font-black text-red-700">${(toastCashData?.cashOut || 0).toFixed(2)}</p>
+                      <p className="text-xs text-red-600 mt-2">To safe</p>
+                    </div>
+                    <div className="bg-orange-50 p-6 rounded-2xl border-2 border-orange-200">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-orange-600 mb-2">Pay/Tip Outs</p>
+                      <p className="text-3xl font-black text-orange-700">${((toastCashData?.payOuts || 0) + (toastCashData?.tipOuts || 0)).toFixed(2)}</p>
+                      <p className="text-xs text-orange-600 mt-2">Paid out</p>
+                    </div>
+                    <div className={`p-6 rounded-2xl border-2 ${expectedCashOnHand >= 0 ? 'bg-blue-50 border-blue-200' : 'bg-red-50 border-red-300'}`}>
+                      <p className={`text-[10px] font-black uppercase tracking-widest mb-2 ${expectedCashOnHand >= 0 ? 'text-blue-600' : 'text-red-600'}`}>Expected On Hand</p>
+                      <p className={`text-3xl font-black ${expectedCashOnHand >= 0 ? 'text-blue-700' : 'text-red-700'}`}>${expectedCashOnHand.toFixed(2)}</p>
+                      <p className={`text-xs mt-2 ${expectedCashOnHand >= 0 ? 'text-blue-600' : 'text-red-600'}`}>Should be in safe</p>
+                    </div>
                   </div>
                   <div className="mt-4 p-4 bg-blue-50 rounded-xl">
                     <p className="text-xs text-blue-700 font-medium flex items-center gap-2">
                       <Info size={14} />
-                      Cash amount shown is what should be in your drawer from today's sales. Credit/debit goes directly to your account.
+                      Expected On Hand = Cash Sales - Safe Drops - Pay/Tip Outs. When you deposit, we'll compare actual to expected.
                     </p>
                   </div>
                 </div>
               )}
 
-            {/* New Audit Form */}
-            {showAuditForm && (
-              <div className="bg-white p-8 rounded-[2rem] border border-neutral-100 shadow-sm">
-                <h3 className="text-lg font-black text-[#001F3F] uppercase tracking-tight mb-6">Record Cash Count</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-xs font-black text-neutral-600 uppercase tracking-widest mb-2">
-                      Expected Cash (from Toast POS)
-                    </label>
-                    <div className="relative">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400 font-bold">$</span>
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={auditFormData.expectedCash}
-                        onChange={(e) => setAuditFormData({ ...auditFormData, expectedCash: e.target.value })}
-                        placeholder="0.00"
-                        className="w-full pl-8 pr-4 py-4 rounded-xl border-2 border-green-200 bg-green-50 focus:border-green-500 outline-none font-bold text-lg"
-                        readOnly={hasCashData}
+              {/* Deposit Form */}
+              {showDepositForm && (
+                <div className="bg-white p-8 rounded-[2rem] border border-neutral-100 shadow-sm">
+                  <h3 className="text-lg font-black text-[#001F3F] uppercase tracking-tight mb-6">Record Bank Deposit</h3>
+                  <div className="space-y-6">
+                    <div>
+                      <label className="block text-xs font-black text-neutral-600 uppercase tracking-widest mb-2">Expected Deposit</label>
+                      <div className="relative">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400 font-bold">$</span>
+                        <input
+                          type="text"
+                          value={expectedCashOnHand.toFixed(2)}
+                          readOnly
+                          className="w-full pl-8 pr-4 py-4 rounded-xl border-2 border-green-200 bg-green-50 outline-none font-bold text-lg text-green-700"
+                        />
+                      </div>
+                      <p className="text-[10px] text-green-600 font-bold uppercase tracking-widest mt-2">From Toast sales data</p>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-black text-neutral-600 uppercase tracking-widest mb-2">Actual Cash Counted & Deposited</label>
+                      <div className="relative">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400 font-bold">$</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={depositFormData.actualDeposit}
+                          onChange={(e) => setDepositFormData({ ...depositFormData, actualDeposit: e.target.value })}
+                          placeholder="0.00"
+                          className="w-full pl-8 pr-4 py-4 rounded-xl border-2 border-neutral-200 focus:border-[#001F3F] outline-none font-bold text-lg"
+                          autoFocus
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-black text-neutral-600 uppercase tracking-widest mb-2">Notes (Optional)</label>
+                      <textarea
+                        value={depositFormData.notes}
+                        onChange={(e) => setDepositFormData({ ...depositFormData, notes: e.target.value })}
+                        placeholder="Any discrepancies or issues to note..."
+                        rows={3}
+                        className="w-full px-4 py-4 rounded-xl border-2 border-neutral-200 focus:border-[#001F3F] outline-none font-medium resize-none"
                       />
                     </div>
-                    {hasCashData && (
-                      <p className="text-[10px] text-green-600 font-bold uppercase tracking-widest mt-2">
-                        Auto-filled from today's sales
-                      </p>
-                    )}
-                  </div>
-                  <div>
-                    <label className="block text-xs font-black text-neutral-600 uppercase tracking-widest mb-2">Actual Cash Counted</label>
-                    <div className="relative">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400 font-bold">$</span>
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={auditFormData.actualCash}
-                        onChange={(e) => setAuditFormData({ ...auditFormData, actualCash: e.target.value })}
-                        placeholder="0.00"
-                        className="w-full pl-8 pr-4 py-4 rounded-xl border-2 border-neutral-200 focus:border-[#001F3F] outline-none font-bold text-lg"
-                      />
-                    </div>
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="block text-xs font-black text-neutral-600 uppercase tracking-widest mb-2">Notes (Optional)</label>
-                    <textarea
-                      value={auditFormData.notes}
-                      onChange={(e) => setAuditFormData({ ...auditFormData, notes: e.target.value })}
-                      placeholder="Add any notes about this audit..."
-                      rows={3}
-                      className="w-full px-4 py-4 rounded-xl border-2 border-neutral-200 focus:border-[#001F3F] outline-none font-medium resize-none"
-                    />
-                  </div>
-                </div>
 
-                {/* Variance Preview */}
-                {auditFormData.expectedCash && auditFormData.actualCash && (() => {
-                  const expected = parseFloat(auditFormData.expectedCash);
-                  const actual = parseFloat(auditFormData.actualCash);
-                  const variance = actual - expected;
-                  const status = Math.abs(variance) <= 5 ? 'PASS' : Math.abs(variance) <= 20 ? 'REVIEW' : 'FAIL';
+                    {/* Variance Preview */}
+                    {depositFormData.actualDeposit && (() => {
+                      const actual = parseFloat(depositFormData.actualDeposit);
+                      const variance = actual - expectedCashOnHand;
+                      const variancePercent = expectedCashOnHand > 0 ? (variance / expectedCashOnHand) * 100 : 0;
+                      const status = Math.abs(variance) <= 10 ? 'PASS' : Math.abs(variance) <= 50 ? 'REVIEW' : 'FAIL';
 
-                  return (
-                    <div className={`mt-6 p-6 rounded-2xl ${status === 'PASS' ? 'bg-green-50 border-2 border-green-200' : status === 'REVIEW' ? 'bg-yellow-50 border-2 border-yellow-200' : 'bg-red-50 border-2 border-red-200'}`}>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-xs font-black uppercase tracking-widest text-neutral-600 mb-1">Variance</p>
-                          <p className={`text-3xl font-black ${variance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                            {variance >= 0 ? '+' : ''}{variance.toFixed(2)}
+                      return (
+                        <div className={`p-6 rounded-2xl ${status === 'PASS' ? 'bg-green-50 border-2 border-green-200' : status === 'REVIEW' ? 'bg-yellow-50 border-2 border-yellow-300' : 'bg-red-50 border-2 border-red-300'}`}>
+                          <div className="flex items-center justify-between mb-4">
+                            <div>
+                              <p className="text-xs font-black uppercase tracking-widest text-neutral-600 mb-1">Variance</p>
+                              <p className={`text-4xl font-black ${variance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                {variance >= 0 ? '+' : ''}{variance.toFixed(2)}
+                              </p>
+                              <p className="text-sm font-bold text-neutral-500 mt-1">
+                                {variancePercent >= 0 ? '+' : ''}{variancePercent.toFixed(1)}%
+                              </p>
+                            </div>
+                            <div className={`px-6 py-3 rounded-xl font-black uppercase text-xs tracking-widest ${status === 'PASS' ? 'bg-green-600 text-white' : status === 'REVIEW' ? 'bg-yellow-600 text-white' : 'bg-red-600 text-white'}`}>
+                              {status}
+                            </div>
+                          </div>
+                          <p className="text-xs font-medium">
+                            {status === 'PASS' && '✓ Variance within acceptable range (±$10)'}
+                            {status === 'REVIEW' && '⚠️ Moderate variance (±$10-$50) - Review needed'}
+                            {status === 'FAIL' && variance < 0 && '🚨 SHORTAGE DETECTED - Possible theft or error (>$50)'}
+                            {status === 'FAIL' && variance > 0 && '⚠️ OVERAGE DETECTED - Recount needed (>$50)'}
                           </p>
                         </div>
-                        <div className={`px-6 py-3 rounded-xl font-black uppercase text-xs tracking-widest ${status === 'PASS' ? 'bg-green-600 text-white' : status === 'REVIEW' ? 'bg-yellow-600 text-white' : 'bg-red-600 text-white'}`}>
-                          {status}
-                        </div>
-                      </div>
-                      <p className="text-xs text-neutral-600 mt-3 font-medium">
-                        {status === 'PASS' && 'Variance is within acceptable range (±$5)'}
-                        {status === 'REVIEW' && 'Variance requires manager review (±$5-$20)'}
-                        {status === 'FAIL' && 'Variance exceeds threshold (>$20) - requires immediate attention'}
-                      </p>
+                      );
+                    })()}
+
+                    <div className="flex gap-4">
+                      <button
+                        onClick={() => {
+                          // TODO: Save deposit to Firebase
+                          console.log('Saving deposit:', { expectedCashOnHand, ...depositFormData });
+                          alert('Deposit recorded! (Firebase persistence coming soon)');
+                          setShowDepositForm(false);
+                          setDepositFormData({ actualDeposit: '', notes: '' });
+                          setLastDepositDate(new Date().toISOString().split('T')[0]);
+                        }}
+                        disabled={!depositFormData.actualDeposit}
+                        className="flex-1 px-8 py-4 bg-[#001F3F] text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-blue-900 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg"
+                      >
+                        Save Deposit
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowDepositForm(false);
+                          setDepositFormData({ actualDeposit: '', notes: '' });
+                        }}
+                        className="px-8 py-4 bg-neutral-100 text-neutral-600 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-neutral-200 transition-all"
+                      >
+                        Cancel
+                      </button>
                     </div>
-                  );
-                })()}
-
-                <div className="flex gap-4 mt-6">
-                  <button
-                    onClick={() => {
-                      // TODO: Save audit to Firebase
-                      console.log('Saving audit:', auditFormData);
-                      setShowAuditForm(false);
-                      setAuditFormData({ expectedCash: '', actualCash: '', notes: '' });
-                    }}
-                    disabled={!auditFormData.expectedCash || !auditFormData.actualCash}
-                    className="flex-1 px-8 py-4 bg-[#001F3F] text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-blue-900 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg"
-                  >
-                    Save Audit
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShowAuditForm(false);
-                      setAuditFormData({ expectedCash: '', actualCash: '', notes: '' });
-                    }}
-                    className="px-8 py-4 bg-neutral-100 text-neutral-600 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-neutral-200 transition-all"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Audit History */}
-            <div className="bg-white p-8 rounded-[2rem] border border-neutral-100 shadow-sm">
-              <h3 className="text-lg font-black text-[#001F3F] uppercase tracking-tight mb-6">Audit History</h3>
-
-              {cashAudits.length === 0 ? (
-                <div className="text-center py-16">
-                  <div className="w-20 h-20 bg-neutral-100 text-neutral-300 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <DollarSign size={32} />
                   </div>
-                  <p className="text-neutral-400 font-bold uppercase text-xs tracking-widest">No cash audits recorded yet</p>
-                  <p className="text-neutral-300 text-xs mt-2">Click "New Audit" to record your first cash count</p>
                 </div>
-              ) : (
-                <div className="space-y-4">
-                  {cashAudits.map((audit: any) => {
-                    const variance = audit.actualCash - audit.expectedCash;
-                    const status = Math.abs(variance) <= 5 ? 'PASS' : Math.abs(variance) <= 20 ? 'REVIEW' : 'FAIL';
+              )}
 
-                    return (
-                      <div key={audit.id} className="border-2 border-neutral-100 rounded-2xl p-6 hover:border-neutral-200 transition-all">
+              {/* Deposit History */}
+              <div className="bg-white p-8 rounded-[2rem] border border-neutral-100 shadow-sm">
+                <h3 className="text-lg font-black text-[#001F3F] uppercase tracking-tight mb-6">Deposit History</h3>
+
+                {cashDeposits.length === 0 ? (
+                  <div className="text-center py-16">
+                    <div className="w-20 h-20 bg-neutral-100 text-neutral-300 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <DollarSign size={32} />
+                    </div>
+                    <p className="text-neutral-400 font-bold uppercase text-xs tracking-widest">No deposits recorded yet</p>
+                    <p className="text-neutral-300 text-xs mt-2">Record your first bank deposit to start tracking cash accuracy</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {cashDeposits.map((deposit: any) => (
+                      <div key={deposit.id} className={`border-2 rounded-2xl p-6 ${deposit.status === 'PASS' ? 'border-green-200 bg-green-50' : deposit.status === 'REVIEW' ? 'border-yellow-200 bg-yellow-50' : 'border-red-200 bg-red-50'}`}>
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                           <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2">
-                              <p className="font-black text-neutral-800">{new Date(audit.auditedAt).toLocaleDateString()}</p>
-                              <p className="text-xs text-neutral-400 font-medium">{new Date(audit.auditedAt).toLocaleTimeString()}</p>
-                              <div className={`px-3 py-1 rounded-lg font-black uppercase text-[10px] tracking-widest ${status === 'PASS' ? 'bg-green-100 text-green-700' : status === 'REVIEW' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`}>
-                                {status}
+                            <div className="flex items-center gap-3 mb-3">
+                              <p className="font-black text-neutral-800">{new Date(deposit.depositDate).toLocaleDateString()}</p>
+                              <div className={`px-3 py-1 rounded-lg font-black uppercase text-[10px] tracking-widest ${deposit.status === 'PASS' ? 'bg-green-600 text-white' : deposit.status === 'REVIEW' ? 'bg-yellow-600 text-white' : 'bg-red-600 text-white'}`}>
+                                {deposit.status}
                               </div>
                             </div>
-                            <div className="grid grid-cols-3 gap-4 text-sm mt-3">
+                            <div className="grid grid-cols-3 gap-4 text-sm">
                               <div>
                                 <p className="text-[10px] font-black uppercase tracking-widest text-neutral-400 mb-1">Expected</p>
-                                <p className="font-bold text-neutral-700">${audit.expectedCash.toFixed(2)}</p>
+                                <p className="font-bold text-neutral-700">${deposit.expectedDeposit.toFixed(2)}</p>
                               </div>
                               <div>
                                 <p className="text-[10px] font-black uppercase tracking-widest text-neutral-400 mb-1">Actual</p>
-                                <p className="font-bold text-neutral-700">${audit.actualCash.toFixed(2)}</p>
+                                <p className="font-bold text-neutral-700">${deposit.actualDeposit.toFixed(2)}</p>
                               </div>
                               <div>
                                 <p className="text-[10px] font-black uppercase tracking-widest text-neutral-400 mb-1">Variance</p>
-                                <p className={`font-bold ${variance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                  {variance >= 0 ? '+' : ''}{variance.toFixed(2)}
+                                <p className={`font-bold ${deposit.variance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                  {deposit.variance >= 0 ? '+' : ''}{deposit.variance.toFixed(2)}
                                 </p>
                               </div>
                             </div>
-                            {audit.notes && (
-                              <p className="text-xs text-neutral-500 mt-3 italic">{audit.notes}</p>
+                            {deposit.notes && (
+                              <p className="text-xs text-neutral-600 mt-3 italic bg-white p-3 rounded-lg">{deposit.notes}</p>
                             )}
-                            <p className="text-[10px] text-neutral-400 font-medium mt-2">Audited by {audit.auditedByName}</p>
+                            <p className="text-[10px] text-neutral-400 font-medium mt-2">Recorded by {deposit.depositedByName}</p>
                           </div>
                         </div>
                       </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </section>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </section>
           );
         })()}
+
       </div>
     </div>
   );
