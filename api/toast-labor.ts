@@ -317,11 +317,4 @@ export default async function handler(
       stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
-  } catch (outerError: any) {
-    console.error('[Toast Labor] OUTER ERROR (should not happen):', outerError);
-    return res.status(500).json({
-      error: 'Catastrophic failure',
-      message: outerError.message
-    });
-  }
 }
