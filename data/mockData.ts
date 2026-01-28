@@ -1246,6 +1246,29 @@ Sugar-Free Options: Vanilla, Dark Chocolate, Caramel`
     category: 'ONBOARDING',
     lessons: [
       {
+        id: 'l-hospitality-nate-bargatze',
+        moduleId: 'm-hospitality-ritz',
+        title: 'Hospitality in Action',
+        type: 'VIDEO',
+        videoUrl: 'https://www.youtube.com/watch?v=MOm7Gr-1BUc',
+        content: `Watch Nate Bargatze's comedy routine about hospitality and customer service experiences.
+
+**WHAT TO WATCH FOR:**
+
+While this is a comedy bit, it highlights real customer service moments—both good and bad. Pay attention to:
+
+1. **What went wrong?** - What mistakes did the service providers make?
+2. **What could have been better?** - How would you handle these situations differently?
+3. **Guest expectations** - What do guests expect from a service experience?
+4. **Impact of small details** - How do small mistakes or great touches affect the overall experience?
+
+**KEY TAKEAWAY:**
+
+Great hospitality is about anticipating needs, clear communication, and making guests feel valued. Even in comedy, we can learn what NOT to do—and what exceptional service looks like.
+
+**At Boundaries, every interaction is an opportunity to exceed expectations.**`
+      },
+      {
         id: 'l-hospitality-ritz-values',
         moduleId: 'm-hospitality-ritz',
         title: 'Boundaries Core Values',
