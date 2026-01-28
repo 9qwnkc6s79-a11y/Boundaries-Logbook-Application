@@ -107,11 +107,12 @@ export default async function handler(
   req: VercelRequest,
   res: VercelResponse
 ) {
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
+  try {
+    if (req.method !== 'GET') {
+      return res.status(405).json({ error: 'Method not allowed' });
+    }
 
-  const { startDate, endDate, location } = req.query;
+    const { startDate, endDate, location } = req.query;
 
   if (!startDate || !endDate) {
     return res.status(400).json({ error: 'startDate and endDate are required' });
@@ -274,13 +275,13 @@ export default async function handler(
     console.log(`[Toast Labor] Currently clocked in: ${currentlyClocked.length}`);
 
     // Debug: Log raw data structure from first entry to see what Toast actually returns
-    if (timeEntries.length > 0 && data.timeEntries && data.timeEntries[0]) {
+    if (timeEntries.length > 0 && rawEntries[0]) {
       console.log(`[Toast Labor] RAW API RESPONSE (first entry):`, JSON.stringify({
-        employeeReference: data.timeEntries[0].employeeReference,
-        employee: data.timeEntries[0].employee,
-        jobReference: data.timeEntries[0].jobReference,
-        inDate: data.timeEntries[0].inDate,
-        outDate: data.timeEntries[0].outDate
+        employeeReference: rawEntries[0].employeeReference,
+        employee: rawEntries[0].employee,
+        jobReference: rawEntries[0].jobReference,
+        inDate: rawEntries[0].inDate,
+        outDate: rawEntries[0].outDate
       }));
     }
 
@@ -306,10 +307,21 @@ export default async function handler(
     return res.status(200).json(result);
 
   } catch (error: any) {
-    console.error('[Toast Labor] Failed:', error);
+    console.error('[Toast Labor] UNHANDLED ERROR:', error);
+    console.error('[Toast Labor] Error stack:', error.stack);
+    console.error('[Toast Labor] Error type:', error.constructor.name);
     return res.status(500).json({
       error: 'Failed to fetch labor data',
-      message: error.message
+      message: error.message,
+      type: error.constructor.name,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+  } catch (outerError: any) {
+    console.error('[Toast Labor] OUTER ERROR (should not happen):', outerError);
+    return res.status(500).json({
+      error: 'Catastrophic failure',
+      message: outerError.message
     });
   }
 }
