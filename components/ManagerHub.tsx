@@ -810,9 +810,9 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                 {/* Turn Time - Critical Metric */}
                 <div className={`backdrop-blur-sm rounded-2xl p-6 border-2 ${
                   !toastSales?.averageTurnTime ? 'bg-white/10 border-white/20' :
-                  toastSales.averageTurnTime < 5 ? 'bg-green-500/30 border-green-300' :
-                  toastSales.averageTurnTime < 6 ? 'bg-blue-500/30 border-blue-300' :
-                  toastSales.averageTurnTime < 7 ? 'bg-amber-500/30 border-amber-300' :
+                  toastSales.averageTurnTime < 3.5 ? 'bg-green-500/30 border-green-300' :
+                  toastSales.averageTurnTime < 5 ? 'bg-blue-500/30 border-blue-300' :
+                  toastSales.averageTurnTime < 6 ? 'bg-amber-500/30 border-amber-300' :
                   'bg-red-500/30 border-red-300'
                 }`}>
                   <div className="flex items-center gap-2 mb-3">
@@ -822,9 +822,9 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                   <div className="text-3xl font-black mb-2">{toastSales?.averageTurnTime?.toFixed(1) || '—'}<span className="text-xl ml-1">min</span></div>
                   <div className="text-[10px] font-bold text-white/80">
                     {!toastSales?.averageTurnTime ? 'No data' :
-                     toastSales.averageTurnTime < 5 ? 'Excellent (40pts)' :
-                     toastSales.averageTurnTime < 6 ? 'Good (35pts)' :
-                     toastSales.averageTurnTime < 7 ? 'Fair (25pts)' : 'Needs Improvement (15pts)'}
+                     toastSales.averageTurnTime < 3.5 ? 'Excellent (40pts)' :
+                     toastSales.averageTurnTime < 5 ? 'Good (35pts)' :
+                     toastSales.averageTurnTime < 6 ? 'Fair (25pts)' : 'Needs Improvement (15pts)'}
                   </div>
                 </div>
 
@@ -1663,13 +1663,13 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                           <div className="text-[10px] font-black text-neutral-400 uppercase tracking-widest mb-2">Turn Time</div>
                           <div className="text-2xl font-black text-[#001F3F]">{toastSales.averageTurnTime?.toFixed(1) || '—'} min</div>
                           <div className={`text-[9px] font-bold uppercase tracking-wide mt-1 ${
-                            (toastSales.averageTurnTime || 0) < 5 ? 'text-green-600' :
-                            (toastSales.averageTurnTime || 0) < 6 ? 'text-blue-600' :
-                            (toastSales.averageTurnTime || 0) < 7 ? 'text-amber-600' : 'text-red-600'
+                            (toastSales.averageTurnTime || 0) < 3.5 ? 'text-green-600' :
+                            (toastSales.averageTurnTime || 0) < 5 ? 'text-blue-600' :
+                            (toastSales.averageTurnTime || 0) < 6 ? 'text-amber-600' : 'text-red-600'
                           }`}>
-                            {(toastSales.averageTurnTime || 0) < 5 ? '40 pts' :
-                             (toastSales.averageTurnTime || 0) < 6 ? '35 pts' :
-                             (toastSales.averageTurnTime || 0) < 7 ? '25 pts' : '15 pts'}
+                            {(toastSales.averageTurnTime || 0) < 3.5 ? '40 pts' :
+                             (toastSales.averageTurnTime || 0) < 5 ? '35 pts' :
+                             (toastSales.averageTurnTime || 0) < 6 ? '25 pts' : '15 pts'}
                           </div>
                         </div>
                         <div className="bg-neutral-50 p-6 rounded-2xl border border-neutral-200">
@@ -1868,10 +1868,10 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                 <div className="bg-white p-6 rounded-2xl border border-blue-100">
                   <h3 className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-4">Turn Time (40 pts)</h3>
                   <div className="space-y-2 text-xs">
-                    <div className="flex justify-between"><span className="font-bold text-neutral-600">Under 5 min:</span><span className="font-black text-green-600">40 pts</span></div>
-                    <div className="flex justify-between"><span className="font-bold text-neutral-600">5-6 min:</span><span className="font-black text-blue-600">35 pts</span></div>
-                    <div className="flex justify-between"><span className="font-bold text-neutral-600">6-7 min:</span><span className="font-black text-amber-600">25 pts</span></div>
-                    <div className="flex justify-between"><span className="font-bold text-neutral-600">7+ min:</span><span className="font-black text-red-600">15 pts</span></div>
+                    <div className="flex justify-between"><span className="font-bold text-neutral-600">Under 3.5 min:</span><span className="font-black text-green-600">40 pts</span></div>
+                    <div className="flex justify-between"><span className="font-bold text-neutral-600">3.5-5 min:</span><span className="font-black text-blue-600">35 pts</span></div>
+                    <div className="flex justify-between"><span className="font-bold text-neutral-600">5-6 min:</span><span className="font-black text-amber-600">25 pts</span></div>
+                    <div className="flex justify-between"><span className="font-bold text-neutral-600">6+ min:</span><span className="font-black text-red-600">15 pts</span></div>
                   </div>
                 </div>
 

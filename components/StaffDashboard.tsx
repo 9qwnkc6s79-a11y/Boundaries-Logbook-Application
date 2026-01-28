@@ -354,16 +354,16 @@ const StaffDashboard: React.FC<StaffDashboardProps> = ({
                 <div className="bg-neutral-50 p-4 rounded-xl border border-neutral-100">
                   <div className="text-[9px] font-black text-neutral-400 uppercase tracking-widest mb-2">Turn Time</div>
                   <div className={`text-2xl font-black ${
-                    (toastSales.averageTurnTime || 0) < 5 ? 'text-green-600' :
-                    (toastSales.averageTurnTime || 0) < 6 ? 'text-blue-600' :
-                    (toastSales.averageTurnTime || 0) < 7 ? 'text-amber-600' : 'text-red-600'
+                    (toastSales.averageTurnTime || 0) < 3.5 ? 'text-green-600' :
+                    (toastSales.averageTurnTime || 0) < 5 ? 'text-blue-600' :
+                    (toastSales.averageTurnTime || 0) < 6 ? 'text-amber-600' : 'text-red-600'
                   }`}>
                     {toastSales.averageTurnTime?.toFixed(1) || '—'} min
                   </div>
                   <div className="text-[9px] text-neutral-500 font-medium mt-1">
-                    {(toastSales.averageTurnTime || 0) < 5 ? 'Excellent!' :
-                     (toastSales.averageTurnTime || 0) < 6 ? 'Good' :
-                     (toastSales.averageTurnTime || 0) < 7 ? 'Fair' : 'Needs improvement'}
+                    {(toastSales.averageTurnTime || 0) < 3.5 ? 'Excellent!' :
+                     (toastSales.averageTurnTime || 0) < 5 ? 'Good' :
+                     (toastSales.averageTurnTime || 0) < 6 ? 'Fair' : 'Needs improvement'}
                   </div>
                 </div>
 

@@ -63,13 +63,13 @@ export function calculateTimelinessScore(delayMinutes: number, wasSubmitted: boo
 
 /**
  * Calculate turn time score
- * Under 5min: 40pts, 5-6min: 35pts, 6-7min: 25pts, 7+min: 15pts
+ * Under 3.5min: 40pts (Excellent), 3.5-5min: 35pts (Good), 5-6min: 25pts (Fair), 6+min: 15pts (Needs Improvement)
  */
 export function calculateTurnTimeScore(turnTimeMinutes: number | undefined): number {
   if (turnTimeMinutes === undefined) return 0;
-  if (turnTimeMinutes < 5) return 40;
-  if (turnTimeMinutes < 6) return 35;
-  if (turnTimeMinutes < 7) return 25;
+  if (turnTimeMinutes < 3.5) return 40;
+  if (turnTimeMinutes < 5) return 35;
+  if (turnTimeMinutes < 6) return 25;
   return 15;
 }
 
