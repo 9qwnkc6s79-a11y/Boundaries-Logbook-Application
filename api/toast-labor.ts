@@ -239,10 +239,10 @@ export default async function handler(
     }).filter((entry: any) => !entry.deleted);
 
     // Calculate labor summary
-    const employeeMap = new Map<string, any>();
+    const laborSummaryMap = new Map<string, any>();
 
     timeEntries.forEach((entry: any) => {
-      const existing = employeeMap.get(entry.employeeGuid);
+      const existing = laborSummaryMap.get(entry.employeeGuid);
 
       if (existing) {
         existing.totalHours += entry.totalHours;
@@ -250,7 +250,7 @@ export default async function handler(
         existing.overtimeHours += entry.overtimeHours;
         existing.shifts += 1;
       } else {
-        employeeMap.set(entry.employeeGuid, {
+        laborSummaryMap.set(entry.employeeGuid, {
           employeeGuid: entry.employeeGuid,
           employeeName: entry.employeeName,
           jobName: entry.jobName,
@@ -262,7 +262,7 @@ export default async function handler(
       }
     });
 
-    const laborSummary = Array.from(employeeMap.values()).sort((a, b) => b.totalHours - a.totalHours);
+    const laborSummary = Array.from(laborSummaryMap.values()).sort((a, b) => b.totalHours - a.totalHours);
 
     // Currently clocked in (no outDate, null outDate, or empty string outDate)
     const currentlyClocked = timeEntries.filter((entry: any) => {
