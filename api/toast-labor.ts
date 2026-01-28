@@ -55,6 +55,54 @@ async function getAuthToken(): Promise<string> {
   return authData.token.accessToken;
 }
 
+async function fetchEmployees(token: string, restaurantGuid: string): Promise<Map<string, string>> {
+  const employeeMap = new Map<string, string>();
+
+  try {
+    const response = await fetch('https://ws-api.toasttab.com/labor/v1/employees', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Toast-Restaurant-External-ID': restaurantGuid,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      console.log(`[Toast Employees] Failed to fetch employees: ${response.status}`);
+      return employeeMap;
+    }
+
+    const data = await response.json();
+    const employees = Array.isArray(data) ? data : (data.employees || []);
+
+    employees.forEach((emp: any) => {
+      const guid = emp.guid || emp.id;
+      let name = 'Unknown';
+
+      if (emp.chosenName) {
+        name = emp.chosenName;
+      } else if (emp.firstName && emp.lastName) {
+        name = `${emp.firstName} ${emp.lastName}`;
+      } else if (emp.firstName) {
+        name = emp.firstName;
+      } else if (emp.externalEmployeeId) {
+        name = emp.externalEmployeeId;
+      }
+
+      if (guid) {
+        employeeMap.set(guid, name);
+      }
+    });
+
+    console.log(`[Toast Employees] Fetched ${employeeMap.size} employees`);
+  } catch (error: any) {
+    console.log(`[Toast Employees] Error fetching employees: ${error.message}`);
+  }
+
+  return employeeMap;
+}
+
 export default async function handler(
   req: VercelRequest,
   res: VercelResponse
@@ -93,6 +141,7 @@ export default async function handler(
     // Try each GUID until one works
     let data: any = null;
     let lastError: any = null;
+    let workingGuid: string | null = null;
 
     for (const guid of restaurantGuids) {
       try {
@@ -113,12 +162,19 @@ export default async function handler(
         }
 
         data = await response.json();
+        workingGuid = guid;
         console.log(`[Toast Labor] Using GUID: ${guid.substring(0, 8)}... for ${locationKey}`);
         break;
       } catch (err: any) {
         lastError = err;
         console.log(`[Toast Labor] GUID ${guid.substring(0, 8)}... failed: ${err.message}`);
       }
+    }
+
+    // Fetch employee data to get proper names
+    let employeeMap = new Map<string, string>();
+    if (workingGuid) {
+      employeeMap = await fetchEmployees(token, workingGuid);
     }
 
     if (!data) {
@@ -130,17 +186,53 @@ export default async function handler(
     }
 
     // Process time entries
-    const timeEntries = (data.timeEntries || []).map((entry: any) => ({
-      employeeGuid: entry.employeeReference?.guid || '',
-      employeeName: entry.employeeReference?.entityId || 'Unknown',
-      jobName: entry.jobReference?.name || 'Staff',
-      inDate: entry.inDate,
-      outDate: entry.outDate,
-      regularHours: entry.regularHours || 0,
-      overtimeHours: entry.overtimeHours || 0,
-      totalHours: (entry.regularHours || 0) + (entry.overtimeHours || 0),
-      deleted: entry.deleted || false,
-    })).filter((entry: any) => !entry.deleted);
+    const timeEntries = (data.timeEntries || []).map((entry: any) => {
+      const employeeGuid = entry.employeeReference?.guid || entry.employee?.guid || '';
+
+      // First, try to get name from employee map (most reliable)
+      let employeeName = employeeMap.get(employeeGuid);
+
+      // If not found in map, extract from entry data
+      if (!employeeName) {
+        if (entry.employee) {
+          // If full employee object is included
+          if (entry.employee.chosenName) {
+            employeeName = entry.employee.chosenName;
+          } else if (entry.employee.firstName && entry.employee.lastName) {
+            employeeName = `${entry.employee.firstName} ${entry.employee.lastName}`;
+          } else if (entry.employee.firstName) {
+            employeeName = entry.employee.firstName;
+          }
+        } else if (entry.employeeReference) {
+          // If only reference is included
+          if (entry.employeeReference.firstName && entry.employeeReference.lastName) {
+            employeeName = `${entry.employeeReference.firstName} ${entry.employeeReference.lastName}`;
+          } else if (entry.employeeReference.firstName) {
+            employeeName = entry.employeeReference.firstName;
+          } else if (entry.employeeReference.entityId) {
+            // entityId might be the employee number or username
+            employeeName = entry.employeeReference.entityId;
+          }
+        }
+      }
+
+      // Fallback to Unknown if still not found
+      if (!employeeName) {
+        employeeName = 'Unknown';
+      }
+
+      return {
+        employeeGuid: employeeGuid,
+        employeeName: employeeName,
+        jobName: entry.jobReference?.name || entry.job?.name || 'Staff',
+        inDate: entry.inDate,
+        outDate: entry.outDate || null,
+        regularHours: entry.regularHours || 0,
+        overtimeHours: entry.overtimeHours || 0,
+        totalHours: (entry.regularHours || 0) + (entry.overtimeHours || 0),
+        deleted: entry.deleted || false,
+      };
+    }).filter((entry: any) => !entry.deleted);
 
     // Calculate labor summary
     const employeeMap = new Map<string, any>();
@@ -168,11 +260,25 @@ export default async function handler(
 
     const laborSummary = Array.from(employeeMap.values()).sort((a, b) => b.totalHours - a.totalHours);
 
-    // Currently clocked in (no outDate or null outDate)
-    const currentlyClocked = timeEntries.filter((entry: any) => !entry.outDate || entry.outDate === null);
+    // Currently clocked in (no outDate, null outDate, or empty string outDate)
+    const currentlyClocked = timeEntries.filter((entry: any) => {
+      const hasNoOutDate = !entry.outDate || entry.outDate === null || entry.outDate === '' || entry.outDate === undefined;
+      return hasNoOutDate;
+    });
 
     console.log(`[Toast Labor] SUCCESS for ${locationKey}: ${timeEntries.length} total entries`);
     console.log(`[Toast Labor] Currently clocked in: ${currentlyClocked.length}`);
+
+    // Debug: Log raw data structure from first entry to see what Toast actually returns
+    if (timeEntries.length > 0 && data.timeEntries && data.timeEntries[0]) {
+      console.log(`[Toast Labor] RAW API RESPONSE (first entry):`, JSON.stringify({
+        employeeReference: data.timeEntries[0].employeeReference,
+        employee: data.timeEntries[0].employee,
+        jobReference: data.timeEntries[0].jobReference,
+        inDate: data.timeEntries[0].inDate,
+        outDate: data.timeEntries[0].outDate
+      }));
+    }
 
     if (currentlyClocked.length > 0) {
       console.log(`[Toast Labor] WHO'S CLOCKED IN:`, currentlyClocked.map(e =>
@@ -181,7 +287,7 @@ export default async function handler(
     } else {
       console.log(`[Toast Labor] ⚠️ NO STAFF CLOCKED IN - Showing all entries for debugging:`);
       timeEntries.slice(0, 10).forEach((e: any) => {
-        console.log(`  - ${e.employeeName}: IN=${e.inDate?.substring(11,19) || 'null'}, OUT=${e.outDate?.substring(11,19) || 'NONE'}, deleted=${e.deleted}`);
+        console.log(`  - ${e.employeeName}: IN=${e.inDate?.substring(11,19) || 'null'}, OUT=${e.outDate?.substring(11,19) || 'NONE'}, outDate type=${typeof e.outDate}`);
       });
     }
 
