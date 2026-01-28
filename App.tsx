@@ -6,6 +6,7 @@ import Layout from './components/Layout';
 import TrainingView from './components/TrainingView';
 import OpsView from './components/OpsView';
 import ManagerHub from './components/ManagerHub';
+import StaffDashboard from './components/StaffDashboard';
 import RecipeBook from './components/RecipeBook';
 import Login from './components/Login';
 import { GoogleGenAI } from "@google/genai";
@@ -414,11 +415,23 @@ const App: React.FC = () => {
           />
         )}
         {activeTab === 'recipes' && (
-          <RecipeBook 
-            manual={manual} 
-            recipes={recipes} 
+          <RecipeBook
+            manual={manual}
+            recipes={recipes}
             isManager={isManager}
             onUpdateRecipes={handleUpdateRecipes}
+          />
+        )}
+        {activeTab === 'dashboard' && (
+          <StaffDashboard
+            currentUser={currentUser}
+            allUsers={allUsers}
+            submissions={storeSubmissions}
+            templates={storeTemplates}
+            progress={progress.filter(p => p.userId === currentUser.id)}
+            curriculum={curriculum}
+            toastSales={toastSales}
+            toastClockedIn={toastClockedIn}
           />
         )}
         {activeTab === 'ops' && (

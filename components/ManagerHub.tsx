@@ -423,7 +423,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
     const location = currentStoreId === 'store-prosper' ? 'prosper' : 'littleelm';
     console.log(`[Toast] Fetching data for store: ${currentStoreId} -> location: ${location} (forceRefresh: ${forceRefresh})`);
 
-    // Check cache first (5-minute cache to avoid rate limits) - LOCATION-SPECIFIC
+    // Check cache first (2-minute cache for snappy updates) - LOCATION-SPECIFIC
     const cacheKey = `toast_data_cache_${location}`;
     const cacheTimeKey = `toast_data_cache_time_${location}`;
 
@@ -438,7 +438,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
 
     if (!forceRefresh && cachedData && cacheTime) {
       const age = Date.now() - parseInt(cacheTime);
-      if (age < 5 * 60 * 1000) { // 5 minutes
+      if (age < 2 * 60 * 1000) { // 2 minutes for faster updates
         console.log(`[Toast] Using cached ${location} data (age: ${Math.floor(age / 1000)}s)`);
         const parsed = JSON.parse(cachedData);
         console.log(`[Toast] Cached data location verification: ${parsed.sales?.location || 'unknown'}`);
@@ -563,11 +563,11 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
     fetchCashData(); // Also fetch cash entry data
     loadDeposits(); // Load cash deposits from Firebase
 
-    // Set up interval for automatic refreshes (without forcing)
+    // Set up interval for automatic refreshes (without forcing) - 2 minutes for snappy updates
     const interval = setInterval(() => {
       fetchToastData(false);
       fetchCashData();
-    }, 5 * 60 * 1000); // 5 minutes
+    }, 2 * 60 * 1000); // 2 minutes for faster updates
     return () => clearInterval(interval);
   }, [currentStoreId]); // Re-fetch when campus changes
 
