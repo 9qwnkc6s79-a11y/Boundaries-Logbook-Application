@@ -586,14 +586,20 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
       const response = await fetch(`/api/toast-cash?startDate=${startDate}&endDate=${endDate}&location=${location}`);
 
       if (!response.ok) {
-        throw new Error('Failed to fetch cash data');
+        const errorData = await response.json();
+        // Silently skip if 403 (permissions issue with Toast API account)
+        if (response.status === 403) {
+          console.warn('[Toast Cash] Cash Management API not enabled for this Toast account (403 Forbidden)');
+          return;
+        }
+        throw new Error(errorData.message || 'Failed to fetch cash data');
       }
 
       const data = await response.json();
       setToastCashData(data);
       console.log(`[Toast Cash] Fetched: Cash Out: $${data.cashOut}, Pay Outs: $${data.payOuts}, Tip Outs: $${data.tipOuts}`);
     } catch (error: any) {
-      console.error('[Toast Cash] Failed to fetch cash data:', error);
+      console.warn('[Toast Cash] Cash data not available:', error.message);
     }
   };
 
