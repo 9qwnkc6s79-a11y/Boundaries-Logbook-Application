@@ -515,7 +515,7 @@ User Question: ${userMsg}`,
 
       {/* Main Content */}
       <main className="flex-1 md:ml-72 p-4 sm:p-6 md:p-12 overflow-x-hidden transition-all">
-        <div className="max-w-6xl mx-auto pb-28 md:pb-0">
+        <div className="max-w-6xl mx-auto pb-36 md:pb-0">
           {children}
         </div>
       </main>
@@ -523,7 +523,7 @@ User Question: ${userMsg}`,
       {/* Mobile Floating Action Button for Chat */}
       <button
         onClick={() => setChatOpen(true)}
-        className="md:hidden fixed bottom-16 right-3 w-12 h-12 bg-[#001F3F] text-white rounded-full shadow-2xl flex items-center justify-center z-40 active:scale-90 transition-transform border border-white/10"
+        className="md:hidden fixed bottom-24 right-3 w-12 h-12 bg-[#001F3F] text-white rounded-full shadow-2xl flex items-center justify-center z-40 active:scale-90 transition-transform border border-white/10"
       >
         <Brain size={20} />
       </button>

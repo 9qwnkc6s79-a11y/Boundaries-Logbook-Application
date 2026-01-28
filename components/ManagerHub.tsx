@@ -742,9 +742,6 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
 
         {/* Tab navigation with scroll indicators */}
         <div className="relative">
-          {/* Left fade gradient - mobile only */}
-          <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-white via-white/80 to-transparent z-10 pointer-events-none md:hidden" />
-
           {/* Tabs */}
           <div className="flex bg-neutral-100 p-1 rounded-xl sm:rounded-2xl border border-neutral-200 overflow-x-auto no-scrollbar">
             {[
@@ -764,7 +761,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
           </div>
 
           {/* Right fade gradient - mobile only */}
-          <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white via-white/80 to-transparent z-10 pointer-events-none md:hidden" />
+          <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-[#FAFAFA] via-[#FAFAFA]/80 to-transparent z-10 pointer-events-none md:hidden" />
         </div>
       </header>
 
