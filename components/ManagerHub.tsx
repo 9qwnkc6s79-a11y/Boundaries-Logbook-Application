@@ -27,6 +27,7 @@ interface ManagerHubProps {
   onDeleteTemplate: (id: string) => void;
   onUpdateManual: (manual: ManualSection[]) => void;
   onUpdateRecipes: (recipes: Recipe[]) => void;
+  onPhotoComment?: (submissionId: string, taskId: string, comment: string) => Promise<void>;
   currentStoreId: string;
   stores: Store[];
   onToastSalesUpdate?: (sales: ToastSalesData | null) => void;
@@ -35,14 +36,24 @@ interface ManagerHubProps {
 
 const ManagerHub: React.FC<ManagerHubProps> = ({
   staff = [], allUsers = [], submissions = [], templates = [], curriculum = [], allProgress = [], manual = [], recipes = [], onReview, onOverrideAIFlag, onResetSubmission,
-  onUpdateTemplate, onAddTemplate, onDeleteTemplate, onUpdateManual, onUpdateRecipes,
+  onUpdateTemplate, onAddTemplate, onDeleteTemplate, onUpdateManual, onUpdateRecipes, onPhotoComment,
   currentStoreId, stores = [], onToastSalesUpdate, onToastClockedInUpdate
 }) => {
   const [activeSubTab, setActiveSubTab] = useState<'dashboard' | 'compliance' | 'editor' | 'staff' | 'gallery' | 'audit' | 'manual' | 'cash-audit'>('dashboard');
   const [auditFilter, setAuditFilter] = useState<'pending' | 'approved' | 'all'>('pending');
   const [aiInsight, setAiInsight] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [fullscreenPhoto, setFullscreenPhoto] = useState<{url: string, title: string, user: string, aiReview?: { flagged: boolean, reason: string }} | null>(null);
+  const [fullscreenPhoto, setFullscreenPhoto] = useState<{
+    url: string;
+    title: string;
+    user: string;
+    aiReview?: { flagged: boolean; reason: string };
+    submissionId?: string;
+    taskId?: string;
+    existingComment?: string;
+  } | null>(null);
+  const [photoComment, setPhotoComment] = useState('');
+  const [savingComment, setSavingComment] = useState(false);
 
   // Cash Deposit State
   const [cashDeposits, setCashDeposits] = useState<CashDeposit[]>([]);
@@ -95,6 +106,15 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
   useEffect(() => {
     setLocalManual(manual);
   }, [manual]);
+
+  // Load existing comment when photo modal opens
+  useEffect(() => {
+    if (fullscreenPhoto?.existingComment) {
+      setPhotoComment(fullscreenPhoto.existingComment);
+    } else {
+      setPhotoComment('');
+    }
+  }, [fullscreenPhoto]);
 
   const trainingStats = useMemo(() => {
     const onboardingLessons = curriculum.filter(m => m.category === 'ONBOARDING').flatMap(m => m.lessons);
@@ -573,20 +593,75 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
   return (
     <div className="space-y-6 sm:space-y-8 pb-20">
       {fullscreenPhoto && (
-        <div className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-xl flex flex-col items-center justify-center p-6 sm:p-12 animate-in fade-in duration-300" onClick={() => setFullscreenPhoto(null)}>
-          <button className="absolute top-8 right-8 text-white p-3 hover:bg-white/10 rounded-full"><X size={32} /></button>
+        <div
+          className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-xl flex flex-col items-center justify-center p-6 sm:p-12 animate-in fade-in duration-300"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setFullscreenPhoto(null);
+              setPhotoComment('');
+            }
+          }}
+        >
+          <button
+            className="absolute top-8 right-8 text-white p-3 hover:bg-white/10 rounded-full"
+            onClick={() => {
+              setFullscreenPhoto(null);
+              setPhotoComment('');
+            }}
+          >
+            <X size={32} />
+          </button>
           <div className="max-w-5xl w-full flex flex-col items-center">
             <div className="bg-white/10 p-2 rounded-[2.5rem] shadow-2xl mb-6 relative">
-              <img src={fullscreenPhoto.url} className="max-h-[70vh] rounded-[2rem] object-contain" alt="Verification" />
+              <img src={fullscreenPhoto.url} className="max-h-[60vh] rounded-[2rem] object-contain" alt="Verification" />
               {fullscreenPhoto.aiReview?.flagged && <div className="absolute top-6 right-6 bg-red-600 text-white p-3 rounded-2xl shadow-2xl animate-bounce"><AlertOctagon size={32} /></div>}
             </div>
             <div className="text-center bg-white/5 backdrop-blur-md p-6 rounded-3xl w-full">
               <h3 className="text-white text-2xl font-black uppercase tracking-tight mb-2">{fullscreenPhoto.title}</h3>
               <p className="text-blue-200 font-bold uppercase tracking-widest text-xs mb-4">Verified by {fullscreenPhoto.user}</p>
               {fullscreenPhoto.aiReview && (
-                <div className={`p-4 rounded-2xl border ${fullscreenPhoto.aiReview.flagged ? 'bg-red-500/20 border-red-500 text-red-200' : 'bg-green-500/20 border-green-500 text-green-200'}`}>
+                <div className={`p-4 rounded-2xl border ${fullscreenPhoto.aiReview.flagged ? 'bg-red-500/20 border-red-500 text-red-200' : 'bg-green-500/20 border-green-500 text-green-200'} mb-4`}>
                   <p className="text-[10px] font-black uppercase tracking-widest mb-1">AI Audit Result</p>
                   <p className="text-sm font-bold">{fullscreenPhoto.aiReview.reason}</p>
+                </div>
+              )}
+
+              {/* Manager Comment Section */}
+              {fullscreenPhoto.submissionId && fullscreenPhoto.taskId && (
+                <div className="mt-6 text-left" onClick={(e) => e.stopPropagation()}>
+                  <label className="text-white text-xs font-black uppercase tracking-widest mb-2 block">
+                    <MessageSquare size={12} className="inline mr-1" />
+                    Manager Feedback
+                  </label>
+                  <textarea
+                    value={photoComment}
+                    onChange={(e) => setPhotoComment(e.target.value)}
+                    placeholder="Add feedback or notes about this photo..."
+                    className="w-full bg-white/10 border border-white/20 rounded-xl p-4 text-white placeholder-white/40 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[100px] resize-none"
+                  />
+                  {fullscreenPhoto.existingComment && !photoComment && (
+                    <p className="text-xs text-blue-200/60 mt-2 italic">Previous: {fullscreenPhoto.existingComment}</p>
+                  )}
+                  <button
+                    onClick={async () => {
+                      if (!photoComment.trim() || !onPhotoComment) return;
+                      setSavingComment(true);
+                      try {
+                        await onPhotoComment(fullscreenPhoto.submissionId!, fullscreenPhoto.taskId!, photoComment.trim());
+                        setFullscreenPhoto(null);
+                        setPhotoComment('');
+                      } catch (error) {
+                        console.error('Failed to save comment:', error);
+                        alert('Failed to save comment');
+                      } finally {
+                        setSavingComment(false);
+                      }
+                    }}
+                    disabled={!photoComment.trim() || savingComment}
+                    className="mt-3 w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-600/50 disabled:cursor-not-allowed text-white py-3 px-6 rounded-xl font-black uppercase text-xs tracking-widest transition-all"
+                  >
+                    {savingComment ? 'Saving...' : 'Save Feedback'}
+                  </button>
                 </div>
               )}
             </div>
@@ -728,7 +803,20 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                           {/* Photo thumbnail - clickable to view full size */}
                           <div
                             className="w-20 h-20 rounded-xl overflow-hidden shrink-0 border-2 border-red-300 cursor-pointer hover:border-red-400 transition-colors bg-red-100"
-                            onClick={() => setFullscreenPhoto({ url: concern.url, title: concern.title, user: concern.user, aiReview: { flagged: true, reason: concern.aiReason || '' } })}
+                            onClick={() => {
+                              // Find the actual task result to get existing comment
+                              const submission = submissions.find(s => s.id === concern.submissionId);
+                              const taskResult = submission?.taskResults.find(tr => tr.taskId === concern.taskId);
+                              setFullscreenPhoto({
+                                url: concern.url,
+                                title: concern.title,
+                                user: concern.user,
+                                aiReview: { flagged: true, reason: concern.aiReason || '' },
+                                submissionId: concern.submissionId,
+                                taskId: concern.taskId,
+                                existingComment: taskResult?.managerPhotoComment
+                              });
+                            }}
                           >
                             {concern.url ? (
                               <img
@@ -862,12 +950,19 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                     {/* Photo Preview */}
                     <div
                       className="relative aspect-video cursor-pointer group"
-                      onClick={() => setFullscreenPhoto({
-                        url: photo.url,
-                        title: photo.title,
-                        user: photo.user,
-                        aiReview: { flagged: photo.aiFlagged || false, reason: photo.aiReason || '' }
-                      })}
+                      onClick={() => {
+                        const submission = submissions.find(s => s.id === photo.submissionId);
+                        const taskResult = submission?.taskResults.find(tr => tr.taskId === photo.taskId);
+                        setFullscreenPhoto({
+                          url: photo.url,
+                          title: photo.title,
+                          user: photo.user,
+                          aiReview: { flagged: photo.aiFlagged || false, reason: photo.aiReason || '' },
+                          submissionId: photo.submissionId,
+                          taskId: photo.taskId,
+                          existingComment: taskResult?.managerPhotoComment
+                        });
+                      }}
                     >
                       <img src={photo.url} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="Flagged" />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
@@ -956,12 +1051,19 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                 {allPhotos.map(photo => (
                   <div
                     key={photo.id}
-                    onClick={() => setFullscreenPhoto({
-                      url: photo.url,
-                      title: photo.title,
-                      user: photo.user,
-                      aiReview: photo.aiFlagged ? { flagged: true, reason: photo.aiReason || '' } : undefined
-                    })}
+                    onClick={() => {
+                      const submission = submissions.find(s => s.id === photo.submissionId);
+                      const taskResult = submission?.taskResults.find(tr => tr.taskId === photo.taskId);
+                      setFullscreenPhoto({
+                        url: photo.url,
+                        title: photo.title,
+                        user: photo.user,
+                        aiReview: photo.aiFlagged ? { flagged: true, reason: photo.aiReason || '' } : undefined,
+                        submissionId: photo.submissionId,
+                        taskId: photo.taskId,
+                        existingComment: taskResult?.managerPhotoComment
+                      });
+                    }}
                     className="group relative aspect-square bg-white rounded-2xl overflow-hidden cursor-pointer hover:shadow-xl transition-all border border-neutral-100 shadow-sm"
                   >
                     <img src={photo.url} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt="Audit" />

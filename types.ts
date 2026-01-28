@@ -146,6 +146,9 @@ export interface ChecklistSubmission {
     managerOverride?: boolean; // Manager approved despite AI flag
     overrideBy?: string; // Manager user ID who approved
     overrideAt?: string; // Timestamp of override
+    managerPhotoComment?: string; // Manager's feedback/notes on photo
+    managerPhotoCommentBy?: string; // Manager user ID who commented
+    managerPhotoCommentAt?: string; // Timestamp of comment
   }[];
   managerNotes?: string;
 }

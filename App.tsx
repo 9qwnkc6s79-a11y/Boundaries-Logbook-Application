@@ -444,6 +444,34 @@ const App: React.FC = () => {
             onReview={handleReview}
             onOverrideAIFlag={handleOverrideAIFlag}
             onResetSubmission={handleResetSubmission}
+            onPhotoComment={async (submissionId, taskId, comment) => {
+              const submission = submissions.find(s => s.id === submissionId);
+              if (!submission) return;
+
+              const updatedResults = submission.taskResults.map(tr =>
+                tr.taskId === taskId
+                  ? {
+                      ...tr,
+                      managerPhotoComment: comment,
+                      managerPhotoCommentBy: currentUser.id,
+                      managerPhotoCommentAt: new Date().toISOString()
+                    }
+                  : tr
+              );
+
+              const updatedSubmission = {
+                ...submission,
+                taskResults: updatedResults
+              };
+
+              const allUpdated = submissions.map(s =>
+                s.id === submissionId ? updatedSubmission : s
+              );
+
+              setSubmissions(allUpdated);
+              await db.pushSubmission(updatedSubmission);
+              performCloudSync(true);
+            }}
             onUpdateTemplate={handleUpdateTemplate}
             onAddTemplate={async (tpl) => {
               const next = [...templates, { ...tpl, storeId: currentStoreId }];
