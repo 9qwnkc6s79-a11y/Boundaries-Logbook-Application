@@ -537,13 +537,13 @@ User Question: ${userMsg}`,
               key={item.id}
               onClick={() => onTabChange(item.id)}
               className={`flex flex-col items-center gap-1 transition-all relative flex-1 max-w-[80px] ${
-                isActive ? 'text-[#001F3F]' : 'text-neutral-300'
+                isActive ? 'text-[#001F3F]' : 'text-neutral-600'
               }`}
             >
               <div className={`p-2 rounded-xl transition-all duration-300 ${isActive ? 'bg-blue-50' : 'bg-transparent'}`}>
                 <item.icon size={22} strokeWidth={isActive ? 2.5 : 2} />
               </div>
-              <span className={`text-[7px] font-black uppercase tracking-tight leading-tight text-center transition-opacity ${isActive ? 'opacity-100' : 'opacity-50'}`}>
+              <span className={`text-[7px] font-black uppercase tracking-tight leading-tight text-center ${isActive ? 'opacity-100' : 'opacity-70'}`}>
                 {item.label}
               </span>
               {isActive && <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-[#001F3F] rounded-full" />}
