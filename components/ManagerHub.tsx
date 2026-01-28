@@ -948,12 +948,41 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                 </div>
                 {(() => {
                   const lastDeposit = cashDeposits[0];
-                  const daysSinceDeposit = lastDeposit ? Math.floor((Date.now() - new Date(lastDeposit.depositDate).getTime()) / (1000 * 60 * 60 * 24)) : 999;
+                  const now = new Date();
+                  const daysSinceDeposit = lastDeposit ? Math.floor((now.getTime() - new Date(lastDeposit.depositDate).getTime()) / (1000 * 60 * 60 * 24)) : 999;
 
                   // Calculate expected cash accumulation since last deposit
                   const cashSalesSinceDeposit = toastSales?.totalSales ? toastSales.totalSales * 0.15 : 0; // Estimate 15% cash
                   const safeDropsSinceDeposit = toastCashData?.cashOut || 0;
                   const expectedSafe = cashSalesSinceDeposit - safeDropsSinceDeposit;
+
+                  // Deposits are due every Monday
+                  const todayDayOfWeek = now.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+
+                  // Get the most recent Monday (start of this week)
+                  const mostRecentMonday = new Date(now);
+                  const daysToSubtract = todayDayOfWeek === 0 ? 6 : todayDayOfWeek - 1; // If Sunday, go back 6 days; otherwise go back to Monday
+                  mostRecentMonday.setDate(now.getDate() - daysToSubtract);
+                  mostRecentMonday.setHours(0, 0, 0, 0);
+
+                  // Check if last deposit was before this week's Monday
+                  const lastDepositDate = lastDeposit ? new Date(lastDeposit.depositDate) : null;
+                  const depositDueThisWeek = !lastDepositDate || lastDepositDate < mostRecentMonday;
+
+                  // Determine deposit status
+                  let depositStatus: { message: string; color: 'green' | 'amber' | 'red' } | null = null;
+                  if (depositDueThisWeek) {
+                    if (todayDayOfWeek >= 1 && todayDayOfWeek <= 5) {
+                      // Monday through Friday - overdue
+                      depositStatus = { message: '⚠️ Deposit Due Now', color: 'red' };
+                    } else if (todayDayOfWeek === 6) {
+                      // Saturday - reminder
+                      depositStatus = { message: 'Deposit Due Monday', color: 'amber' };
+                    } else {
+                      // Sunday - reminder
+                      depositStatus = { message: 'Deposit Due Tomorrow', color: 'amber' };
+                    }
+                  }
 
                   return (
                     <div className="space-y-4">
@@ -972,9 +1001,19 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                             {lastDeposit ? `${daysSinceDeposit}d ago` : 'Never'}
                           </span>
                         </div>
-                        {daysSinceDeposit > 7 && (
-                          <div className="bg-amber-50 border border-amber-200 rounded-lg p-2 text-center">
-                            <p className="text-[9px] font-bold text-amber-700 uppercase tracking-wide">Deposit Due Soon</p>
+                        {depositStatus && (
+                          <div className={`${
+                            depositStatus.color === 'red' ? 'bg-red-50 border-red-200' :
+                            depositStatus.color === 'amber' ? 'bg-amber-50 border-amber-200' :
+                            'bg-green-50 border-green-200'
+                          } border rounded-lg p-2 text-center`}>
+                            <p className={`text-[9px] font-bold uppercase tracking-wide ${
+                              depositStatus.color === 'red' ? 'text-red-700' :
+                              depositStatus.color === 'amber' ? 'text-amber-700' :
+                              'text-green-700'
+                            }`}>
+                              {depositStatus.message}
+                            </p>
                           </div>
                         )}
                       </div>
