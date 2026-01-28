@@ -145,7 +145,9 @@ export default async function handler(
 
     for (const guid of restaurantGuids) {
       try {
-        const laborUrl = `https://ws-api.toasttab.com/labor/v1/timeEntries?businessDate=${businessDate}`;
+        // CRITICAL: Add ?open=true to get currently clocked-in employees
+        // Without this parameter, Toast only returns completed shifts
+        const laborUrl = `https://ws-api.toasttab.com/labor/v1/timeEntries?businessDate=${businessDate}&open=true`;
 
         const response = await fetch(laborUrl, {
           method: 'GET',
