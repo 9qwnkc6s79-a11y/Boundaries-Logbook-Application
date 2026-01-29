@@ -534,18 +534,12 @@ User Question: ${userMsg}`,
         </div>
       </main>
 
-      {/* Mobile Floating Action Buttons */}
+      {/* Mobile Floating Action Button - Team Chat */}
       <button
         onClick={() => setStoreChatOpen(true)}
-        className="md:hidden fixed bottom-[8.5rem] right-3 w-12 h-12 bg-indigo-600 text-white rounded-full shadow-2xl flex items-center justify-center z-40 active:scale-90 transition-transform border border-indigo-400/30"
+        className="md:hidden fixed bottom-24 right-3 w-12 h-12 bg-indigo-600 text-white rounded-full shadow-2xl flex items-center justify-center z-40 active:scale-90 transition-transform border border-indigo-400/30"
       >
         <MessageCircle size={20} />
-      </button>
-      <button
-        onClick={() => setChatOpen(true)}
-        className="md:hidden fixed bottom-24 right-3 w-12 h-12 bg-[#001F3F] text-white rounded-full shadow-2xl flex items-center justify-center z-40 active:scale-90 transition-transform border border-white/10"
-      >
-        <Brain size={20} />
       </button>
 
       {/* Mobile Bottom Tab Bar */}
