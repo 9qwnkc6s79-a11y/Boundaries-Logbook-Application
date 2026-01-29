@@ -16,7 +16,18 @@ const LOCATIONS: Record<string, string[]> = {
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
+// In-memory caches (persist across requests on warm Vercel instances)
+let cachedToken: string | null = null;
+let tokenExpiry: number = 0;
+const cachedGuids: Record<string, string> = {};
+
 async function getAuthToken(): Promise<string> {
+  // Return cached token if still valid
+  const now = Date.now();
+  if (cachedToken && tokenExpiry > now) {
+    return cachedToken;
+  }
+
   const clientId = process.env.VITE_TOAST_CLIENT_ID;
   const clientSecret = process.env.VITE_TOAST_API_KEY;
 
@@ -36,7 +47,10 @@ async function getAuthToken(): Promise<string> {
 
   const authData = await authResponse.json();
   if (!authData.token?.accessToken) throw new Error('Invalid auth response');
-  return authData.token.accessToken;
+
+  cachedToken = authData.token.accessToken;
+  tokenExpiry = now + (23 * 60 * 60 * 1000); // 23 hours
+  return cachedToken;
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -65,21 +79,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const start = new Date(`${startDateStr}T00:00:00.000`);
     const end = new Date(`${endDateStr}T23:59:59.999`);
 
-    // Try each GUID until one works
-    let restaurantGuid: string | null = null;
+    // Use cached GUID if available, otherwise probe to find working one
+    let restaurantGuid: string | null = cachedGuids[locationKey] || null;
     let lastError: any = null;
 
-    for (const guid of restaurantGuids) {
-      try {
-        // Test this GUID with a small request
-        await fetchOrdersChunk(start.toISOString(), new Date(start.getTime() + 1000).toISOString(), token, guid);
-        restaurantGuid = guid;
-        console.log(`[Toast Sales] Using GUID: ${guid.substring(0, 8)}... for ${locationKey}`);
-        break;
-      } catch (err: any) {
-        lastError = err;
-        console.log(`[Toast Sales] GUID ${guid.substring(0, 8)}... failed: ${err.message}`);
+    if (!restaurantGuid) {
+      for (const guid of restaurantGuids) {
+        try {
+          // Test this GUID with a small request
+          await fetchOrdersChunk(start.toISOString(), new Date(start.getTime() + 1000).toISOString(), token, guid);
+          restaurantGuid = guid;
+          cachedGuids[locationKey] = guid;
+          console.log(`[Toast Sales] Found working GUID: ${guid.substring(0, 8)}... for ${locationKey}`);
+          break;
+        } catch (err: any) {
+          lastError = err;
+          console.log(`[Toast Sales] GUID ${guid.substring(0, 8)}... failed: ${err.message}`);
+        }
       }
+    } else {
+      console.log(`[Toast Sales] Using cached GUID: ${restaurantGuid.substring(0, 8)}... for ${locationKey}`);
     }
 
     if (!restaurantGuid) {
@@ -108,7 +127,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       current = chunkEnd;
       requestCount++;
-      if (current < end) await delay(200);
+      if (current < end) await delay(50);
     }
 
     // Process orders - use 'amount' for NET sales (excludes tax)

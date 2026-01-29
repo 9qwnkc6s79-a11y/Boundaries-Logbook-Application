@@ -6,8 +6,14 @@ import { ToastTimeEntry, User, ShiftOwnership, ChecklistTemplate } from '../type
 
 // Leadership hierarchy - lower number = higher priority
 const LEADERSHIP_HIERARCHY: Record<string, number> = {
-  'GM (on bar)': 1,
-  'Team Leader': 2,
+  'gm (on bar)': 1,
+  'team leader': 2,
+};
+
+// Canonical display names for each role
+const LEADERSHIP_DISPLAY_NAMES: Record<string, string> = {
+  'gm (on bar)': 'GM (on bar)',
+  'team leader': 'Team Leader',
 };
 
 interface LeaderInfo {
@@ -21,13 +27,14 @@ interface LeaderInfo {
 /**
  * Detect leaders from currently clocked-in employees
  * Returns all leaders found, sorted by priority (GM first, then Team Leaders)
+ * Job title matching is case-insensitive
  */
 export function detectLeaders(clockedIn: ToastTimeEntry[], allUsers: User[]): LeaderInfo[] {
   const leaders: LeaderInfo[] = [];
 
   clockedIn.forEach(entry => {
-    const jobTitle = entry.jobName;
-    const priority = LEADERSHIP_HIERARCHY[jobTitle];
+    const jobTitleNormalized = entry.jobName.toLowerCase().trim();
+    const priority = LEADERSHIP_HIERARCHY[jobTitleNormalized];
 
     if (priority !== undefined) {
       // This is a leader (GM or Team Leader)
@@ -39,7 +46,7 @@ export function detectLeaders(clockedIn: ToastTimeEntry[], allUsers: User[]): Le
       leaders.push({
         userId: user?.id || `unknown-${entry.employeeGuid}`,
         name: entry.employeeName,
-        jobTitle: jobTitle,
+        jobTitle: LEADERSHIP_DISPLAY_NAMES[jobTitleNormalized] || entry.jobName,
         priority: priority,
         employeeGuid: entry.employeeGuid
       });

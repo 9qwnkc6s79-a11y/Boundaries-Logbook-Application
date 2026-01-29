@@ -421,7 +421,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
     }
   };
 
-  // Toast POS Data Fetching
+  // Toast POS Data Fetching (stale-while-revalidate pattern)
   const fetchToastData = async (forceRefresh: boolean = false) => {
     if (!toastAPI.isConfigured()) {
       console.log('[Toast] API not configured, skipping fetch');
@@ -435,9 +435,11 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
     const location = currentStoreId === 'store-prosper' ? 'prosper' : 'littleelm';
     console.log(`[Toast] Fetching data for store: ${currentStoreId} -> location: ${location} (forceRefresh: ${forceRefresh})`);
 
-    // Check cache first (2-minute cache for snappy updates) - LOCATION-SPECIFIC
+    // Cache keys (location-specific)
     const cacheKey = `toast_data_cache_${location}`;
     const cacheTimeKey = `toast_data_cache_time_${location}`;
+    const lastWeekCacheKey = `toast_lastweek_cache_${location}`;
+    const lastWeekCacheTimeKey = `toast_lastweek_cache_time_${location}`;
 
     if (forceRefresh) {
       console.log(`[Toast] Force refresh - clearing cache for ${location}`);
@@ -448,50 +450,92 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
     const cachedData = localStorage.getItem(cacheKey);
     const cacheTime = localStorage.getItem(cacheTimeKey);
 
-    if (!forceRefresh && cachedData && cacheTime) {
+    // Stale-while-revalidate: show cached data immediately if available
+    let hasCachedData = false;
+    if (cachedData && cacheTime) {
       const age = Date.now() - parseInt(cacheTime);
-      if (age < 2 * 60 * 1000) { // 2 minutes for faster updates
-        console.log(`[Toast] Using cached ${location} data (age: ${Math.floor(age / 1000)}s)`);
-        const parsed = JSON.parse(cachedData);
-        console.log(`[Toast] Cached data location verification: ${parsed.sales?.location || 'unknown'}`);
+      const parsed = JSON.parse(cachedData);
 
-        // Verify the cached data is for the correct location
-        if (parsed.sales && parsed.sales.location !== location) {
-          console.warn(`[Toast] Cache mismatch! Cached location: ${parsed.sales.location}, Expected: ${location}. Fetching fresh data.`);
-          localStorage.removeItem(cacheKey);
-          localStorage.removeItem(cacheTimeKey);
-        } else {
-          setToastSales(parsed.sales);
-          setSalesComparison(parsed.comparison || null);
-          setToastLabor(parsed.labor);
-          setToastClockedIn(parsed.clockedIn);
-          onToastSalesUpdate?.(parsed.sales);
-          onToastClockedInUpdate?.(parsed.clockedIn);
-          onSalesComparisonUpdate?.(parsed.comparison || null);
+      // Verify location match
+      if (parsed.sales && parsed.sales.location !== location) {
+        console.warn(`[Toast] Cache mismatch! Cached: ${parsed.sales.location}, Expected: ${location}`);
+        localStorage.removeItem(cacheKey);
+        localStorage.removeItem(cacheTimeKey);
+      } else {
+        // Show cached data immediately
+        setToastSales(parsed.sales);
+        setSalesComparison(parsed.comparison || null);
+        setToastLabor(parsed.labor);
+        setToastClockedIn(parsed.clockedIn);
+        onToastSalesUpdate?.(parsed.sales);
+        onToastClockedInUpdate?.(parsed.clockedIn);
+        onSalesComparisonUpdate?.(parsed.comparison || null);
+        hasCachedData = true;
+
+        // If cache is still fresh, skip the fetch entirely
+        if (!forceRefresh && age < 2 * 60 * 1000) {
+          console.log(`[Toast] Using fresh cached ${location} data (age: ${Math.floor(age / 1000)}s)`);
           setToastLoading(false);
           return;
         }
-      } else {
-        console.log(`[Toast] Cache expired for ${location} (age: ${Math.floor(age / 1000)}s), fetching fresh data`);
+        console.log(`[Toast] Showing stale cached data (age: ${Math.floor(age / 1000)}s), refreshing in background`);
       }
     }
 
-    setToastLoading(true);
+    // Only show loading spinner if we have no cached data to display
+    if (!hasCachedData) {
+      setToastLoading(true);
+    }
     setToastError(null);
 
     try {
       console.log(`[Toast] Fetching fresh POS data for ${location}...`);
       const today = new Date().toISOString().split('T')[0];
 
-      // Fetch all data in parallel - including last week comparison
-      const [salesWithComparison, laborData] = await Promise.all([
-        toastAPI.getTodaySalesWithComparison(location).catch(err => {
-          console.error('[Toast] Sales fetch failed:', err);
-          if (err.message?.includes('Too Many Requests')) {
-            throw new Error('Rate limited - please wait a few minutes and refresh');
-          }
-          return { today: null, lastWeek: null, comparison: null };
-        }),
+      // Check if we have a valid last-week cache (1 hour TTL - historical data rarely changes)
+      const lastWeekCached = localStorage.getItem(lastWeekCacheKey);
+      const lastWeekCacheTime = localStorage.getItem(lastWeekCacheTimeKey);
+      let cachedLastWeek: { lastWeek: any; comparison: any } | null = null;
+
+      if (!forceRefresh && lastWeekCached && lastWeekCacheTime) {
+        const lastWeekAge = Date.now() - parseInt(lastWeekCacheTime);
+        if (lastWeekAge < 60 * 60 * 1000) { // 1 hour for historical data
+          cachedLastWeek = JSON.parse(lastWeekCached);
+          console.log(`[Toast] Using cached last-week data (age: ${Math.floor(lastWeekAge / 1000)}s)`);
+        }
+      }
+
+      // Fetch today's sales (skip last week if cached) + labor in parallel
+      const [salesResult, laborData] = await Promise.all([
+        cachedLastWeek
+          ? toastAPI.getTodaySales(location).then(todaySales => {
+              // Recompute comparison with cached last-week data
+              const lw = cachedLastWeek!.lastWeek;
+              let comparison = null;
+              if (lw && lw.totalSales > 0) {
+                const salesDiff = todaySales.totalSales - lw.totalSales;
+                comparison = {
+                  salesDiff,
+                  salesPercent: (salesDiff / lw.totalSales) * 100,
+                  ordersDiff: todaySales.totalOrders - lw.totalOrders,
+                  ordersPercent: lw.totalOrders > 0 ? ((todaySales.totalOrders - lw.totalOrders) / lw.totalOrders) * 100 : 0,
+                };
+              }
+              return { today: todaySales, lastWeek: lw, comparison };
+            }).catch(err => {
+              console.error('[Toast] Sales fetch failed:', err);
+              if (err.message?.includes('Too Many Requests')) {
+                throw new Error('Rate limited - please wait a few minutes and refresh');
+              }
+              return { today: null, lastWeek: null, comparison: null };
+            })
+          : toastAPI.getTodaySalesWithComparison(location).catch(err => {
+              console.error('[Toast] Sales fetch failed:', err);
+              if (err.message?.includes('Too Many Requests')) {
+                throw new Error('Rate limited - please wait a few minutes and refresh');
+              }
+              return { today: null, lastWeek: null, comparison: null };
+            }),
         toastAPI.getLaborData(today, today, location).catch(err => {
           console.error('[Toast] Labor fetch failed:', err);
           if (err.message?.includes('Too Many Requests')) {
@@ -501,16 +545,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
         }),
       ]);
 
-      const sales = salesWithComparison.today;
-
-      console.log(`[Toast] Fresh data fetched for ${location}:`, {
-        salesLocation: sales?.location,
-        totalSales: sales?.totalSales,
-        totalOrders: sales?.totalOrders,
-        comparison: salesWithComparison.comparison,
-        clockedIn: laborData.currentlyClocked.length,
-        clockedInNames: laborData.currentlyClocked.map(e => e.employeeName)
-      });
+      const sales = salesResult.today;
 
       // Verify the fetched data matches the requested location
       if (sales && sales.location !== location) {
@@ -519,23 +554,32 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
       }
 
       setToastSales(sales);
-      setSalesComparison(salesWithComparison.comparison);
+      setSalesComparison(salesResult.comparison);
       setToastLabor(laborData.laborSummary);
       setToastClockedIn(laborData.currentlyClocked);
       onToastSalesUpdate?.(sales);
       onToastClockedInUpdate?.(laborData.currentlyClocked);
-      onSalesComparisonUpdate?.(salesWithComparison.comparison);
+      onSalesComparisonUpdate?.(salesResult.comparison);
 
-      // Cache the results with location verification
+      // Cache the results
       localStorage.setItem(cacheKey, JSON.stringify({
         sales,
-        comparison: salesWithComparison.comparison,
+        comparison: salesResult.comparison,
         labor: laborData.laborSummary,
         clockedIn: laborData.currentlyClocked
       }));
       localStorage.setItem(cacheTimeKey, Date.now().toString());
 
-      console.log(`[Toast] Data cached successfully for ${location} at key: ${cacheKey}`);
+      // Cache last-week data separately with longer TTL
+      if (salesResult.lastWeek) {
+        localStorage.setItem(lastWeekCacheKey, JSON.stringify({
+          lastWeek: salesResult.lastWeek,
+          comparison: salesResult.comparison
+        }));
+        localStorage.setItem(lastWeekCacheTimeKey, Date.now().toString());
+      }
+
+      console.log(`[Toast] Data cached successfully for ${location}`);
     } catch (error: any) {
       console.error('[Toast] Failed to fetch POS data:', error);
       setToastError(error.message || 'Failed to connect to Toast POS');
@@ -577,6 +621,10 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
     localStorage.removeItem('toast_data_cache_time_littleelm');
     localStorage.removeItem('toast_data_cache_prosper');
     localStorage.removeItem('toast_data_cache_time_prosper');
+    localStorage.removeItem('toast_lastweek_cache_littleelm');
+    localStorage.removeItem('toast_lastweek_cache_time_littleelm');
+    localStorage.removeItem('toast_lastweek_cache_prosper');
+    localStorage.removeItem('toast_lastweek_cache_time_prosper');
 
     // Force refresh when store changes to clear cache and fetch new data
     fetchToastData(true);
@@ -863,8 +911,8 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                     if (activeLeaders.length > 1) {
                       return (
                         <>
-                          <div className="text-lg font-black mb-2">Multiple</div>
-                          <div className="text-[10px] font-bold text-red-300">⚠️ {activeLeaders.length} leaders</div>
+                          <div className="text-sm font-black mb-1 truncate">{activeLeaders.map(l => l.name.split(' ')[0]).join(' & ')}</div>
+                          <div className="text-[10px] font-bold text-amber-300 truncate">{activeLeaders.map(l => l.jobTitle).join(', ')}</div>
                         </>
                       );
                     }

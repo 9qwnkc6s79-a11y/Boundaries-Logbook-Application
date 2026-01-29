@@ -15,8 +15,17 @@ const LOCATIONS: Record<string, string[]> = {
   ],
 };
 
+// In-memory caches (persist across requests on warm Vercel instances)
+let cachedToken: string | null = null;
+let tokenExpiry: number = 0;
+
 async function getAuthToken(): Promise<string> {
-  // Get credentials directly instead of calling another endpoint
+  // Return cached token if still valid
+  const now = Date.now();
+  if (cachedToken && tokenExpiry > now) {
+    return cachedToken;
+  }
+
   const clientId = process.env.VITE_TOAST_CLIENT_ID;
   const clientSecret = process.env.VITE_TOAST_API_KEY;
 
@@ -24,7 +33,6 @@ async function getAuthToken(): Promise<string> {
     throw new Error('Toast credentials not configured');
   }
 
-  // Authenticate with Toast
   const authResponse = await fetch('https://ws-api.toasttab.com/authentication/v1/authentication/login', {
     method: 'POST',
     headers: {
@@ -40,19 +48,18 @@ async function getAuthToken(): Promise<string> {
   if (!authResponse.ok) {
     const errorText = await authResponse.text();
     console.error('[Toast Auth] HTTP', authResponse.status, ':', errorText);
-    console.error('[Toast Auth] Client ID:', clientId?.substring(0, 10) + '...');
     throw new Error(`Toast auth failed (${authResponse.status}): ${errorText}`);
   }
 
   const authData = await authResponse.json();
-  console.log('[Toast Auth] Response:', JSON.stringify(authData).substring(0, 200));
 
-  // Extract token from nested structure
   if (!authData.token || !authData.token.accessToken) {
     throw new Error('Invalid auth response from Toast');
   }
 
-  return authData.token.accessToken;
+  cachedToken = authData.token.accessToken;
+  tokenExpiry = now + (23 * 60 * 60 * 1000); // 23 hours
+  return cachedToken;
 }
 
 async function fetchEmployees(token: string, restaurantGuid: string): Promise<Map<string, string>> {
@@ -138,10 +145,11 @@ export default async function handler(
     // Labor API uses businessDate format (YYYYMMDD)
     const businessDate = startDateStr.replace(/-/g, '');
 
-    // Try each GUID until one works
+    // Try each GUID until one works, fetch employees in parallel once found
     let data: any = null;
     let lastError: any = null;
     let workingGuid: string | null = null;
+    let employeePromise: Promise<Map<string, string>> | null = null;
 
     for (const guid of restaurantGuids) {
       try {
@@ -163,6 +171,9 @@ export default async function handler(
           throw new Error(`${response.status}: ${errorText}`);
         }
 
+        // Start employee fetch immediately in parallel while we parse time entries
+        employeePromise = fetchEmployees(token, guid);
+
         data = await response.json();
         workingGuid = guid;
         console.log(`[Toast Labor] Using GUID: ${guid.substring(0, 8)}... for ${locationKey}`);
@@ -173,10 +184,10 @@ export default async function handler(
       }
     }
 
-    // Fetch employee data to get proper names
+    // Await the parallel employee fetch
     let employeeMap = new Map<string, string>();
-    if (workingGuid) {
-      employeeMap = await fetchEmployees(token, workingGuid);
+    if (employeePromise) {
+      employeeMap = await employeePromise;
     }
 
     if (!data) {
