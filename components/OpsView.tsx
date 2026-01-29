@@ -93,8 +93,8 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onCapture })
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] bg-[#001F3F]/95 backdrop-blur-xl flex flex-col items-center justify-center p-3 sm:p-8 animate-in fade-in duration-300">
-      <div className="w-full max-w-2xl bg-black rounded-[2rem] sm:rounded-[2.5rem] overflow-hidden shadow-2xl border border-white/10 relative">
+    <div className="fixed inset-0 z-[100] bg-[#001F3F]/95 backdrop-blur-xl flex flex-col items-center justify-center p-3 sm:p-6 animate-in fade-in duration-300">
+      <div className="w-full max-w-2xl bg-black rounded-xl sm:rounded-xl overflow-hidden shadow-lg border border-white/10 relative">
         <div className="aspect-[3/4] sm:aspect-video relative bg-neutral-900">
           {previewUrl ? (
             <img src={previewUrl} className="w-full h-full object-cover animate-in zoom-in-95 duration-300" alt="Preview" />
@@ -136,7 +136,7 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onCapture })
           <X size={18} strokeWidth={3} />
         </button>
 
-        <div className="p-6 sm:p-8 bg-neutral-900/50 backdrop-blur-md border-t border-white/5">
+        <div className="p-6 sm:p-6 bg-neutral-900/50 backdrop-blur-md border-t border-white/5">
           {previewUrl ? (
             <div className="flex items-center gap-3 animate-in slide-in-from-bottom-4">
               <button 
@@ -636,7 +636,7 @@ const OpsView: React.FC<OpsViewProps> = ({ user, allUsers, templates, existingSu
 
         {showReopenConfirm && (
           <div className="fixed inset-0 z-[110] bg-[#001F3F]/60 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in duration-200">
-            <div className="bg-white rounded-[2.5rem] p-8 max-w-sm w-full shadow-2xl border border-neutral-100">
+            <div className="bg-white rounded-xl p-6max-w-sm w-full shadow-lg border border-neutral-100">
               <div className="w-16 h-16 rounded-full flex items-center justify-center mb-6 bg-amber-50 text-amber-500 mx-auto">
                 <RotateCcw size={32} />
               </div>
@@ -686,7 +686,7 @@ const OpsView: React.FC<OpsViewProps> = ({ user, allUsers, templates, existingSu
             </div>
             <button 
               onClick={() => setActiveTemplate(null)}
-              className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-neutral-100 text-neutral-500 flex items-center justify-center"
+              className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-neutral-100 text-neutral-500 flex items-center justify-center"
             >
               <X size={18} strokeWidth={3} />
             </button>
@@ -703,7 +703,7 @@ const OpsView: React.FC<OpsViewProps> = ({ user, allUsers, templates, existingSu
             return (
               <div 
                 key={task.id} 
-                className={`p-5 sm:p-8 rounded-[1.5rem] sm:rounded-[2.5rem] transition-all duration-300 relative overflow-hidden border ${
+                className={`p-5 sm:p-6 rounded-lg sm:rounded-xl transition-all duration-300 relative overflow-hidden border ${
                   isVerified 
                     ? 'border-green-200 bg-green-50/5' 
                     : task.isCritical && !isReadOnly
@@ -860,7 +860,7 @@ const OpsView: React.FC<OpsViewProps> = ({ user, allUsers, templates, existingSu
                   {!isReadOnly && (
                     <button 
                       onClick={() => handleToggle(task.id)}
-                      className={`w-14 h-14 sm:w-16 sm:h-16 rounded-2xl sm:rounded-3xl flex items-center justify-center transition-all duration-300 shadow-lg active:scale-90 shrink-0 ${
+                      className={`w-14 h-14 sm:w-16 sm:h-16 rounded-xl sm:rounded-xl flex items-center justify-center transition-all duration-300 shadow-lg active:scale-90 shrink-0 ${
                         isVerified 
                           ? isTeammateEntry ? 'bg-[#001F3F] text-white' : 'bg-green-600 text-white' 
                           : 'bg-neutral-50 text-neutral-200 border border-neutral-100'
@@ -879,7 +879,7 @@ const OpsView: React.FC<OpsViewProps> = ({ user, allUsers, templates, existingSu
           <div className="pb-24">
             <button 
               onClick={() => handleAction(true)}
-              className="w-full py-6 text-white bg-[#001F3F] rounded-[2rem] font-black flex items-center justify-center gap-3 transition-all shadow-xl uppercase tracking-widest text-xs"
+              className="w-full py-6 text-white bg-[#001F3F] rounded-xl font-black flex items-center justify-center gap-3 transition-all shadow-xl uppercase tracking-widest text-xs"
             >
               <Send size={18} strokeWidth={3} /> Finalize Protocol for {targetDate}
             </button>
@@ -921,10 +921,10 @@ const OpsView: React.FC<OpsViewProps> = ({ user, allUsers, templates, existingSu
               <button
                 key={tpl.id}
                 onClick={() => setActiveTemplate(tpl)}
-                className={`group relative bg-white p-6 sm:p-10 rounded-[2.5rem] sm:rounded-[3.5rem] border transition-all duration-300 text-left overflow-hidden ${
+                className={`group relative bg-white p-5 sm:p-6 rounded-xl border transition-all duration-300 text-left overflow-hidden ${
                   isFinalized 
                     ? 'border-green-200 bg-green-50/20 shadow-inner' 
-                    : 'border-neutral-100 hover:border-[#001F3F] shadow-sm hover:shadow-2xl active:scale-[0.98]'
+                    : 'border-neutral-100 hover:border-[#001F3F] shadow-sm hover:shadow-lg active:scale-[0.98]'
                 }`}
               >
                 <div className="absolute top-6 right-6 z-10 flex flex-col items-end gap-2">
@@ -948,7 +948,7 @@ const OpsView: React.FC<OpsViewProps> = ({ user, allUsers, templates, existingSu
                   ) : null}
                 </div>
                 
-                <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-2xl sm:rounded-[2rem] flex items-center justify-center mb-8 transition-all duration-500 group-hover:rotate-6 ${
+                <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-xl sm:rounded-xl flex items-center justify-center mb-8 transition-all duration-500 group-hover:rotate-6 ${
                   isFinalized ? 'bg-green-100 text-green-600' : 'bg-[#001F3F] text-white shadow-xl group-hover:shadow-[#001F3F]/20'
                 }`}>
                   {isFinalized ? <Check strokeWidth={4} size={32} /> : getTemplateIcon(tpl)}

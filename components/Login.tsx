@@ -148,14 +148,14 @@ const Login: React.FC<LoginProps> = ({ onLogin, onSignup, onPasswordReset, users
 
       <div className="max-w-md w-full relative z-10 flex flex-col items-center">
         <div className="text-center mb-12 animate-in fade-in slide-in-from-top-4 duration-700">
-          <div className="inline-flex p-5 rounded-[2rem] bg-white mb-8 shadow-2xl rotate-3">
+          <div className="inline-flex p-5 rounded-xl bg-white mb-8 shadow-lg rotate-3">
             <Coffee size={48} strokeWidth={2.5} className="text-[#001F3F]" />
           </div>
           <h1 className="text-5xl font-[900] text-white tracking-tighter mb-2 uppercase">BOUNDARIES</h1>
           <p className="text-blue-300 font-bold tracking-[0.3em] uppercase text-xs">Coffee & Co. Operations</p>
         </div>
 
-        <div className="bg-white rounded-[2.5rem] p-8 sm:p-10 shadow-2xl border border-white/10 text-[#001F3F] animate-in zoom-in-95 duration-500 w-full">
+        <div className="bg-white rounded-xl p-6 sm:p-8 shadow-lg border border-white/10 text-[#001F3F] animate-in zoom-in-95 duration-500 w-full">
           {view === 'FORGOT_PASSWORD' ? (
             <div className="space-y-6">
               <button 
@@ -176,7 +176,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onSignup, onPasswordReset, users
               </div>
 
               {error && (
-                <div className="bg-red-50 text-red-600 p-4 rounded-2xl text-xs font-bold border border-red-100 animate-in shake duration-300">
+                <div className="bg-red-50 text-red-600 p-4 rounded-lg text-xs font-bold border border-red-100 animate-in shake duration-300">
                   {error}
                 </div>
               )}
@@ -190,14 +190,14 @@ const Login: React.FC<LoginProps> = ({ onLogin, onSignup, onPasswordReset, users
                       required
                       value={resetEmail}
                       onChange={(e) => setResetEmail(e.target.value)}
-                      className="w-full bg-neutral-50 border border-neutral-100 rounded-2xl pl-12 pr-4 py-4 focus:bg-white focus:ring-4 focus:ring-blue-900/10 focus:border-blue-900 transition-all outline-none font-medium"
+                      className="w-full bg-neutral-50 border border-neutral-100 rounded-lg pl-12 pr-4 py-4 focus:bg-white focus:ring-4 focus:ring-blue-900/10 focus:border-blue-900 transition-all outline-none font-medium"
                       placeholder="Email address"
                     />
                   </div>
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full bg-[#001F3F] text-white font-black py-5 rounded-2xl hover:bg-blue-900 active:scale-[0.98] transition-all flex items-center justify-center gap-3 shadow-xl"
+                    className="w-full bg-[#001F3F] text-white font-black py-3.5 rounded-lg hover:bg-blue-900 active:scale-[0.98] transition-all flex items-center justify-center gap-3 shadow-md"
                   >
                     {loading ? 'Verifying...' : 'Send Recovery Code'}
                     {!loading && <Key size={18} strokeWidth={3} />}
@@ -214,14 +214,14 @@ const Login: React.FC<LoginProps> = ({ onLogin, onSignup, onPasswordReset, users
                       required
                       value={recoveryCode}
                       onChange={(e) => setRecoveryCode(e.target.value)}
-                      className="w-full bg-neutral-50 border border-neutral-100 rounded-2xl px-4 py-6 text-center text-3xl font-black tracking-[1em] focus:bg-white focus:ring-4 focus:ring-blue-900/10 outline-none"
+                      className="w-full bg-neutral-50 border border-neutral-100 rounded-lg px-4 py-6 text-center text-3xl font-black tracking-[1em] focus:bg-white focus:ring-4 focus:ring-blue-900/10 outline-none"
                       placeholder="----"
                     />
                   </div>
                   <p className="text-[10px] text-center font-bold text-neutral-400 uppercase tracking-widest">Universal Reset Code: 1234</p>
                   <button
                     type="submit"
-                    className="w-full bg-[#001F3F] text-white font-black py-5 rounded-2xl hover:bg-blue-900 active:scale-[0.98] transition-all flex items-center justify-center gap-3 shadow-xl"
+                    className="w-full bg-[#001F3F] text-white font-black py-3.5 rounded-lg hover:bg-blue-900 active:scale-[0.98] transition-all flex items-center justify-center gap-3 shadow-md"
                   >
                     Verify Code
                   </button>
@@ -237,13 +237,13 @@ const Login: React.FC<LoginProps> = ({ onLogin, onSignup, onPasswordReset, users
                       required
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
-                      className="w-full bg-neutral-50 border border-neutral-100 rounded-2xl pl-12 pr-4 py-4 focus:bg-white focus:ring-4 focus:ring-blue-900/10 focus:border-blue-900 transition-all outline-none font-medium"
+                      className="w-full bg-neutral-50 border border-neutral-100 rounded-lg pl-12 pr-4 py-4 focus:bg-white focus:ring-4 focus:ring-blue-900/10 focus:border-blue-900 transition-all outline-none font-medium"
                       placeholder="New password"
                     />
                   </div>
                   <button
                     type="submit"
-                    className="w-full bg-[#001F3F] text-white font-black py-5 rounded-2xl hover:bg-blue-900 active:scale-[0.98] transition-all flex items-center justify-center gap-3 shadow-xl"
+                    className="w-full bg-[#001F3F] text-white font-black py-3.5 rounded-lg hover:bg-blue-900 active:scale-[0.98] transition-all flex items-center justify-center gap-3 shadow-md"
                   >
                     Update Password
                   </button>
@@ -271,7 +271,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onSignup, onPasswordReset, users
               </div>
               
               {error && (
-                <div className="bg-red-50 text-red-600 p-4 rounded-2xl text-xs font-bold border border-red-100 animate-in shake duration-300">
+                <div className="bg-red-50 text-red-600 p-4 rounded-lg text-xs font-bold border border-red-100 animate-in shake duration-300">
                   {error}
                 </div>
               )}
@@ -288,7 +288,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onSignup, onPasswordReset, users
                           required
                           value={name}
                           onChange={(e) => setName(e.target.value)}
-                          className="w-full bg-neutral-50 border border-neutral-100 rounded-2xl pl-12 pr-4 py-4 focus:bg-white focus:ring-4 focus:ring-blue-900/10 focus:border-blue-900 transition-all outline-none font-medium"
+                          className="w-full bg-neutral-50 border border-neutral-100 rounded-lg pl-12 pr-4 py-4 focus:bg-white focus:ring-4 focus:ring-blue-900/10 focus:border-blue-900 transition-all outline-none font-medium"
                           placeholder="e.g. Alex Johnson"
                         />
                       </div>
@@ -300,7 +300,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onSignup, onPasswordReset, users
                         <select
                           value={selectedStoreId}
                           onChange={(e) => setSelectedStoreId(e.target.value)}
-                          className="w-full bg-neutral-50 border border-neutral-100 rounded-2xl pl-12 pr-4 py-4 focus:bg-white focus:ring-4 focus:ring-blue-900/10 focus:border-blue-900 transition-all outline-none font-bold appearance-none"
+                          className="w-full bg-neutral-50 border border-neutral-100 rounded-lg pl-12 pr-4 py-4 focus:bg-white focus:ring-4 focus:ring-blue-900/10 focus:border-blue-900 transition-all outline-none font-bold appearance-none"
                         >
                           {stores.map(s => (
                             <option key={s.id} value={s.id}>{s.name}</option>
@@ -320,7 +320,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onSignup, onPasswordReset, users
                       required
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="w-full bg-neutral-50 border border-neutral-100 rounded-2xl pl-12 pr-4 py-4 focus:bg-white focus:ring-4 focus:ring-blue-900/10 focus:border-blue-900 transition-all outline-none font-medium"
+                      className="w-full bg-neutral-50 border border-neutral-100 rounded-lg pl-12 pr-4 py-4 focus:bg-white focus:ring-4 focus:ring-blue-900/10 focus:border-blue-900 transition-all outline-none font-medium"
                       placeholder="Email"
                     />
                   </div>
@@ -346,7 +346,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onSignup, onPasswordReset, users
                       required
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="w-full bg-neutral-50 border border-neutral-100 rounded-2xl pl-12 pr-4 py-4 focus:bg-white focus:ring-4 focus:ring-blue-900/10 focus:border-blue-900 transition-all outline-none font-medium"
+                      className="w-full bg-neutral-50 border border-neutral-100 rounded-lg pl-12 pr-4 py-4 focus:bg-white focus:ring-4 focus:ring-blue-900/10 focus:border-blue-900 transition-all outline-none font-medium"
                       placeholder="••••••••"
                     />
                   </div>
@@ -369,7 +369,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onSignup, onPasswordReset, users
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-[#001F3F] text-white font-black py-5 rounded-2xl hover:bg-blue-900 active:scale-[0.98] transition-all flex items-center justify-center gap-3 shadow-xl disabled:opacity-50"
+                className="w-full bg-[#001F3F] text-white font-black py-3.5 rounded-lg hover:bg-blue-900 active:scale-[0.98] transition-all flex items-center justify-center gap-3 shadow-md disabled:opacity-50"
               >
                 {loading ? 'Authenticating...' : (view === 'SIGNUP' ? 'Create Account' : 'Sign In')}
                 {!loading && <ArrowRight size={18} strokeWidth={3} />}

@@ -176,7 +176,7 @@ const StaffDashboard: React.FC<StaffDashboardProps> = ({
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       {/* Hero Section - Personal Performance */}
-      <section className="bg-gradient-to-br from-purple-600 to-blue-600 p-8 rounded-[2.5rem] shadow-xl text-white">
+      <section className="bg-gradient-to-br from-purple-600 to-blue-600 p-6 rounded-xl shadow-md text-white">
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-black uppercase tracking-tight mb-2">
@@ -185,7 +185,7 @@ const StaffDashboard: React.FC<StaffDashboardProps> = ({
             <p className="text-sm text-white/80 font-bold uppercase tracking-widest">Your Performance Dashboard</p>
           </div>
           {userRank > 0 && (
-            <div className="bg-white/20 backdrop-blur-sm rounded-2xl px-6 py-4 text-center border border-white/30">
+            <div className="bg-white/20 backdrop-blur-sm rounded-xl px-6 py-4 text-center border border-white/30">
               <div className="text-4xl font-black">#{userRank}</div>
               <div className="text-[9px] font-bold uppercase tracking-widest text-white/80 mt-1">Team Rank</div>
             </div>
@@ -193,7 +193,7 @@ const StaffDashboard: React.FC<StaffDashboardProps> = ({
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-5 border border-white/20">
+          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-5 border border-white/20">
             <div className="flex items-center gap-2 mb-2">
               <CheckCircle size={16} className="text-green-300" />
               <h3 className="text-[9px] font-black uppercase tracking-widest text-white/80">On-Time Rate</h3>
@@ -204,7 +204,7 @@ const StaffDashboard: React.FC<StaffDashboardProps> = ({
             </div>
           </div>
 
-          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-5 border border-white/20">
+          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-5 border border-white/20">
             <div className="flex items-center gap-2 mb-2">
               <Flame size={16} className="text-orange-300" />
               <h3 className="text-[9px] font-black uppercase tracking-widest text-white/80">Current Streak</h3>
@@ -213,7 +213,7 @@ const StaffDashboard: React.FC<StaffDashboardProps> = ({
             <div className="text-[9px] text-white/60 font-medium mt-1">consecutive on-time</div>
           </div>
 
-          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-5 border border-white/20">
+          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-5 border border-white/20">
             <div className="flex items-center gap-2 mb-2">
               <GraduationCap size={16} className="text-blue-300" />
               <h3 className="text-[9px] font-black uppercase tracking-widest text-white/80">Training</h3>
@@ -224,7 +224,7 @@ const StaffDashboard: React.FC<StaffDashboardProps> = ({
             </div>
           </div>
 
-          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-5 border border-white/20">
+          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-5 border border-white/20">
             <div className="flex items-center gap-2 mb-2">
               <ClipboardCheck size={16} className="text-purple-300" />
               <h3 className="text-[9px] font-black uppercase tracking-widest text-white/80">Total Logs</h3>
@@ -237,7 +237,7 @@ const StaffDashboard: React.FC<StaffDashboardProps> = ({
 
       {/* Badges/Achievements */}
       {badges.length > 0 && (
-        <section className="bg-white p-6 rounded-2xl border border-neutral-100 shadow-sm">
+        <section className="bg-white p-6 rounded-xl border border-neutral-100 shadow-sm">
           <div className="flex items-center gap-2 mb-4">
             <Award size={16} className="text-amber-500" />
             <h2 className="text-sm font-black text-[#001F3F] uppercase tracking-tight">Achievements</h2>
@@ -256,7 +256,7 @@ const StaffDashboard: React.FC<StaffDashboardProps> = ({
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Team Leaderboard */}
-        <section className="bg-white p-6 rounded-2xl border border-neutral-100 shadow-sm">
+        <section className="bg-white p-6 rounded-xl border border-neutral-100 shadow-sm">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2">
               <Trophy size={16} className="text-amber-500" />
@@ -316,7 +316,7 @@ const StaffDashboard: React.FC<StaffDashboardProps> = ({
         </section>
 
         {/* Current Shift Info */}
-        <section className="bg-white p-6 rounded-2xl border border-neutral-100 shadow-sm">
+        <section className="bg-white p-6 rounded-xl border border-neutral-100 shadow-sm">
           <div className="flex items-center gap-2 mb-6">
             <Activity size={16} className="text-blue-500" />
             <h2 className="text-sm font-black text-[#001F3F] uppercase tracking-tight">Current Shift</h2>
@@ -393,7 +393,7 @@ const StaffDashboard: React.FC<StaffDashboardProps> = ({
       </div>
 
       {/* Goals Section */}
-      <section className="bg-gradient-to-br from-green-50 to-emerald-50 p-6 rounded-2xl border border-green-100">
+      <section className="bg-gradient-to-br from-green-50 to-emerald-50 p-6 rounded-xl border border-green-100">
         <div className="flex items-center gap-2 mb-4">
           <Target size={16} className="text-green-600" />
           <h2 className="text-sm font-black text-[#001F3F] uppercase tracking-tight">Your Goals</h2>

@@ -5,15 +5,28 @@
 import { ToastTimeEntry, User, ShiftOwnership, ChecklistTemplate } from '../types';
 
 // Leadership hierarchy - lower number = higher priority
+// Includes common Toast POS job title variants (case-insensitive matching)
 const LEADERSHIP_HIERARCHY: Record<string, number> = {
   'gm (on bar)': 1,
+  'gm': 1,
+  'general manager': 1,
+  'store manager': 1,
   'team leader': 2,
+  'team lead': 2,
+  'shift lead': 2,
+  'shift leader': 2,
 };
 
 // Canonical display names for each role
 const LEADERSHIP_DISPLAY_NAMES: Record<string, string> = {
   'gm (on bar)': 'GM (on bar)',
+  'gm': 'GM',
+  'general manager': 'General Manager',
+  'store manager': 'Store Manager',
   'team leader': 'Team Leader',
+  'team lead': 'Team Lead',
+  'shift lead': 'Shift Lead',
+  'shift leader': 'Shift Leader',
 };
 
 interface LeaderInfo {
@@ -89,6 +102,18 @@ export function calculateSalesScore(actualSales: number | undefined, target: num
   if (actualSales >= target) return 20;
   if (actualSales >= target * 0.9) return 15;
   return 10;
+}
+
+/**
+ * Calculate average ticket score
+ * $8+: 20pts (Excellent), $6-8: 15pts (Good), $4-6: 10pts (Fair), <$4: 5pts (Needs Improvement)
+ */
+export function calculateAvgTicketScore(avgTicket: number | undefined): number {
+  if (avgTicket === undefined) return 0;
+  if (avgTicket >= 8) return 20;
+  if (avgTicket >= 6) return 15;
+  if (avgTicket >= 4) return 10;
+  return 5;
 }
 
 /**

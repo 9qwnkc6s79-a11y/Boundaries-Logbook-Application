@@ -162,7 +162,7 @@ const RecipeBook: React.FC<RecipeBookProps> = ({ manual, recipes, isManager = fa
     if (!editingRecipe) return null;
     return (
       <div className="fixed inset-0 z-[60] bg-[#001F3F]/50 backdrop-blur-sm flex items-center justify-center p-4">
-        <div className="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+        <div className="bg-white w-full max-w-2xl rounded-xl shadow-lg overflow-hidden flex flex-col max-h-[90vh]">
           <div className="p-6 border-b border-neutral-100 flex justify-between items-center">
             <h3 className="text-xl font-black text-[#001F3F] uppercase tracking-tight">Edit Recipe Card</h3>
             <button onClick={() => setEditingRecipe(null)} className="p-2 hover:bg-neutral-100 rounded-full"><X size={20}/></button>
@@ -353,7 +353,7 @@ const RecipeBook: React.FC<RecipeBookProps> = ({ manual, recipes, isManager = fa
           {isManager && activeView === 'RECIPES' && (
             <button 
               onClick={handleCreateRecipe}
-              className="flex items-center gap-2 px-6 py-4 bg-green-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl hover:bg-green-700 transition-all active:scale-95"
+              className="flex items-center gap-2 px-6 py-4 bg-green-600 text-white rounded-xl font-black text-xs uppercase tracking-widest shadow-md hover:bg-green-700 transition-all active:scale-95"
             >
               <Plus size={18} />
               Add Card
@@ -365,7 +365,7 @@ const RecipeBook: React.FC<RecipeBookProps> = ({ manual, recipes, isManager = fa
       {/* Delete Confirm Modal */}
       {deleteId && (
         <div className="fixed inset-0 z-[100] bg-[#001F3F]/60 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in duration-200">
-          <div className="bg-white rounded-[2.5rem] p-8 max-w-sm w-full shadow-2xl border border-neutral-100 text-center">
+          <div className="bg-white rounded-xl p-6max-w-sm w-full shadow-lg border border-neutral-100 text-center">
              <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
                <AlertTriangle size={32} />
              </div>
@@ -381,7 +381,7 @@ const RecipeBook: React.FC<RecipeBookProps> = ({ manual, recipes, isManager = fa
         </div>
       )}
 
-      <div className="flex bg-neutral-100 p-1 rounded-[1.5rem] w-fit">
+      <div className="flex bg-neutral-100 p-1 rounded-lg w-fit">
         <button 
           onClick={() => setActiveView('RECIPES')}
           className={`px-6 py-3 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all flex items-center gap-2 ${activeView === 'RECIPES' ? 'bg-white text-[#001F3F] shadow-sm' : 'text-neutral-400'}`}
@@ -404,11 +404,11 @@ const RecipeBook: React.FC<RecipeBookProps> = ({ manual, recipes, isManager = fa
             placeholder={`Search ${activeView.toLowerCase()}...`}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-12 pr-4 py-4 bg-white border border-neutral-100 rounded-2xl font-bold text-[#001F3F] focus:ring-4 focus:ring-blue-900/5 outline-none transition-all"
+            className="w-full pl-12 pr-4 py-4 bg-white border border-neutral-100 rounded-xl font-bold text-[#001F3F] focus:ring-4 focus:ring-blue-900/5 outline-none transition-all"
           />
         </div>
         {activeView === 'RECIPES' && (
-          <div className="flex bg-neutral-100 p-1 rounded-2xl overflow-x-auto no-scrollbar max-w-full">
+          <div className="flex bg-neutral-100 p-1 rounded-xl overflow-x-auto no-scrollbar max-w-full">
             {categories.map(cat => (
               <button
                 key={cat}
@@ -427,7 +427,7 @@ const RecipeBook: React.FC<RecipeBookProps> = ({ manual, recipes, isManager = fa
       {activeView === 'RECIPES' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredRecipes.map(recipe => (
-            <div key={recipe.id} className="bg-white rounded-[2.5rem] border border-neutral-100 shadow-sm overflow-hidden flex flex-col group hover:shadow-2xl hover:border-[#001F3F]/20 transition-all duration-500 relative">
+            <div key={recipe.id} className="bg-white rounded-xl border border-neutral-100 shadow-sm overflow-hidden flex flex-col group hover:shadow-lg hover:border-[#001F3F]/20 transition-all duration-500 relative">
               {isManager && (
                 <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
                   <button onClick={() => setEditingRecipe(recipe)} className="p-2 bg-white text-[#001F3F] rounded-full shadow border border-neutral-100 hover:bg-neutral-50"><Edit3 size={14}/></button>
@@ -464,7 +464,7 @@ const RecipeBook: React.FC<RecipeBookProps> = ({ manual, recipes, isManager = fa
             </div>
           ))}
           {filteredRecipes.length === 0 && (
-             <div className="col-span-full py-12 text-center border-2 border-dashed border-neutral-100 rounded-[3rem] text-neutral-300 font-bold uppercase tracking-widest text-[10px]">
+             <div className="col-span-full py-12 text-center border-2 border-dashed border-neutral-100 rounded-xl text-neutral-300 font-bold uppercase tracking-widest text-[10px]">
                No recipes found matching your filters.
              </div>
           )}
@@ -472,9 +472,9 @@ const RecipeBook: React.FC<RecipeBookProps> = ({ manual, recipes, isManager = fa
       ) : (
         <div className="space-y-6">
           {filteredManual.map(section => (
-            <div key={section.id} className="bg-white p-8 sm:p-12 rounded-[2.5rem] border border-neutral-100 shadow-sm">
+            <div key={section.id} className="bg-white p-6sm:p-8 rounded-xl border border-neutral-100 shadow-sm">
               <div className="flex items-center gap-4 mb-8">
-                <div className="w-12 h-12 bg-neutral-50 rounded-2xl flex items-center justify-center font-black text-[#001F3F] text-xl border border-neutral-100">
+                <div className="w-12 h-12 bg-neutral-50 rounded-xl flex items-center justify-center font-black text-[#001F3F] text-xl border border-neutral-100">
                   {section.number}
                 </div>
                 <h3 className="text-2xl font-black text-[#001F3F] uppercase tracking-tight">{section.title}</h3>

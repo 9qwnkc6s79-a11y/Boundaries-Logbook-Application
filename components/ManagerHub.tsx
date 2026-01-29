@@ -9,7 +9,7 @@ import {
 import { GoogleGenAI } from "@google/genai";
 import { toastAPI } from '../services/toast';
 import { db } from '../services/db';
-import { detectLeaders, calculateTimelinessScore, calculateTurnTimeScore, calculateSalesScore, determineShiftOwnership } from '../utils/leadershipTracking';
+import { detectLeaders, calculateTimelinessScore, calculateTurnTimeScore, calculateSalesScore, calculateAvgTicketScore, determineShiftOwnership } from '../utils/leadershipTracking';
 
 interface ManagerHubProps {
   staff: User[];
@@ -673,7 +673,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
   };
 
   return (
-    <div className="space-y-6 sm:space-y-8 pb-20">
+    <div className="space-y-6 sm:space-y-6 pb-20">
       {fullscreenPhoto && (
         <div
           className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-xl flex flex-col items-center justify-center p-6 sm:p-12 animate-in fade-in duration-300"
@@ -694,15 +694,15 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
             <X size={32} />
           </button>
           <div className="max-w-5xl w-full flex flex-col items-center">
-            <div className="bg-white/10 p-2 rounded-[2.5rem] shadow-2xl mb-6 relative">
-              <img src={fullscreenPhoto.url} className="max-h-[60vh] rounded-[2rem] object-contain" alt="Verification" />
-              {fullscreenPhoto.aiReview?.flagged && <div className="absolute top-6 right-6 bg-red-600 text-white p-3 rounded-2xl shadow-2xl animate-bounce"><AlertOctagon size={32} /></div>}
+            <div className="bg-white/10 p-2 rounded-xl shadow-lg mb-6 relative">
+              <img src={fullscreenPhoto.url} className="max-h-[60vh] rounded-xl object-contain" alt="Verification" />
+              {fullscreenPhoto.aiReview?.flagged && <div className="absolute top-6 right-6 bg-red-600 text-white p-3 rounded-xl shadow-lg animate-bounce"><AlertOctagon size={32} /></div>}
             </div>
-            <div className="text-center bg-white/5 backdrop-blur-md p-6 rounded-3xl w-full">
+            <div className="text-center bg-white/5 backdrop-blur-md p-6 rounded-xl w-full">
               <h3 className="text-white text-2xl font-black uppercase tracking-tight mb-2">{fullscreenPhoto.title}</h3>
               <p className="text-blue-200 font-bold uppercase tracking-widest text-xs mb-4">Verified by {fullscreenPhoto.user}</p>
               {fullscreenPhoto.aiReview && (
-                <div className={`p-4 rounded-2xl border ${fullscreenPhoto.aiReview.flagged ? 'bg-red-500/20 border-red-500 text-red-200' : 'bg-green-500/20 border-green-500 text-green-200'} mb-4`}>
+                <div className={`p-4 rounded-xl border ${fullscreenPhoto.aiReview.flagged ? 'bg-red-500/20 border-red-500 text-red-200' : 'bg-green-500/20 border-green-500 text-green-200'} mb-4`}>
                   <p className="text-[10px] font-black uppercase tracking-widest mb-1">AI Audit Result</p>
                   <p className="text-sm font-bold">{fullscreenPhoto.aiReview.reason}</p>
                 </div>
@@ -753,14 +753,14 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
 
       {deleteConfirm && (
         <div className="fixed inset-0 z-[110] bg-[#001F3F]/60 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in duration-200">
-          <div className="bg-white rounded-[2.5rem] p-8 max-w-sm w-full shadow-2xl border border-neutral-100">
+          <div className="bg-white rounded-xl p-6max-w-sm w-full shadow-lg border border-neutral-100">
             <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-6 ${deleteConfirm.type === 'RESET_LOG' ? 'bg-amber-50 text-amber-500' : 'bg-red-50 text-red-500'}`}>
               {deleteConfirm.type === 'RESET_LOG' ? <RotateCcw size={32} /> : <Trash2 size={32} />}
             </div>
             <h3 className="text-2xl font-black text-[#001F3F] uppercase tracking-tight leading-tight mb-2">
               {deleteConfirm.type === 'RESET_LOG' ? 'Reset Protocol?' : `Delete ${deleteConfirm.type === 'TASK' ? 'Standard' : 'Protocol'}?`}
             </h3>
-            <p className="text-neutral-500 text-sm font-medium mb-8 leading-relaxed">
+            <p className="text-neutral-500 text-sm font-medium mb-6 leading-relaxed">
               {deleteConfirm.type === 'RESET_LOG' 
                 ? `This will completely wipe today's log for "${deleteConfirm.title}" and unlock it for a fresh submission. This cannot be undone.`
                 : `Are you sure you want to remove "${deleteConfirm.title}"? This action cannot be undone.`}
@@ -794,7 +794,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
           <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-white via-white/80 to-transparent z-10 pointer-events-none md:hidden" />
 
           {/* Tabs */}
-          <div className="flex bg-neutral-100 p-1 rounded-xl sm:rounded-2xl border border-neutral-200 overflow-x-auto no-scrollbar">
+          <div className="flex bg-neutral-100 p-1 rounded-xl sm:rounded-xl border border-neutral-200 overflow-x-auto no-scrollbar">
             {[
               { id: 'dashboard', label: 'DASHBOARD', icon: LayoutDashboard },
               { id: 'compliance', label: 'COMPLIANCE', icon: Timer },
@@ -816,12 +816,12 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
         </div>
       </header>
 
-      <div className="space-y-8 sm:space-y-12">
+      <div className="space-y-6 sm:space-y-8">
         {activeSubTab === 'dashboard' && (
           <div className="space-y-6 animate-in fade-in duration-500">
             {/* Live Store Performance - Top Priority */}
-            <section className="bg-gradient-to-br from-blue-600 to-indigo-700 p-8 rounded-[2.5rem] shadow-xl text-white">
-              <div className="flex items-center justify-between mb-8">
+            <section className="bg-gradient-to-br from-blue-600 to-indigo-700 p-6 rounded-xl shadow-md text-white">
+              <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-white/20 rounded-xl"><Gauge size={20} /></div>
                   <h2 className="text-xl font-black uppercase tracking-tight">Live Store Performance</h2>
@@ -834,7 +834,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
 
               <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 {/* Today's Sales */}
-                <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
+                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
                   <div className="flex items-center gap-2 mb-3">
                     <DollarSign size={16} className="text-green-300" />
                     <h3 className="text-[10px] font-black uppercase tracking-widest text-white/80">Today's Sales</h3>
@@ -856,7 +856,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                 </div>
 
                 {/* Turn Time - Critical Metric */}
-                <div className={`backdrop-blur-sm rounded-2xl p-6 border-2 ${
+                <div className={`backdrop-blur-sm rounded-xl p-6 border-2 ${
                   !toastSales?.averageTurnTime ? 'bg-white/10 border-white/20' :
                   toastSales.averageTurnTime < 3.5 ? 'bg-green-500/30 border-green-300' :
                   toastSales.averageTurnTime < 5 ? 'bg-blue-500/30 border-blue-300' :
@@ -877,7 +877,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                 </div>
 
                 {/* Staff Clocked In */}
-                <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
+                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
                   <div className="flex items-center gap-2 mb-3">
                     <Users size={16} className="text-blue-300" />
                     <h3 className="text-[10px] font-black uppercase tracking-widest text-white/80">Staff On Duty</h3>
@@ -889,7 +889,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                 </div>
 
                 {/* Current Leader */}
-                <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
+                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
                   <div className="flex items-center gap-2 mb-3">
                     <Trophy size={16} className="text-amber-300" />
                     <h3 className="text-[10px] font-black uppercase tracking-widest text-white/80">Shift Leader</h3>
@@ -931,7 +931,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
             {/* Action Items Grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* Pending Checklists */}
-              <div className="bg-white p-6 rounded-2xl border border-neutral-100 shadow-sm">
+              <div className="bg-white p-6 rounded-xl border border-neutral-100 shadow-sm">
                 <div className="flex items-center gap-2 mb-4">
                   <ClipboardList size={16} className={realTimeCompliance.filter(c => c.percent < 100).length > 0 ? 'text-amber-500' : 'text-green-500'} />
                   <h3 className="text-sm font-black text-[#001F3F] uppercase tracking-tight">Today's Protocols</h3>
@@ -967,7 +967,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
               </div>
 
               {/* Audit Alerts */}
-              <div className="bg-white p-6 rounded-2xl border border-neutral-100 shadow-sm">
+              <div className="bg-white p-6 rounded-xl border border-neutral-100 shadow-sm">
                 <div className="flex items-center gap-2 mb-4">
                   <AlertTriangle size={16} className={concernNotes.length > 0 ? 'text-red-500' : 'text-green-500'} />
                   <h3 className="text-sm font-black text-[#001F3F] uppercase tracking-tight">Audit Alerts</h3>
@@ -1021,7 +1021,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
               </div>
 
               {/* Cash Status */}
-              <div className="bg-white p-6 rounded-2xl border border-neutral-100 shadow-sm">
+              <div className="bg-white p-6 rounded-xl border border-neutral-100 shadow-sm">
                 <div className="flex items-center gap-2 mb-4">
                   <DollarSign size={16} className="text-green-600" />
                   <h3 className="text-sm font-black text-[#001F3F] uppercase tracking-tight">Cash Status</h3>
@@ -1111,7 +1111,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
             </div>
 
             {/* Quick Stats Bar */}
-            <section className="bg-white p-6 rounded-2xl border border-neutral-100 shadow-sm">
+            <section className="bg-white p-6 rounded-xl border border-neutral-100 shadow-sm">
               <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
                 <div className="text-center">
                   <div className="text-2xl font-black text-[#001F3F] mb-1">{staff.length}</div>
@@ -1145,7 +1145,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
             </section>
 
             {/* Barista Brain AI Audit */}
-            <section className="bg-gradient-to-br from-purple-50 to-blue-50 p-6 rounded-2xl border border-purple-100">
+            <section className="bg-gradient-to-br from-purple-50 to-blue-50 p-6 rounded-xl border border-purple-100">
               <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-purple-100 rounded-xl">
@@ -1168,7 +1168,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
             </section>
 
             {aiInsight && (
-              <section className="bg-white p-8 rounded-2xl border border-purple-100 shadow-xl animate-in slide-in-from-bottom-4">
+              <section className="bg-white p-6 rounded-xl border border-purple-100 shadow-md animate-in slide-in-from-bottom-4">
                 <div className="flex items-center justify-between mb-6">
                   <h3 className="text-xl font-black text-[#001F3F] uppercase flex items-center gap-3">
                     <BrainCircuit className="text-purple-500" size={24} />
@@ -1188,9 +1188,9 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
         )}
 
         {activeSubTab === 'gallery' && (
-          <section className="animate-in fade-in space-y-8">
+          <section className="animate-in fade-in space-y-6">
             {/* Audit Filter Tabs */}
-            <div className="bg-white p-6 rounded-[2rem] border border-neutral-100 shadow-sm">
+            <div className="bg-white p-6 rounded-xl border border-neutral-100 shadow-sm">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-red-50 text-red-600 rounded-xl"><SearchCheck size={20} /></div>
@@ -1228,7 +1228,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
             {auditPhotos.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {auditPhotos.map(photo => (
-                  <div key={photo.id} className={`bg-white rounded-[2rem] overflow-hidden border shadow-sm ${
+                  <div key={photo.id} className={`bg-white rounded-xl overflow-hidden border shadow-sm ${
                     photo.managerOverride ? 'border-green-200' : 'border-red-200'
                   }`}>
                     {/* Photo Preview */}
@@ -1315,7 +1315,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                 ))}
               </div>
             ) : (
-              <div className="py-20 text-center border-2 border-dashed border-neutral-200 rounded-[3rem]">
+              <div className="py-20 text-center border-2 border-dashed border-neutral-200 rounded-xl">
                 <ShieldCheck size={48} className="mx-auto text-green-500 mb-4" />
                 <p className="text-neutral-400 uppercase font-black text-xs tracking-widest">
                   {auditFilter === 'pending' ? 'No photos pending review' :
@@ -1348,7 +1348,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                         existingComment: taskResult?.managerPhotoComment
                       });
                     }}
-                    className="group relative aspect-square bg-white rounded-2xl overflow-hidden cursor-pointer hover:shadow-xl transition-all border border-neutral-100 shadow-sm"
+                    className="group relative aspect-square bg-white rounded-xl overflow-hidden cursor-pointer hover:shadow-md transition-all border border-neutral-100 shadow-sm"
                   >
                     <img src={photo.url} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt="Audit" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity p-3 flex flex-col justify-end">
@@ -1366,7 +1366,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                 ))}
               </div>
               {allPhotos.length === 0 && (
-                <div className="py-12 text-center border-2 border-dashed border-neutral-200 rounded-2xl text-neutral-300 uppercase font-black text-xs">
+                <div className="py-12 text-center border-2 border-dashed border-neutral-200 rounded-xl text-neutral-300 uppercase font-black text-xs">
                   No verification photos found.
                 </div>
               )}
@@ -1377,9 +1377,9 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
         {activeSubTab === 'manual' && (
           <section className="animate-in fade-in space-y-6">
             {localManual.map(section => (
-              <div key={section.id} className="bg-white p-8 rounded-[2.5rem] border border-neutral-100 shadow-sm space-y-6">
+              <div key={section.id} className="bg-white p-6 rounded-xl border border-neutral-100 shadow-sm space-y-6">
                  <div className="flex items-center gap-4 border-b border-neutral-50 pb-6">
-                    <div className="w-12 h-12 bg-[#001F3F] text-white rounded-2xl flex items-center justify-center font-black text-xl">{section.number}</div>
+                    <div className="w-12 h-12 bg-[#001F3F] text-white rounded-xl flex items-center justify-center font-black text-xl">{section.number}</div>
                     <div className="flex-1">
                       <label className="text-[8px] font-black text-neutral-400 uppercase tracking-widest block mb-1 ml-1">Section Header</label>
                       <input value={section.title} onChange={e => {
@@ -1388,13 +1388,13 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                         setIsDirty(true);
                       }} className="text-2xl font-black text-[#001F3F] uppercase bg-transparent outline-none w-full focus:ring-0 border-none p-0" />
                     </div>
-                    <button onClick={() => { onUpdateManual(localManual); setIsDirty(false); }} className="p-4 bg-blue-50 text-[#001F3F] rounded-2xl hover:bg-[#001F3F] hover:text-white transition-all shadow-sm active:scale-95"><Save size={20}/></button>
+                    <button onClick={() => { onUpdateManual(localManual); setIsDirty(false); }} className="p-4 bg-blue-50 text-[#001F3F] rounded-xl hover:bg-[#001F3F] hover:text-white transition-all shadow-sm active:scale-95"><Save size={20}/></button>
                  </div>
                  <textarea rows={10} value={section.content} onChange={e => {
                    const next = localManual.map(s => s.id === section.id ? { ...s, content: e.target.value } : s);
                    setLocalManual(next);
                    setIsDirty(true);
-                 }} className="w-full bg-neutral-50 p-8 rounded-[2rem] border-none text-sm text-neutral-600 font-medium leading-relaxed resize-none outline-none focus:ring-4 focus:ring-[#001F3F]/5" />
+                 }} className="w-full bg-neutral-50 p-6 rounded-xl border-none text-sm text-neutral-600 font-medium leading-relaxed resize-none outline-none focus:ring-4 focus:ring-[#001F3F]/5" />
               </div>
             ))}
           </section>
@@ -1403,23 +1403,23 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
         {activeSubTab === 'compliance' && (
           <section className="animate-in fade-in space-y-12">
              {/* Trailing Summary Stats */}
-             <div className="bg-white p-8 rounded-[2.5rem] border border-neutral-100 shadow-sm">
-                <div className="flex items-center gap-2 mb-8">
+             <div className="bg-white p-6 rounded-xl border border-neutral-100 shadow-sm">
+                <div className="flex items-center gap-2 mb-6">
                   <History size={18} className="text-neutral-400" />
                   <h3 className="text-lg font-black text-[#001F3F] uppercase tracking-tight">7-Day Performance Summary</h3>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="p-8 bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl border border-green-100 text-center">
+                  <div className="p-6bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border border-green-100 text-center">
                     <p className="text-[9px] font-black text-green-600/60 uppercase tracking-widest mb-3">Completion Rate</p>
                     <p className={`text-5xl font-black mb-2 ${trailingSummary.completionRate > 85 ? 'text-green-600' : 'text-amber-600'}`}>{trailingSummary.completionRate}%</p>
                     <p className="text-[10px] font-bold text-green-700/60 uppercase tracking-wider">Of protocols completed</p>
                   </div>
-                  <div className="p-8 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl border border-blue-100 text-center">
+                  <div className="p-6bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-100 text-center">
                     <p className="text-[9px] font-black text-blue-600/60 uppercase tracking-widest mb-3">On-Time Rate</p>
                     <p className="text-5xl font-black text-blue-600 mb-2">{trailingSummary.punctualityRate}%</p>
                     <p className="text-[10px] font-bold text-blue-700/60 uppercase tracking-wider">Submitted before deadline</p>
                   </div>
-                  <div className="p-8 bg-gradient-to-br from-red-50 to-pink-50 rounded-2xl border border-red-100 text-center">
+                  <div className="p-6bg-gradient-to-br from-red-50 to-pink-50 rounded-xl border border-red-100 text-center">
                     <p className="text-[9px] font-black text-red-600/60 uppercase tracking-widest mb-3">Missed Protocols</p>
                     <p className="text-5xl font-black text-red-600 mb-2">{trailingSummary.totalMissed}</p>
                     <p className="text-[10px] font-bold text-red-700/60 uppercase tracking-wider">Total missed submissions</p>
@@ -1427,8 +1427,8 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                 </div>
              </div>
 
-             <div className="bg-white p-8 rounded-[2.5rem] border border-neutral-100 shadow-sm overflow-hidden">
-                <h3 className="text-xs font-black text-neutral-400 uppercase tracking-widest mb-8 px-2">Operational Pulse (Last 7 Days)</h3>
+             <div className="bg-white p-6 rounded-xl border border-neutral-100 shadow-sm overflow-hidden">
+                <h3 className="text-xs font-black text-neutral-400 uppercase tracking-widest mb-6 px-2">Operational Pulse (Last 7 Days)</h3>
                 <div className="overflow-x-auto no-scrollbar">
                   <table className="w-full text-left">
                     <thead>
@@ -1499,11 +1499,11 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                 </div>
              </div>
 
-             <div className="bg-white p-8 rounded-[2.5rem] border border-neutral-100 shadow-sm">
-                <h3 className="text-xs font-black text-neutral-400 uppercase tracking-widest mb-8 px-2">Top Performer Leaderboard</h3>
+             <div className="bg-white p-6 rounded-xl border border-neutral-100 shadow-sm">
+                <h3 className="text-xs font-black text-neutral-400 uppercase tracking-widest mb-6 px-2">Top Performer Leaderboard</h3>
                 <div className="space-y-6">
                   {performanceData.sort((a,b) => (b.score || 0) - (a.score || 0)).map((member, idx) => (
-                    <div key={member.id} className="flex items-center justify-between gap-4 p-4 hover:bg-neutral-50 rounded-2xl transition-colors group">
+                    <div key={member.id} className="flex items-center justify-between gap-4 p-4 hover:bg-neutral-50 rounded-xl transition-colors group">
                        <div className="flex items-center gap-4">
                           <span className="text-[10px] font-black text-neutral-300 w-4">{idx + 1}</span>
                           <div className="w-10 h-10 rounded-xl bg-[#001F3F] text-white flex items-center justify-center font-black text-xs">{member.name?.charAt(0)}</div>
@@ -1523,7 +1523,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
         {activeSubTab === 'staff' && (
           <section className="animate-in fade-in">
             {staff.length === 0 ? (
-              <div className="bg-white p-16 rounded-[2.5rem] border border-neutral-100 shadow-sm text-center">
+              <div className="bg-white p-16 rounded-xl border border-neutral-100 shadow-sm text-center">
                 <div className="max-w-md mx-auto space-y-6">
                   <div className="w-20 h-20 bg-neutral-100 text-neutral-300 rounded-full flex items-center justify-center mx-auto">
                     <Users size={40} />
@@ -1552,7 +1552,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                 .slice(0, 5);
 
               return (
-                <div key={member.id} className="bg-white p-8 rounded-[2.5rem] border border-neutral-100 shadow-sm space-y-6">
+                <div key={member.id} className="bg-white p-6 rounded-xl border border-neutral-100 shadow-sm space-y-6">
                    <div className="flex items-center gap-4">
                       <div className="w-16 h-16 bg-[#001F3F] text-white rounded-[1.5rem] flex items-center justify-center font-black text-2xl">{member.name.charAt(0)}</div>
                       <div>
@@ -1567,11 +1567,11 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                       </div>
                    </div>
                    <div className="grid grid-cols-2 gap-4">
-                      <div className="bg-neutral-50 p-5 rounded-2xl text-center border border-neutral-100">
+                      <div className="bg-neutral-50 p-5 rounded-xl text-center border border-neutral-100">
                          <p className="text-[7px] font-black text-neutral-400 uppercase tracking-widest mb-1.5">Onboarding</p>
                          <p className="text-lg font-black text-[#001F3F]">{stats?.onboardingPercent || 0}%</p>
                       </div>
-                      <div className="bg-neutral-50 p-5 rounded-2xl text-center border border-neutral-100">
+                      <div className="bg-neutral-50 p-5 rounded-xl text-center border border-neutral-100">
                          <p className="text-[7px] font-black text-neutral-400 uppercase tracking-widest mb-1.5">Academy</p>
                          <p className="text-lg font-black text-[#001F3F]">{stats?.continuedPercent || 0}%</p>
                       </div>
@@ -1622,10 +1622,10 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
         )}
 
         {activeSubTab === 'performance' && (
-          <div className="space-y-8 animate-in fade-in duration-500">
+          <div className="space-y-6 animate-in fade-in duration-500">
             {/* Current Shift Leadership */}
-            <section className="bg-white p-8 rounded-[2.5rem] border border-neutral-100 shadow-sm">
-              <div className="flex items-center gap-3 mb-8">
+            <section className="bg-white p-6 rounded-xl border border-neutral-100 shadow-sm">
+              <div className="flex items-center gap-3 mb-6">
                 <div className="p-2 bg-blue-50 text-blue-600 rounded-xl"><Target size={20} /></div>
                 <h2 className="text-xl font-black text-[#001F3F] uppercase tracking-tight">Current Shift Leadership</h2>
               </div>
@@ -1636,7 +1636,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
 
                 if (currentLeaders.length === 0) {
                   return (
-                    <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 text-center">
+                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 text-center">
                       <AlertTriangle size={32} className="text-amber-600 mx-auto mb-3" />
                       <h3 className="text-sm font-black text-amber-900 uppercase tracking-tight mb-2">No Leader On Duty</h3>
                       <p className="text-xs text-amber-700 font-medium">No team leader or GM is currently clocked in. Performance metrics cannot be tracked.</p>
@@ -1659,7 +1659,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                 return (
                   <div className="space-y-6">
                     {multipleLeaders && (
-                      <div className="bg-red-50 border border-red-200 rounded-2xl p-6">
+                      <div className="bg-red-50 border border-red-200 rounded-xl p-6">
                         <div className="flex items-start gap-3">
                           <AlertOctagon size={24} className="text-red-600 flex-shrink-0 mt-0.5" />
                           <div>
@@ -1681,7 +1681,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                       {currentLeaders.map(leader => (
-                        <div key={leader.userId} className={`p-6 rounded-2xl border-2 ${leader.priority === highestPriority ? 'bg-blue-50 border-blue-200' : 'bg-neutral-50 border-neutral-200'}`}>
+                        <div key={leader.userId} className={`p-6 rounded-xl border-2 ${leader.priority === highestPriority ? 'bg-blue-50 border-blue-200' : 'bg-neutral-50 border-neutral-200'}`}>
                           <div className="flex items-center gap-3 mb-4">
                             <div className="w-12 h-12 bg-[#001F3F] text-white rounded-xl flex items-center justify-center font-black text-lg">
                               {leader.name.charAt(0)}
@@ -1707,7 +1707,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
 
                     {toastSales && (
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-                        <div className="bg-neutral-50 p-6 rounded-2xl border border-neutral-200">
+                        <div className="bg-neutral-50 p-6 rounded-xl border border-neutral-200">
                           <div className="text-[10px] font-black text-neutral-400 uppercase tracking-widest mb-2">Turn Time</div>
                           <div className="text-2xl font-black text-[#001F3F]">{toastSales.averageTurnTime?.toFixed(1) || '—'} min</div>
                           <div className={`text-[9px] font-bold uppercase tracking-wide mt-1 ${
@@ -1720,7 +1720,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                              (toastSales.averageTurnTime || 0) < 6 ? '25 pts' : '15 pts'}
                           </div>
                         </div>
-                        <div className="bg-neutral-50 p-6 rounded-2xl border border-neutral-200">
+                        <div className="bg-neutral-50 p-6 rounded-xl border border-neutral-200">
                           <div className="text-[10px] font-black text-neutral-400 uppercase tracking-widest mb-2">Total Sales</div>
                           <div className="text-2xl font-black text-[#001F3F]">${toastSales.totalSales?.toFixed(0) || '—'}</div>
                           <div className="text-[9px] font-bold text-neutral-500 uppercase tracking-wide mt-1">{toastSales.totalOrders || 0} orders</div>
@@ -1735,9 +1735,16 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                             </div>
                           )}
                         </div>
-                        <div className="bg-neutral-50 p-6 rounded-2xl border border-neutral-200">
+                        <div className="bg-neutral-50 p-6 rounded-xl border border-neutral-200">
                           <div className="text-[10px] font-black text-neutral-400 uppercase tracking-widest mb-2">Avg Check</div>
                           <div className="text-2xl font-black text-[#001F3F]">${toastSales.averageCheck?.toFixed(2) || '—'}</div>
+                          <div className={`text-[9px] font-bold uppercase tracking-wide mt-1 ${
+                            (toastSales.averageCheck || 0) >= 8 ? 'text-green-600' :
+                            (toastSales.averageCheck || 0) >= 6 ? 'text-blue-600' :
+                            (toastSales.averageCheck || 0) >= 4 ? 'text-amber-600' : 'text-red-600'
+                          }`}>
+                            {calculateAvgTicketScore(toastSales.averageCheck)} pts
+                          </div>
                         </div>
                       </div>
                     )}
@@ -1747,8 +1754,8 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
             </section>
 
             {/* Team Leader Leaderboard */}
-            <section className="bg-white p-8 rounded-[2.5rem] border border-neutral-100 shadow-sm">
-              <div className="flex items-center gap-3 mb-8">
+            <section className="bg-white p-6 rounded-xl border border-neutral-100 shadow-sm">
+              <div className="flex items-center gap-3 mb-6">
                 <div className="p-2 bg-amber-50 text-amber-600 rounded-xl"><Trophy size={20} /></div>
                 <h2 className="text-xl font-black text-[#001F3F] uppercase tracking-tight">Team Leader Leaderboard</h2>
                 <span className="text-[9px] font-black text-neutral-400 uppercase tracking-widest ml-auto">Last 7 Days</span>
@@ -1839,7 +1846,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                 return (
                   <div className="space-y-4">
                     {leaderArray.map((leader, index) => (
-                      <div key={leader.userId} className={`p-6 rounded-2xl border-2 transition-all ${
+                      <div key={leader.userId} className={`p-6 rounded-xl border-2 transition-all ${
                         index === 0 ? 'bg-amber-50 border-amber-200' :
                         index === 1 ? 'bg-neutral-50 border-neutral-200' :
                         index === 2 ? 'bg-orange-50 border-orange-200' :
@@ -1896,14 +1903,14 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
             </section>
 
             {/* Performance Scoring Guide */}
-            <section className="bg-gradient-to-br from-blue-50 to-indigo-50 p-8 rounded-[2.5rem] border border-blue-100">
+            <section className="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-100">
               <div className="flex items-center gap-3 mb-6">
                 <div className="p-2 bg-blue-100 text-blue-600 rounded-xl"><Info size={20} /></div>
                 <h2 className="text-lg font-black text-[#001F3F] uppercase tracking-tight">Performance Scoring Guide</h2>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-white p-6 rounded-2xl border border-blue-100">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div className="bg-white p-6 rounded-xl border border-blue-100">
                   <h3 className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-4">Timeliness (40 pts)</h3>
                   <div className="space-y-2 text-xs">
                     <div className="flex justify-between"><span className="font-bold text-neutral-600">On time:</span><span className="font-black text-green-600">40 pts</span></div>
@@ -1913,7 +1920,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                   </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-2xl border border-blue-100">
+                <div className="bg-white p-6 rounded-xl border border-blue-100">
                   <h3 className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-4">Turn Time (40 pts)</h3>
                   <div className="space-y-2 text-xs">
                     <div className="flex justify-between"><span className="font-bold text-neutral-600">Under 3.5 min:</span><span className="font-black text-green-600">40 pts</span></div>
@@ -1923,12 +1930,22 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                   </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-2xl border border-blue-100">
+                <div className="bg-white p-6 rounded-xl border border-blue-100">
                   <h3 className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-4">Sales (20 pts)</h3>
                   <div className="space-y-2 text-xs">
                     <div className="flex justify-between"><span className="font-bold text-neutral-600">Above target:</span><span className="font-black text-green-600">20 pts</span></div>
                     <div className="flex justify-between"><span className="font-bold text-neutral-600">Within 10%:</span><span className="font-black text-amber-600">15 pts</span></div>
                     <div className="flex justify-between"><span className="font-bold text-neutral-600">Below target:</span><span className="font-black text-red-600">10 pts</span></div>
+                  </div>
+                </div>
+
+                <div className="bg-white p-6 rounded-xl border border-blue-100">
+                  <h3 className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-4">Avg Ticket (20 pts)</h3>
+                  <div className="space-y-2 text-xs">
+                    <div className="flex justify-between"><span className="font-bold text-neutral-600">$8+:</span><span className="font-black text-green-600">20 pts</span></div>
+                    <div className="flex justify-between"><span className="font-bold text-neutral-600">$6-8:</span><span className="font-black text-blue-600">15 pts</span></div>
+                    <div className="flex justify-between"><span className="font-bold text-neutral-600">$4-6:</span><span className="font-black text-amber-600">10 pts</span></div>
+                    <div className="flex justify-between"><span className="font-bold text-neutral-600">Under $4:</span><span className="font-black text-red-600">5 pts</span></div>
                   </div>
                 </div>
               </div>
@@ -1943,8 +1960,8 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
         )}
 
         {activeSubTab === 'editor' && (
-          <section className="animate-in fade-in space-y-8">
-            <div className="flex justify-between items-center bg-white p-8 rounded-[2rem] border border-neutral-100 shadow-sm mb-8">
+          <section className="animate-in fade-in space-y-6">
+            <div className="flex justify-between items-center bg-white p-6 rounded-xl border border-neutral-100 shadow-sm mb-6">
               <div>
                 <h2 className="text-2xl font-black text-[#001F3F] uppercase tracking-tight">Protocol Editor</h2>
                 <p className="text-neutral-400 text-xs font-bold uppercase tracking-widest mt-1">Configure Daily & Weekly Cycles</p>
@@ -1963,19 +1980,19 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                   onAddTemplate(newTpl);
                   setLocalTemplates(prev => [...prev, newTpl]);
                   setIsDirty(true);
-                }} className="bg-[#001F3F] text-white px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 shadow-xl hover:bg-blue-900 transition-all active:scale-95"><Plus size={18} /> New Protocol</button>
+                }} className="bg-[#001F3F] text-white px-8 py-4 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 shadow-md hover:bg-blue-900 transition-all active:scale-95"><Plus size={18} /> New Protocol</button>
               </div>
             </div>
             
-            <div className="space-y-8">
+            <div className="space-y-6">
               {localTemplates.map(tpl => {
                 const isExpanded = expandedProtocolId === tpl.id;
                 const criticalCount = tpl.tasks.filter(t => t.isCritical).length;
                 const photoCount = tpl.tasks.filter(t => t.requiresPhoto || (t.requiredPhotos || 0) > 0).length;
 
                 return (
-                <div key={tpl.id} className="bg-white rounded-[2.5rem] border border-neutral-100 shadow-sm overflow-hidden group relative">
-                  <div className="p-8 bg-neutral-50 flex flex-col sm:flex-row sm:items-center justify-between gap-6 border-b border-neutral-100">
+                <div key={tpl.id} className="bg-white rounded-xl border border-neutral-100 shadow-sm overflow-hidden group relative">
+                  <div className="p-6bg-neutral-50 flex flex-col sm:flex-row sm:items-center justify-between gap-6 border-b border-neutral-100">
                     <div className="flex-1 space-y-5">
                       <div className="flex items-center gap-4">
                         <input value={tpl.name} onChange={e => handleUpdateTemplateLocal(tpl.id, { name: e.target.value })} className="text-2xl font-black text-[#001F3F] uppercase bg-transparent outline-none flex-1 focus:ring-0 border-none p-0" />
@@ -2034,19 +2051,19 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                       )}
                     </div>
                     <div className="flex flex-col gap-3">
-                      <button onClick={() => handleSaveTemplate(tpl.id)} disabled={savingStatus[tpl.id] === 'SAVING'} className={`px-10 py-4 rounded-2xl font-black uppercase text-[11px] tracking-widest shadow-xl transition-all active:scale-95 ${savingStatus[tpl.id] === 'SAVED' ? 'bg-green-600 text-white' : 'bg-[#001F3F] text-white'}`}>
+                      <button onClick={() => handleSaveTemplate(tpl.id)} disabled={savingStatus[tpl.id] === 'SAVING'} className={`px-10 py-4 rounded-xl font-black uppercase text-[11px] tracking-widest shadow-md transition-all active:scale-95 ${savingStatus[tpl.id] === 'SAVED' ? 'bg-green-600 text-white' : 'bg-[#001F3F] text-white'}`}>
                         {savingStatus[tpl.id] === 'SAVING' ? <RefreshCw className="animate-spin" size={18}/> : <Save size={18}/>}
                         <span className="ml-2">{savingStatus[tpl.id] === 'SAVING' ? 'Syncing...' : 'Save Changes'}</span>
                       </button>
-                      <button onClick={() => setDeleteConfirm({ type: 'TEMPLATE', id: tpl.id, title: tpl.name })} className="px-10 py-4 bg-red-50 text-red-600 rounded-2xl font-black uppercase text-[11px] tracking-widest hover:bg-red-100 transition-all">Delete Protocol</button>
+                      <button onClick={() => setDeleteConfirm({ type: 'TEMPLATE', id: tpl.id, title: tpl.name })} className="px-10 py-4 bg-red-50 text-red-600 rounded-xl font-black uppercase text-[11px] tracking-widest hover:bg-red-100 transition-all">Delete Protocol</button>
                     </div>
                   </div>
 
                   {/* Task list - only show when expanded */}
                   {isExpanded && (
-                    <div className="p-8 space-y-4">
+                    <div className="p-6space-y-4">
                     {tpl.tasks.map((task, taskIndex) => (
-                      <div key={task.id} className="flex items-center gap-4 bg-neutral-50/50 p-5 rounded-2xl border border-neutral-100 hover:bg-white transition-all shadow-sm group/task">
+                      <div key={task.id} className="flex items-center gap-4 bg-neutral-50/50 p-5 rounded-xl border border-neutral-100 hover:bg-white transition-all shadow-sm group/task">
                         <div className="flex flex-col gap-1">
                           <button
                             onClick={() => {
@@ -2140,7 +2157,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                     <button onClick={() => {
                       const newTask: ChecklistTask = { id: `t-${Date.now()}`, title: 'New Task Standard', requiresPhoto: false, isCritical: false };
                       handleUpdateTemplateLocal(tpl.id, { tasks: [...tpl.tasks, newTask] });
-                    }} className="w-full py-6 border-2 border-dashed border-neutral-200 rounded-2xl text-neutral-400 font-black uppercase text-[10px] tracking-[0.2em] hover:bg-neutral-50 hover:text-[#001F3F] hover:border-[#001F3F] transition-all flex items-center justify-center gap-2"><Plus size={18}/> Append Standard</button>
+                    }} className="w-full py-6 border-2 border-dashed border-neutral-200 rounded-xl text-neutral-400 font-black uppercase text-[10px] tracking-[0.2em] hover:bg-neutral-50 hover:text-[#001F3F] hover:border-[#001F3F] transition-all flex items-center justify-center gap-2"><Plus size={18}/> Append Standard</button>
                   </div>
                   )}
                 </div>
@@ -2159,10 +2176,10 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
           const hasCashData = totalCashSales > 0 || totalCashRemoved > 0;
 
           return (
-            <section className="animate-in fade-in space-y-8">
+            <section className="animate-in fade-in space-y-6">
               {/* Theft Detection Alert */}
               {hasCashData && expectedCashOnHand > 500 && (
-                <div className="bg-yellow-50 border-2 border-yellow-300 rounded-2xl p-6">
+                <div className="bg-yellow-50 border-2 border-yellow-300 rounded-xl p-6">
                   <div className="flex items-start gap-4">
                     <div className="w-12 h-12 bg-yellow-500 text-white rounded-xl flex items-center justify-center shrink-0">
                       <AlertOctagon size={24} />
@@ -2179,7 +2196,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
               )}
 
               {/* Header */}
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-8 rounded-[2rem] border border-neutral-100 shadow-sm">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-xl border border-neutral-100 shadow-sm">
                 <div>
                   <h2 className="text-2xl font-black text-[#001F3F] uppercase tracking-tight flex items-center gap-3">
                     <DollarSign size={28} />
@@ -2195,7 +2212,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                     setShowDepositForm(!showDepositForm);
                   }}
                   disabled={!hasCashData}
-                  className="px-8 py-4 bg-[#001F3F] text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-blue-900 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg flex items-center gap-2"
+                  className="px-8 py-4 bg-[#001F3F] text-white rounded-xl font-black uppercase text-xs tracking-widest hover:bg-blue-900 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg flex items-center gap-2"
                 >
                   <Plus size={18} />
                   {showDepositForm ? 'Cancel' : 'Record Deposit'}
@@ -2204,25 +2221,25 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
 
               {/* Expected Cash Breakdown */}
               {hasCashData && (
-                <div className="bg-white p-8 rounded-[2rem] border border-neutral-100 shadow-sm">
+                <div className="bg-white p-6 rounded-xl border border-neutral-100 shadow-sm">
                   <h3 className="text-lg font-black text-[#001F3F] uppercase tracking-tight mb-6">Current Cash Status</h3>
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                    <div className="bg-green-50 p-6 rounded-2xl border-2 border-green-200">
+                    <div className="bg-green-50 p-6 rounded-xl border-2 border-green-200">
                       <p className="text-[10px] font-black uppercase tracking-widest text-green-600 mb-2">Cash Sales</p>
                       <p className="text-3xl font-black text-green-700">${totalCashSales.toFixed(2)}</p>
                       <p className="text-xs text-green-600 mt-2">Money in</p>
                     </div>
-                    <div className="bg-red-50 p-6 rounded-2xl border-2 border-red-200">
+                    <div className="bg-red-50 p-6 rounded-xl border-2 border-red-200">
                       <p className="text-[10px] font-black uppercase tracking-widest text-red-600 mb-2">Safe Drops</p>
                       <p className="text-3xl font-black text-red-700">${(toastCashData?.cashOut || 0).toFixed(2)}</p>
                       <p className="text-xs text-red-600 mt-2">To safe</p>
                     </div>
-                    <div className="bg-orange-50 p-6 rounded-2xl border-2 border-orange-200">
+                    <div className="bg-orange-50 p-6 rounded-xl border-2 border-orange-200">
                       <p className="text-[10px] font-black uppercase tracking-widest text-orange-600 mb-2">Pay/Tip Outs</p>
                       <p className="text-3xl font-black text-orange-700">${((toastCashData?.payOuts || 0) + (toastCashData?.tipOuts || 0)).toFixed(2)}</p>
                       <p className="text-xs text-orange-600 mt-2">Paid out</p>
                     </div>
-                    <div className={`p-6 rounded-2xl border-2 ${expectedCashOnHand >= 0 ? 'bg-blue-50 border-blue-200' : 'bg-red-50 border-red-300'}`}>
+                    <div className={`p-6 rounded-xl border-2 ${expectedCashOnHand >= 0 ? 'bg-blue-50 border-blue-200' : 'bg-red-50 border-red-300'}`}>
                       <p className={`text-[10px] font-black uppercase tracking-widest mb-2 ${expectedCashOnHand >= 0 ? 'text-blue-600' : 'text-red-600'}`}>Expected On Hand</p>
                       <p className={`text-3xl font-black ${expectedCashOnHand >= 0 ? 'text-blue-700' : 'text-red-700'}`}>${expectedCashOnHand.toFixed(2)}</p>
                       <p className={`text-xs mt-2 ${expectedCashOnHand >= 0 ? 'text-blue-600' : 'text-red-600'}`}>Should be in safe</p>
@@ -2239,7 +2256,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
 
               {/* Deposit Form */}
               {showDepositForm && (
-                <div className="bg-white p-8 rounded-[2rem] border border-neutral-100 shadow-sm">
+                <div className="bg-white p-6 rounded-xl border border-neutral-100 shadow-sm">
                   <h3 className="text-lg font-black text-[#001F3F] uppercase tracking-tight mb-6">Record Bank Deposit</h3>
                   <div className="space-y-6">
                     <div>
@@ -2289,7 +2306,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                       const status = Math.abs(variance) <= 10 ? 'PASS' : Math.abs(variance) <= 50 ? 'REVIEW' : 'FAIL';
 
                       return (
-                        <div className={`p-6 rounded-2xl ${status === 'PASS' ? 'bg-green-50 border-2 border-green-200' : status === 'REVIEW' ? 'bg-yellow-50 border-2 border-yellow-300' : 'bg-red-50 border-2 border-red-300'}`}>
+                        <div className={`p-6 rounded-xl ${status === 'PASS' ? 'bg-green-50 border-2 border-green-200' : status === 'REVIEW' ? 'bg-yellow-50 border-2 border-yellow-300' : 'bg-red-50 border-2 border-red-300'}`}>
                           <div className="flex items-center justify-between mb-4">
                             <div>
                               <p className="text-xs font-black uppercase tracking-widest text-neutral-600 mb-1">Variance</p>
@@ -2371,7 +2388,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                           }
                         }}
                         disabled={!depositFormData.actualDeposit || depositSaving}
-                        className="flex-1 px-8 py-4 bg-[#001F3F] text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-blue-900 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg"
+                        className="flex-1 px-8 py-4 bg-[#001F3F] text-white rounded-xl font-black uppercase text-xs tracking-widest hover:bg-blue-900 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg"
                       >
                         {depositSaving ? 'Saving...' : 'Save Deposit'}
                       </button>
@@ -2380,7 +2397,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                           setShowDepositForm(false);
                           setDepositFormData({ actualDeposit: '', notes: '' });
                         }}
-                        className="px-8 py-4 bg-neutral-100 text-neutral-600 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-neutral-200 transition-all"
+                        className="px-8 py-4 bg-neutral-100 text-neutral-600 rounded-xl font-black uppercase text-xs tracking-widest hover:bg-neutral-200 transition-all"
                       >
                         Cancel
                       </button>
@@ -2390,7 +2407,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
               )}
 
               {/* Deposit History */}
-              <div className="bg-white p-8 rounded-[2rem] border border-neutral-100 shadow-sm">
+              <div className="bg-white p-6 rounded-xl border border-neutral-100 shadow-sm">
                 <h3 className="text-lg font-black text-[#001F3F] uppercase tracking-tight mb-6">Deposit History</h3>
 
                 {cashDeposits.length === 0 ? (
@@ -2404,7 +2421,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                 ) : (
                   <div className="space-y-4">
                     {cashDeposits.map((deposit: any) => (
-                      <div key={deposit.id} className={`border-2 rounded-2xl p-6 ${deposit.status === 'PASS' ? 'border-green-200 bg-green-50' : deposit.status === 'REVIEW' ? 'border-yellow-200 bg-yellow-50' : 'border-red-200 bg-red-50'}`}>
+                      <div key={deposit.id} className={`border-2 rounded-xl p-6 ${deposit.status === 'PASS' ? 'border-green-200 bg-green-50' : deposit.status === 'REVIEW' ? 'border-yellow-200 bg-yellow-50' : 'border-red-200 bg-red-50'}`}>
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                           <div className="flex-1">
                             <div className="flex items-center gap-3 mb-3">

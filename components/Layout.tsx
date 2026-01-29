@@ -135,7 +135,7 @@ User Question: ${userMsg}`,
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-[#FAFAFA]">
       {/* Sidebar - Desktop */}
-      <aside className="hidden md:flex flex-col w-72 bg-[#001F3F] text-white fixed h-full shadow-2xl z-30">
+      <aside className="hidden md:flex flex-col w-72 bg-[#001F3F] text-white fixed h-full shadow-lg z-30">
         <div className="p-4 border-b border-white/10">
           <div className="flex items-center gap-3 mb-4">
             <div className="bg-white p-2 rounded-xl shadow-lg">
@@ -404,7 +404,7 @@ User Question: ${userMsg}`,
       {/* Mobile Profile Overlay */}
       {isProfileOpen && (
         <div className="md:hidden fixed inset-0 bg-[#001F3F]/60 backdrop-blur-md z-[60] p-6 flex flex-col justify-end animate-in fade-in slide-in-from-bottom-10 duration-300">
-          <div className="bg-white rounded-[2.5rem] p-8 space-y-6">
+          <div className="bg-white rounded-xl p-6space-y-6">
             <div className="flex items-center justify-between border-b border-neutral-100 pb-6">
               <div className="flex items-center gap-4">
                 <div className="w-16 h-16 rounded-[1.5rem] bg-[#001F3F] text-white flex items-center justify-center text-xl font-black">
@@ -417,14 +417,14 @@ User Question: ${userMsg}`,
               </div>
               <button 
                 onClick={() => setShowSettings(!showSettings)}
-                className={`p-3 rounded-2xl transition-all ${showSettings ? 'bg-[#001F3F] text-white' : 'bg-neutral-50 text-neutral-400'}`}
+                className={`p-3 rounded-xl transition-all ${showSettings ? 'bg-[#001F3F] text-white' : 'bg-neutral-50 text-neutral-400'}`}
               >
                 <Settings size={20} />
               </button>
             </div>
 
             {showSettings && (
-              <div className="p-5 bg-neutral-50 rounded-3xl border border-neutral-100 space-y-4 animate-in slide-in-from-top-4">
+              <div className="p-5 bg-neutral-50 rounded-xl border border-neutral-100 space-y-4 animate-in slide-in-from-top-4">
                 <div>
                   <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest mb-2 block px-1">Update Home Campus</label>
                   <select 
@@ -442,7 +442,7 @@ User Question: ${userMsg}`,
 
             <button 
               onClick={onLogout}
-              className="w-full flex items-center justify-center gap-3 px-6 py-5 rounded-2xl bg-red-50 text-red-600 font-black uppercase tracking-widest text-xs active:scale-95 transition-transform"
+              className="w-full flex items-center justify-center gap-3 px-6 py-5 rounded-xl bg-red-50 text-red-600 font-black uppercase tracking-widest text-xs active:scale-95 transition-transform"
             >
               <LogOut size={18} /> Logout Session
             </button>
@@ -462,7 +462,7 @@ User Question: ${userMsg}`,
       {/* PWA Install Banner (Mobile Only) */}
       {showInstallBanner && (
         <div className="md:hidden fixed bottom-24 left-4 right-4 z-[55] animate-in slide-in-from-bottom-20 duration-500">
-          <div className="bg-[#001F3F] text-white p-6 rounded-[2rem] shadow-2xl border border-white/10 relative overflow-hidden">
+          <div className="bg-[#001F3F] text-white p-6 rounded-xl shadow-lg border border-white/10 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-blue-400/10 rounded-full blur-2xl -mr-16 -mt-16" />
             
             <button 
@@ -523,7 +523,7 @@ User Question: ${userMsg}`,
       {/* Mobile Floating Action Button for Chat */}
       <button
         onClick={() => setChatOpen(true)}
-        className="md:hidden fixed bottom-16 right-3 w-12 h-12 bg-[#001F3F] text-white rounded-full shadow-2xl flex items-center justify-center z-40 active:scale-90 transition-transform border border-white/10"
+        className="md:hidden fixed bottom-16 right-3 w-12 h-12 bg-[#001F3F] text-white rounded-full shadow-lg flex items-center justify-center z-40 active:scale-90 transition-transform border border-white/10"
       >
         <Brain size={20} />
       </button>
@@ -555,7 +555,7 @@ User Question: ${userMsg}`,
       {/* Barista Brain Chat Modal */}
       {chatOpen && (
         <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-3 sm:p-6 bg-[#001F3F]/60 backdrop-blur-md animate-in fade-in duration-300">
-          <div className="bg-white w-full max-w-xl rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col h-[80vh] sm:h-[600px] border border-white/20">
+          <div className="bg-white w-full max-w-xl rounded-xl shadow-lg overflow-hidden flex flex-col h-[80vh] sm:h-[600px] border border-white/20">
             <header className="p-6 bg-[#001F3F] text-white flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <Brain size={24} className="text-blue-300" />
@@ -571,7 +571,7 @@ User Question: ${userMsg}`,
 
             <div className="flex-1 overflow-y-auto p-6 space-y-4 no-scrollbar">
               {chatMessages.length === 0 && (
-                <div className="h-full flex flex-col items-center justify-center text-center p-8 space-y-4">
+                <div className="h-full flex flex-col items-center justify-center text-center p-6space-y-4">
                   <Sparkles size={40} className="text-blue-100" />
                   <p className="text-neutral-400 font-bold uppercase tracking-widest text-[10px]">
                     Ask me about recipes, greeting scripts, or espresso mastery.
@@ -580,7 +580,7 @@ User Question: ${userMsg}`,
               )}
               {chatMessages.map((msg, i) => (
                 <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom-2`}>
-                  <div className={`max-w-[85%] p-4 rounded-2xl text-xs font-medium leading-relaxed ${
+                  <div className={`max-w-[85%] p-4 rounded-xl text-xs font-medium leading-relaxed ${
                     msg.role === 'user' 
                       ? 'bg-[#001F3F] text-white rounded-tr-none' 
                       : 'bg-neutral-100 text-[#001F3F] rounded-tl-none'
@@ -599,7 +599,7 @@ User Question: ${userMsg}`,
                   placeholder="What is the greeting script?"
                   value={chatInput}
                   onChange={(e) => setChatInput(e.target.value)}
-                  className="w-full bg-white border border-neutral-100 rounded-2xl pl-4 pr-14 py-4 font-bold text-[#001F3F] outline-none"
+                  className="w-full bg-white border border-neutral-100 rounded-xl pl-4 pr-14 py-4 font-bold text-[#001F3F] outline-none"
                 />
                 <button type="submit" disabled={isTyping} className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-[#001F3F] text-white rounded-xl shadow-lg active:scale-90 transition-all disabled:opacity-50">
                   <Send size={18} strokeWidth={3} />
