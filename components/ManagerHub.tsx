@@ -769,55 +769,57 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
         {activeSubTab === 'dashboard' && (
           <div className="space-y-6 animate-in fade-in duration-500">
             {/* Live Store Performance - Top Priority */}
-            <section className="bg-gradient-to-br from-blue-600 to-indigo-700 p-8 rounded-[2.5rem] shadow-xl text-white">
-              <div className="flex items-center justify-between mb-8">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-white/20 rounded-xl"><Gauge size={20} /></div>
-                  <h2 className="text-xl font-black uppercase tracking-tight">Live Store Performance</h2>
+            <section className="bg-gradient-to-br from-blue-600 to-indigo-700 p-4 sm:p-8 rounded-[2rem] sm:rounded-[2.5rem] shadow-xl text-white">
+              <div className="flex items-center justify-between mb-4 sm:mb-8">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <div className="p-1.5 sm:p-2 bg-white/20 rounded-lg sm:rounded-xl"><Gauge size={16} /></div>
+                  <h2 className="text-base sm:text-xl font-black uppercase tracking-tight">Live Store Performance</h2>
                 </div>
-                <div className="flex items-center gap-2 bg-white/20 backdrop-blur-sm px-3 py-1.5 rounded-full">
+                <div className="flex items-center gap-1.5 sm:gap-2 bg-white/20 backdrop-blur-sm px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full">
                   <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                  <span className="text-[10px] font-black uppercase tracking-widest">Live</span>
+                  <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest">Live</span>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6">
                 {/* Today's Sales */}
-                <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
-                  <div className="flex items-center gap-2 mb-3">
-                    <DollarSign size={16} className="text-green-300" />
-                    <h3 className="text-[10px] font-black uppercase tracking-widest text-white/80">Today's Sales</h3>
+                <div className="bg-white/10 backdrop-blur-sm rounded-xl sm:rounded-2xl p-3 sm:p-6 border border-white/20">
+                  <div className="flex items-center gap-1.5 sm:gap-2 mb-1.5 sm:mb-3">
+                    <DollarSign size={14} className="text-green-300 sm:hidden" />
+                    <DollarSign size={16} className="text-green-300 hidden sm:block" />
+                    <h3 className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-white/80">Today's Sales</h3>
                   </div>
-                  <div className="text-3xl font-black mb-2">${toastSales?.totalSales?.toFixed(0) || '—'}</div>
-                  <div className="text-[10px] font-bold text-white/60">
+                  <div className="text-xl sm:text-3xl font-black mb-1 sm:mb-2">${toastSales?.totalSales?.toFixed(0) || '—'}</div>
+                  <div className="text-[9px] sm:text-[10px] font-bold text-white/60">
                     {toastSales?.totalOrders || 0} orders • ${toastSales?.averageCheck?.toFixed(2) || '—'} avg
                   </div>
                   {salesComparison && (
-                    <div className={`mt-2 flex items-center gap-1.5 text-[9px] font-black ${
+                    <div className={`mt-1.5 sm:mt-2 flex items-center gap-1 sm:gap-1.5 text-[8px] sm:text-[9px] font-black ${
                       salesComparison.salesPercent >= 0 ? 'text-green-300' : 'text-red-300'
                     }`}>
-                      {salesComparison.salesPercent >= 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
+                      {salesComparison.salesPercent >= 0 ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
                       <span>
-                        {salesComparison.salesPercent >= 0 ? '+' : ''}{salesComparison.salesPercent.toFixed(1)}% vs last week
+                        {salesComparison.salesPercent >= 0 ? '+' : ''}{salesComparison.salesPercent.toFixed(1)}% vs last wk
                       </span>
                     </div>
                   )}
                 </div>
 
                 {/* Turn Time - Critical Metric */}
-                <div className={`backdrop-blur-sm rounded-2xl p-6 border-2 ${
+                <div className={`backdrop-blur-sm rounded-xl sm:rounded-2xl p-3 sm:p-6 border-2 ${
                   !toastSales?.averageTurnTime ? 'bg-white/10 border-white/20' :
                   toastSales.averageTurnTime < 3.5 ? 'bg-green-500/30 border-green-300' :
                   toastSales.averageTurnTime < 5 ? 'bg-blue-500/30 border-blue-300' :
                   toastSales.averageTurnTime < 6 ? 'bg-amber-500/30 border-amber-300' :
                   'bg-red-500/30 border-red-300'
                 }`}>
-                  <div className="flex items-center gap-2 mb-3">
-                    <Timer size={16} className="text-white" />
-                    <h3 className="text-[10px] font-black uppercase tracking-widest text-white/80">Turn Time</h3>
+                  <div className="flex items-center gap-1.5 sm:gap-2 mb-1.5 sm:mb-3">
+                    <Timer size={14} className="text-white sm:hidden" />
+                    <Timer size={16} className="text-white hidden sm:block" />
+                    <h3 className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-white/80">Turn Time</h3>
                   </div>
-                  <div className="text-3xl font-black mb-2">{toastSales?.averageTurnTime?.toFixed(1) || '—'}<span className="text-xl ml-1">min</span></div>
-                  <div className="text-[10px] font-bold text-white/80">
+                  <div className="text-xl sm:text-3xl font-black mb-1 sm:mb-2">{toastSales?.averageTurnTime?.toFixed(1) || '—'}<span className="text-sm sm:text-xl ml-1">min</span></div>
+                  <div className="text-[9px] sm:text-[10px] font-bold text-white/80">
                     {!toastSales?.averageTurnTime ? 'No data' :
                      toastSales.averageTurnTime < 3.5 ? 'Excellent (40pts)' :
                      toastSales.averageTurnTime < 5 ? 'Good (35pts)' :
@@ -826,22 +828,24 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                 </div>
 
                 {/* Staff Clocked In */}
-                <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Users size={16} className="text-blue-300" />
-                    <h3 className="text-[10px] font-black uppercase tracking-widest text-white/80">Staff On Duty</h3>
+                <div className="bg-white/10 backdrop-blur-sm rounded-xl sm:rounded-2xl p-3 sm:p-6 border border-white/20">
+                  <div className="flex items-center gap-1.5 sm:gap-2 mb-1.5 sm:mb-3">
+                    <Users size={14} className="text-blue-300 sm:hidden" />
+                    <Users size={16} className="text-blue-300 hidden sm:block" />
+                    <h3 className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-white/80">Staff On Duty</h3>
                   </div>
-                  <div className="text-3xl font-black mb-2">{toastClockedIn.length}</div>
-                  <div className="text-[10px] font-bold text-white/60 truncate">
+                  <div className="text-xl sm:text-3xl font-black mb-1 sm:mb-2">{toastClockedIn.length}</div>
+                  <div className="text-[9px] sm:text-[10px] font-bold text-white/60 truncate">
                     {toastClockedIn.length > 0 ? toastClockedIn.slice(0, 2).map(e => e.employeeName.split(' ')[0]).join(', ') + (toastClockedIn.length > 2 ? '...' : '') : 'No one clocked in'}
                   </div>
                 </div>
 
                 {/* Current Leader */}
-                <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Trophy size={16} className="text-amber-300" />
-                    <h3 className="text-[10px] font-black uppercase tracking-widest text-white/80">Shift Leader</h3>
+                <div className="bg-white/10 backdrop-blur-sm rounded-xl sm:rounded-2xl p-3 sm:p-6 border border-white/20">
+                  <div className="flex items-center gap-1.5 sm:gap-2 mb-1.5 sm:mb-3">
+                    <Trophy size={14} className="text-amber-300 sm:hidden" />
+                    <Trophy size={16} className="text-amber-300 hidden sm:block" />
+                    <h3 className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-white/80">Shift Leader</h3>
                   </div>
                   {(() => {
                     const leaders = detectLeaders(toastClockedIn, allUsers);
@@ -851,8 +855,8 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                     if (activeLeaders.length === 0) {
                       return (
                         <>
-                          <div className="text-2xl font-black mb-2">—</div>
-                          <div className="text-[10px] font-bold text-amber-300">No leader on duty</div>
+                          <div className="text-lg sm:text-2xl font-black mb-1 sm:mb-2">—</div>
+                          <div className="text-[9px] sm:text-[10px] font-bold text-amber-300">No leader on duty</div>
                         </>
                       );
                     }
@@ -860,16 +864,16 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                     if (activeLeaders.length > 1) {
                       return (
                         <>
-                          <div className="text-lg font-black mb-2">Multiple</div>
-                          <div className="text-[10px] font-bold text-red-300">⚠️ {activeLeaders.length} leaders</div>
+                          <div className="text-base sm:text-lg font-black mb-1 sm:mb-2">Multiple</div>
+                          <div className="text-[9px] sm:text-[10px] font-bold text-red-300">⚠️ {activeLeaders.length} leaders</div>
                         </>
                       );
                     }
 
                     return (
                       <>
-                        <div className="text-lg font-black mb-2 truncate">{activeLeaders[0].name}</div>
-                        <div className="text-[10px] font-bold text-white/60 truncate">{activeLeaders[0].jobTitle}</div>
+                        <div className="text-base sm:text-lg font-black mb-1 sm:mb-2 truncate">{activeLeaders[0].name}</div>
+                        <div className="text-[9px] sm:text-[10px] font-bold text-white/60 truncate">{activeLeaders[0].jobTitle}</div>
                       </>
                     );
                   })()}
