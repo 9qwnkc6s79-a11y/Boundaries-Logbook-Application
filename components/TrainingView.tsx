@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { TrainingModule, Lesson, UserProgress, QuizQuestion, ChecklistItem, PracticeSubmission } from '../types';
+import { TrainingModule, Lesson, UserProgress, QuizQuestion, ChecklistItem, PracticeSubmission, User } from '../types';
 import { CheckCircle2, Clock, ChevronRight, Play, BookOpen, PenTool, ClipboardCheck, ArrowLeft, RefreshCw, XCircle, Video, Settings, Plus, Save, Trash2, Edit3, X, Zap, Target, Eye, EyeOff, Trash, Check, Square, CheckSquare, Circle, Dot, Upload, FileText, File as FileIcon, GripVertical, AlertTriangle, Camera, Loader2, Search, Filter, Award, Users as UsersIcon, TrendingUp, Star, MessageSquare, Image as ImageIcon, Pause, PlayCircle, History, Medal, Trophy, Activity, CloudOff, RotateCcw, Store } from 'lucide-react';
 import { db } from '../services/db';
 
@@ -11,9 +11,11 @@ interface TrainingViewProps {
   canEdit?: boolean;
   onUpdateCurriculum?: (curriculum: TrainingModule[]) => void;
   onResetLessonProgress?: (lessonId: string) => void;
+  allUsers?: User[];
+  allProgress?: UserProgress[];
 }
 
-const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCompleteLesson, canEdit, onUpdateCurriculum, onResetLessonProgress }) => {
+const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCompleteLesson, canEdit, onUpdateCurriculum, onResetLessonProgress, allUsers = [], allProgress = [] }) => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
   const [timerActive, setTimerActive] = useState(false);
