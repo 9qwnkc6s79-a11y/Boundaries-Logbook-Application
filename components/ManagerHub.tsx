@@ -1,10 +1,10 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { User, ChecklistSubmission, ChecklistTemplate, ChecklistTask, UserRole, TrainingModule, UserProgress, ManualSection, Recipe, Store, ToastSalesData, ToastLaborEntry, ToastTimeEntry, CashDeposit } from '../types';
+import { User, ChecklistSubmission, ChecklistTemplate, ChecklistTask, UserRole, TrainingModule, UserProgress, ManualSection, Recipe, Store, ToastSalesData, ToastLaborEntry, ToastTimeEntry, CashDeposit, GoogleReview, TrackedGoogleReview, GoogleReviewsData } from '../types';
 import {
   CheckCircle2, AlertCircle, Eye, User as UserIcon, Calendar, Check, X,
   Sparkles, Settings, Plus, Trash2, Edit3, BarChart3, ListTodo, BrainCircuit, Clock, TrendingDown, TrendingUp,
   ArrowRight, MessageSquare, Save, Users, LayoutDashboard, Flag, Activity, GraduationCap, Award, FileText, MoveUp, MoveDown, Coffee, Camera, Hash, AlertTriangle, ExternalLink, FileText as FileIcon, Image as ImageIcon, Search, ShieldCheck,
-  RefreshCw, RotateCcw, CalendarDays, Timer, Store as StoreIcon, MapPin, GripVertical, AlertOctagon, Info, Zap, Gauge, History, SearchCheck, ChevronUp, ChevronDown, ClipboardList, DollarSign, TrendingUp as TrendingUpIcon, UserCheck, Target, Trophy
+  RefreshCw, RotateCcw, CalendarDays, Timer, Store as StoreIcon, MapPin, GripVertical, AlertOctagon, Info, Zap, Gauge, History, SearchCheck, ChevronUp, ChevronDown, ClipboardList, DollarSign, TrendingUp as TrendingUpIcon, UserCheck, Target, Trophy, Star
 } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
 import { toastAPI } from '../services/toast';
@@ -61,6 +61,9 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
   } | null>(null);
   const [photoComment, setPhotoComment] = useState('');
   const [savingComment, setSavingComment] = useState(false);
+
+  // Google Reviews State
+  const [googleReviewsData, setGoogleReviewsData] = useState<GoogleReviewsData>({ trackedReviews: [], lastPolled: {} });
 
   // Cash Deposit State
   const [cashDeposits, setCashDeposits] = useState<CashDeposit[]>([]);
@@ -638,6 +641,81 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
     }, 2 * 60 * 1000); // 2 minutes for faster updates
     return () => clearInterval(interval);
   }, [currentStoreId]); // Re-fetch when campus changes
+
+  // Google Reviews: process and attribute new reviews to shift leaders
+  const processGoogleReviews = async () => {
+    const location = currentStoreId === 'store-prosper' ? 'prosper' : 'littleelm';
+    try {
+      const response = await fetch(`/api/google-reviews?location=${location}`);
+      if (!response.ok) return;
+      const { reviews: freshReviews, configured } = await response.json();
+      if (!configured || !freshReviews?.length) return;
+
+      const stored = await db.fetchGoogleReviews();
+      const existingIds = new Set(stored.trackedReviews.map((r: TrackedGoogleReview) => r.id));
+
+      const newReviews = freshReviews.filter((r: GoogleReview) => {
+        const compositeId = `${r.authorName}::${r.publishTime}`;
+        return !existingIds.has(compositeId);
+      });
+
+      // Update lastPolled even if no new reviews
+      stored.lastPolled[location] = new Date().toISOString();
+
+      if (newReviews.length === 0) {
+        await db.pushGoogleReviews(stored);
+        return;
+      }
+
+      console.log(`[Reviews] Found ${newReviews.length} new review(s) for ${location}`);
+
+      const leaders = detectLeaders(toastClockedIn, allUsers);
+      const primaryLeader = leaders.length > 0 ? leaders[0] : null;
+
+      const trackedNew: TrackedGoogleReview[] = newReviews.map((r: GoogleReview) => {
+        const isFiveStar = r.rating === 5;
+        const hasLeader = primaryLeader !== null;
+        return {
+          id: `${r.authorName}::${r.publishTime}`,
+          storeId: currentStoreId,
+          location,
+          authorName: r.authorName,
+          rating: r.rating,
+          text: r.text,
+          publishTime: r.publishTime,
+          detectedAt: new Date().toISOString(),
+          attributedToUserId: hasLeader ? primaryLeader.userId : null,
+          attributedToName: hasLeader ? primaryLeader.name : null,
+          bonusAwarded: isFiveStar && hasLeader,
+          bonusPoints: (isFiveStar && hasLeader) ? 50 : 0,
+        };
+      });
+
+      stored.trackedReviews = [...trackedNew, ...stored.trackedReviews];
+      await db.pushGoogleReviews(stored);
+      setGoogleReviewsData(stored);
+
+      console.log(`[Reviews] Saved ${trackedNew.length} review(s). ${trackedNew.filter(r => r.bonusAwarded).length} bonus(es) awarded.`);
+    } catch (error) {
+      console.error('[Reviews] Error processing reviews:', error);
+    }
+  };
+
+  // Google Reviews polling — load on mount, then poll every 3 minutes
+  useEffect(() => {
+    db.fetchGoogleReviews().then(data => setGoogleReviewsData(data));
+
+    const timeout = setTimeout(() => {
+      processGoogleReviews();
+    }, 10000); // Wait 10s for Toast data to populate first
+
+    const interval = setInterval(processGoogleReviews, 3 * 60 * 1000);
+
+    return () => {
+      clearTimeout(timeout);
+      clearInterval(interval);
+    };
+  }, [currentStoreId]);
 
   // Fetch Toast Cash Entry Data
   const fetchCashData = async () => {
@@ -1703,7 +1781,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
               </div>
 
               {(() => {
-                const leaderboard = calculateLeaderboard(submissions, templates, allUsers, 7);
+                const leaderboard = calculateLeaderboard(submissions, templates, allUsers, 7, googleReviewsData.trackedReviews);
 
                 if (leaderboard.length === 0) {
                   return (
@@ -1772,18 +1850,95 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                                 {leader.shiftsWithToastData > 0 ? `${leader.avgTicketScoreValue.toFixed(0)}/25` : 'N/A'}
                               </div>
                             </div>
+                            <div className="text-center flex-1 md:flex-initial md:text-right">
+                              <div className="text-[8px] font-black text-neutral-400 uppercase tracking-widest mb-1">Reviews</div>
+                              <div className={`text-sm md:text-base font-black ${
+                                leader.reviewBonusPoints > 0 ? 'text-yellow-500' : 'text-neutral-300'
+                              }`}>
+                                {leader.reviewBonusPoints > 0 ? `+${leader.reviewBonusPoints}` : '—'}
+                              </div>
+                              {leader.fiveStarReviewCount > 0 && (
+                                <div className="text-[7px] text-yellow-600 font-bold mt-0.5">{leader.fiveStarReviewCount}x 5-star</div>
+                              )}
+                            </div>
                             <div className="text-center flex-1 md:flex-initial md:text-right border-l border-neutral-200 pl-4">
                               <div className="text-[8px] font-black text-neutral-400 uppercase tracking-widest mb-1">Score</div>
                               <div className={`text-lg md:text-2xl font-black ${
-                                leader.compositePercent >= 90 ? 'text-green-600' :
-                                leader.compositePercent >= 70 ? 'text-blue-600' :
-                                leader.compositePercent >= 50 ? 'text-amber-600' : 'text-red-600'
+                                leader.effectiveScore >= 90 ? 'text-green-600' :
+                                leader.effectiveScore >= 70 ? 'text-blue-600' :
+                                leader.effectiveScore >= 50 ? 'text-amber-600' : 'text-red-600'
                               }`}>
-                                {leader.compositePercent.toFixed(0)}
-                                <span className="text-xs text-neutral-400 font-bold">/105</span>
+                                {leader.effectiveScore.toFixed(0)}
                               </div>
                             </div>
                           </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+            </section>
+
+            {/* Recent Google Reviews */}
+            <section className="bg-white p-4 md:p-6 rounded-xl border border-neutral-100 shadow-sm">
+              <div className="flex items-center gap-3 mb-4 md:mb-6">
+                <div className="p-2 bg-yellow-50 text-yellow-600 rounded-xl"><Star size={20} /></div>
+                <h2 className="text-lg font-black text-[#001F3F] uppercase tracking-tight">Google Reviews</h2>
+                <span className="text-[9px] font-black text-neutral-400 uppercase tracking-widest ml-auto">
+                  {googleReviewsData.trackedReviews.filter(r => r.storeId === currentStoreId).length} tracked
+                </span>
+              </div>
+
+              {(() => {
+                const storeReviews = googleReviewsData.trackedReviews
+                  .filter(r => r.storeId === currentStoreId)
+                  .sort((a, b) => new Date(b.detectedAt).getTime() - new Date(a.detectedAt).getTime())
+                  .slice(0, 10);
+
+                if (storeReviews.length === 0) {
+                  return (
+                    <div className="text-center py-8">
+                      <Star size={40} className="text-neutral-200 mx-auto mb-3" />
+                      <p className="text-neutral-400 font-bold text-sm">No reviews tracked yet</p>
+                      <p className="text-neutral-300 text-xs mt-1">Reviews will appear here as they are detected from Google</p>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="space-y-3">
+                    {storeReviews.map(review => (
+                      <div key={review.id} className={`p-3 md:p-4 rounded-xl border ${
+                        review.rating === 5 ? 'bg-yellow-50 border-yellow-200' :
+                        review.rating >= 4 ? 'bg-green-50 border-green-200' :
+                        'bg-neutral-50 border-neutral-200'
+                      }`}>
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="font-black text-sm text-[#001F3F]">{review.authorName}</span>
+                              <span className="text-yellow-500 font-black text-sm">
+                                {'★'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)}
+                              </span>
+                            </div>
+                            {review.text && (
+                              <p className="text-xs text-neutral-600 line-clamp-2 mb-2">"{review.text}"</p>
+                            )}
+                            <div className="flex flex-wrap items-center gap-2 text-[9px] font-bold text-neutral-400 uppercase tracking-widest">
+                              <span>{new Date(review.detectedAt).toLocaleDateString()}</span>
+                              {review.attributedToName ? (
+                                <span className="text-blue-600">Credited to {review.attributedToName}</span>
+                              ) : (
+                                <span className="text-amber-600">No leader on duty</span>
+                              )}
+                            </div>
+                          </div>
+                          {review.bonusAwarded && (
+                            <div className="flex-shrink-0 bg-yellow-100 text-yellow-700 px-3 py-1.5 rounded-lg">
+                              <div className="text-xs font-black">+50 pts</div>
+                            </div>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -1799,42 +1954,52 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                 <h2 className="text-lg font-black text-[#001F3F] uppercase tracking-tight">Performance Scoring Guide</h2>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
-                <div className="bg-white p-4 md:p-6 rounded-xl border border-blue-100">
-                  <h3 className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-4">Timeliness (40 pts)</h3>
-                  <div className="space-y-2 text-xs">
-                    <div className="flex justify-between"><span className="font-bold text-neutral-600">On time:</span><span className="font-black text-green-600">+40 pts</span></div>
-                    <div className="flex justify-between"><span className="font-bold text-neutral-600">Late &lt;1hr:</span><span className="font-black text-red-600">-10 pts</span></div>
-                    <div className="flex justify-between"><span className="font-bold text-neutral-600">Late &gt;1hr:</span><span className="font-black text-red-600">-20 pts</span></div>
-                    <div className="flex justify-between"><span className="font-bold text-neutral-600">Not submitted:</span><span className="font-black text-neutral-400">0 pts</span></div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6">
+                <div className="bg-white p-3 md:p-6 rounded-xl border border-blue-100">
+                  <h3 className="text-[9px] md:text-[10px] font-black text-blue-600 uppercase tracking-widest mb-3 md:mb-4">Timeliness (40 pts)</h3>
+                  <div className="space-y-1.5 md:space-y-2 text-[10px] md:text-xs">
+                    <div className="flex justify-between"><span className="font-bold text-neutral-600">On time:</span><span className="font-black text-green-600">+40</span></div>
+                    <div className="flex justify-between"><span className="font-bold text-neutral-600">Late &lt;1hr:</span><span className="font-black text-red-600">-10</span></div>
+                    <div className="flex justify-between"><span className="font-bold text-neutral-600">Late &gt;1hr:</span><span className="font-black text-red-600">-20</span></div>
+                    <div className="flex justify-between"><span className="font-bold text-neutral-600">Missing:</span><span className="font-black text-neutral-400">0</span></div>
                   </div>
                 </div>
 
-                <div className="bg-white p-4 md:p-6 rounded-xl border border-blue-100">
-                  <h3 className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-4">Turn Time (40 pts)</h3>
-                  <div className="space-y-2 text-xs">
-                    <div className="flex justify-between"><span className="font-bold text-neutral-600">Under 3.5 min:</span><span className="font-black text-green-600">+40 pts</span></div>
-                    <div className="flex justify-between"><span className="font-bold text-neutral-600">3.5-4.5 min:</span><span className="font-black text-blue-600">+35 pts</span></div>
-                    <div className="flex justify-between"><span className="font-bold text-neutral-600">4.5-5 min:</span><span className="font-black text-red-600">-10 pts</span></div>
-                    <div className="flex justify-between"><span className="font-bold text-neutral-600">5+ min:</span><span className="font-black text-red-600">-20 pts</span></div>
+                <div className="bg-white p-3 md:p-6 rounded-xl border border-blue-100">
+                  <h3 className="text-[9px] md:text-[10px] font-black text-blue-600 uppercase tracking-widest mb-3 md:mb-4">Turn Time (40 pts)</h3>
+                  <div className="space-y-1.5 md:space-y-2 text-[10px] md:text-xs">
+                    <div className="flex justify-between"><span className="font-bold text-neutral-600">&lt;3.5 min:</span><span className="font-black text-green-600">+40</span></div>
+                    <div className="flex justify-between"><span className="font-bold text-neutral-600">3.5-4.5:</span><span className="font-black text-blue-600">+35</span></div>
+                    <div className="flex justify-between"><span className="font-bold text-neutral-600">4.5-5:</span><span className="font-black text-red-600">-10</span></div>
+                    <div className="flex justify-between"><span className="font-bold text-neutral-600">5+ min:</span><span className="font-black text-red-600">-20</span></div>
                   </div>
                 </div>
 
-                <div className="bg-white p-4 md:p-6 rounded-xl border border-blue-100">
-                  <h3 className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-4">Avg Ticket (25 pts)</h3>
-                  <div className="space-y-2 text-xs">
-                    <div className="flex justify-between"><span className="font-bold text-neutral-600">$10+:</span><span className="font-black text-green-600">+25 pts</span></div>
-                    <div className="flex justify-between"><span className="font-bold text-neutral-600">$8-10:</span><span className="font-black text-green-600">+20 pts</span></div>
-                    <div className="flex justify-between"><span className="font-bold text-neutral-600">$6-8:</span><span className="font-black text-blue-600">+15 pts</span></div>
-                    <div className="flex justify-between"><span className="font-bold text-neutral-600">$4-6:</span><span className="font-black text-amber-600">+5 pts</span></div>
-                    <div className="flex justify-between"><span className="font-bold text-neutral-600">Under $4:</span><span className="font-black text-neutral-400">0 pts</span></div>
+                <div className="bg-white p-3 md:p-6 rounded-xl border border-blue-100">
+                  <h3 className="text-[9px] md:text-[10px] font-black text-blue-600 uppercase tracking-widest mb-3 md:mb-4">Avg Ticket (25 pts)</h3>
+                  <div className="space-y-1.5 md:space-y-2 text-[10px] md:text-xs">
+                    <div className="flex justify-between"><span className="font-bold text-neutral-600">$10+:</span><span className="font-black text-green-600">+25</span></div>
+                    <div className="flex justify-between"><span className="font-bold text-neutral-600">$8-10:</span><span className="font-black text-green-600">+20</span></div>
+                    <div className="flex justify-between"><span className="font-bold text-neutral-600">$6-8:</span><span className="font-black text-blue-600">+15</span></div>
+                    <div className="flex justify-between"><span className="font-bold text-neutral-600">$4-6:</span><span className="font-black text-amber-600">+5</span></div>
+                    <div className="flex justify-between"><span className="font-bold text-neutral-600">&lt;$4:</span><span className="font-black text-neutral-400">0</span></div>
                   </div>
+                </div>
+
+                <div className="bg-white p-3 md:p-6 rounded-xl border border-yellow-200">
+                  <h3 className="text-[9px] md:text-[10px] font-black text-yellow-600 uppercase tracking-widest mb-3 md:mb-4">Google Reviews</h3>
+                  <div className="space-y-1.5 md:space-y-2 text-[10px] md:text-xs">
+                    <div className="flex justify-between"><span className="font-bold text-neutral-600">5-star:</span><span className="font-black text-yellow-600">+50</span></div>
+                    <div className="flex justify-between"><span className="font-bold text-neutral-600">Other:</span><span className="font-black text-neutral-400">0</span></div>
+                    <div className="flex justify-between"><span className="font-bold text-neutral-600">No leader:</span><span className="font-black text-neutral-400">N/A</span></div>
+                  </div>
+                  <p className="text-[8px] text-neutral-400 mt-2 font-bold">Flat bonus, not averaged</p>
                 </div>
               </div>
 
               <div className="mt-4 md:mt-6 bg-white/50 p-4 rounded-xl border border-blue-100">
                 <p className="text-xs font-bold text-neutral-600 leading-relaxed">
-                  <span className="font-black text-[#001F3F]">How it works:</span> Each shift earns up to 105 points across 3 categories. Poor turn times and late protocols carry <span className="font-black text-red-600">negative penalties</span> that drag your score down. Your score is the <span className="font-black">average</span> across all shifts — more shifts won't inflate your score. Toast metrics (Turn Time, Avg Ticket) are captured when protocols are submitted.
+                  <span className="font-black text-[#001F3F]">How it works:</span> Each shift earns up to 105 points across 3 categories. Poor turn times and late protocols carry <span className="font-black text-red-600">negative penalties</span>. Your score is the <span className="font-black">average</span> across all shifts. 5-star Google Reviews add a flat <span className="font-black text-yellow-600">+50 bonus</span> for the on-duty shift leader.
                 </p>
               </div>
             </section>

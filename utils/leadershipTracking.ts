@@ -2,7 +2,7 @@
  * Team Leader Performance & Accountability Utilities
  */
 
-import { ToastTimeEntry, User, ShiftOwnership, ChecklistTemplate, ChecklistSubmission } from '../types';
+import { ToastTimeEntry, User, ShiftOwnership, ChecklistTemplate, ChecklistSubmission, TrackedGoogleReview } from '../types';
 
 // Leadership hierarchy - lower number = higher priority
 // Exact match dictionary (case-insensitive) for known Toast POS job titles
@@ -253,6 +253,9 @@ export interface LeaderLeaderboardEntry {
   compositePercent: number;
   onTimeRate: number;
   shifts: LeaderShiftScore[];
+  reviewBonusPoints: number;
+  fiveStarReviewCount: number;
+  effectiveScore: number;
 }
 
 /**
@@ -266,7 +269,8 @@ export function calculateLeaderboard(
   submissions: ChecklistSubmission[],
   templates: ChecklistTemplate[],
   allUsers: User[],
-  lookbackDays: number = 7
+  lookbackDays: number = 7,
+  trackedReviews: TrackedGoogleReview[] = []
 ): LeaderLeaderboardEntry[] {
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - lookbackDays);
@@ -357,9 +361,27 @@ export function calculateLeaderboard(
       compositePercent,
       onTimeRate,
       shifts,
+      reviewBonusPoints: 0,
+      fiveStarReviewCount: 0,
+      effectiveScore: compositePercent,
     });
   });
 
-  // Sort by composite score descending
-  return entries.sort((a, b) => b.compositePercent - a.compositePercent);
+  // Calculate review bonuses (additive, not averaged per-shift)
+  const cutoffISO = cutoff.toISOString();
+  const recentReviews = trackedReviews.filter(r =>
+    r.detectedAt >= cutoffISO && r.bonusAwarded && r.attributedToUserId
+  );
+
+  recentReviews.forEach(review => {
+    const entry = entries.find(e => e.userId === review.attributedToUserId);
+    if (entry) {
+      entry.reviewBonusPoints += review.bonusPoints;
+      if (review.rating === 5) entry.fiveStarReviewCount += 1;
+      entry.effectiveScore = entry.compositePercent + entry.reviewBonusPoints;
+    }
+  });
+
+  // Sort by effective score (composite + review bonus) descending
+  return entries.sort((a, b) => b.effectiveScore - a.effectiveScore);
 }

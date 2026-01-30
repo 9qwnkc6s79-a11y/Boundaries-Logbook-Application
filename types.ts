@@ -358,3 +358,33 @@ export interface TeamLeaderPerformance {
   rank: number; // 1 = best, compared to other leaders
   trend: 'UP' | 'DOWN' | 'STABLE'; // Compared to last period
 }
+
+// Google Reviews Integration
+
+export interface GoogleReview {
+  authorName: string;
+  rating: number;
+  text: string;
+  publishTime: string;
+  profilePhotoUrl?: string;
+}
+
+export interface TrackedGoogleReview {
+  id: string;
+  storeId: string;
+  location: string;
+  authorName: string;
+  rating: number;
+  text: string;
+  publishTime: string;
+  detectedAt: string;
+  attributedToUserId: string | null;
+  attributedToName: string | null;
+  bonusAwarded: boolean;
+  bonusPoints: number;
+}
+
+export interface GoogleReviewsData {
+  trackedReviews: TrackedGoogleReview[];
+  lastPolled: Record<string, string>;
+}

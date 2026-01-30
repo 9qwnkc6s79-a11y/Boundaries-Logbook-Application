@@ -1,6 +1,6 @@
 
 // No imports needed - Firebase is loaded globally via CDN script tags in index.html
-import { User, UserProgress, ChecklistSubmission, ChecklistTemplate, TrainingModule, ManualSection, Recipe, CashDeposit } from '../types';
+import { User, UserProgress, ChecklistSubmission, ChecklistTemplate, TrainingModule, ManualSection, Recipe, CashDeposit, GoogleReviewsData } from '../types';
 
 declare const firebase: any;
 
@@ -43,6 +43,7 @@ const DOC_KEYS = {
   MANUAL: 'manual',
   RECIPES: 'recipes',
   DEPOSITS: 'deposits',
+  GOOGLE_REVIEWS: 'googleReviews',
 };
 
 function removeUndefined(obj: any): any {
@@ -313,6 +314,17 @@ class CloudAPI {
     const success = await this.remoteSet(DOC_KEYS.DEPOSITS, next);
     console.log(`[DB] pushDeposit END: success=${success}`);
     return success;
+  }
+
+  async fetchGoogleReviews(): Promise<GoogleReviewsData> {
+    return this.remoteGet(DOC_KEYS.GOOGLE_REVIEWS, { trackedReviews: [], lastPolled: {} });
+  }
+
+  async pushGoogleReviews(data: GoogleReviewsData): Promise<boolean> {
+    // Deduplicate by review ID before saving
+    const uniqueMap = new Map(data.trackedReviews.map(r => [r.id, r]));
+    data.trackedReviews = Array.from(uniqueMap.values());
+    return this.remoteSet(DOC_KEYS.GOOGLE_REVIEWS, data);
   }
 
   async globalSync(defaults: {
