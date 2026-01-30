@@ -110,6 +110,43 @@ async function fetchEmployees(token: string, restaurantGuid: string): Promise<Ma
   return employeeMap;
 }
 
+async function fetchJobs(token: string, restaurantGuid: string): Promise<Map<string, string>> {
+  const jobMap = new Map<string, string>();
+
+  try {
+    const response = await fetch('https://ws-api.toasttab.com/labor/v1/jobs', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Toast-Restaurant-External-ID': restaurantGuid,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      console.log(`[Toast Jobs] Failed to fetch jobs: ${response.status}`);
+      return jobMap;
+    }
+
+    const data = await response.json();
+    const jobs = Array.isArray(data) ? data : (data.jobs || []);
+
+    jobs.forEach((job: any) => {
+      const guid = job.guid || job.id;
+      const name = job.title || job.name || 'Unknown';
+      if (guid) {
+        jobMap.set(guid, name);
+      }
+    });
+
+    console.log(`[Toast Jobs] Fetched ${jobMap.size} jobs:`, Array.from(jobMap.entries()).map(([g, n]) => `${n} (${g.substring(0,8)}...)`).join(', '));
+  } catch (error: any) {
+    console.log(`[Toast Jobs] Error fetching jobs: ${error.message}`);
+  }
+
+  return jobMap;
+}
+
 export default async function handler(
   req: VercelRequest,
   res: VercelResponse
@@ -145,11 +182,12 @@ export default async function handler(
     // Labor API uses businessDate format (YYYYMMDD)
     const businessDate = startDateStr.replace(/-/g, '');
 
-    // Try each GUID until one works, fetch employees in parallel once found
+    // Try each GUID until one works, fetch employees + jobs in parallel once found
     let data: any = null;
     let lastError: any = null;
     let workingGuid: string | null = null;
     let employeePromise: Promise<Map<string, string>> | null = null;
+    let jobsPromise: Promise<Map<string, string>> | null = null;
 
     for (const guid of restaurantGuids) {
       try {
@@ -171,8 +209,9 @@ export default async function handler(
           throw new Error(`${response.status}: ${errorText}`);
         }
 
-        // Start employee fetch immediately in parallel while we parse time entries
+        // Start employee + jobs fetch immediately in parallel while we parse time entries
         employeePromise = fetchEmployees(token, guid);
+        jobsPromise = fetchJobs(token, guid);
 
         data = await response.json();
         workingGuid = guid;
@@ -184,10 +223,14 @@ export default async function handler(
       }
     }
 
-    // Await the parallel employee fetch
+    // Await the parallel employee + jobs fetch
     let employeeMap = new Map<string, string>();
+    let jobMap = new Map<string, string>();
     if (employeePromise) {
       employeeMap = await employeePromise;
+    }
+    if (jobsPromise) {
+      jobMap = await jobsPromise;
     }
 
     if (!data) {
@@ -236,10 +279,20 @@ export default async function handler(
         employeeName = 'Unknown';
       }
 
+      // Resolve job name: try inline name first, then look up GUID in jobs map
+      const jobGuid = entry.jobReference?.guid || entry.job?.guid || '';
+      let jobName = entry.jobReference?.name || entry.job?.name || '';
+      if (!jobName && jobGuid) {
+        jobName = jobMap.get(jobGuid) || '';
+      }
+      if (!jobName) {
+        jobName = 'Staff';
+      }
+
       return {
         employeeGuid: employeeGuid,
         employeeName: employeeName,
-        jobName: entry.jobReference?.name || entry.job?.name || 'Staff',
+        jobName: jobName,
         inDate: entry.inDate,
         outDate: entry.outDate || null,
         regularHours: entry.regularHours || 0,
