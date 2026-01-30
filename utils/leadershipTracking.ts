@@ -110,25 +110,25 @@ export function detectLeaders(clockedIn: ToastTimeEntry[], allUsers: User[]): Le
 
 /**
  * Calculate timeliness score based on submission delay
- * On-time: 40 pts, Late <1hr: 25 pts, Late >1hr: 10 pts, Not submitted: 0 pts
+ * On-time: 40 pts, Late <1hr: -10 pts, Late >1hr: -20 pts, Not submitted: 0 pts
  */
 export function calculateTimelinessScore(delayMinutes: number, wasSubmitted: boolean): number {
   if (!wasSubmitted) return 0;
   if (delayMinutes <= 0) return 40; // On time or early
-  if (delayMinutes <= 60) return 25; // Within 1 hour
-  return 10; // Over 1 hour late
+  if (delayMinutes <= 60) return -10; // Late within 1 hour
+  return -20; // Over 1 hour late
 }
 
 /**
  * Calculate turn time score
- * Under 3.5min: 40pts (Excellent), 3.5-5min: 35pts (Good), 5-6min: 25pts (Fair), 6+min: 15pts (Needs Improvement)
+ * Under 3.5min: 40pts, 3.5-4.5min: 35pts, 4.5-5min: -10pts, 5+min: -20pts
  */
 export function calculateTurnTimeScore(turnTimeMinutes: number | undefined): number {
   if (turnTimeMinutes === undefined) return 0;
   if (turnTimeMinutes < 3.5) return 40;
-  if (turnTimeMinutes < 5) return 35;
-  if (turnTimeMinutes < 6) return 25;
-  return 15;
+  if (turnTimeMinutes < 4.5) return 35;
+  if (turnTimeMinutes < 5) return -10;
+  return -20;
 }
 
 /**
@@ -143,15 +143,16 @@ export function calculateSalesScore(actualSales: number | undefined, target: num
 }
 
 /**
- * Calculate average ticket score
- * $8+: 20pts (Excellent), $6-8: 15pts (Good), $4-6: 10pts (Fair), <$4: 5pts (Needs Improvement)
+ * Calculate average ticket score — no negatives, generous rewards for high tickets
+ * $10+: 25pts (Exceptional), $8-10: 20pts, $6-8: 15pts, $4-6: 5pts, <$4: 0pts
  */
 export function calculateAvgTicketScore(avgTicket: number | undefined): number {
   if (avgTicket === undefined) return 0;
+  if (avgTicket >= 10) return 25;
   if (avgTicket >= 8) return 20;
   if (avgTicket >= 6) return 15;
-  if (avgTicket >= 4) return 10;
-  return 5;
+  if (avgTicket >= 4) return 5;
+  return 0;
 }
 
 /**
@@ -296,7 +297,7 @@ export function calculateLeaderboard(
     const turnTimeScore = hasToastData ? calculateTurnTimeScore(sub.toastSnapshot?.averageTurnTime) : 0;
     const avgTicketScore = hasToastData ? calculateAvgTicketScore(sub.toastSnapshot?.averageCheck) : 0;
 
-    const maxPossible = hasToastData ? 100 : 40;
+    const maxPossible = hasToastData ? 105 : 40;
     const totalScore = timelinessScore + turnTimeScore + avgTicketScore;
 
     const shiftScore: LeaderShiftScore = {

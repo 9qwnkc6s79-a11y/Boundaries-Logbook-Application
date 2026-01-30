@@ -788,31 +788,22 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
           <h1 className="text-3xl sm:text-4xl font-extrabold text-[#001F3F] uppercase tracking-tighter leading-none">Manager Hub</h1>
         </div>
 
-        {/* Tab navigation with scroll indicators */}
-        <div className="relative">
-          {/* Left fade gradient - mobile only */}
-          <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-white via-white/80 to-transparent z-10 pointer-events-none md:hidden" />
-
-          {/* Tabs */}
-          <div className="flex bg-neutral-100 p-1 rounded-xl sm:rounded-xl border border-neutral-200 overflow-x-auto no-scrollbar">
-            {[
-              { id: 'dashboard', label: 'DASHBOARD', icon: LayoutDashboard },
-              { id: 'compliance', label: 'COMPLIANCE', icon: Timer },
-              { id: 'performance', label: 'PERFORMANCE', icon: Target },
-              { id: 'staff', label: 'STAFF', icon: Users },
-              { id: 'gallery', label: 'AUDIT', icon: ImageIcon },
-              { id: 'cash-audit', label: 'CASH', icon: DollarSign },
-              { id: 'manual', label: 'MANUAL', icon: FileText },
-              { id: 'editor', label: 'PROTOCOLS', icon: Settings }
-            ].map(tab => (
-              <button key={tab.id} onClick={() => setActiveSubTab(tab.id as any)} className={`px-5 py-2.5 text-[9px] font-black rounded-lg transition-all flex items-center gap-2 whitespace-nowrap tracking-widest ${activeSubTab === tab.id ? 'bg-[#001F3F] text-white shadow-lg' : 'text-neutral-500 hover:text-[#001F3F]'}`}>
-                <tab.icon size={14} /> {tab.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Right fade gradient - mobile only */}
-          <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white via-white/80 to-transparent z-10 pointer-events-none md:hidden" />
+        {/* Tab navigation */}
+        <div className="flex bg-neutral-100 p-1 rounded-xl border border-neutral-200 overflow-x-auto no-scrollbar">
+          {[
+            { id: 'dashboard', label: 'DASHBOARD', icon: LayoutDashboard },
+            { id: 'compliance', label: 'COMPLIANCE', icon: Timer },
+            { id: 'performance', label: 'PERFORMANCE', icon: Target },
+            { id: 'staff', label: 'STAFF', icon: Users },
+            { id: 'gallery', label: 'AUDIT', icon: ImageIcon },
+            { id: 'cash-audit', label: 'CASH', icon: DollarSign },
+            { id: 'manual', label: 'MANUAL', icon: FileText },
+            { id: 'editor', label: 'PROTOCOLS', icon: Settings }
+          ].map(tab => (
+            <button key={tab.id} onClick={() => setActiveSubTab(tab.id as any)} className={`px-5 py-2.5 text-[9px] font-black rounded-lg transition-all flex items-center gap-2 whitespace-nowrap tracking-widest ${activeSubTab === tab.id ? 'bg-[#001F3F] text-white shadow-lg' : 'text-neutral-500 hover:text-[#001F3F]'}`}>
+              <tab.icon size={14} /> {tab.label}
+            </button>
+          ))}
         </div>
       </header>
 
@@ -860,8 +851,8 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                 <div className={`backdrop-blur-sm rounded-lg md:rounded-xl p-3 md:p-6 border-2 ${
                   !toastSales?.averageTurnTime ? 'bg-white/10 border-white/20' :
                   toastSales.averageTurnTime < 3.5 ? 'bg-green-500/30 border-green-300' :
-                  toastSales.averageTurnTime < 5 ? 'bg-blue-500/30 border-blue-300' :
-                  toastSales.averageTurnTime < 6 ? 'bg-amber-500/30 border-amber-300' :
+                  toastSales.averageTurnTime < 4.5 ? 'bg-blue-500/30 border-blue-300' :
+                  toastSales.averageTurnTime < 5 ? 'bg-amber-500/30 border-amber-300' :
                   'bg-red-500/30 border-red-300'
                 }`}>
                   <div className="flex items-center gap-1.5 mb-1.5 md:mb-3">
@@ -872,9 +863,9 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                   <div className="text-xl md:text-3xl font-black mb-1 md:mb-2">{toastSales?.averageTurnTime?.toFixed(1) || '—'}<span className="text-sm md:text-xl ml-0.5">min</span></div>
                   <div className="text-[8px] md:text-[10px] font-bold text-white/80">
                     {!toastSales?.averageTurnTime ? 'No data' :
-                     toastSales.averageTurnTime < 3.5 ? 'Excellent' :
-                     toastSales.averageTurnTime < 5 ? 'Good' :
-                     toastSales.averageTurnTime < 6 ? 'Fair' : 'Needs Work'}
+                     toastSales.averageTurnTime < 3.5 ? 'On Target' :
+                     toastSales.averageTurnTime < 4.5 ? 'Above Target' :
+                     toastSales.averageTurnTime < 5 ? 'Needs Improvement' : 'Critical'}
                   </div>
                 </div>
 
@@ -1661,12 +1652,12 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                           <div className="text-2xl font-black text-[#001F3F]">{toastSales.averageTurnTime?.toFixed(1) || '—'} min</div>
                           <div className={`text-[9px] font-bold uppercase tracking-wide mt-1 ${
                             (toastSales.averageTurnTime || 0) < 3.5 ? 'text-green-600' :
-                            (toastSales.averageTurnTime || 0) < 5 ? 'text-blue-600' :
-                            (toastSales.averageTurnTime || 0) < 6 ? 'text-amber-600' : 'text-red-600'
+                            (toastSales.averageTurnTime || 0) < 4.5 ? 'text-blue-600' :
+                            (toastSales.averageTurnTime || 0) < 5 ? 'text-amber-600' : 'text-red-600'
                           }`}>
                             {(toastSales.averageTurnTime || 0) < 3.5 ? '40 pts' :
-                             (toastSales.averageTurnTime || 0) < 5 ? '35 pts' :
-                             (toastSales.averageTurnTime || 0) < 6 ? '25 pts' : '15 pts'}
+                             (toastSales.averageTurnTime || 0) < 4.5 ? '35 pts' :
+                             (toastSales.averageTurnTime || 0) < 5 ? '-10 pts' : '-20 pts'}
                           </div>
                         </div>
                         <div className="bg-neutral-50 p-6 rounded-xl border border-neutral-200">
@@ -1688,9 +1679,10 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                           <div className="text-[10px] font-black text-neutral-400 uppercase tracking-widest mb-2">Avg Check</div>
                           <div className="text-2xl font-black text-[#001F3F]">${toastSales.averageCheck?.toFixed(2) || '—'}</div>
                           <div className={`text-[9px] font-bold uppercase tracking-wide mt-1 ${
+                            (toastSales.averageCheck || 0) >= 10 ? 'text-green-600' :
                             (toastSales.averageCheck || 0) >= 8 ? 'text-green-600' :
                             (toastSales.averageCheck || 0) >= 6 ? 'text-blue-600' :
-                            (toastSales.averageCheck || 0) >= 4 ? 'text-amber-600' : 'text-red-600'
+                            (toastSales.averageCheck || 0) >= 4 ? 'text-amber-600' : 'text-neutral-400'
                           }`}>
                             {calculateAvgTicketScore(toastSales.averageCheck)} pts
                           </div>
@@ -1754,8 +1746,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                               <div className="text-[8px] font-black text-neutral-400 uppercase tracking-widest mb-1">Timeliness</div>
                               <div className={`text-sm md:text-base font-black ${
                                 leader.avgTimelinessScore >= 35 ? 'text-green-600' :
-                                leader.avgTimelinessScore >= 25 ? 'text-blue-600' :
-                                leader.avgTimelinessScore >= 15 ? 'text-amber-600' : 'text-red-600'
+                                leader.avgTimelinessScore >= 0 ? 'text-amber-600' : 'text-red-600'
                               }`}>
                                 {leader.avgTimelinessScore.toFixed(0)}/40
                               </div>
@@ -1765,8 +1756,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                               <div className={`text-sm md:text-base font-black ${
                                 leader.shiftsWithToastData === 0 ? 'text-neutral-300' :
                                 leader.avgTurnTimeScore >= 35 ? 'text-green-600' :
-                                leader.avgTurnTimeScore >= 25 ? 'text-blue-600' :
-                                leader.avgTurnTimeScore >= 15 ? 'text-amber-600' : 'text-red-600'
+                                leader.avgTurnTimeScore >= 20 ? 'text-amber-600' : 'text-red-600'
                               }`}>
                                 {leader.shiftsWithToastData > 0 ? `${leader.avgTurnTimeScore.toFixed(0)}/40` : 'N/A'}
                               </div>
@@ -1775,10 +1765,11 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                               <div className="text-[8px] font-black text-neutral-400 uppercase tracking-widest mb-1">Avg Ticket</div>
                               <div className={`text-sm md:text-base font-black ${
                                 leader.shiftsWithToastData === 0 ? 'text-neutral-300' :
-                                leader.avgTicketScoreValue >= 15 ? 'text-green-600' :
-                                leader.avgTicketScoreValue >= 10 ? 'text-blue-600' : 'text-amber-600'
+                                leader.avgTicketScoreValue >= 20 ? 'text-green-600' :
+                                leader.avgTicketScoreValue >= 15 ? 'text-blue-600' :
+                                leader.avgTicketScoreValue >= 5 ? 'text-amber-600' : 'text-neutral-400'
                               }`}>
-                                {leader.shiftsWithToastData > 0 ? `${leader.avgTicketScoreValue.toFixed(0)}/20` : 'N/A'}
+                                {leader.shiftsWithToastData > 0 ? `${leader.avgTicketScoreValue.toFixed(0)}/25` : 'N/A'}
                               </div>
                             </div>
                             <div className="text-center flex-1 md:flex-initial md:text-right border-l border-neutral-200 pl-4">
@@ -1789,7 +1780,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                                 leader.compositePercent >= 50 ? 'text-amber-600' : 'text-red-600'
                               }`}>
                                 {leader.compositePercent.toFixed(0)}
-                                <span className="text-xs text-neutral-400 font-bold">/100</span>
+                                <span className="text-xs text-neutral-400 font-bold">/105</span>
                               </div>
                             </div>
                           </div>
@@ -1812,9 +1803,9 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                 <div className="bg-white p-4 md:p-6 rounded-xl border border-blue-100">
                   <h3 className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-4">Timeliness (40 pts)</h3>
                   <div className="space-y-2 text-xs">
-                    <div className="flex justify-between"><span className="font-bold text-neutral-600">On time:</span><span className="font-black text-green-600">40 pts</span></div>
-                    <div className="flex justify-between"><span className="font-bold text-neutral-600">Late &lt;1hr:</span><span className="font-black text-amber-600">25 pts</span></div>
-                    <div className="flex justify-between"><span className="font-bold text-neutral-600">Late &gt;1hr:</span><span className="font-black text-red-600">10 pts</span></div>
+                    <div className="flex justify-between"><span className="font-bold text-neutral-600">On time:</span><span className="font-black text-green-600">+40 pts</span></div>
+                    <div className="flex justify-between"><span className="font-bold text-neutral-600">Late &lt;1hr:</span><span className="font-black text-red-600">-10 pts</span></div>
+                    <div className="flex justify-between"><span className="font-bold text-neutral-600">Late &gt;1hr:</span><span className="font-black text-red-600">-20 pts</span></div>
                     <div className="flex justify-between"><span className="font-bold text-neutral-600">Not submitted:</span><span className="font-black text-neutral-400">0 pts</span></div>
                   </div>
                 </div>
@@ -1822,27 +1813,28 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                 <div className="bg-white p-4 md:p-6 rounded-xl border border-blue-100">
                   <h3 className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-4">Turn Time (40 pts)</h3>
                   <div className="space-y-2 text-xs">
-                    <div className="flex justify-between"><span className="font-bold text-neutral-600">Under 3.5 min:</span><span className="font-black text-green-600">40 pts</span></div>
-                    <div className="flex justify-between"><span className="font-bold text-neutral-600">3.5-5 min:</span><span className="font-black text-blue-600">35 pts</span></div>
-                    <div className="flex justify-between"><span className="font-bold text-neutral-600">5-6 min:</span><span className="font-black text-amber-600">25 pts</span></div>
-                    <div className="flex justify-between"><span className="font-bold text-neutral-600">6+ min:</span><span className="font-black text-red-600">15 pts</span></div>
+                    <div className="flex justify-between"><span className="font-bold text-neutral-600">Under 3.5 min:</span><span className="font-black text-green-600">+40 pts</span></div>
+                    <div className="flex justify-between"><span className="font-bold text-neutral-600">3.5-4.5 min:</span><span className="font-black text-blue-600">+35 pts</span></div>
+                    <div className="flex justify-between"><span className="font-bold text-neutral-600">4.5-5 min:</span><span className="font-black text-red-600">-10 pts</span></div>
+                    <div className="flex justify-between"><span className="font-bold text-neutral-600">5+ min:</span><span className="font-black text-red-600">-20 pts</span></div>
                   </div>
                 </div>
 
                 <div className="bg-white p-4 md:p-6 rounded-xl border border-blue-100">
-                  <h3 className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-4">Avg Ticket (20 pts)</h3>
+                  <h3 className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-4">Avg Ticket (25 pts)</h3>
                   <div className="space-y-2 text-xs">
-                    <div className="flex justify-between"><span className="font-bold text-neutral-600">$8+:</span><span className="font-black text-green-600">20 pts</span></div>
-                    <div className="flex justify-between"><span className="font-bold text-neutral-600">$6-8:</span><span className="font-black text-blue-600">15 pts</span></div>
-                    <div className="flex justify-between"><span className="font-bold text-neutral-600">$4-6:</span><span className="font-black text-amber-600">10 pts</span></div>
-                    <div className="flex justify-between"><span className="font-bold text-neutral-600">Under $4:</span><span className="font-black text-red-600">5 pts</span></div>
+                    <div className="flex justify-between"><span className="font-bold text-neutral-600">$10+:</span><span className="font-black text-green-600">+25 pts</span></div>
+                    <div className="flex justify-between"><span className="font-bold text-neutral-600">$8-10:</span><span className="font-black text-green-600">+20 pts</span></div>
+                    <div className="flex justify-between"><span className="font-bold text-neutral-600">$6-8:</span><span className="font-black text-blue-600">+15 pts</span></div>
+                    <div className="flex justify-between"><span className="font-bold text-neutral-600">$4-6:</span><span className="font-black text-amber-600">+5 pts</span></div>
+                    <div className="flex justify-between"><span className="font-bold text-neutral-600">Under $4:</span><span className="font-black text-neutral-400">0 pts</span></div>
                   </div>
                 </div>
               </div>
 
               <div className="mt-4 md:mt-6 bg-white/50 p-4 rounded-xl border border-blue-100">
                 <p className="text-xs font-bold text-neutral-600 leading-relaxed">
-                  <span className="font-black text-[#001F3F]">How it works:</span> Each shift earns up to 100 points across 3 categories. Your score is the <span className="font-black">average</span> across all shifts — more shifts won't inflate your score. Toast metrics (Turn Time, Avg Ticket) are captured when protocols are submitted.
+                  <span className="font-black text-[#001F3F]">How it works:</span> Each shift earns up to 105 points across 3 categories. Poor turn times and late protocols carry <span className="font-black text-red-600">negative penalties</span> that drag your score down. Your score is the <span className="font-black">average</span> across all shifts — more shifts won't inflate your score. Toast metrics (Turn Time, Avg Ticket) are captured when protocols are submitted.
                 </p>
               </div>
             </section>
