@@ -5,29 +5,45 @@
 import { ToastTimeEntry, User, ShiftOwnership, ChecklistTemplate } from '../types';
 
 // Leadership hierarchy - lower number = higher priority
-// Includes common Toast POS job title variants (case-insensitive matching)
+// Exact match dictionary (case-insensitive) for known Toast POS job titles
 const LEADERSHIP_HIERARCHY: Record<string, number> = {
   'gm (on bar)': 1,
   'gm': 1,
   'general manager': 1,
   'store manager': 1,
+  'manager': 1,
   'team leader': 2,
   'team lead': 2,
   'shift lead': 2,
   'shift leader': 2,
+  'shift manager': 2,
 };
 
-// Canonical display names for each role
+// Canonical display names for exact-matched roles
 const LEADERSHIP_DISPLAY_NAMES: Record<string, string> = {
   'gm (on bar)': 'GM (on bar)',
   'gm': 'GM',
   'general manager': 'General Manager',
   'store manager': 'Store Manager',
+  'manager': 'Manager',
   'team leader': 'Team Leader',
   'team lead': 'Team Lead',
   'shift lead': 'Shift Lead',
   'shift leader': 'Shift Leader',
+  'shift manager': 'Shift Manager',
 };
+
+// Regex fallback patterns for catching Toast job titles that don't exactly match
+// e.g. "Team Leader - Bar", "Shift Lead (Morning)", "GM on Bar", "Assistant Manager"
+const LEADERSHIP_PATTERNS: { pattern: RegExp; priority: number; displayName: string }[] = [
+  { pattern: /\bgm\b/i, priority: 1, displayName: 'GM' },
+  { pattern: /\bgeneral\s*manager\b/i, priority: 1, displayName: 'General Manager' },
+  { pattern: /\bstore\s*manager\b/i, priority: 1, displayName: 'Store Manager' },
+  { pattern: /\bmanager\b/i, priority: 1, displayName: 'Manager' },
+  { pattern: /\b(team|shift)\s*(leader|lead)\b/i, priority: 2, displayName: 'Team Leader' },
+  { pattern: /\bshift\s*manager\b/i, priority: 2, displayName: 'Shift Manager' },
+  { pattern: /\bsupervisor\b/i, priority: 2, displayName: 'Supervisor' },
+];
 
 interface LeaderInfo {
   userId: string;
@@ -40,18 +56,36 @@ interface LeaderInfo {
 /**
  * Detect leaders from currently clocked-in employees
  * Returns all leaders found, sorted by priority (GM first, then Team Leaders)
- * Job title matching is case-insensitive
+ * Uses exact match first, then regex fallback for non-standard Toast job titles
  */
 export function detectLeaders(clockedIn: ToastTimeEntry[], allUsers: User[]): LeaderInfo[] {
   const leaders: LeaderInfo[] = [];
 
+  // Debug: log all job names being checked
+  if (clockedIn.length > 0) {
+    console.log('[LeaderDetect] Checking clocked-in staff:', clockedIn.map(e => `${e.employeeName} → "${e.jobName}"`).join(', '));
+  }
+
   clockedIn.forEach(entry => {
     const jobTitleNormalized = entry.jobName.toLowerCase().trim();
-    const priority = LEADERSHIP_HIERARCHY[jobTitleNormalized];
+
+    // 1) Try exact match first
+    let priority = LEADERSHIP_HIERARCHY[jobTitleNormalized];
+    let displayName = LEADERSHIP_DISPLAY_NAMES[jobTitleNormalized] || entry.jobName;
+
+    // 2) Fallback: regex pattern matching for non-standard titles
+    if (priority === undefined) {
+      for (const rule of LEADERSHIP_PATTERNS) {
+        if (rule.pattern.test(entry.jobName)) {
+          priority = rule.priority;
+          displayName = rule.displayName;
+          console.log(`[LeaderDetect] Regex match: "${entry.jobName}" → ${rule.displayName} (priority ${rule.priority})`);
+          break;
+        }
+      }
+    }
 
     if (priority !== undefined) {
-      // This is a leader (GM or Team Leader)
-      // Try to match to a user in the system
       const user = allUsers.find(u =>
         u.name.toLowerCase() === entry.employeeName.toLowerCase()
       );
@@ -59,12 +93,16 @@ export function detectLeaders(clockedIn: ToastTimeEntry[], allUsers: User[]): Le
       leaders.push({
         userId: user?.id || `unknown-${entry.employeeGuid}`,
         name: entry.employeeName,
-        jobTitle: LEADERSHIP_DISPLAY_NAMES[jobTitleNormalized] || entry.jobName,
+        jobTitle: displayName,
         priority: priority,
         employeeGuid: entry.employeeGuid
       });
     }
   });
+
+  if (leaders.length === 0 && clockedIn.length > 0) {
+    console.warn('[LeaderDetect] No leaders found! Job titles present:', clockedIn.map(e => `"${e.jobName}"`).join(', '));
+  }
 
   // Sort by priority (GM first, then Team Leaders)
   return leaders.sort((a, b) => a.priority - b.priority);
