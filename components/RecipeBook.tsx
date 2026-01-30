@@ -365,7 +365,7 @@ const RecipeBook: React.FC<RecipeBookProps> = ({ manual, recipes, isManager = fa
       {/* Delete Confirm Modal */}
       {deleteId && (
         <div className="fixed inset-0 z-[100] bg-[#001F3F]/60 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in duration-200">
-          <div className="bg-white rounded-xl p-6max-w-sm w-full shadow-lg border border-neutral-100 text-center">
+          <div className="bg-white rounded-xl p-6 max-w-sm w-full shadow-lg border border-neutral-100 text-center">
              <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
                <AlertTriangle size={32} />
              </div>
@@ -472,7 +472,7 @@ const RecipeBook: React.FC<RecipeBookProps> = ({ manual, recipes, isManager = fa
       ) : (
         <div className="space-y-6">
           {filteredManual.map(section => (
-            <div key={section.id} className="bg-white p-6sm:p-8 rounded-xl border border-neutral-100 shadow-sm">
+            <div key={section.id} className="bg-white p-6 sm:p-8 rounded-xl border border-neutral-100 shadow-sm">
               <div className="flex items-center gap-4 mb-8">
                 <div className="w-12 h-12 bg-neutral-50 rounded-xl flex items-center justify-center font-black text-[#001F3F] text-xl border border-neutral-100">
                   {section.number}

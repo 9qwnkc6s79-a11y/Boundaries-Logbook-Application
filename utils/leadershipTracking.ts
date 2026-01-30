@@ -2,7 +2,7 @@
  * Team Leader Performance & Accountability Utilities
  */
 
-import { ToastTimeEntry, User, ShiftOwnership, ChecklistTemplate } from '../types';
+import { ToastTimeEntry, User, ShiftOwnership, ChecklistTemplate, ChecklistSubmission } from '../types';
 
 // Leadership hierarchy - lower number = higher priority
 // Exact match dictionary (case-insensitive) for known Toast POS job titles
@@ -222,4 +222,143 @@ export function calculateSubmissionDelay(submittedAt: string, deadline: Date): n
   const submittedDate = new Date(submittedAt);
   const delayMs = submittedDate.getTime() - deadline.getTime();
   return Math.floor(delayMs / 60000); // Convert to minutes
+}
+
+/**
+ * Per-shift score breakdown
+ */
+export interface LeaderShiftScore {
+  date: string;
+  templateName: string;
+  timelinessScore: number;
+  turnTimeScore: number;
+  avgTicketScore: number;
+  hasToastData: boolean;
+  maxPossible: number;
+  totalScore: number;
+}
+
+/**
+ * Aggregated leaderboard entry for a leader
+ */
+export interface LeaderLeaderboardEntry {
+  userId: string;
+  name: string;
+  totalShifts: number;
+  shiftsWithToastData: number;
+  avgTimelinessScore: number;
+  avgTurnTimeScore: number;
+  avgTicketScoreValue: number;
+  compositePercent: number;
+  onTimeRate: number;
+  shifts: LeaderShiftScore[];
+}
+
+/**
+ * Calculate the leader leaderboard using per-shift averaged scoring.
+ * Each shift earns: Timeliness (0-40) + Turn Time (0-40) + Avg Ticket (0-20) = 100 max.
+ * Shifts without Toast data are scored on timeliness only (out of 40).
+ * Final composite = (sum of all shift scores) / (sum of all max possible) * 100.
+ * This ensures leaders with more shifts don't automatically outscore others.
+ */
+export function calculateLeaderboard(
+  submissions: ChecklistSubmission[],
+  templates: ChecklistTemplate[],
+  allUsers: User[],
+  lookbackDays: number = 7
+): LeaderLeaderboardEntry[] {
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - lookbackDays);
+
+  const recentSubmissions = submissions.filter(sub =>
+    sub.submittedAt && new Date(sub.submittedAt) >= cutoff
+  );
+
+  // Group shifts by leader (submitter)
+  const leaderShifts = new Map<string, { name: string; shifts: LeaderShiftScore[] }>();
+
+  recentSubmissions.forEach(sub => {
+    const template = templates.find(t => t.id === sub.templateId);
+    if (!template || !sub.submittedAt) return;
+
+    const user = allUsers.find(u => u.id === sub.userId);
+    if (!user) return;
+
+    // Calculate timeliness
+    const deadline = new Date(sub.date);
+    deadline.setHours(template.deadlineHour, 0, 0, 0);
+    const submittedDate = new Date(sub.submittedAt);
+    const delayMinutes = Math.floor((submittedDate.getTime() - deadline.getTime()) / 60000);
+    const timelinessScore = calculateTimelinessScore(delayMinutes, true);
+
+    // Calculate Toast-based scores (if snapshot available)
+    const hasToastData = !!(sub.toastSnapshot?.averageTurnTime || sub.toastSnapshot?.averageCheck);
+    const turnTimeScore = hasToastData ? calculateTurnTimeScore(sub.toastSnapshot?.averageTurnTime) : 0;
+    const avgTicketScore = hasToastData ? calculateAvgTicketScore(sub.toastSnapshot?.averageCheck) : 0;
+
+    const maxPossible = hasToastData ? 100 : 40;
+    const totalScore = timelinessScore + turnTimeScore + avgTicketScore;
+
+    const shiftScore: LeaderShiftScore = {
+      date: sub.date,
+      templateName: template.name,
+      timelinessScore,
+      turnTimeScore,
+      avgTicketScore,
+      hasToastData,
+      maxPossible,
+      totalScore,
+    };
+
+    const existing = leaderShifts.get(sub.userId);
+    if (existing) {
+      existing.shifts.push(shiftScore);
+    } else {
+      leaderShifts.set(sub.userId, { name: user.name, shifts: [shiftScore] });
+    }
+  });
+
+  // Build leaderboard entries
+  const entries: LeaderLeaderboardEntry[] = [];
+
+  leaderShifts.forEach((data, userId) => {
+    const { name, shifts } = data;
+    const totalShifts = shifts.length;
+    const shiftsWithToastData = shifts.filter(s => s.hasToastData).length;
+
+    // Average scores
+    const avgTimeliness = shifts.reduce((sum, s) => sum + s.timelinessScore, 0) / totalShifts;
+    const toastShifts = shifts.filter(s => s.hasToastData);
+    const avgTurnTime = toastShifts.length > 0
+      ? toastShifts.reduce((sum, s) => sum + s.turnTimeScore, 0) / toastShifts.length
+      : 0;
+    const avgTicket = toastShifts.length > 0
+      ? toastShifts.reduce((sum, s) => sum + s.avgTicketScore, 0) / toastShifts.length
+      : 0;
+
+    // Composite: normalized percentage across all shifts
+    const totalScoreSum = shifts.reduce((sum, s) => sum + s.totalScore, 0);
+    const totalMaxSum = shifts.reduce((sum, s) => sum + s.maxPossible, 0);
+    const compositePercent = totalMaxSum > 0 ? (totalScoreSum / totalMaxSum) * 100 : 0;
+
+    // On-time rate
+    const onTimeShifts = shifts.filter(s => s.timelinessScore === 40).length;
+    const onTimeRate = (onTimeShifts / totalShifts) * 100;
+
+    entries.push({
+      userId,
+      name,
+      totalShifts,
+      shiftsWithToastData,
+      avgTimelinessScore: avgTimeliness,
+      avgTurnTimeScore: avgTurnTime,
+      avgTicketScoreValue: avgTicket,
+      compositePercent,
+      onTimeRate,
+      shifts,
+    });
+  });
+
+  // Sort by composite score descending
+  return entries.sort((a, b) => b.compositePercent - a.compositePercent);
 }

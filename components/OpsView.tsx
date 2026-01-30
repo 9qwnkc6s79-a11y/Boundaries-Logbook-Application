@@ -636,7 +636,7 @@ const OpsView: React.FC<OpsViewProps> = ({ user, allUsers, templates, existingSu
 
         {showReopenConfirm && (
           <div className="fixed inset-0 z-[110] bg-[#001F3F]/60 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in duration-200">
-            <div className="bg-white rounded-xl p-6max-w-sm w-full shadow-lg border border-neutral-100">
+            <div className="bg-white rounded-xl p-6 max-w-sm w-full shadow-lg border border-neutral-100">
               <div className="w-16 h-16 rounded-full flex items-center justify-center mb-6 bg-amber-50 text-amber-500 mx-auto">
                 <RotateCcw size={32} />
               </div>

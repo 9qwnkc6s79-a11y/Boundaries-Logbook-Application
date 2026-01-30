@@ -404,7 +404,7 @@ User Question: ${userMsg}`,
       {/* Mobile Profile Overlay */}
       {isProfileOpen && (
         <div className="md:hidden fixed inset-0 bg-[#001F3F]/60 backdrop-blur-md z-[60] p-6 flex flex-col justify-end animate-in fade-in slide-in-from-bottom-10 duration-300">
-          <div className="bg-white rounded-xl p-6space-y-6">
+          <div className="bg-white rounded-xl p-6 space-y-6">
             <div className="flex items-center justify-between border-b border-neutral-100 pb-6">
               <div className="flex items-center gap-4">
                 <div className="w-16 h-16 rounded-[1.5rem] bg-[#001F3F] text-white flex items-center justify-center text-xl font-black">
@@ -571,7 +571,7 @@ User Question: ${userMsg}`,
 
             <div className="flex-1 overflow-y-auto p-6 space-y-4 no-scrollbar">
               {chatMessages.length === 0 && (
-                <div className="h-full flex flex-col items-center justify-center text-center p-6space-y-4">
+                <div className="h-full flex flex-col items-center justify-center text-center p-6 space-y-4">
                   <Sparkles size={40} className="text-blue-100" />
                   <p className="text-neutral-400 font-bold uppercase tracking-widest text-[10px]">
                     Ask me about recipes, greeting scripts, or espresso mastery.

@@ -9,7 +9,7 @@ import {
 import { GoogleGenAI } from "@google/genai";
 import { toastAPI } from '../services/toast';
 import { db } from '../services/db';
-import { detectLeaders, calculateTimelinessScore, calculateTurnTimeScore, calculateSalesScore, calculateAvgTicketScore, determineShiftOwnership } from '../utils/leadershipTracking';
+import { detectLeaders, calculateTimelinessScore, calculateTurnTimeScore, calculateSalesScore, calculateAvgTicketScore, calculateLeaderboard, determineShiftOwnership } from '../utils/leadershipTracking';
 
 interface ManagerHubProps {
   staff: User[];
@@ -753,7 +753,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
 
       {deleteConfirm && (
         <div className="fixed inset-0 z-[110] bg-[#001F3F]/60 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in duration-200">
-          <div className="bg-white rounded-xl p-6max-w-sm w-full shadow-lg border border-neutral-100">
+          <div className="bg-white rounded-xl p-6 max-w-sm w-full shadow-lg border border-neutral-100">
             <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-6 ${deleteConfirm.type === 'RESET_LOG' ? 'bg-amber-50 text-amber-500' : 'bg-red-50 text-red-500'}`}>
               {deleteConfirm.type === 'RESET_LOG' ? <RotateCcw size={32} /> : <Trash2 size={32} />}
             </div>
@@ -816,83 +816,87 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
         </div>
       </header>
 
-      <div className="space-y-6 sm:space-y-8">
+      <div className="space-y-4 md:space-y-6">
         {activeSubTab === 'dashboard' && (
-          <div className="space-y-6 animate-in fade-in duration-500">
+          <div className="space-y-4 md:space-y-6 animate-in fade-in duration-500">
             {/* Live Store Performance - Top Priority */}
-            <section className="bg-gradient-to-br from-blue-600 to-indigo-700 p-6 rounded-xl shadow-md text-white">
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-white/20 rounded-xl"><Gauge size={20} /></div>
-                  <h2 className="text-xl font-black uppercase tracking-tight">Live Store Performance</h2>
+            <section className="bg-gradient-to-br from-blue-600 to-indigo-700 p-3 md:p-6 rounded-xl shadow-md text-white">
+              <div className="flex items-center justify-between mb-3 md:mb-6">
+                <div className="flex items-center gap-2 md:gap-3">
+                  <div className="p-1.5 md:p-2 bg-white/20 rounded-lg md:rounded-xl"><Gauge size={16} /></div>
+                  <h2 className="text-sm md:text-xl font-black uppercase tracking-tight">Live Store Performance</h2>
                 </div>
-                <div className="flex items-center gap-2 bg-white/20 backdrop-blur-sm px-3 py-1.5 rounded-full">
-                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                  <span className="text-[10px] font-black uppercase tracking-widest">Live</span>
+                <div className="flex items-center gap-1.5 bg-white/20 backdrop-blur-sm px-2 py-1 md:px-3 md:py-1.5 rounded-full">
+                  <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-green-400 rounded-full animate-pulse" />
+                  <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest">Live</span>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-6">
                 {/* Today's Sales */}
-                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
-                  <div className="flex items-center gap-2 mb-3">
-                    <DollarSign size={16} className="text-green-300" />
-                    <h3 className="text-[10px] font-black uppercase tracking-widest text-white/80">Today's Sales</h3>
+                <div className="bg-white/10 backdrop-blur-sm rounded-lg md:rounded-xl p-3 md:p-6 border border-white/20">
+                  <div className="flex items-center gap-1.5 mb-1.5 md:mb-3">
+                    <DollarSign size={12} className="text-green-300 md:hidden" />
+                    <DollarSign size={16} className="text-green-300 hidden md:block" />
+                    <h3 className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-white/80">Today's Sales</h3>
                   </div>
-                  <div className="text-3xl font-black mb-2">${toastSales?.totalSales?.toFixed(0) || '—'}</div>
-                  <div className="text-[10px] font-bold text-white/60">
-                    {toastSales?.totalOrders || 0} orders • ${toastSales?.averageCheck?.toFixed(2) || '—'} avg
+                  <div className="text-xl md:text-3xl font-black mb-1 md:mb-2">${toastSales?.totalSales?.toFixed(0) || '—'}</div>
+                  <div className="text-[8px] md:text-[10px] font-bold text-white/60">
+                    {toastSales?.totalOrders || 0} orders <span className="hidden md:inline">• ${toastSales?.averageCheck?.toFixed(2) || '—'} avg</span>
                   </div>
                   {salesComparison && (
-                    <div className={`mt-2 flex items-center gap-1.5 text-[9px] font-black ${
+                    <div className={`mt-1 md:mt-2 flex items-center gap-1 text-[8px] md:text-[9px] font-black ${
                       salesComparison.salesPercent >= 0 ? 'text-green-300' : 'text-red-300'
                     }`}>
-                      {salesComparison.salesPercent >= 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
+                      {salesComparison.salesPercent >= 0 ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
                       <span>
-                        {salesComparison.salesPercent >= 0 ? '+' : ''}{salesComparison.salesPercent.toFixed(1)}% vs last week
+                        {salesComparison.salesPercent >= 0 ? '+' : ''}{salesComparison.salesPercent.toFixed(1)}%
                       </span>
                     </div>
                   )}
                 </div>
 
                 {/* Turn Time - Critical Metric */}
-                <div className={`backdrop-blur-sm rounded-xl p-6 border-2 ${
+                <div className={`backdrop-blur-sm rounded-lg md:rounded-xl p-3 md:p-6 border-2 ${
                   !toastSales?.averageTurnTime ? 'bg-white/10 border-white/20' :
                   toastSales.averageTurnTime < 3.5 ? 'bg-green-500/30 border-green-300' :
                   toastSales.averageTurnTime < 5 ? 'bg-blue-500/30 border-blue-300' :
                   toastSales.averageTurnTime < 6 ? 'bg-amber-500/30 border-amber-300' :
                   'bg-red-500/30 border-red-300'
                 }`}>
-                  <div className="flex items-center gap-2 mb-3">
-                    <Timer size={16} className="text-white" />
-                    <h3 className="text-[10px] font-black uppercase tracking-widest text-white/80">Turn Time</h3>
+                  <div className="flex items-center gap-1.5 mb-1.5 md:mb-3">
+                    <Timer size={12} className="text-white md:hidden" />
+                    <Timer size={16} className="text-white hidden md:block" />
+                    <h3 className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-white/80">Turn Time</h3>
                   </div>
-                  <div className="text-3xl font-black mb-2">{toastSales?.averageTurnTime?.toFixed(1) || '—'}<span className="text-xl ml-1">min</span></div>
-                  <div className="text-[10px] font-bold text-white/80">
+                  <div className="text-xl md:text-3xl font-black mb-1 md:mb-2">{toastSales?.averageTurnTime?.toFixed(1) || '—'}<span className="text-sm md:text-xl ml-0.5">min</span></div>
+                  <div className="text-[8px] md:text-[10px] font-bold text-white/80">
                     {!toastSales?.averageTurnTime ? 'No data' :
-                     toastSales.averageTurnTime < 3.5 ? 'Excellent (40pts)' :
-                     toastSales.averageTurnTime < 5 ? 'Good (35pts)' :
-                     toastSales.averageTurnTime < 6 ? 'Fair (25pts)' : 'Needs Improvement (15pts)'}
+                     toastSales.averageTurnTime < 3.5 ? 'Excellent' :
+                     toastSales.averageTurnTime < 5 ? 'Good' :
+                     toastSales.averageTurnTime < 6 ? 'Fair' : 'Needs Work'}
                   </div>
                 </div>
 
                 {/* Staff Clocked In */}
-                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Users size={16} className="text-blue-300" />
-                    <h3 className="text-[10px] font-black uppercase tracking-widest text-white/80">Staff On Duty</h3>
+                <div className="bg-white/10 backdrop-blur-sm rounded-lg md:rounded-xl p-3 md:p-6 border border-white/20">
+                  <div className="flex items-center gap-1.5 mb-1.5 md:mb-3">
+                    <Users size={12} className="text-blue-300 md:hidden" />
+                    <Users size={16} className="text-blue-300 hidden md:block" />
+                    <h3 className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-white/80">Staff On Duty</h3>
                   </div>
-                  <div className="text-3xl font-black mb-2">{toastClockedIn.length}</div>
-                  <div className="text-[10px] font-bold text-white/60 truncate">
+                  <div className="text-xl md:text-3xl font-black mb-1 md:mb-2">{toastClockedIn.length}</div>
+                  <div className="text-[8px] md:text-[10px] font-bold text-white/60 truncate">
                     {toastClockedIn.length > 0 ? toastClockedIn.slice(0, 2).map(e => e.employeeName.split(' ')[0]).join(', ') + (toastClockedIn.length > 2 ? '...' : '') : 'No one clocked in'}
                   </div>
                 </div>
 
                 {/* Current Leader */}
-                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Trophy size={16} className="text-amber-300" />
-                    <h3 className="text-[10px] font-black uppercase tracking-widest text-white/80">Shift Leader</h3>
+                <div className="bg-white/10 backdrop-blur-sm rounded-lg md:rounded-xl p-3 md:p-6 border border-white/20">
+                  <div className="flex items-center gap-1.5 mb-1.5 md:mb-3">
+                    <Trophy size={12} className="text-amber-300 md:hidden" />
+                    <Trophy size={16} className="text-amber-300 hidden md:block" />
+                    <h3 className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-white/80">Shift Leader</h3>
                   </div>
                   {(() => {
                     const leaders = detectLeaders(toastClockedIn, allUsers);
@@ -902,8 +906,8 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                     if (activeLeaders.length === 0) {
                       return (
                         <>
-                          <div className="text-2xl font-black mb-2">—</div>
-                          <div className="text-[10px] font-bold text-amber-300">No leader on duty</div>
+                          <div className="text-lg md:text-2xl font-black mb-1 md:mb-2">—</div>
+                          <div className="text-[8px] md:text-[10px] font-bold text-amber-300">No leader on duty</div>
                         </>
                       );
                     }
@@ -911,16 +915,16 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                     if (activeLeaders.length > 1) {
                       return (
                         <>
-                          <div className="text-sm font-black mb-1 truncate">{activeLeaders.map(l => l.name.split(' ')[0]).join(' & ')}</div>
-                          <div className="text-[10px] font-bold text-amber-300 truncate">{activeLeaders.map(l => l.jobTitle).join(', ')}</div>
+                          <div className="text-xs md:text-sm font-black mb-1 truncate">{activeLeaders.map(l => l.name.split(' ')[0]).join(' & ')}</div>
+                          <div className="text-[8px] md:text-[10px] font-bold text-amber-300 truncate">{activeLeaders.map(l => l.jobTitle).join(', ')}</div>
                         </>
                       );
                     }
 
                     return (
                       <>
-                        <div className="text-lg font-black mb-2 truncate">{activeLeaders[0].name}</div>
-                        <div className="text-[10px] font-bold text-white/60 truncate">{activeLeaders[0].jobTitle}</div>
+                        <div className="text-sm md:text-lg font-black mb-1 md:mb-2 truncate">{activeLeaders[0].name}</div>
+                        <div className="text-[8px] md:text-[10px] font-bold text-white/60 truncate">{activeLeaders[0].jobTitle}</div>
                       </>
                     );
                   })()}
@@ -929,7 +933,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
             </section>
 
             {/* Action Items Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
               {/* Pending Checklists */}
               <div className="bg-white p-6 rounded-xl border border-neutral-100 shadow-sm">
                 <div className="flex items-center gap-2 mb-4">
@@ -1020,93 +1024,38 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                 )}
               </div>
 
-              {/* Cash Status */}
-              <div className="bg-white p-6 rounded-xl border border-neutral-100 shadow-sm">
+              {/* Sales Summary */}
+              <div className="bg-white p-4 md:p-6 rounded-xl border border-neutral-100 shadow-sm">
                 <div className="flex items-center gap-2 mb-4">
-                  <DollarSign size={16} className="text-green-600" />
-                  <h3 className="text-sm font-black text-[#001F3F] uppercase tracking-tight">Cash Status</h3>
+                  <TrendingUp size={16} className="text-green-600" />
+                  <h3 className="text-sm font-black text-[#001F3F] uppercase tracking-tight">Sales Summary</h3>
                 </div>
-                {(() => {
-                  const lastDeposit = cashDeposits[0];
-                  const now = new Date();
-                  const daysSinceDeposit = lastDeposit ? Math.floor((now.getTime() - new Date(lastDeposit.depositDate).getTime()) / (1000 * 60 * 60 * 24)) : 999;
-
-                  // Calculate expected cash accumulation since last deposit
-                  const cashSalesSinceDeposit = toastSales?.totalSales ? toastSales.totalSales * 0.15 : 0; // Estimate 15% cash
-                  const safeDropsSinceDeposit = toastCashData?.cashOut || 0;
-                  const expectedSafe = cashSalesSinceDeposit - safeDropsSinceDeposit;
-
-                  // Deposits are due every Monday
-                  const todayDayOfWeek = now.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
-
-                  // Get the most recent Monday (start of this week)
-                  const mostRecentMonday = new Date(now);
-                  const daysToSubtract = todayDayOfWeek === 0 ? 6 : todayDayOfWeek - 1; // If Sunday, go back 6 days; otherwise go back to Monday
-                  mostRecentMonday.setDate(now.getDate() - daysToSubtract);
-                  mostRecentMonday.setHours(0, 0, 0, 0);
-
-                  // Check if last deposit was before this week's Monday
-                  const lastDepositDate = lastDeposit ? new Date(lastDeposit.depositDate) : null;
-                  const depositDueThisWeek = !lastDepositDate || lastDepositDate < mostRecentMonday;
-
-                  // Determine deposit status
-                  let depositStatus: { message: string; color: 'green' | 'amber' | 'red' } | null = null;
-                  if (depositDueThisWeek) {
-                    if (todayDayOfWeek >= 1 && todayDayOfWeek <= 5) {
-                      // Monday through Friday - overdue
-                      depositStatus = { message: '⚠️ Deposit Due Now', color: 'red' };
-                    } else if (todayDayOfWeek === 6) {
-                      // Saturday - reminder
-                      depositStatus = { message: 'Deposit Due Monday', color: 'amber' };
-                    } else {
-                      // Sunday - reminder
-                      depositStatus = { message: 'Deposit Due Tomorrow', color: 'amber' };
-                    }
-                  }
-
-                  return (
-                    <div className="space-y-4">
-                      <div>
-                        <div className="text-[10px] font-black text-neutral-400 uppercase tracking-widest mb-1">Est. Safe Balance</div>
-                        <div className="text-2xl font-black text-green-600">${expectedSafe.toFixed(0)}</div>
-                        <div className="text-[9px] text-neutral-500 font-medium mt-1">
-                          Based on ~15% cash sales
-                        </div>
-                      </div>
-
-                      <div className="pt-4 border-t border-neutral-100">
-                        <div className="flex justify-between text-[9px] mb-2">
-                          <span className="font-bold text-neutral-500">Last Deposit:</span>
-                          <span className="font-black text-neutral-700">
-                            {lastDeposit ? `${daysSinceDeposit}d ago` : 'Never'}
-                          </span>
-                        </div>
-                        {depositStatus && (
-                          <div className={`${
-                            depositStatus.color === 'red' ? 'bg-red-50 border-red-200' :
-                            depositStatus.color === 'amber' ? 'bg-amber-50 border-amber-200' :
-                            'bg-green-50 border-green-200'
-                          } border rounded-lg p-2 text-center`}>
-                            <p className={`text-[9px] font-bold uppercase tracking-wide ${
-                              depositStatus.color === 'red' ? 'text-red-700' :
-                              depositStatus.color === 'amber' ? 'text-amber-700' :
-                              'text-green-700'
-                            }`}>
-                              {depositStatus.message}
-                            </p>
-                          </div>
-                        )}
-                      </div>
-
-                      <button
-                        onClick={() => setActiveSubTab('cash-audit')}
-                        className="w-full py-2 bg-green-50 hover:bg-green-100 rounded-xl text-[9px] font-black text-green-700 uppercase tracking-widest transition-all"
-                      >
-                        Cash Audit
-                      </button>
+                <div className="space-y-4">
+                  <div>
+                    <div className="text-[10px] font-black text-neutral-400 uppercase tracking-widest mb-1">Today's Total</div>
+                    <div className="text-2xl font-black text-green-600">${toastSales?.totalSales?.toFixed(0) || '—'}</div>
+                    <div className="text-[9px] text-neutral-500 font-medium mt-1">
+                      {toastSales?.totalOrders || 0} orders
                     </div>
-                  );
-                })()}
+                  </div>
+
+                  <div className="pt-4 border-t border-neutral-100 grid grid-cols-2 gap-4">
+                    <div>
+                      <div className="text-[9px] font-bold text-neutral-500 mb-1">Avg Ticket</div>
+                      <div className="text-lg font-black text-[#001F3F]">${toastSales?.averageCheck?.toFixed(2) || '—'}</div>
+                    </div>
+                    <div>
+                      <div className="text-[9px] font-bold text-neutral-500 mb-1">vs Last Week</div>
+                      {salesComparison ? (
+                        <div className={`text-lg font-black ${salesComparison.salesPercent >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {salesComparison.salesPercent >= 0 ? '+' : ''}{salesComparison.salesPercent.toFixed(1)}%
+                        </div>
+                      ) : (
+                        <div className="text-lg font-black text-neutral-300">—</div>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -1409,17 +1358,17 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                   <h3 className="text-lg font-black text-[#001F3F] uppercase tracking-tight">7-Day Performance Summary</h3>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="p-6bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border border-green-100 text-center">
+                  <div className="p-6 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border border-green-100 text-center">
                     <p className="text-[9px] font-black text-green-600/60 uppercase tracking-widest mb-3">Completion Rate</p>
                     <p className={`text-5xl font-black mb-2 ${trailingSummary.completionRate > 85 ? 'text-green-600' : 'text-amber-600'}`}>{trailingSummary.completionRate}%</p>
                     <p className="text-[10px] font-bold text-green-700/60 uppercase tracking-wider">Of protocols completed</p>
                   </div>
-                  <div className="p-6bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-100 text-center">
+                  <div className="p-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-100 text-center">
                     <p className="text-[9px] font-black text-blue-600/60 uppercase tracking-widest mb-3">On-Time Rate</p>
                     <p className="text-5xl font-black text-blue-600 mb-2">{trailingSummary.punctualityRate}%</p>
                     <p className="text-[10px] font-bold text-blue-700/60 uppercase tracking-wider">Submitted before deadline</p>
                   </div>
-                  <div className="p-6bg-gradient-to-br from-red-50 to-pink-50 rounded-xl border border-red-100 text-center">
+                  <div className="p-6 bg-gradient-to-br from-red-50 to-pink-50 rounded-xl border border-red-100 text-center">
                     <p className="text-[9px] font-black text-red-600/60 uppercase tracking-widest mb-3">Missed Protocols</p>
                     <p className="text-5xl font-black text-red-600 mb-2">{trailingSummary.totalMissed}</p>
                     <p className="text-[10px] font-bold text-red-700/60 uppercase tracking-wider">Total missed submissions</p>
@@ -1754,87 +1703,17 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
             </section>
 
             {/* Team Leader Leaderboard */}
-            <section className="bg-white p-6 rounded-xl border border-neutral-100 shadow-sm">
-              <div className="flex items-center gap-3 mb-6">
+            <section className="bg-white p-4 md:p-6 rounded-xl border border-neutral-100 shadow-sm">
+              <div className="flex items-center gap-3 mb-4 md:mb-6">
                 <div className="p-2 bg-amber-50 text-amber-600 rounded-xl"><Trophy size={20} /></div>
-                <h2 className="text-xl font-black text-[#001F3F] uppercase tracking-tight">Team Leader Leaderboard</h2>
+                <h2 className="text-lg md:text-xl font-black text-[#001F3F] uppercase tracking-tight">Team Leader Leaderboard</h2>
                 <span className="text-[9px] font-black text-neutral-400 uppercase tracking-widest ml-auto">Last 7 Days</span>
               </div>
 
               {(() => {
-                // Calculate leader performance from submissions
-                const sevenDaysAgo = new Date();
-                sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+                const leaderboard = calculateLeaderboard(submissions, templates, allUsers, 7);
 
-                // Get recent submissions
-                const recentSubmissions = submissions.filter(sub =>
-                  sub.submittedAt && new Date(sub.submittedAt) >= sevenDaysAgo
-                );
-
-                // Group by template and date to determine shift ownership
-                const shiftData = new Map<string, any>();
-
-                recentSubmissions.forEach(sub => {
-                  const template = templates.find(t => t.id === sub.templateId);
-                  if (!template) return;
-
-                  const key = `${sub.date}-${sub.templateId}`;
-
-                  // Calculate deadline
-                  const deadline = new Date(sub.date);
-                  deadline.setHours(template.deadlineHour, 0, 0, 0);
-
-                  // Calculate delay
-                  const submittedDate = sub.submittedAt ? new Date(sub.submittedAt) : null;
-                  const delayMinutes = submittedDate ? Math.floor((submittedDate.getTime() - deadline.getTime()) / 60000) : 9999;
-                  const onTime = delayMinutes <= 0;
-
-                  shiftData.set(key, {
-                    date: sub.date,
-                    template: template,
-                    submittedBy: sub.userId,
-                    onTime,
-                    delayMinutes,
-                    submittedAt: sub.submittedAt
-                  });
-                });
-
-                // Get leaders who submitted
-                const leaderStats = new Map<string, any>();
-
-                shiftData.forEach(shift => {
-                  const user = allUsers.find(u => u.id === shift.submittedBy);
-                  if (!user) return;
-
-                  // Only count submissions from users, we'll need to correlate with Toast data later
-                  // For now, just track submissions
-                  const existing = leaderStats.get(shift.submittedBy);
-                  if (existing) {
-                    existing.totalShifts++;
-                    if (shift.onTime) existing.onTimeSubmissions++;
-                    else existing.lateSubmissions++;
-                    existing.totalDelayMinutes += Math.max(0, shift.delayMinutes);
-                  } else {
-                    leaderStats.set(shift.submittedBy, {
-                      userId: shift.submittedBy,
-                      name: user.name,
-                      totalShifts: 1,
-                      onTimeSubmissions: shift.onTime ? 1 : 0,
-                      lateSubmissions: shift.onTime ? 0 : 1,
-                      totalDelayMinutes: Math.max(0, shift.delayMinutes)
-                    });
-                  }
-                });
-
-                const leaderArray = Array.from(leaderStats.values())
-                  .map(leader => {
-                    const avgDelay = leader.totalDelayMinutes / leader.totalShifts;
-                    const onTimeRate = (leader.onTimeSubmissions / leader.totalShifts) * 100;
-                    return { ...leader, avgDelay, onTimeRate };
-                  })
-                  .sort((a, b) => b.onTimeRate - a.onTimeRate);
-
-                if (leaderArray.length === 0) {
+                if (leaderboard.length === 0) {
                   return (
                     <div className="text-center py-12">
                       <Users size={48} className="text-neutral-300 mx-auto mb-4" />
@@ -1845,16 +1724,16 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
 
                 return (
                   <div className="space-y-4">
-                    {leaderArray.map((leader, index) => (
-                      <div key={leader.userId} className={`p-6 rounded-xl border-2 transition-all ${
+                    {leaderboard.map((leader, index) => (
+                      <div key={leader.userId} className={`p-4 md:p-6 rounded-xl border-2 transition-all ${
                         index === 0 ? 'bg-amber-50 border-amber-200' :
                         index === 1 ? 'bg-neutral-50 border-neutral-200' :
                         index === 2 ? 'bg-orange-50 border-orange-200' :
                         'bg-neutral-50 border-neutral-100'
                       }`}>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-4">
-                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-black text-xl ${
+                        <div className="flex items-start md:items-center justify-between gap-4 flex-col md:flex-row">
+                          <div className="flex items-center gap-3 md:gap-4">
+                            <div className={`w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center font-black text-lg md:text-xl flex-shrink-0 ${
                               index === 0 ? 'bg-amber-500 text-white' :
                               index === 1 ? 'bg-neutral-400 text-white' :
                               index === 2 ? 'bg-orange-400 text-white' :
@@ -1863,34 +1742,54 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                               #{index + 1}
                             </div>
                             <div>
-                              <h3 className="font-black text-lg text-[#001F3F] uppercase tracking-tight">{leader.name}</h3>
-                              <p className="text-[9px] font-bold text-neutral-500 uppercase tracking-widest mt-1">
-                                {leader.totalShifts} shifts led
+                              <h3 className="font-black text-base md:text-lg text-[#001F3F] uppercase tracking-tight">{leader.name}</h3>
+                              <p className="text-[9px] font-bold text-neutral-500 uppercase tracking-widest mt-0.5">
+                                {leader.totalShifts} shifts led{leader.shiftsWithToastData > 0 ? ` (${leader.shiftsWithToastData} with Toast data)` : ''}
                               </p>
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-8">
-                            <div className="text-right">
-                              <div className="text-[9px] font-black text-neutral-400 uppercase tracking-widest mb-1">On-Time Rate</div>
-                              <div className={`text-2xl font-black ${
-                                leader.onTimeRate >= 90 ? 'text-green-600' :
-                                leader.onTimeRate >= 70 ? 'text-blue-600' :
-                                leader.onTimeRate >= 50 ? 'text-amber-600' : 'text-red-600'
+                          <div className="flex items-center gap-4 md:gap-6 w-full md:w-auto">
+                            <div className="text-center flex-1 md:flex-initial md:text-right">
+                              <div className="text-[8px] font-black text-neutral-400 uppercase tracking-widest mb-1">Timeliness</div>
+                              <div className={`text-sm md:text-base font-black ${
+                                leader.avgTimelinessScore >= 35 ? 'text-green-600' :
+                                leader.avgTimelinessScore >= 25 ? 'text-blue-600' :
+                                leader.avgTimelinessScore >= 15 ? 'text-amber-600' : 'text-red-600'
                               }`}>
-                                {leader.onTimeRate.toFixed(0)}%
+                                {leader.avgTimelinessScore.toFixed(0)}/40
                               </div>
                             </div>
-                            <div className="text-right">
-                              <div className="text-[9px] font-black text-neutral-400 uppercase tracking-widest mb-1">Avg Delay</div>
-                              <div className="text-lg font-black text-neutral-600">
-                                {leader.avgDelay > 0 ? `+${leader.avgDelay.toFixed(0)}m` : '—'}
+                            <div className="text-center flex-1 md:flex-initial md:text-right">
+                              <div className="text-[8px] font-black text-neutral-400 uppercase tracking-widest mb-1">Turn Time</div>
+                              <div className={`text-sm md:text-base font-black ${
+                                leader.shiftsWithToastData === 0 ? 'text-neutral-300' :
+                                leader.avgTurnTimeScore >= 35 ? 'text-green-600' :
+                                leader.avgTurnTimeScore >= 25 ? 'text-blue-600' :
+                                leader.avgTurnTimeScore >= 15 ? 'text-amber-600' : 'text-red-600'
+                              }`}>
+                                {leader.shiftsWithToastData > 0 ? `${leader.avgTurnTimeScore.toFixed(0)}/40` : 'N/A'}
                               </div>
                             </div>
-                            <div className="text-right">
-                              <div className="text-[9px] font-black text-neutral-400 uppercase tracking-widest mb-1">Score</div>
-                              <div className="text-lg font-black text-[#001F3F]">
-                                {leader.onTimeSubmissions > 0 ? '40' : leader.totalShifts > 0 ? '25' : '0'}/40
+                            <div className="text-center flex-1 md:flex-initial md:text-right">
+                              <div className="text-[8px] font-black text-neutral-400 uppercase tracking-widest mb-1">Avg Ticket</div>
+                              <div className={`text-sm md:text-base font-black ${
+                                leader.shiftsWithToastData === 0 ? 'text-neutral-300' :
+                                leader.avgTicketScoreValue >= 15 ? 'text-green-600' :
+                                leader.avgTicketScoreValue >= 10 ? 'text-blue-600' : 'text-amber-600'
+                              }`}>
+                                {leader.shiftsWithToastData > 0 ? `${leader.avgTicketScoreValue.toFixed(0)}/20` : 'N/A'}
+                              </div>
+                            </div>
+                            <div className="text-center flex-1 md:flex-initial md:text-right border-l border-neutral-200 pl-4">
+                              <div className="text-[8px] font-black text-neutral-400 uppercase tracking-widest mb-1">Score</div>
+                              <div className={`text-lg md:text-2xl font-black ${
+                                leader.compositePercent >= 90 ? 'text-green-600' :
+                                leader.compositePercent >= 70 ? 'text-blue-600' :
+                                leader.compositePercent >= 50 ? 'text-amber-600' : 'text-red-600'
+                              }`}>
+                                {leader.compositePercent.toFixed(0)}
+                                <span className="text-xs text-neutral-400 font-bold">/100</span>
                               </div>
                             </div>
                           </div>
@@ -1909,8 +1808,8 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                 <h2 className="text-lg font-black text-[#001F3F] uppercase tracking-tight">Performance Scoring Guide</h2>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <div className="bg-white p-6 rounded-xl border border-blue-100">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+                <div className="bg-white p-4 md:p-6 rounded-xl border border-blue-100">
                   <h3 className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-4">Timeliness (40 pts)</h3>
                   <div className="space-y-2 text-xs">
                     <div className="flex justify-between"><span className="font-bold text-neutral-600">On time:</span><span className="font-black text-green-600">40 pts</span></div>
@@ -1920,7 +1819,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                   </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-xl border border-blue-100">
+                <div className="bg-white p-4 md:p-6 rounded-xl border border-blue-100">
                   <h3 className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-4">Turn Time (40 pts)</h3>
                   <div className="space-y-2 text-xs">
                     <div className="flex justify-between"><span className="font-bold text-neutral-600">Under 3.5 min:</span><span className="font-black text-green-600">40 pts</span></div>
@@ -1930,16 +1829,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                   </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-xl border border-blue-100">
-                  <h3 className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-4">Sales (20 pts)</h3>
-                  <div className="space-y-2 text-xs">
-                    <div className="flex justify-between"><span className="font-bold text-neutral-600">Above target:</span><span className="font-black text-green-600">20 pts</span></div>
-                    <div className="flex justify-between"><span className="font-bold text-neutral-600">Within 10%:</span><span className="font-black text-amber-600">15 pts</span></div>
-                    <div className="flex justify-between"><span className="font-bold text-neutral-600">Below target:</span><span className="font-black text-red-600">10 pts</span></div>
-                  </div>
-                </div>
-
-                <div className="bg-white p-6 rounded-xl border border-blue-100">
+                <div className="bg-white p-4 md:p-6 rounded-xl border border-blue-100">
                   <h3 className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-4">Avg Ticket (20 pts)</h3>
                   <div className="space-y-2 text-xs">
                     <div className="flex justify-between"><span className="font-bold text-neutral-600">$8+:</span><span className="font-black text-green-600">20 pts</span></div>
@@ -1950,9 +1840,9 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                 </div>
               </div>
 
-              <div className="mt-6 bg-white/50 p-4 rounded-xl border border-blue-100">
+              <div className="mt-4 md:mt-6 bg-white/50 p-4 rounded-xl border border-blue-100">
                 <p className="text-xs font-bold text-neutral-600 leading-relaxed">
-                  <span className="font-black text-[#001F3F]">Note:</span> Leaders are accountable for their shift's performance. If multiple leaders at the same priority level are clocked in, both share accountability and scoring.
+                  <span className="font-black text-[#001F3F]">How it works:</span> Each shift earns up to 100 points across 3 categories. Your score is the <span className="font-black">average</span> across all shifts — more shifts won't inflate your score. Toast metrics (Turn Time, Avg Ticket) are captured when protocols are submitted.
                 </p>
               </div>
             </section>
@@ -1992,7 +1882,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
 
                 return (
                 <div key={tpl.id} className="bg-white rounded-xl border border-neutral-100 shadow-sm overflow-hidden group relative">
-                  <div className="p-6bg-neutral-50 flex flex-col sm:flex-row sm:items-center justify-between gap-6 border-b border-neutral-100">
+                  <div className="p-6 bg-neutral-50 flex flex-col sm:flex-row sm:items-center justify-between gap-6 border-b border-neutral-100">
                     <div className="flex-1 space-y-5">
                       <div className="flex items-center gap-4">
                         <input value={tpl.name} onChange={e => handleUpdateTemplateLocal(tpl.id, { name: e.target.value })} className="text-2xl font-black text-[#001F3F] uppercase bg-transparent outline-none flex-1 focus:ring-0 border-none p-0" />
@@ -2061,7 +1951,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
 
                   {/* Task list - only show when expanded */}
                   {isExpanded && (
-                    <div className="p-6space-y-4">
+                    <div className="p-6 space-y-4">
                     {tpl.tasks.map((task, taskIndex) => (
                       <div key={task.id} className="flex items-center gap-4 bg-neutral-50/50 p-5 rounded-xl border border-neutral-100 hover:bg-white transition-all shadow-sm group/task">
                         <div className="flex flex-col gap-1">

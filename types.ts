@@ -151,6 +151,13 @@ export interface ChecklistSubmission {
     managerPhotoCommentAt?: string; // Timestamp of comment
   }[];
   managerNotes?: string;
+  toastSnapshot?: {
+    averageTurnTime?: number;
+    averageCheck?: number;
+    totalSales?: number;
+    totalOrders?: number;
+    snapshotAt: string;
+  };
 }
 
 export interface Recipe {

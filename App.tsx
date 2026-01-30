@@ -252,11 +252,21 @@ const App: React.FC = () => {
       ? submissions.find(s => s.id === data.id)
       : submissions.find(s => s.templateId === data.templateId && s.storeId === currentStoreId && s.date === data.targetDate && s.status === 'DRAFT');
 
+    // Capture Toast metrics snapshot when finalizing for leader performance scoring
+    const toastSnapshotData = data.isFinal && toastSales ? {
+      averageTurnTime: toastSales.averageTurnTime,
+      averageCheck: toastSales.averageCheck,
+      totalSales: toastSales.totalSales,
+      totalOrders: toastSales.totalOrders,
+      snapshotAt: new Date().toISOString(),
+    } : undefined;
+
     const submission: ChecklistSubmission = existing ? {
       ...existing,
       taskResults,
       status: data.isFinal ? 'PENDING' : 'DRAFT' as any,
-      submittedAt: data.isFinal ? new Date().toISOString() : existing.submittedAt
+      submittedAt: data.isFinal ? new Date().toISOString() : existing.submittedAt,
+      toastSnapshot: toastSnapshotData || existing.toastSnapshot,
     } : {
       id: data.id || `sub-${Date.now()}`,
       userId: currentUser?.id || 'anonymous',
@@ -265,7 +275,8 @@ const App: React.FC = () => {
       date: data.targetDate,
       status: data.isFinal ? 'PENDING' : 'DRAFT',
       submittedAt: data.isFinal ? new Date().toISOString() : undefined,
-      taskResults
+      taskResults,
+      toastSnapshot: toastSnapshotData,
     };
 
     setSubmissions(prev => {
