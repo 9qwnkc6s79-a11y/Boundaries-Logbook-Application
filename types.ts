@@ -14,6 +14,22 @@ export interface User {
   role: UserRole;
   storeId: string;
   active?: boolean;
+  toastEmployeeGuid?: string;
+}
+
+// Employee data returned from Toast sync endpoint (api/toast-employees)
+export interface ToastSyncEmployee {
+  guid: string;
+  name: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  jobTitle: string;
+  location: string;   // 'littleelm' or 'prosper'
+  storeId: string;     // 'store-elm' or 'store-prosper'
+  externalId: string;
+  deleted: boolean;
 }
 
 export interface Store {

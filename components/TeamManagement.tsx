@@ -1,11 +1,13 @@
-import React, { useState, useMemo } from 'react';
-import { User, UserRole, Store } from '../types';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import { User, UserRole, Store, ToastSyncEmployee } from '../types';
 import { db } from '../services/db';
 import { hashPassword } from '../utils/passwordUtils';
+import { toastAPI } from '../services/toast';
 import {
   Search, Plus, Edit3, X, Copy, Check,
   ShieldCheck, Users, Mail, MapPin, Key, AlertTriangle,
-  UserX, UserCheck, RefreshCw, Eye, EyeOff, ChevronDown, ChevronUp
+  UserX, UserCheck, RefreshCw, Eye, EyeOff, ChevronDown, ChevronUp,
+  Download, UserPlus, Briefcase, Clock
 } from 'lucide-react';
 
 interface TeamManagementProps {
@@ -69,6 +71,123 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
     newPassword: '',
   });
 
+  // Toast Sync State
+  const [toastEmployees, setToastEmployees] = useState<ToastSyncEmployee[]>([]);
+  const [toastSyncing, setToastSyncing] = useState(false);
+  const [toastSyncError, setToastSyncError] = useState('');
+  const [lastSyncTime, setLastSyncTime] = useState<number | null>(null);
+  const [showToastSync, setShowToastSync] = useState(true);
+  const syncCacheRef = useRef<{ employees: ToastSyncEmployee[]; timestamp: number } | null>(null);
+  const hasSyncedOnMount = useRef(false);
+
+  // Pre-fill add modal from Toast
+  const [toastPrefill, setToastPrefill] = useState<ToastSyncEmployee | null>(null);
+
+  // --- Toast Sync Logic ---
+
+  const SYNC_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+  const guessRoleFromJobTitle = (jobTitle: string): UserRole => {
+    const lower = jobTitle.toLowerCase();
+    if (lower.includes('manager') || lower.includes('gm') || lower.includes('general manager') || lower.includes('agm') || lower.includes('assistant general manager')) {
+      return UserRole.MANAGER;
+    }
+    if (lower.includes('team lead') || lower.includes('shift lead') || lower.includes('shift supervisor') || lower.includes('trainer')) {
+      return UserRole.TRAINER;
+    }
+    return UserRole.TRAINEE;
+  };
+
+  const syncFromToast = useCallback(async (force = false) => {
+    // Check cache
+    if (!force && syncCacheRef.current) {
+      const age = Date.now() - syncCacheRef.current.timestamp;
+      if (age < SYNC_CACHE_TTL) {
+        setToastEmployees(syncCacheRef.current.employees);
+        setLastSyncTime(syncCacheRef.current.timestamp);
+        return;
+      }
+    }
+
+    setToastSyncing(true);
+    setToastSyncError('');
+    try {
+      const employees = await toastAPI.getEmployees(); // Both locations
+      setToastEmployees(employees);
+      const now = Date.now();
+      setLastSyncTime(now);
+      syncCacheRef.current = { employees, timestamp: now };
+    } catch (err: any) {
+      setToastSyncError(err.message || 'Failed to sync from Toast');
+    } finally {
+      setToastSyncing(false);
+    }
+  }, []);
+
+  // Auto-sync on mount (with cache)
+  useEffect(() => {
+    if (!hasSyncedOnMount.current) {
+      hasSyncedOnMount.current = true;
+      syncFromToast(false);
+    }
+  }, [syncFromToast]);
+
+  // Fuzzy name matching
+  const nameMatches = (toastName: string, appName: string): boolean => {
+    const t = toastName.toLowerCase().trim();
+    const a = appName.toLowerCase().trim();
+    if (t === a) return true;
+    // Check if first name matches
+    const tFirst = t.split(' ')[0];
+    const aFirst = a.split(' ')[0];
+    if (tFirst === aFirst && tFirst.length > 2) return true;
+    // Check if Toast name is short form (e.g., "Kendall M" matches "Kendall Matthews")
+    const tParts = t.split(' ');
+    const aParts = a.split(' ');
+    if (tParts.length >= 2 && aParts.length >= 2) {
+      if (tParts[0] === aParts[0] && aParts[1].startsWith(tParts[1])) return true;
+      if (aParts[0] === tParts[0] && tParts[1].startsWith(aParts[1])) return true;
+    }
+    // Check if one contains the other
+    if (t.includes(a) || a.includes(t)) return true;
+    return false;
+  };
+
+  const unmatchedToastEmployees = useMemo(() => {
+    if (toastEmployees.length === 0) return [];
+    return toastEmployees.filter(emp => {
+      // Match by Toast GUID stored on user
+      if (allUsers.some(u => u.toastEmployeeGuid === emp.guid)) return false;
+      // Match by email
+      if (emp.email && allUsers.some(u => u.email.toLowerCase() === emp.email.toLowerCase())) return false;
+      // Fuzzy name match
+      if (allUsers.some(u => nameMatches(emp.name, u.name))) return false;
+      return true;
+    });
+  }, [toastEmployees, allUsers]);
+
+  const handleAddFromToast = (emp: ToastSyncEmployee) => {
+    setToastPrefill(emp);
+    const role = guessRoleFromJobTitle(emp.jobTitle);
+    setAddForm({
+      name: emp.name,
+      email: emp.email || '',
+      role,
+      storeId: emp.storeId,
+      password: '',
+    });
+    setShowAddModal(true);
+  };
+
+  const formatSyncAge = (timestamp: number): string => {
+    const seconds = Math.floor((Date.now() - timestamp) / 1000);
+    if (seconds < 60) return 'just now';
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    return `${hours}h ago`;
+  };
+
   // --- Derived Data ---
 
   const filteredUsers = useMemo(() => {
@@ -131,6 +250,7 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
         role: addForm.role,
         storeId: addForm.storeId,
         active: true,
+        ...(toastPrefill ? { toastEmployeeGuid: toastPrefill.guid } : {}),
       };
 
       await db.syncUser(newUser);
@@ -139,6 +259,7 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
       // Show invite/credentials modal
       setShowInvite({ email: emailLower, password: addForm.password, name: addForm.name.trim() });
       setShowAddModal(false);
+      setToastPrefill(null);
       resetAddForm();
     } catch (err: any) {
       setError(err.message || 'Failed to add user.');
@@ -398,10 +519,21 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
                 <h3 className="text-2xl font-black text-[#001F3F] uppercase tracking-tight">Add Team Member</h3>
                 <p className="text-neutral-400 text-xs font-bold uppercase tracking-widest mt-1">Create a new staff account</p>
               </div>
-              <button onClick={() => { setShowAddModal(false); resetAddForm(); }} className="p-2 hover:bg-neutral-100 rounded-xl transition-colors">
+              <button onClick={() => { setShowAddModal(false); setToastPrefill(null); resetAddForm(); }} className="p-2 hover:bg-neutral-100 rounded-xl transition-colors">
                 <X size={20} className="text-neutral-400" />
               </button>
             </div>
+
+            {/* Toast pre-fill indicator */}
+            {toastPrefill && (
+              <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 mb-6 flex items-start gap-3">
+                <Download size={16} className="text-indigo-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-xs font-black text-indigo-700 uppercase tracking-widest">Imported from Toast POS</p>
+                  <p className="text-[11px] text-indigo-600 font-medium mt-1">{toastPrefill.jobTitle} • {toastPrefill.location === 'littleelm' ? 'Little Elm' : 'Prosper'}</p>
+                </div>
+              </div>
+            )}
 
             {error && (
               <div className="bg-red-50 text-red-600 p-4 rounded-xl text-xs font-bold border border-red-100 mb-6 animate-in shake duration-300">
@@ -500,7 +632,7 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
             {/* Actions */}
             <div className="flex gap-3 mt-8">
               <button
-                onClick={() => { setShowAddModal(false); resetAddForm(); }}
+                onClick={() => { setShowAddModal(false); setToastPrefill(null); resetAddForm(); }}
                 className="flex-1 py-4 bg-neutral-100 text-neutral-500 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-neutral-200 transition-all"
               >
                 Cancel
@@ -679,6 +811,128 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
         >
           <Plus size={18} /> Add Team Member
         </button>
+      </div>
+
+      {/* ── Toast POS Employee Sync ── */}
+      <div className="bg-white rounded-xl border border-indigo-100 shadow-sm overflow-hidden">
+        {/* Sync Header */}
+        <button
+          onClick={() => setShowToastSync(!showToastSync)}
+          className="w-full flex items-center justify-between p-5 hover:bg-indigo-50/30 transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-indigo-100 text-indigo-600 rounded-xl">
+              <Download size={16} />
+            </div>
+            <div className="text-left">
+              <h3 className="text-xs font-black text-[#001F3F] uppercase tracking-widest">Toast POS Sync</h3>
+              <p className="text-[10px] text-neutral-400 font-bold mt-0.5">
+                {toastSyncing ? 'Syncing...' :
+                  lastSyncTime ? `Last synced ${formatSyncAge(lastSyncTime)}` :
+                  'Sync employees from Toast POS'}
+                {unmatchedToastEmployees.length > 0 && (
+                  <span className="ml-2 text-indigo-600">• {unmatchedToastEmployees.length} new</span>
+                )}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={(e) => { e.stopPropagation(); syncFromToast(true); }}
+              disabled={toastSyncing}
+              className="px-4 py-2.5 bg-indigo-600 text-white rounded-xl font-black uppercase text-[9px] tracking-widest hover:bg-indigo-700 transition-all shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+            >
+              {toastSyncing ? (
+                <><RefreshCw size={12} className="animate-spin" /> Syncing</>
+              ) : (
+                <><RefreshCw size={12} /> Sync</>
+              )}
+            </button>
+            {showToastSync ? <ChevronUp size={16} className="text-neutral-400" /> : <ChevronDown size={16} className="text-neutral-400" />}
+          </div>
+        </button>
+
+        {/* Sync Content */}
+        {showToastSync && (
+          <div className="border-t border-indigo-50 p-5">
+            {toastSyncError && (
+              <div className="bg-red-50 text-red-600 p-4 rounded-xl text-xs font-bold border border-red-100 mb-4">
+                {toastSyncError}
+              </div>
+            )}
+
+            {toastSyncing && toastEmployees.length === 0 && (
+              <div className="flex items-center justify-center py-8 gap-3">
+                <RefreshCw size={20} className="text-indigo-400 animate-spin" />
+                <p className="text-sm font-bold text-neutral-400">Fetching employees from Toast POS...</p>
+              </div>
+            )}
+
+            {!toastSyncing && toastEmployees.length === 0 && !toastSyncError && (
+              <div className="text-center py-8">
+                <Download size={32} className="text-neutral-300 mx-auto mb-3" />
+                <p className="text-neutral-400 font-bold text-xs uppercase tracking-widest">Click Sync to fetch employees from Toast</p>
+              </div>
+            )}
+
+            {toastEmployees.length > 0 && unmatchedToastEmployees.length === 0 && (
+              <div className="flex items-center gap-3 py-6 justify-center">
+                <div className="p-2 bg-green-100 text-green-600 rounded-full">
+                  <Check size={20} />
+                </div>
+                <div>
+                  <p className="text-sm font-black text-green-700">All synced!</p>
+                  <p className="text-[10px] font-bold text-neutral-400">{toastEmployees.length} Toast employees matched to app accounts</p>
+                </div>
+              </div>
+            )}
+
+            {unmatchedToastEmployees.length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 mb-4">
+                  <UserPlus size={14} className="text-indigo-500" />
+                  <h4 className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">
+                    New from Toast ({unmatchedToastEmployees.length})
+                  </h4>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {unmatchedToastEmployees.map(emp => (
+                    <div key={emp.guid} className="bg-indigo-50/50 border border-indigo-100 rounded-xl p-4 hover:border-indigo-200 transition-all">
+                      <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-black text-sm flex-shrink-0">
+                          {emp.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-black text-sm text-[#001F3F] uppercase tracking-tight truncate">{emp.name}</h4>
+                          <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                            <span className="flex items-center gap-1 text-[10px] font-bold text-indigo-600">
+                              <Briefcase size={10} />
+                              {emp.jobTitle}
+                            </span>
+                            <span className="text-neutral-300">•</span>
+                            <span className="flex items-center gap-1 text-[10px] font-bold text-neutral-400">
+                              <MapPin size={10} />
+                              {emp.location === 'littleelm' ? 'Little Elm' : 'Prosper'}
+                            </span>
+                          </div>
+                          {emp.email && (
+                            <p className="text-[10px] text-neutral-400 font-medium mt-1 truncate">{emp.email}</p>
+                          )}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleAddFromToast(emp)}
+                        className="mt-3 w-full py-2.5 bg-indigo-600 text-white rounded-xl font-black uppercase text-[9px] tracking-widest hover:bg-indigo-700 transition-all shadow-sm active:scale-95 flex items-center justify-center gap-1.5"
+                      >
+                        <UserPlus size={12} /> Add to App
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* ── Search & Filters ── */}

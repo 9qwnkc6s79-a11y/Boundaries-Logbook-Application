@@ -7,7 +7,7 @@
  * API Documentation: https://doc.toasttab.com/
  */
 
-import { ToastSalesData, ToastLaborEntry, ToastTimeEntry } from '../types';
+import { ToastSalesData, ToastLaborEntry, ToastTimeEntry, ToastSyncEmployee } from '../types';
 
 class ToastAPI {
   /**
@@ -100,6 +100,33 @@ class ToastAPI {
     const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Chicago' });
     const data = await this.getLaborData(today, today);
     return data.currentlyClocked;
+  }
+
+  /**
+   * Fetch employees from Toast for syncing with the logbook app.
+   * Calls the /api/toast-employees serverless endpoint.
+   * @param location - Optional campus location (littleelm, prosper). Fetches both if omitted.
+   */
+  async getEmployees(location?: string): Promise<ToastSyncEmployee[]> {
+    try {
+      const locationParam = location ? `?location=${location}` : '';
+      console.log(`[Toast API] Fetching employees${location ? ` for ${location}` : ' (all locations)'}`);
+
+      const response = await fetch(`/api/toast-employees${locationParam}`);
+
+      if (!response.ok) {
+        const error = await response.json();
+        console.error(`[Toast API] Employee sync error:`, error);
+        throw new Error(error.error || 'Failed to fetch employees from Toast');
+      }
+
+      const data = await response.json();
+      console.log(`[Toast API] Employee sync: ${data.total} employees returned`);
+      return data.employees || [];
+    } catch (error) {
+      console.error('[Toast API] Failed to fetch employees:', error);
+      throw error;
+    }
   }
 
   /**
