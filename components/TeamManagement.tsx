@@ -353,7 +353,7 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
         <div className="flex items-start gap-4">
           {/* Avatar */}
           <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-black text-lg flex-shrink-0 ${
-            isDeactivated ? 'bg-neutral-200 text-neutral-400' : 'bg-[#001F3F] text-white'
+            isDeactivated ? 'bg-neutral-200 text-neutral-400' : 'bg-[#0F2B3C] text-white'
           }`}>
             {user.name.charAt(0).toUpperCase()}
           </div>
@@ -361,7 +361,7 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
           {/* Info */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="font-black text-sm text-[#001F3F] uppercase tracking-tight truncate">{user.name}</h3>
+              <h3 className="font-black text-sm text-[#0F2B3C] uppercase tracking-tight truncate">{user.name}</h3>
               {isSelf(user) && (
                 <span className="text-[8px] font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100 uppercase tracking-widest">You</span>
               )}
@@ -430,24 +430,24 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
 
       {/* ── Invite/Credentials Modal ── */}
       {showInvite && (
-        <div className="fixed inset-0 z-[110] bg-[#001F3F]/60 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[110] bg-[#0F2B3C]/60 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in duration-200">
           <div className="bg-white rounded-xl p-8 max-w-md w-full shadow-2xl border border-neutral-100">
             <div className="text-center mb-6">
               <div className="w-16 h-16 bg-green-50 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
                 <ShieldCheck size={32} />
               </div>
-              <h3 className="text-2xl font-black text-[#001F3F] uppercase tracking-tight">Account Created</h3>
+              <h3 className="text-2xl font-black text-[#0F2B3C] uppercase tracking-tight">Account Created</h3>
               <p className="text-neutral-400 text-sm font-medium mt-1">Share these credentials with {showInvite.name}</p>
             </div>
 
             <div className="bg-neutral-50 rounded-xl p-5 border border-neutral-100 space-y-3 mb-6">
               <div>
                 <p className="text-[9px] font-black text-neutral-400 uppercase tracking-widest mb-1">Email</p>
-                <p className="text-sm font-bold text-[#001F3F] break-all">{showInvite.email}</p>
+                <p className="text-sm font-bold text-[#0F2B3C] break-all">{showInvite.email}</p>
               </div>
               <div>
                 <p className="text-[9px] font-black text-neutral-400 uppercase tracking-widest mb-1">Temporary Password</p>
-                <p className="text-sm font-bold text-[#001F3F] font-mono bg-white px-3 py-2 rounded-lg border border-neutral-200">{showInvite.password}</p>
+                <p className="text-sm font-bold text-[#0F2B3C] font-mono bg-white px-3 py-2 rounded-lg border border-neutral-200">{showInvite.password}</p>
               </div>
             </div>
 
@@ -462,7 +462,7 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
               <button
                 onClick={copyCredentials}
                 className={`flex-1 py-4 rounded-xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 transition-all active:scale-95 shadow-md ${
-                  copied ? 'bg-green-600 text-white' : 'bg-[#001F3F] text-white hover:bg-blue-900'
+                  copied ? 'bg-green-600 text-white' : 'bg-[#0F2B3C] text-white hover:bg-blue-900'
                 }`}
               >
                 {copied ? <><Check size={16} /> Copied!</> : <><Copy size={16} /> Copy Credentials</>}
@@ -480,16 +480,16 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
 
       {/* ── Deactivation Confirmation Modal ── */}
       {confirmDeactivate && (
-        <div className="fixed inset-0 z-[110] bg-[#001F3F]/60 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[110] bg-[#0F2B3C]/60 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in duration-200">
           <div className="bg-white rounded-xl p-6 max-w-sm w-full shadow-lg border border-neutral-100">
             <div className="w-16 h-16 rounded-full flex items-center justify-center mb-6 bg-red-50 text-red-500">
               <UserX size={32} />
             </div>
-            <h3 className="text-2xl font-black text-[#001F3F] uppercase tracking-tight leading-tight mb-2">
+            <h3 className="text-2xl font-black text-[#0F2B3C] uppercase tracking-tight leading-tight mb-2">
               Deactivate Account?
             </h3>
             <p className="text-neutral-500 text-sm font-medium mb-2 leading-relaxed">
-              <span className="font-black text-[#001F3F]">{confirmDeactivate.name}</span> will no longer be able to log in. Their data will be preserved and you can reactivate them at any time.
+              <span className="font-black text-[#0F2B3C]">{confirmDeactivate.name}</span> will no longer be able to log in. Their data will be preserved and you can reactivate them at any time.
             </p>
             <p className="text-[10px] font-bold text-neutral-400 mb-6">{confirmDeactivate.email}</p>
             <div className="flex gap-3">
@@ -512,11 +512,11 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
 
       {/* ── Add User Modal ── */}
       {showAddModal && (
-        <div className="fixed inset-0 z-[110] bg-[#001F3F]/60 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[110] bg-[#0F2B3C]/60 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in duration-200">
           <div className="bg-white rounded-xl p-8 max-w-lg w-full shadow-2xl border border-neutral-100 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h3 className="text-2xl font-black text-[#001F3F] uppercase tracking-tight">Add Team Member</h3>
+                <h3 className="text-2xl font-black text-[#0F2B3C] uppercase tracking-tight">Add Team Member</h3>
                 <p className="text-neutral-400 text-xs font-bold uppercase tracking-widest mt-1">Create a new staff account</p>
               </div>
               <button onClick={() => { setShowAddModal(false); setToastPrefill(null); resetAddForm(); }} className="p-2 hover:bg-neutral-100 rounded-xl transition-colors">
@@ -550,7 +550,7 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
                   value={addForm.name}
                   onChange={e => setAddForm({ ...addForm, name: e.target.value })}
                   placeholder="e.g. Alex Johnson"
-                  className="w-full bg-neutral-50 border border-neutral-100 rounded-xl px-4 py-3.5 focus:bg-white focus:ring-4 focus:ring-[#001F3F]/10 focus:border-[#001F3F] transition-all outline-none font-medium"
+                  className="w-full bg-neutral-50 border border-neutral-100 rounded-xl px-4 py-3.5 focus:bg-white focus:ring-4 focus:ring-[#0F2B3C]/10 focus:border-[#0F2B3C] transition-all outline-none font-medium"
                 />
               </div>
 
@@ -564,7 +564,7 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
                     value={addForm.email}
                     onChange={e => setAddForm({ ...addForm, email: e.target.value })}
                     placeholder="email@example.com"
-                    className="w-full bg-neutral-50 border border-neutral-100 rounded-xl pl-11 pr-4 py-3.5 focus:bg-white focus:ring-4 focus:ring-[#001F3F]/10 focus:border-[#001F3F] transition-all outline-none font-medium"
+                    className="w-full bg-neutral-50 border border-neutral-100 rounded-xl pl-11 pr-4 py-3.5 focus:bg-white focus:ring-4 focus:ring-[#0F2B3C]/10 focus:border-[#0F2B3C] transition-all outline-none font-medium"
                   />
                 </div>
               </div>
@@ -576,7 +576,7 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
                   <select
                     value={addForm.role}
                     onChange={e => setAddForm({ ...addForm, role: e.target.value as UserRole })}
-                    className="w-full bg-neutral-50 border border-neutral-100 rounded-xl px-4 py-3.5 focus:bg-white focus:ring-4 focus:ring-[#001F3F]/10 focus:border-[#001F3F] transition-all outline-none font-bold text-sm appearance-none"
+                    className="w-full bg-neutral-50 border border-neutral-100 rounded-xl px-4 py-3.5 focus:bg-white focus:ring-4 focus:ring-[#0F2B3C]/10 focus:border-[#0F2B3C] transition-all outline-none font-bold text-sm appearance-none"
                   >
                     {ROLE_OPTIONS.map(opt => (
                       <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -588,7 +588,7 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
                   <select
                     value={addForm.storeId}
                     onChange={e => setAddForm({ ...addForm, storeId: e.target.value })}
-                    className="w-full bg-neutral-50 border border-neutral-100 rounded-xl px-4 py-3.5 focus:bg-white focus:ring-4 focus:ring-[#001F3F]/10 focus:border-[#001F3F] transition-all outline-none font-bold text-sm appearance-none"
+                    className="w-full bg-neutral-50 border border-neutral-100 rounded-xl px-4 py-3.5 focus:bg-white focus:ring-4 focus:ring-[#0F2B3C]/10 focus:border-[#0F2B3C] transition-all outline-none font-bold text-sm appearance-none"
                   >
                     {stores.map(s => (
                       <option key={s.id} value={s.id}>{s.name}</option>
@@ -608,7 +608,7 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
                       value={addForm.password}
                       onChange={e => setAddForm({ ...addForm, password: e.target.value })}
                       placeholder="Min 6 characters"
-                      className="w-full bg-neutral-50 border border-neutral-100 rounded-xl pl-11 pr-11 py-3.5 focus:bg-white focus:ring-4 focus:ring-[#001F3F]/10 focus:border-[#001F3F] transition-all outline-none font-medium font-mono"
+                      className="w-full bg-neutral-50 border border-neutral-100 rounded-xl pl-11 pr-11 py-3.5 focus:bg-white focus:ring-4 focus:ring-[#0F2B3C]/10 focus:border-[#0F2B3C] transition-all outline-none font-medium font-mono"
                     />
                     <button
                       type="button"
@@ -640,7 +640,7 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
               <button
                 onClick={handleAddUser}
                 disabled={saving}
-                className="flex-1 py-4 bg-[#001F3F] text-white rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-blue-900 transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="flex-1 py-4 bg-[#0F2B3C] text-white rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-blue-900 transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {saving ? <><RefreshCw size={14} className="animate-spin" /> Saving...</> : <><Plus size={14} /> Add User</>}
               </button>
@@ -651,11 +651,11 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
 
       {/* ── Edit User Modal ── */}
       {editingUser && (
-        <div className="fixed inset-0 z-[110] bg-[#001F3F]/60 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[110] bg-[#0F2B3C]/60 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in duration-200">
           <div className="bg-white rounded-xl p-8 max-w-lg w-full shadow-2xl border border-neutral-100 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h3 className="text-2xl font-black text-[#001F3F] uppercase tracking-tight">Edit Team Member</h3>
+                <h3 className="text-2xl font-black text-[#0F2B3C] uppercase tracking-tight">Edit Team Member</h3>
                 <p className="text-neutral-400 text-xs font-bold uppercase tracking-widest mt-1">{editingUser.email}</p>
               </div>
               <button onClick={() => { setEditingUser(null); setError(''); }} className="p-2 hover:bg-neutral-100 rounded-xl transition-colors">
@@ -677,7 +677,7 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
                   type="text"
                   value={editForm.name}
                   onChange={e => setEditForm({ ...editForm, name: e.target.value })}
-                  className="w-full bg-neutral-50 border border-neutral-100 rounded-xl px-4 py-3.5 focus:bg-white focus:ring-4 focus:ring-[#001F3F]/10 focus:border-[#001F3F] transition-all outline-none font-medium"
+                  className="w-full bg-neutral-50 border border-neutral-100 rounded-xl px-4 py-3.5 focus:bg-white focus:ring-4 focus:ring-[#0F2B3C]/10 focus:border-[#0F2B3C] transition-all outline-none font-medium"
                 />
               </div>
 
@@ -708,7 +708,7 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
                     <select
                       value={editForm.role}
                       onChange={e => setEditForm({ ...editForm, role: e.target.value as UserRole })}
-                      className="w-full bg-neutral-50 border border-neutral-100 rounded-xl px-4 py-3.5 focus:bg-white focus:ring-4 focus:ring-[#001F3F]/10 focus:border-[#001F3F] transition-all outline-none font-bold text-sm appearance-none"
+                      className="w-full bg-neutral-50 border border-neutral-100 rounded-xl px-4 py-3.5 focus:bg-white focus:ring-4 focus:ring-[#0F2B3C]/10 focus:border-[#0F2B3C] transition-all outline-none font-bold text-sm appearance-none"
                     >
                       {ROLE_OPTIONS.map(opt => (
                         <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -721,7 +721,7 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
                   <select
                     value={editForm.storeId}
                     onChange={e => setEditForm({ ...editForm, storeId: e.target.value })}
-                    className="w-full bg-neutral-50 border border-neutral-100 rounded-xl px-4 py-3.5 focus:bg-white focus:ring-4 focus:ring-[#001F3F]/10 focus:border-[#001F3F] transition-all outline-none font-bold text-sm appearance-none"
+                    className="w-full bg-neutral-50 border border-neutral-100 rounded-xl px-4 py-3.5 focus:bg-white focus:ring-4 focus:ring-[#0F2B3C]/10 focus:border-[#0F2B3C] transition-all outline-none font-bold text-sm appearance-none"
                   >
                     {stores.map(s => (
                       <option key={s.id} value={s.id}>{s.name}</option>
@@ -752,7 +752,7 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
                           value={editForm.newPassword}
                           onChange={e => setEditForm({ ...editForm, newPassword: e.target.value })}
                           placeholder="New password (min 6 chars)"
-                          className="w-full bg-white border border-neutral-200 rounded-xl px-4 pr-11 py-3.5 focus:ring-4 focus:ring-[#001F3F]/10 focus:border-[#001F3F] transition-all outline-none font-medium font-mono"
+                          className="w-full bg-white border border-neutral-200 rounded-xl px-4 pr-11 py-3.5 focus:ring-4 focus:ring-[#0F2B3C]/10 focus:border-[#0F2B3C] transition-all outline-none font-medium font-mono"
                         />
                         <button
                           type="button"
@@ -786,7 +786,7 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
               <button
                 onClick={handleEditUser}
                 disabled={saving}
-                className="flex-1 py-4 bg-[#001F3F] text-white rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-blue-900 transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="flex-1 py-4 bg-[#0F2B3C] text-white rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-blue-900 transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {saving ? <><RefreshCw size={14} className="animate-spin" /> Saving...</> : <><Check size={14} /> Save Changes</>}
               </button>
@@ -802,12 +802,12 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
             <div className="p-1.5 bg-purple-100 text-purple-600 rounded-lg"><ShieldCheck size={14} /></div>
             <p className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">Admin Only</p>
           </div>
-          <h2 className="text-2xl font-black text-[#001F3F] uppercase tracking-tight">Team Management</h2>
+          <h2 className="text-2xl font-black text-[#0F2B3C] uppercase tracking-tight">Team Management</h2>
           <p className="text-neutral-400 text-xs font-bold uppercase tracking-widest mt-1">{allUsers.length} total accounts • {allUsers.filter(u => u.active !== false).length} active</p>
         </div>
         <button
           onClick={() => { setShowAddModal(true); resetAddForm(); }}
-          className="px-8 py-4 bg-[#001F3F] text-white rounded-xl font-black uppercase text-xs tracking-widest hover:bg-blue-900 transition-all shadow-lg flex items-center gap-2 active:scale-95"
+          className="px-8 py-4 bg-[#0F2B3C] text-white rounded-xl font-black uppercase text-xs tracking-widest hover:bg-blue-900 transition-all shadow-lg flex items-center gap-2 active:scale-95"
         >
           <Plus size={18} /> Add Team Member
         </button>
@@ -825,7 +825,7 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
               <Download size={16} />
             </div>
             <div className="text-left">
-              <h3 className="text-xs font-black text-[#001F3F] uppercase tracking-widest">Toast POS Sync</h3>
+              <h3 className="text-xs font-black text-[#0F2B3C] uppercase tracking-widest">Toast POS Sync</h3>
               <p className="text-[10px] text-neutral-400 font-bold mt-0.5">
                 {toastSyncing ? 'Syncing...' :
                   lastSyncTime ? `Last synced ${formatSyncAge(lastSyncTime)}` :
@@ -903,7 +903,7 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
                           {emp.name.charAt(0).toUpperCase()}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <h4 className="font-black text-sm text-[#001F3F] uppercase tracking-tight truncate">{emp.name}</h4>
+                          <h4 className="font-black text-sm text-[#0F2B3C] uppercase tracking-tight truncate">{emp.name}</h4>
                           <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                             <span className="flex items-center gap-1 text-[10px] font-bold text-indigo-600">
                               <Briefcase size={10} />
@@ -946,7 +946,7 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder="Search by name or email..."
-              className="w-full bg-neutral-50 border border-neutral-100 rounded-xl pl-11 pr-4 py-3 focus:bg-white focus:ring-4 focus:ring-[#001F3F]/10 focus:border-[#001F3F] transition-all outline-none font-medium text-sm"
+              className="w-full bg-neutral-50 border border-neutral-100 rounded-xl pl-11 pr-4 py-3 focus:bg-white focus:ring-4 focus:ring-[#0F2B3C]/10 focus:border-[#0F2B3C] transition-all outline-none font-medium text-sm"
             />
           </div>
 
@@ -956,7 +956,7 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
             <select
               value={filterStore}
               onChange={e => setFilterStore(e.target.value)}
-              className="bg-neutral-50 border border-neutral-100 rounded-xl pl-9 pr-8 py-3 font-bold text-xs uppercase tracking-widest text-neutral-600 appearance-none outline-none focus:ring-4 focus:ring-[#001F3F]/10 focus:border-[#001F3F] transition-all"
+              className="bg-neutral-50 border border-neutral-100 rounded-xl pl-9 pr-8 py-3 font-bold text-xs uppercase tracking-widest text-neutral-600 appearance-none outline-none focus:ring-4 focus:ring-[#0F2B3C]/10 focus:border-[#0F2B3C] transition-all"
             >
               <option value="all">All Stores</option>
               {stores.map(s => (
@@ -971,7 +971,7 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
             <select
               value={filterRole}
               onChange={e => setFilterRole(e.target.value)}
-              className="bg-neutral-50 border border-neutral-100 rounded-xl pl-9 pr-8 py-3 font-bold text-xs uppercase tracking-widest text-neutral-600 appearance-none outline-none focus:ring-4 focus:ring-[#001F3F]/10 focus:border-[#001F3F] transition-all"
+              className="bg-neutral-50 border border-neutral-100 rounded-xl pl-9 pr-8 py-3 font-bold text-xs uppercase tracking-widest text-neutral-600 appearance-none outline-none focus:ring-4 focus:ring-[#0F2B3C]/10 focus:border-[#0F2B3C] transition-all"
             >
               <option value="all">All Roles</option>
               {ROLE_OPTIONS.map(opt => (

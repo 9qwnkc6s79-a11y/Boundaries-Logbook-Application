@@ -836,12 +836,12 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
       )}
 
       {deleteConfirm && (
-        <div className="fixed inset-0 z-[110] bg-[#001F3F]/60 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[110] bg-[#0F2B3C]/60 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in duration-200">
           <div className="bg-white rounded-xl p-6 max-w-sm w-full shadow-lg border border-neutral-100">
             <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-6 ${deleteConfirm.type === 'RESET_LOG' ? 'bg-amber-50 text-amber-500' : 'bg-red-50 text-red-500'}`}>
               {deleteConfirm.type === 'RESET_LOG' ? <RotateCcw size={32} /> : <Trash2 size={32} />}
             </div>
-            <h3 className="text-2xl font-black text-[#001F3F] uppercase tracking-tight leading-tight mb-2">
+            <h3 className="text-2xl font-black text-[#0F2B3C] uppercase tracking-tight leading-tight mb-2">
               {deleteConfirm.type === 'RESET_LOG' ? 'Reset Protocol?' : `Delete ${deleteConfirm.type === 'TASK' ? 'Standard' : 'Protocol'}?`}
             </h3>
             <p className="text-neutral-500 text-sm font-medium mb-6 leading-relaxed">
@@ -866,10 +866,10 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-1">
-            <div className="p-1.5 bg-[#001F3F] text-white rounded-lg"><StoreIcon size={14} /></div>
+            <div className="p-1.5 bg-[#0F2B3C] text-white rounded-lg"><StoreIcon size={14} /></div>
             <p className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">{currentStoreName}</p>
           </div>
-          <h1 className="text-3xl sm:text-4xl font-extrabold text-[#001F3F] uppercase tracking-tighter leading-none">Manager Hub</h1>
+          <h1 className="text-3xl sm:text-4xl font-extrabold text-[#0F2B3C] uppercase tracking-tighter leading-none">Manager Hub</h1>
         </div>
 
         {/* Tab navigation */}
@@ -889,7 +889,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
               { id: 'stores', label: 'STORES', icon: Building2 },
             ] : []),
           ].map(tab => (
-            <button key={tab.id} onClick={() => setActiveSubTab(tab.id as any)} className={`px-5 py-2.5 text-[9px] font-black rounded-lg transition-all flex items-center gap-2 whitespace-nowrap tracking-widest ${activeSubTab === tab.id ? 'bg-[#001F3F] text-white shadow-lg' : 'text-neutral-500 hover:text-[#001F3F]'}`}>
+            <button key={tab.id} onClick={() => setActiveSubTab(tab.id as any)} className={`px-5 py-2.5 text-[9px] font-black rounded-lg transition-all flex items-center gap-2 whitespace-nowrap tracking-widest ${activeSubTab === tab.id ? 'bg-[#0F2B3C] text-white shadow-lg' : 'text-neutral-500 hover:text-[#0F2B3C]'}`}>
               <tab.icon size={14} /> {tab.label}
             </button>
           ))}
@@ -1018,7 +1018,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
               <div className="bg-white p-6 rounded-xl border border-neutral-100 shadow-sm">
                 <div className="flex items-center gap-2 mb-4">
                   <ClipboardList size={16} className={realTimeCompliance.filter(c => c.percent < 100).length > 0 ? 'text-amber-500' : 'text-green-500'} />
-                  <h3 className="text-sm font-black text-[#001F3F] uppercase tracking-tight">Today's Protocols</h3>
+                  <h3 className="text-sm font-black text-[#0F2B3C] uppercase tracking-tight">Today's Protocols</h3>
                 </div>
                 <div className="space-y-3">
                   {realTimeCompliance.length === 0 ? (
@@ -1054,7 +1054,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
               <div className="bg-white p-6 rounded-xl border border-neutral-100 shadow-sm">
                 <div className="flex items-center gap-2 mb-4">
                   <AlertTriangle size={16} className={concernNotes.length > 0 ? 'text-red-500' : 'text-green-500'} />
-                  <h3 className="text-sm font-black text-[#001F3F] uppercase tracking-tight">Audit Alerts</h3>
+                  <h3 className="text-sm font-black text-[#0F2B3C] uppercase tracking-tight">Audit Alerts</h3>
                 </div>
                 {concernNotes.length === 0 ? (
                   <div className="text-center py-8">
@@ -1108,7 +1108,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
               <div className="bg-white p-4 md:p-6 rounded-xl border border-neutral-100 shadow-sm">
                 <div className="flex items-center gap-2 mb-4">
                   <TrendingUp size={16} className="text-green-600" />
-                  <h3 className="text-sm font-black text-[#001F3F] uppercase tracking-tight">Sales Summary</h3>
+                  <h3 className="text-sm font-black text-[#0F2B3C] uppercase tracking-tight">Sales Summary</h3>
                 </div>
                 <div className="space-y-4">
                   <div>
@@ -1122,7 +1122,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                   <div className="pt-4 border-t border-neutral-100 grid grid-cols-2 gap-4">
                     <div>
                       <div className="text-[9px] font-bold text-neutral-500 mb-1">Avg Ticket</div>
-                      <div className="text-lg font-black text-[#001F3F]">${toastSales?.averageCheck?.toFixed(2) || '—'}</div>
+                      <div className="text-lg font-black text-[#0F2B3C]">${toastSales?.averageCheck?.toFixed(2) || '—'}</div>
                     </div>
                     <div>
                       <div className="text-[9px] font-bold text-neutral-500 mb-1">vs Last Week</div>
@@ -1143,23 +1143,23 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
             <section className="bg-white p-6 rounded-xl border border-neutral-100 shadow-sm">
               <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
                 <div className="text-center">
-                  <div className="text-2xl font-black text-[#001F3F] mb-1">{staff.length}</div>
+                  <div className="text-2xl font-black text-[#0F2B3C] mb-1">{staff.length}</div>
                   <div className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest">Total Staff</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-black text-[#001F3F] mb-1">
+                  <div className="text-2xl font-black text-[#0F2B3C] mb-1">
                     {submissions.filter(s => s.status === 'PENDING').length}
                   </div>
                   <div className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest">Pending Reviews</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-black text-[#001F3F] mb-1">
+                  <div className="text-2xl font-black text-[#0F2B3C] mb-1">
                     {allProgress.filter(p => p.status === 'COMPLETED').length}
                   </div>
                   <div className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest">Lessons Completed</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-black text-[#001F3F] mb-1">
+                  <div className="text-2xl font-black text-[#0F2B3C] mb-1">
                     {templates.length}
                   </div>
                   <div className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest">Active Protocols</div>
@@ -1181,7 +1181,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                     <BrainCircuit size={20} className="text-purple-600" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-black text-[#001F3F] uppercase tracking-tight">Barista Brain Audit</h3>
+                    <h3 className="text-sm font-black text-[#0F2B3C] uppercase tracking-tight">Barista Brain Audit</h3>
                     <p className="text-[9px] font-bold text-neutral-500 uppercase tracking-widest mt-0.5">AI-powered store analysis</p>
                   </div>
                 </div>
@@ -1199,7 +1199,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
             {aiInsight && (
               <section className="bg-white p-6 rounded-xl border border-purple-100 shadow-md animate-in slide-in-from-bottom-4">
                 <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-xl font-black text-[#001F3F] uppercase flex items-center gap-3">
+                  <h3 className="text-xl font-black text-[#0F2B3C] uppercase flex items-center gap-3">
                     <BrainCircuit className="text-purple-500" size={24} />
                     Audit Results
                   </h3>
@@ -1224,7 +1224,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-red-50 text-red-600 rounded-xl"><SearchCheck size={20} /></div>
                   <div>
-                    <h2 className="text-xl font-black text-[#001F3F] uppercase tracking-tight">Photo Audit Queue</h2>
+                    <h2 className="text-xl font-black text-[#0F2B3C] uppercase tracking-tight">Photo Audit Queue</h2>
                     <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">Review AI-flagged photos</p>
                   </div>
                 </div>
@@ -1239,8 +1239,8 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                       onClick={() => setAuditFilter(filter.id as 'pending' | 'approved' | 'all')}
                       className={`px-4 py-2 text-[9px] font-black rounded-lg transition-all flex items-center gap-2 whitespace-nowrap tracking-widest ${
                         auditFilter === filter.id
-                          ? 'bg-[#001F3F] text-white shadow-lg'
-                          : 'text-neutral-500 hover:text-[#001F3F]'
+                          ? 'bg-[#0F2B3C] text-white shadow-lg'
+                          : 'text-neutral-500 hover:text-[#0F2B3C]'
                       }`}
                     >
                       {filter.label}
@@ -1358,7 +1358,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
             <div className="pt-8 border-t border-neutral-100">
               <div className="flex items-center gap-3 mb-6">
                 <div className="p-2 bg-neutral-100 text-neutral-600 rounded-xl"><ImageIcon size={20} /></div>
-                <h3 className="text-lg font-black text-[#001F3F] uppercase tracking-tight">All Verification Photos</h3>
+                <h3 className="text-lg font-black text-[#0F2B3C] uppercase tracking-tight">All Verification Photos</h3>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
                 {allPhotos.map(photo => (
@@ -1408,22 +1408,22 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
             {localManual.map(section => (
               <div key={section.id} className="bg-white p-6 rounded-xl border border-neutral-100 shadow-sm space-y-6">
                  <div className="flex items-center gap-4 border-b border-neutral-50 pb-6">
-                    <div className="w-12 h-12 bg-[#001F3F] text-white rounded-xl flex items-center justify-center font-black text-xl">{section.number}</div>
+                    <div className="w-12 h-12 bg-[#0F2B3C] text-white rounded-xl flex items-center justify-center font-black text-xl">{section.number}</div>
                     <div className="flex-1">
                       <label className="text-[8px] font-black text-neutral-400 uppercase tracking-widest block mb-1 ml-1">Section Header</label>
                       <input value={section.title} onChange={e => {
                         const next = localManual.map(s => s.id === section.id ? { ...s, title: e.target.value } : s);
                         setLocalManual(next);
                         setIsDirty(true);
-                      }} className="text-2xl font-black text-[#001F3F] uppercase bg-transparent outline-none w-full focus:ring-0 border-none p-0" />
+                      }} className="text-2xl font-black text-[#0F2B3C] uppercase bg-transparent outline-none w-full focus:ring-0 border-none p-0" />
                     </div>
-                    <button onClick={() => { onUpdateManual(localManual); setIsDirty(false); }} className="p-4 bg-blue-50 text-[#001F3F] rounded-xl hover:bg-[#001F3F] hover:text-white transition-all shadow-sm active:scale-95"><Save size={20}/></button>
+                    <button onClick={() => { onUpdateManual(localManual); setIsDirty(false); }} className="p-4 bg-blue-50 text-[#0F2B3C] rounded-xl hover:bg-[#0F2B3C] hover:text-white transition-all shadow-sm active:scale-95"><Save size={20}/></button>
                  </div>
                  <textarea rows={10} value={section.content} onChange={e => {
                    const next = localManual.map(s => s.id === section.id ? { ...s, content: e.target.value } : s);
                    setLocalManual(next);
                    setIsDirty(true);
-                 }} className="w-full bg-neutral-50 p-6 rounded-xl border-none text-sm text-neutral-600 font-medium leading-relaxed resize-none outline-none focus:ring-4 focus:ring-[#001F3F]/5" />
+                 }} className="w-full bg-neutral-50 p-6 rounded-xl border-none text-sm text-neutral-600 font-medium leading-relaxed resize-none outline-none focus:ring-4 focus:ring-[#0F2B3C]/5" />
               </div>
             ))}
           </section>
@@ -1435,7 +1435,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
              <div className="bg-white p-6 rounded-xl border border-neutral-100 shadow-sm">
                 <div className="flex items-center gap-2 mb-6">
                   <History size={18} className="text-neutral-400" />
-                  <h3 className="text-lg font-black text-[#001F3F] uppercase tracking-tight">7-Day Performance Summary</h3>
+                  <h3 className="text-lg font-black text-[#0F2B3C] uppercase tracking-tight">7-Day Performance Summary</h3>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="p-6 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border border-green-100 text-center">
@@ -1471,7 +1471,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                     <tbody className="divide-y divide-neutral-50">
                       {(templates || []).filter(t => ['OPENING', 'CLOSING', 'SHIFT_CHANGE'].includes(t.type)).map(tpl => (
                         <tr key={tpl.id}>
-                          <td className="py-4 pr-6 font-bold text-xs text-[#001F3F] uppercase tracking-tight">{tpl.name}</td>
+                          <td className="py-4 pr-6 font-bold text-xs text-[#0F2B3C] uppercase tracking-tight">{tpl.name}</td>
                           {complianceMatrix.map(day => {
                             const status = day.statuses?.find(s => s.templateName === tpl.name)?.status || 'FUTURE';
                             return (
@@ -1535,11 +1535,11 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                     <div key={member.id} className="flex items-center justify-between gap-4 p-4 hover:bg-neutral-50 rounded-xl transition-colors group">
                        <div className="flex items-center gap-4">
                           <span className="text-[10px] font-black text-neutral-300 w-4">{idx + 1}</span>
-                          <div className="w-10 h-10 rounded-xl bg-[#001F3F] text-white flex items-center justify-center font-black text-xs">{member.name?.charAt(0)}</div>
-                          <div><p className="font-black text-xs text-[#001F3F] uppercase tracking-tight">{member.name}</p><p className="text-[8px] font-bold text-neutral-400 uppercase tracking-widest">{member.completionRate} Total Tasks</p></div>
+                          <div className="w-10 h-10 rounded-xl bg-[#0F2B3C] text-white flex items-center justify-center font-black text-xs">{member.name?.charAt(0)}</div>
+                          <div><p className="font-black text-xs text-[#0F2B3C] uppercase tracking-tight">{member.name}</p><p className="text-[8px] font-bold text-neutral-400 uppercase tracking-widest">{member.completionRate} Total Tasks</p></div>
                        </div>
                        <div className="flex items-center gap-4">
-                          <div className="text-right"><p className="text-lg font-black text-[#001F3F]">{member.score}%</p><p className="text-[7px] font-black text-neutral-400 uppercase">Audit Score</p></div>
+                          <div className="text-right"><p className="text-lg font-black text-[#0F2B3C]">{member.score}%</p><p className="text-[7px] font-black text-neutral-400 uppercase">Audit Score</p></div>
                           {idx === 0 && <Award size={20} className="text-amber-500 fill-amber-500/10" />}
                        </div>
                     </div>
@@ -1558,9 +1558,9 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                     <Users size={40} />
                   </div>
                   <div>
-                    <h3 className="text-2xl font-black text-[#001F3F] uppercase tracking-tight mb-3">No Staff Assigned</h3>
+                    <h3 className="text-2xl font-black text-[#0F2B3C] uppercase tracking-tight mb-3">No Staff Assigned</h3>
                     <p className="text-neutral-500 font-medium text-sm leading-relaxed">
-                      There are no staff members assigned to <span className="font-black text-[#001F3F]">{currentStoreName}</span> yet. Staff will appear here once they're added to the system.
+                      There are no staff members assigned to <span className="font-black text-[#0F2B3C]">{currentStoreName}</span> yet. Staff will appear here once they're added to the system.
                     </p>
                   </div>
                   <div className="pt-4">
@@ -1583,9 +1583,9 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
               return (
                 <div key={member.id} className="bg-white p-6 rounded-xl border border-neutral-100 shadow-sm space-y-6">
                    <div className="flex items-center gap-4">
-                      <div className="w-16 h-16 bg-[#001F3F] text-white rounded-[1.5rem] flex items-center justify-center font-black text-2xl">{member.name.charAt(0)}</div>
+                      <div className="w-16 h-16 bg-[#0F2B3C] text-white rounded-[1.5rem] flex items-center justify-center font-black text-2xl">{member.name.charAt(0)}</div>
                       <div>
-                        <h3 className="font-black text-xl text-[#001F3F] uppercase tracking-tight leading-none">{member.name}</h3>
+                        <h3 className="font-black text-xl text-[#0F2B3C] uppercase tracking-tight leading-none">{member.name}</h3>
                         <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mt-2">{member.role}</p>
                       </div>
                    </div>
@@ -1598,11 +1598,11 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                    <div className="grid grid-cols-2 gap-4">
                       <div className="bg-neutral-50 p-5 rounded-xl text-center border border-neutral-100">
                          <p className="text-[7px] font-black text-neutral-400 uppercase tracking-widest mb-1.5">Onboarding</p>
-                         <p className="text-lg font-black text-[#001F3F]">{stats?.onboardingPercent || 0}%</p>
+                         <p className="text-lg font-black text-[#0F2B3C]">{stats?.onboardingPercent || 0}%</p>
                       </div>
                       <div className="bg-neutral-50 p-5 rounded-xl text-center border border-neutral-100">
                          <p className="text-[7px] font-black text-neutral-400 uppercase tracking-widest mb-1.5">Academy</p>
-                         <p className="text-lg font-black text-[#001F3F]">{stats?.continuedPercent || 0}%</p>
+                         <p className="text-lg font-black text-[#0F2B3C]">{stats?.continuedPercent || 0}%</p>
                       </div>
                    </div>
 
@@ -1610,7 +1610,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                    <div className="pt-6 border-t border-neutral-100 space-y-3">
                      <button
                        onClick={() => setExpandedStaffId(isExpanded ? null : member.id)}
-                       className="w-full py-3 bg-[#001F3F] text-white rounded-xl font-black uppercase text-[9px] tracking-widest hover:bg-blue-900 transition-all flex items-center justify-center gap-2"
+                       className="w-full py-3 bg-[#0F2B3C] text-white rounded-xl font-black uppercase text-[9px] tracking-widest hover:bg-blue-900 transition-all flex items-center justify-center gap-2"
                      >
                        <ClipboardList size={14} />
                        {isExpanded ? 'Hide Recent Logs' : 'View Recent Logs'}
@@ -1625,7 +1625,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                              <div key={sub.id} className="p-3 bg-neutral-50 rounded-xl border border-neutral-100">
                                <div className="flex items-center justify-between">
                                  <div>
-                                   <p className="text-[9px] font-black text-[#001F3F] uppercase tracking-tight">{tpl?.name || 'Log'}</p>
+                                   <p className="text-[9px] font-black text-[#0F2B3C] uppercase tracking-tight">{tpl?.name || 'Log'}</p>
                                    <p className="text-[8px] text-neutral-500 font-bold uppercase tracking-widest">{sub.date}</p>
                                  </div>
                                  <span className="text-[10px] font-bold text-neutral-400">{userTasks} tasks</span>
@@ -1656,7 +1656,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
             <section className="bg-white p-6 rounded-xl border border-neutral-100 shadow-sm">
               <div className="flex items-center gap-3 mb-6">
                 <div className="p-2 bg-blue-50 text-blue-600 rounded-xl"><Target size={20} /></div>
-                <h2 className="text-xl font-black text-[#001F3F] uppercase tracking-tight">Current Shift Leadership</h2>
+                <h2 className="text-xl font-black text-[#0F2B3C] uppercase tracking-tight">Current Shift Leadership</h2>
               </div>
 
               {(() => {
@@ -1712,11 +1712,11 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                       {currentLeaders.map(leader => (
                         <div key={leader.userId} className={`p-6 rounded-xl border-2 ${leader.priority === highestPriority ? 'bg-blue-50 border-blue-200' : 'bg-neutral-50 border-neutral-200'}`}>
                           <div className="flex items-center gap-3 mb-4">
-                            <div className="w-12 h-12 bg-[#001F3F] text-white rounded-xl flex items-center justify-center font-black text-lg">
+                            <div className="w-12 h-12 bg-[#0F2B3C] text-white rounded-xl flex items-center justify-center font-black text-lg">
                               {leader.name.charAt(0)}
                             </div>
                             <div>
-                              <h3 className="font-black text-base text-[#001F3F] uppercase tracking-tight leading-none">{leader.name}</h3>
+                              <h3 className="font-black text-base text-[#0F2B3C] uppercase tracking-tight leading-none">{leader.name}</h3>
                               <p className="text-[9px] font-bold text-neutral-500 uppercase tracking-widest mt-1">{leader.jobTitle}</p>
                             </div>
                           </div>
@@ -1738,7 +1738,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
                         <div className="bg-neutral-50 p-6 rounded-xl border border-neutral-200">
                           <div className="text-[10px] font-black text-neutral-400 uppercase tracking-widest mb-2">Turn Time</div>
-                          <div className="text-2xl font-black text-[#001F3F]">{toastSales.averageTurnTime?.toFixed(1) || '—'} min</div>
+                          <div className="text-2xl font-black text-[#0F2B3C]">{toastSales.averageTurnTime?.toFixed(1) || '—'} min</div>
                           <div className={`text-[9px] font-bold uppercase tracking-wide mt-1 ${
                             (toastSales.averageTurnTime || 0) < 3.5 ? 'text-green-600' :
                             (toastSales.averageTurnTime || 0) < 4.5 ? 'text-blue-600' :
@@ -1751,7 +1751,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                         </div>
                         <div className="bg-neutral-50 p-6 rounded-xl border border-neutral-200">
                           <div className="text-[10px] font-black text-neutral-400 uppercase tracking-widest mb-2">Total Sales</div>
-                          <div className="text-2xl font-black text-[#001F3F]">${toastSales.totalSales?.toFixed(0) || '—'}</div>
+                          <div className="text-2xl font-black text-[#0F2B3C]">${toastSales.totalSales?.toFixed(0) || '—'}</div>
                           <div className="text-[9px] font-bold text-neutral-500 uppercase tracking-wide mt-1">{toastSales.totalOrders || 0} orders</div>
                           {salesComparison && (
                             <div className={`mt-2 flex items-center gap-1 text-[9px] font-black ${
@@ -1766,7 +1766,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                         </div>
                         <div className="bg-neutral-50 p-6 rounded-xl border border-neutral-200">
                           <div className="text-[10px] font-black text-neutral-400 uppercase tracking-widest mb-2">Avg Check</div>
-                          <div className="text-2xl font-black text-[#001F3F]">${toastSales.averageCheck?.toFixed(2) || '—'}</div>
+                          <div className="text-2xl font-black text-[#0F2B3C]">${toastSales.averageCheck?.toFixed(2) || '—'}</div>
                           <div className={`text-[9px] font-bold uppercase tracking-wide mt-1 ${
                             (toastSales.averageCheck || 0) >= 10 ? 'text-green-600' :
                             (toastSales.averageCheck || 0) >= 8 ? 'text-green-600' :
@@ -1787,7 +1787,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
             <section className="bg-white p-4 md:p-6 rounded-xl border border-neutral-100 shadow-sm">
               <div className="flex items-center gap-3 mb-4 md:mb-6">
                 <div className="p-2 bg-amber-50 text-amber-600 rounded-xl"><Trophy size={20} /></div>
-                <h2 className="text-lg md:text-xl font-black text-[#001F3F] uppercase tracking-tight">Team Leader Leaderboard</h2>
+                <h2 className="text-lg md:text-xl font-black text-[#0F2B3C] uppercase tracking-tight">Team Leader Leaderboard</h2>
                 <span className="text-[9px] font-black text-neutral-400 uppercase tracking-widest ml-auto">Last 7 Days</span>
               </div>
 
@@ -1823,7 +1823,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                               #{index + 1}
                             </div>
                             <div>
-                              <h3 className="font-black text-base md:text-lg text-[#001F3F] uppercase tracking-tight">{leader.name}</h3>
+                              <h3 className="font-black text-base md:text-lg text-[#0F2B3C] uppercase tracking-tight">{leader.name}</h3>
                               <p className="text-[9px] font-bold text-neutral-500 uppercase tracking-widest mt-0.5">
                                 {leader.totalShifts} shifts led{leader.shiftsWithToastData > 0 ? ` (${leader.shiftsWithToastData} with Toast data)` : ''}
                               </p>
@@ -1895,7 +1895,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
             <section className="bg-white p-4 md:p-6 rounded-xl border border-neutral-100 shadow-sm">
               <div className="flex items-center gap-3 mb-4 md:mb-6">
                 <div className="p-2 bg-yellow-50 text-yellow-600 rounded-xl"><Star size={20} /></div>
-                <h2 className="text-lg font-black text-[#001F3F] uppercase tracking-tight">Google Reviews</h2>
+                <h2 className="text-lg font-black text-[#0F2B3C] uppercase tracking-tight">Google Reviews</h2>
                 <span className="text-[9px] font-black text-neutral-400 uppercase tracking-widest ml-auto">
                   {googleReviewsData.trackedReviews.filter(r => r.storeId === currentStoreId).length} tracked
                 </span>
@@ -1928,7 +1928,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">
-                              <span className="font-black text-sm text-[#001F3F]">{review.authorName}</span>
+                              <span className="font-black text-sm text-[#0F2B3C]">{review.authorName}</span>
                               <span className="text-yellow-500 font-black text-sm">
                                 {'★'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)}
                               </span>
@@ -1962,7 +1962,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
             <section className="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-100">
               <div className="flex items-center gap-3 mb-6">
                 <div className="p-2 bg-blue-100 text-blue-600 rounded-xl"><Info size={20} /></div>
-                <h2 className="text-lg font-black text-[#001F3F] uppercase tracking-tight">Performance Scoring Guide</h2>
+                <h2 className="text-lg font-black text-[#0F2B3C] uppercase tracking-tight">Performance Scoring Guide</h2>
               </div>
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6">
@@ -2010,7 +2010,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
 
               <div className="mt-4 md:mt-6 bg-white/50 p-4 rounded-xl border border-blue-100">
                 <p className="text-xs font-bold text-neutral-600 leading-relaxed">
-                  <span className="font-black text-[#001F3F]">How it works:</span> Each shift earns up to 105 points across 3 categories. Poor turn times and late protocols carry <span className="font-black text-red-600">negative penalties</span>. Your score is the <span className="font-black">average</span> across all shifts. 5-star Google Reviews add a flat <span className="font-black text-yellow-600">+50 bonus</span> for the on-duty shift leader.
+                  <span className="font-black text-[#0F2B3C]">How it works:</span> Each shift earns up to 105 points across 3 categories. Poor turn times and late protocols carry <span className="font-black text-red-600">negative penalties</span>. Your score is the <span className="font-black">average</span> across all shifts. 5-star Google Reviews add a flat <span className="font-black text-yellow-600">+50 bonus</span> for the on-duty shift leader.
                 </p>
               </div>
             </section>
@@ -2021,7 +2021,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
           <section className="animate-in fade-in space-y-6">
             <div className="flex justify-between items-center bg-white p-6 rounded-xl border border-neutral-100 shadow-sm mb-6">
               <div>
-                <h2 className="text-2xl font-black text-[#001F3F] uppercase tracking-tight">Protocol Editor</h2>
+                <h2 className="text-2xl font-black text-[#0F2B3C] uppercase tracking-tight">Protocol Editor</h2>
                 <p className="text-neutral-400 text-xs font-bold uppercase tracking-widest mt-1">Configure Daily & Weekly Cycles</p>
               </div>
               <div className="flex flex-col items-end gap-3">
@@ -2038,7 +2038,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                   onAddTemplate(newTpl);
                   setLocalTemplates(prev => [...prev, newTpl]);
                   setIsDirty(true);
-                }} className="bg-[#001F3F] text-white px-8 py-4 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 shadow-md hover:bg-blue-900 transition-all active:scale-95"><Plus size={18} /> New Protocol</button>
+                }} className="bg-[#0F2B3C] text-white px-8 py-4 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 shadow-md hover:bg-blue-900 transition-all active:scale-95"><Plus size={18} /> New Protocol</button>
               </div>
             </div>
             
@@ -2053,10 +2053,10 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                   <div className="p-6 bg-neutral-50 flex flex-col sm:flex-row sm:items-center justify-between gap-6 border-b border-neutral-100">
                     <div className="flex-1 space-y-5">
                       <div className="flex items-center gap-4">
-                        <input value={tpl.name} onChange={e => handleUpdateTemplateLocal(tpl.id, { name: e.target.value })} className="text-2xl font-black text-[#001F3F] uppercase bg-transparent outline-none flex-1 focus:ring-0 border-none p-0" />
+                        <input value={tpl.name} onChange={e => handleUpdateTemplateLocal(tpl.id, { name: e.target.value })} className="text-2xl font-black text-[#0F2B3C] uppercase bg-transparent outline-none flex-1 focus:ring-0 border-none p-0" />
                         <button
                           onClick={() => setExpandedProtocolId(isExpanded ? null : tpl.id)}
-                          className="px-4 py-2 bg-white text-[#001F3F] rounded-xl font-black uppercase text-[9px] tracking-widest hover:bg-neutral-100 transition-all flex items-center gap-2 border border-neutral-200"
+                          className="px-4 py-2 bg-white text-[#0F2B3C] rounded-xl font-black uppercase text-[9px] tracking-widest hover:bg-neutral-100 transition-all flex items-center gap-2 border border-neutral-200"
                         >
                           {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                           {isExpanded ? 'Collapse' : `${tpl.tasks.length} Tasks`}
@@ -2090,7 +2090,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                         <div className="flex flex-wrap gap-6">
                           <div className="space-y-2">
                              <label className="text-[8px] font-black text-neutral-400 uppercase tracking-[0.2em] block ml-1">Due Time (24h)</label>
-                             <input type="number" value={tpl.deadlineHour} onChange={e => handleUpdateTemplateLocal(tpl.id, { deadlineHour: parseInt(e.target.value) || 0 })} className="w-24 bg-white border border-neutral-200 p-3 rounded-xl text-sm font-black text-[#001F3F] outline-none shadow-inner" />
+                             <input type="number" value={tpl.deadlineHour} onChange={e => handleUpdateTemplateLocal(tpl.id, { deadlineHour: parseInt(e.target.value) || 0 })} className="w-24 bg-white border border-neutral-200 p-3 rounded-xl text-sm font-black text-[#0F2B3C] outline-none shadow-inner" />
                           </div>
                           <div className="space-y-2">
                              <label className="text-[8px] font-black text-neutral-400 uppercase tracking-[0.2em] block ml-1">Refresh Time (24h)</label>
@@ -2109,7 +2109,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                       )}
                     </div>
                     <div className="flex flex-col gap-3">
-                      <button onClick={() => handleSaveTemplate(tpl.id)} disabled={savingStatus[tpl.id] === 'SAVING'} className={`px-10 py-4 rounded-xl font-black uppercase text-[11px] tracking-widest shadow-md transition-all active:scale-95 ${savingStatus[tpl.id] === 'SAVED' ? 'bg-green-600 text-white' : 'bg-[#001F3F] text-white'}`}>
+                      <button onClick={() => handleSaveTemplate(tpl.id)} disabled={savingStatus[tpl.id] === 'SAVING'} className={`px-10 py-4 rounded-xl font-black uppercase text-[11px] tracking-widest shadow-md transition-all active:scale-95 ${savingStatus[tpl.id] === 'SAVED' ? 'bg-green-600 text-white' : 'bg-[#0F2B3C] text-white'}`}>
                         {savingStatus[tpl.id] === 'SAVING' ? <RefreshCw className="animate-spin" size={18}/> : <Save size={18}/>}
                         <span className="ml-2">{savingStatus[tpl.id] === 'SAVING' ? 'Syncing...' : 'Save Changes'}</span>
                       </button>
@@ -2131,7 +2131,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                               handleUpdateTemplateLocal(tpl.id, { tasks: newTasks });
                             }}
                             disabled={taskIndex === 0}
-                            className={`p-1 rounded transition-all ${taskIndex === 0 ? 'text-neutral-200 cursor-not-allowed' : 'text-neutral-400 hover:text-[#001F3F] hover:bg-neutral-100'}`}
+                            className={`p-1 rounded transition-all ${taskIndex === 0 ? 'text-neutral-200 cursor-not-allowed' : 'text-neutral-400 hover:text-[#0F2B3C] hover:bg-neutral-100'}`}
                             title="Move Up"
                           >
                             <MoveUp size={16}/>
@@ -2144,7 +2144,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                               handleUpdateTemplateLocal(tpl.id, { tasks: newTasks });
                             }}
                             disabled={taskIndex === tpl.tasks.length - 1}
-                            className={`p-1 rounded transition-all ${taskIndex === tpl.tasks.length - 1 ? 'text-neutral-200 cursor-not-allowed' : 'text-neutral-400 hover:text-[#001F3F] hover:bg-neutral-100'}`}
+                            className={`p-1 rounded transition-all ${taskIndex === tpl.tasks.length - 1 ? 'text-neutral-200 cursor-not-allowed' : 'text-neutral-400 hover:text-[#0F2B3C] hover:bg-neutral-100'}`}
                             title="Move Down"
                           >
                             <MoveDown size={16}/>
@@ -2153,7 +2153,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                         <input value={task.title} onChange={e => {
                           const next = tpl.tasks.map(tk => tk.id === task.id ? { ...tk, title: e.target.value } : tk);
                           handleUpdateTemplateLocal(tpl.id, { tasks: next });
-                        }} className="flex-1 bg-transparent text-sm font-bold text-[#001F3F] outline-none" />
+                        }} className="flex-1 bg-transparent text-sm font-bold text-[#0F2B3C] outline-none" />
                         <div className="flex items-center gap-2">
                            {/* Photo requirement control */}
                            <div className="flex items-center gap-1">
@@ -2215,7 +2215,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                     <button onClick={() => {
                       const newTask: ChecklistTask = { id: `t-${Date.now()}`, title: 'New Task Standard', requiresPhoto: false, isCritical: false };
                       handleUpdateTemplateLocal(tpl.id, { tasks: [...tpl.tasks, newTask] });
-                    }} className="w-full py-6 border-2 border-dashed border-neutral-200 rounded-xl text-neutral-400 font-black uppercase text-[10px] tracking-[0.2em] hover:bg-neutral-50 hover:text-[#001F3F] hover:border-[#001F3F] transition-all flex items-center justify-center gap-2"><Plus size={18}/> Append Standard</button>
+                    }} className="w-full py-6 border-2 border-dashed border-neutral-200 rounded-xl text-neutral-400 font-black uppercase text-[10px] tracking-[0.2em] hover:bg-neutral-50 hover:text-[#0F2B3C] hover:border-[#0F2B3C] transition-all flex items-center justify-center gap-2"><Plus size={18}/> Append Standard</button>
                   </div>
                   )}
                 </div>
@@ -2256,7 +2256,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
               {/* Header */}
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-xl border border-neutral-100 shadow-sm">
                 <div>
-                  <h2 className="text-2xl font-black text-[#001F3F] uppercase tracking-tight flex items-center gap-3">
+                  <h2 className="text-2xl font-black text-[#0F2B3C] uppercase tracking-tight flex items-center gap-3">
                     <DollarSign size={28} />
                     Bank Deposit Tracking
                   </h2>
@@ -2270,7 +2270,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                     setShowDepositForm(!showDepositForm);
                   }}
                   disabled={!hasCashData}
-                  className="px-8 py-4 bg-[#001F3F] text-white rounded-xl font-black uppercase text-xs tracking-widest hover:bg-blue-900 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg flex items-center gap-2"
+                  className="px-8 py-4 bg-[#0F2B3C] text-white rounded-xl font-black uppercase text-xs tracking-widest hover:bg-blue-900 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg flex items-center gap-2"
                 >
                   <Plus size={18} />
                   {showDepositForm ? 'Cancel' : 'Record Deposit'}
@@ -2280,7 +2280,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
               {/* Expected Cash Breakdown */}
               {hasCashData && (
                 <div className="bg-white p-6 rounded-xl border border-neutral-100 shadow-sm">
-                  <h3 className="text-lg font-black text-[#001F3F] uppercase tracking-tight mb-6">Current Cash Status</h3>
+                  <h3 className="text-lg font-black text-[#0F2B3C] uppercase tracking-tight mb-6">Current Cash Status</h3>
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                     <div className="bg-green-50 p-6 rounded-xl border-2 border-green-200">
                       <p className="text-[10px] font-black uppercase tracking-widest text-green-600 mb-2">Cash Sales</p>
@@ -2315,7 +2315,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
               {/* Deposit Form */}
               {showDepositForm && (
                 <div className="bg-white p-6 rounded-xl border border-neutral-100 shadow-sm">
-                  <h3 className="text-lg font-black text-[#001F3F] uppercase tracking-tight mb-6">Record Bank Deposit</h3>
+                  <h3 className="text-lg font-black text-[#0F2B3C] uppercase tracking-tight mb-6">Record Bank Deposit</h3>
                   <div className="space-y-6">
                     <div>
                       <label className="block text-xs font-black text-neutral-600 uppercase tracking-widest mb-2">Expected Deposit</label>
@@ -2340,7 +2340,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                           value={depositFormData.actualDeposit}
                           onChange={(e) => setDepositFormData({ ...depositFormData, actualDeposit: e.target.value })}
                           placeholder="0.00"
-                          className="w-full pl-8 pr-4 py-4 rounded-xl border-2 border-neutral-200 focus:border-[#001F3F] outline-none font-bold text-lg"
+                          className="w-full pl-8 pr-4 py-4 rounded-xl border-2 border-neutral-200 focus:border-[#0F2B3C] outline-none font-bold text-lg"
                           autoFocus
                         />
                       </div>
@@ -2352,7 +2352,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                         onChange={(e) => setDepositFormData({ ...depositFormData, notes: e.target.value })}
                         placeholder="Any discrepancies or issues to note..."
                         rows={3}
-                        className="w-full px-4 py-4 rounded-xl border-2 border-neutral-200 focus:border-[#001F3F] outline-none font-medium resize-none"
+                        className="w-full px-4 py-4 rounded-xl border-2 border-neutral-200 focus:border-[#0F2B3C] outline-none font-medium resize-none"
                       />
                     </div>
 
@@ -2446,7 +2446,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                           }
                         }}
                         disabled={!depositFormData.actualDeposit || depositSaving}
-                        className="flex-1 px-8 py-4 bg-[#001F3F] text-white rounded-xl font-black uppercase text-xs tracking-widest hover:bg-blue-900 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg"
+                        className="flex-1 px-8 py-4 bg-[#0F2B3C] text-white rounded-xl font-black uppercase text-xs tracking-widest hover:bg-blue-900 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg"
                       >
                         {depositSaving ? 'Saving...' : 'Save Deposit'}
                       </button>
@@ -2466,7 +2466,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
 
               {/* Deposit History */}
               <div className="bg-white p-6 rounded-xl border border-neutral-100 shadow-sm">
-                <h3 className="text-lg font-black text-[#001F3F] uppercase tracking-tight mb-6">Deposit History</h3>
+                <h3 className="text-lg font-black text-[#0F2B3C] uppercase tracking-tight mb-6">Deposit History</h3>
 
                 {cashDeposits.length === 0 ? (
                   <div className="text-center py-16">
@@ -2544,9 +2544,9 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
 
 // ── Branding Settings Sub-Component ──
 const BrandingSettings: React.FC<{ org: Organization | null; onSaveOrg: (org: Organization) => Promise<boolean> }> = ({ org, onSaveOrg }) => {
-  const [orgName, setOrgName] = useState(org?.name || 'BOUNDARIES');
-  const [primaryColor, setPrimaryColor] = useState(org?.primaryColor || '#001F3F');
-  const [accentColor, setAccentColor] = useState(org?.accentColor || '#DC2626');
+  const [orgName, setOrgName] = useState(org?.name || 'BREWSHIFT');
+  const [primaryColor, setPrimaryColor] = useState(org?.primaryColor || '#0F2B3C');
+  const [accentColor, setAccentColor] = useState(org?.accentColor || '#C77B3C');
   const [logoUrl, setLogoUrl] = useState(org?.logo || '');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -2584,7 +2584,7 @@ const BrandingSettings: React.FC<{ org: Organization | null; onSaveOrg: (org: Or
         <div className="flex items-center gap-3 mb-6">
           <div className="p-2 bg-purple-100 text-purple-600 rounded-xl"><Palette size={20} /></div>
           <div>
-            <h2 className="text-xl font-black text-[#001F3F] uppercase tracking-tight">Branding Settings</h2>
+            <h2 className="text-xl font-black text-[#0F2B3C] uppercase tracking-tight">Branding Settings</h2>
             <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">Customize your organization's appearance</p>
           </div>
         </div>
@@ -2618,7 +2618,7 @@ const BrandingSettings: React.FC<{ org: Organization | null; onSaveOrg: (org: Or
                   value={primaryColor}
                   onChange={(e) => setPrimaryColor(e.target.value)}
                   className="flex-1 bg-neutral-50 border border-neutral-100 rounded-xl px-4 py-3.5 focus:bg-white focus:ring-4 focus:ring-blue-900/10 transition-all outline-none font-mono font-bold"
-                  placeholder="#001F3F"
+                  placeholder="#0F2B3C"
                 />
               </div>
               <p className="text-[9px] text-neutral-400 mt-1 ml-1">Sidebar, buttons, navigation</p>
@@ -2637,7 +2637,7 @@ const BrandingSettings: React.FC<{ org: Organization | null; onSaveOrg: (org: Or
                   value={accentColor}
                   onChange={(e) => setAccentColor(e.target.value)}
                   className="flex-1 bg-neutral-50 border border-neutral-100 rounded-xl px-4 py-3.5 focus:bg-white focus:ring-4 focus:ring-blue-900/10 transition-all outline-none font-mono font-bold"
-                  placeholder="#DC2626"
+                  placeholder="#C77B3C"
                 />
               </div>
               <p className="text-[9px] text-neutral-400 mt-1 ml-1">Alerts, highlights</p>
@@ -2694,7 +2694,7 @@ const BrandingSettings: React.FC<{ org: Organization | null; onSaveOrg: (org: Or
             onClick={handleSave}
             disabled={saving}
             className="px-8 py-4 text-white rounded-xl font-black uppercase text-xs tracking-widest transition-all shadow-lg flex items-center gap-2 active:scale-95 disabled:opacity-50"
-            style={{ backgroundColor: saved ? '#16a34a' : (org?.primaryColor || '#001F3F') }}
+            style={{ backgroundColor: saved ? '#16a34a' : (org?.primaryColor || '#0F2B3C') }}
           >
             {saving ? <><RefreshCw size={14} className="animate-spin" /> Saving...</> : saved ? <><Check size={14} /> Saved!</> : <><Save size={14} /> Save Branding</>}
           </button>
@@ -2755,7 +2755,7 @@ const StoreManagement: React.FC<{ org: Organization | null; onSaveOrg: (org: Org
         <div className="flex items-center gap-3 mb-6">
           <div className="p-2 bg-indigo-100 text-indigo-600 rounded-xl"><Building2 size={20} /></div>
           <div>
-            <h2 className="text-xl font-black text-[#001F3F] uppercase tracking-tight">Store Management</h2>
+            <h2 className="text-xl font-black text-[#0F2B3C] uppercase tracking-tight">Store Management</h2>
             <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">Add and manage store locations</p>
           </div>
         </div>
@@ -2773,7 +2773,7 @@ const StoreManagement: React.FC<{ org: Organization | null; onSaveOrg: (org: Org
           <button
             onClick={handleAddStore}
             disabled={!newStoreName.trim()}
-            className="px-6 py-3.5 bg-[#001F3F] text-white rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-blue-900 transition-all shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            className="px-6 py-3.5 bg-[#0F2B3C] text-white rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-blue-900 transition-all shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
             <Plus size={14} /> Add Store
           </button>
@@ -2815,7 +2815,7 @@ const StoreManagement: React.FC<{ org: Organization | null; onSaveOrg: (org: Org
                 ) : (
                   <>
                     <div className="flex-1">
-                      <p className="font-black text-sm text-[#001F3F] uppercase tracking-tight">{store.name}</p>
+                      <p className="font-black text-sm text-[#0F2B3C] uppercase tracking-tight">{store.name}</p>
                       <p className="text-[9px] text-neutral-400 font-mono">{store.id}</p>
                     </div>
                     <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -2838,7 +2838,7 @@ const StoreManagement: React.FC<{ org: Organization | null; onSaveOrg: (org: Org
           <button
             onClick={handleSave}
             disabled={saving}
-            className="px-8 py-4 bg-[#001F3F] text-white rounded-xl font-black uppercase text-xs tracking-widest hover:bg-blue-900 transition-all shadow-lg flex items-center gap-2 active:scale-95 disabled:opacity-50"
+            className="px-8 py-4 bg-[#0F2B3C] text-white rounded-xl font-black uppercase text-xs tracking-widest hover:bg-blue-900 transition-all shadow-lg flex items-center gap-2 active:scale-95 disabled:opacity-50"
             style={{ backgroundColor: saved ? '#16a34a' : undefined }}
           >
             {saving ? <><RefreshCw size={14} className="animate-spin" /> Saving...</> : saved ? <><Check size={14} /> Saved!</> : <><Save size={14} /> Save Stores</>}

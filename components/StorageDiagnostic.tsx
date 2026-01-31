@@ -103,7 +103,7 @@ const StorageDiagnostic: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   }, []);
 
   return (
-    <div className="fixed inset-0 z-[200] bg-[#001F3F] text-white p-6 overflow-y-auto flex flex-col font-sans">
+    <div className="fixed inset-0 z-[200] bg-[#0F2B3C] text-white p-6 overflow-y-auto flex flex-col font-sans">
       <div className="max-w-3xl mx-auto w-full space-y-8 pb-20">
         <div className="flex justify-between items-center border-b border-white/10 pb-6">
           <div className="flex items-center gap-4">
@@ -158,7 +158,7 @@ const StorageDiagnostic: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           <button 
             onClick={runDiagnostics}
             disabled={isRunning}
-            className="px-10 py-5 bg-white text-[#001F3F] rounded-xl font-black uppercase tracking-widest text-xs shadow-lg active:scale-95 transition-all flex items-center gap-3 disabled:opacity-50"
+            className="px-10 py-5 bg-white text-[#0F2B3C] rounded-xl font-black uppercase tracking-widest text-xs shadow-lg active:scale-95 transition-all flex items-center gap-3 disabled:opacity-50"
           >
             <RefreshCw size={18} className={isRunning ? 'animate-spin' : ''} />
             Re-Run Diagnostics

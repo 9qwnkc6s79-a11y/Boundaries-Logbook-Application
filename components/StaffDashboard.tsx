@@ -240,13 +240,13 @@ const StaffDashboard: React.FC<StaffDashboardProps> = ({
         <section className="bg-white p-6 rounded-xl border border-neutral-100 shadow-sm">
           <div className="flex items-center gap-2 mb-4">
             <Award size={16} className="text-amber-500" />
-            <h2 className="text-sm font-black text-[#001F3F] uppercase tracking-tight">Achievements</h2>
+            <h2 className="text-sm font-black text-[#0F2B3C] uppercase tracking-tight">Achievements</h2>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             {badges.map((badge, idx) => (
               <div key={idx} className="bg-gradient-to-br from-neutral-50 to-neutral-100 p-4 rounded-xl text-center border border-neutral-200">
                 <badge.icon size={32} className={`${badge.color} mx-auto mb-2`} />
-                <div className="text-xs font-black text-[#001F3F] uppercase tracking-tight">{badge.label}</div>
+                <div className="text-xs font-black text-[#0F2B3C] uppercase tracking-tight">{badge.label}</div>
                 <div className="text-[9px] text-neutral-500 font-medium mt-1">{badge.desc}</div>
               </div>
             ))}
@@ -260,7 +260,7 @@ const StaffDashboard: React.FC<StaffDashboardProps> = ({
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2">
               <Trophy size={16} className="text-amber-500" />
-              <h2 className="text-sm font-black text-[#001F3F] uppercase tracking-tight">Team Leaderboard</h2>
+              <h2 className="text-sm font-black text-[#0F2B3C] uppercase tracking-tight">Team Leaderboard</h2>
             </div>
             <span className="text-[9px] font-black text-neutral-400 uppercase tracking-widest">Top 10</span>
           </div>
@@ -294,7 +294,7 @@ const StaffDashboard: React.FC<StaffDashboardProps> = ({
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className={`text-xs font-black uppercase tracking-tight truncate ${
-                      isCurrentUser ? 'text-blue-900' : 'text-[#001F3F]'
+                      isCurrentUser ? 'text-blue-900' : 'text-[#0F2B3C]'
                     }`}>
                       {person.name} {isCurrentUser && '(You)'}
                     </div>
@@ -319,7 +319,7 @@ const StaffDashboard: React.FC<StaffDashboardProps> = ({
         <section className="bg-white p-6 rounded-xl border border-neutral-100 shadow-sm">
           <div className="flex items-center gap-2 mb-6">
             <Activity size={16} className="text-blue-500" />
-            <h2 className="text-sm font-black text-[#001F3F] uppercase tracking-tight">Current Shift</h2>
+            <h2 className="text-sm font-black text-[#0F2B3C] uppercase tracking-tight">Current Shift</h2>
           </div>
 
           <div className="space-y-4">
@@ -333,14 +333,14 @@ const StaffDashboard: React.FC<StaffDashboardProps> = ({
                 </div>
               ) : activeLeaders.length > 1 ? (
                 <div>
-                  <div className="text-sm font-black text-[#001F3F] mb-1">Multiple Leaders</div>
+                  <div className="text-sm font-black text-[#0F2B3C] mb-1">Multiple Leaders</div>
                   <div className="text-[9px] text-neutral-600 font-medium">
                     {activeLeaders.map(l => l.name).join(', ')}
                   </div>
                 </div>
               ) : (
                 <div>
-                  <div className="text-sm font-black text-[#001F3F]">{activeLeaders[0].name}</div>
+                  <div className="text-sm font-black text-[#0F2B3C]">{activeLeaders[0].name}</div>
                   <div className="text-[9px] text-neutral-500 font-medium uppercase tracking-wide mt-0.5">
                     {activeLeaders[0].jobTitle}
                   </div>
@@ -382,7 +382,7 @@ const StaffDashboard: React.FC<StaffDashboardProps> = ({
             {/* Staff Count */}
             <div className="bg-neutral-50 p-4 rounded-xl border border-neutral-100">
               <div className="text-[9px] font-black text-neutral-400 uppercase tracking-widest mb-2">On Duty</div>
-              <div className="text-2xl font-black text-[#001F3F]">{toastClockedIn.length}</div>
+              <div className="text-2xl font-black text-[#0F2B3C]">{toastClockedIn.length}</div>
               <div className="text-[9px] text-neutral-500 font-medium mt-1 truncate">
                 {toastClockedIn.slice(0, 3).map(e => e.employeeName.split(' ')[0]).join(', ')}
                 {toastClockedIn.length > 3 && '...'}
@@ -396,7 +396,7 @@ const StaffDashboard: React.FC<StaffDashboardProps> = ({
       <section className="bg-gradient-to-br from-green-50 to-emerald-50 p-6 rounded-xl border border-green-100">
         <div className="flex items-center gap-2 mb-4">
           <Target size={16} className="text-green-600" />
-          <h2 className="text-sm font-black text-[#001F3F] uppercase tracking-tight">Your Goals</h2>
+          <h2 className="text-sm font-black text-[#0F2B3C] uppercase tracking-tight">Your Goals</h2>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -405,7 +405,7 @@ const StaffDashboard: React.FC<StaffDashboardProps> = ({
               <span className="text-[9px] font-black text-green-600 uppercase tracking-widest">On-Time Goal</span>
               <CheckCircle size={14} className={personalStats.onTimeRate >= 90 ? 'text-green-500' : 'text-neutral-300'} />
             </div>
-            <div className="text-2xl font-black text-[#001F3F] mb-2">{personalStats.onTimeRate.toFixed(0)}%</div>
+            <div className="text-2xl font-black text-[#0F2B3C] mb-2">{personalStats.onTimeRate.toFixed(0)}%</div>
             <div className="w-full h-2 bg-neutral-100 rounded-full overflow-hidden">
               <div
                 className="h-full bg-gradient-to-r from-green-500 to-emerald-500 transition-all duration-500"
@@ -420,7 +420,7 @@ const StaffDashboard: React.FC<StaffDashboardProps> = ({
               <span className="text-[9px] font-black text-green-600 uppercase tracking-widest">Training Goal</span>
               <GraduationCap size={14} className={personalStats.trainingProgress >= 100 ? 'text-green-500' : 'text-neutral-300'} />
             </div>
-            <div className="text-2xl font-black text-[#001F3F] mb-2">{personalStats.trainingProgress.toFixed(0)}%</div>
+            <div className="text-2xl font-black text-[#0F2B3C] mb-2">{personalStats.trainingProgress.toFixed(0)}%</div>
             <div className="w-full h-2 bg-neutral-100 rounded-full overflow-hidden">
               <div
                 className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-500"
@@ -437,7 +437,7 @@ const StaffDashboard: React.FC<StaffDashboardProps> = ({
               <span className="text-[9px] font-black text-green-600 uppercase tracking-widest">Streak Goal</span>
               <Flame size={14} className={personalStats.currentStreak >= 10 ? 'text-orange-500' : 'text-neutral-300'} />
             </div>
-            <div className="text-2xl font-black text-[#001F3F] mb-2">{personalStats.currentStreak}</div>
+            <div className="text-2xl font-black text-[#0F2B3C] mb-2">{personalStats.currentStreak}</div>
             <div className="w-full h-2 bg-neutral-100 rounded-full overflow-hidden">
               <div
                 className="h-full bg-gradient-to-r from-orange-500 to-red-500 transition-all duration-500"

@@ -71,15 +71,15 @@ const RecipeBook: React.FC<RecipeBookProps> = ({ manual, recipes, isManager = fa
           <div className="grid grid-cols-3 gap-2 mt-4">
             <div className="bg-neutral-50 p-3 rounded-xl border border-neutral-100 text-center">
               <p className="text-[7px] font-black text-neutral-400 uppercase tracking-widest mb-1">Dose</p>
-              <p className="text-sm font-black text-[#001F3F]">{recipe.dose}</p>
+              <p className="text-sm font-black text-[#0F2B3C]">{recipe.dose}</p>
             </div>
             <div className="bg-neutral-50 p-3 rounded-xl border border-neutral-100 text-center">
               <p className="text-[7px] font-black text-neutral-400 uppercase tracking-widest mb-1">Yield</p>
-              <p className="text-sm font-black text-[#001F3F]">{recipe.yield}</p>
+              <p className="text-sm font-black text-[#0F2B3C]">{recipe.yield}</p>
             </div>
             <div className="bg-neutral-50 p-3 rounded-xl border border-neutral-100 text-center">
               <p className="text-[7px] font-black text-neutral-400 uppercase tracking-widest mb-1">Time</p>
-              <p className="text-sm font-black text-[#001F3F]">{recipe.time}</p>
+              <p className="text-sm font-black text-[#0F2B3C]">{recipe.time}</p>
             </div>
           </div>
         );
@@ -97,7 +97,7 @@ const RecipeBook: React.FC<RecipeBookProps> = ({ manual, recipes, isManager = fa
               <tbody>
                 {recipe.gridRows?.map((row, i) => (
                   <tr key={i} className="border-b border-neutral-50 last:border-0">
-                    <td className="py-3 pr-4 font-bold text-[#001F3F] text-xs">{row.label}</td>
+                    <td className="py-3 pr-4 font-bold text-[#0F2B3C] text-xs">{row.label}</td>
                     {row.values.map((val, vi) => (
                       <td key={vi} className="py-3 pr-4 text-xs font-medium text-neutral-600">{val}</td>
                     ))}
@@ -115,7 +115,7 @@ const RecipeBook: React.FC<RecipeBookProps> = ({ manual, recipes, isManager = fa
               <div className="grid grid-cols-2 gap-y-2">
                 {recipe.ingredients?.map((ing, i) => (
                   <div key={i} className="text-xs">
-                    <span className="font-bold text-[#001F3F]">{ing.quantity}</span> <span className="text-neutral-500">{ing.name}</span>
+                    <span className="font-bold text-[#0F2B3C]">{ing.quantity}</span> <span className="text-neutral-500">{ing.name}</span>
                   </div>
                 ))}
               </div>
@@ -138,7 +138,7 @@ const RecipeBook: React.FC<RecipeBookProps> = ({ manual, recipes, isManager = fa
                <div className="flex flex-wrap gap-2">
                  {recipe.ingredients.map((ing, i) => (
                     <div key={i} className="bg-neutral-50 px-2 py-1 rounded-lg border border-neutral-100 text-[10px]">
-                      <span className="font-bold text-[#001F3F]">{ing.quantity}</span> <span className="text-neutral-500">{ing.name}</span>
+                      <span className="font-bold text-[#0F2B3C]">{ing.quantity}</span> <span className="text-neutral-500">{ing.name}</span>
                     </div>
                  ))}
                </div>
@@ -161,10 +161,10 @@ const RecipeBook: React.FC<RecipeBookProps> = ({ manual, recipes, isManager = fa
   const renderEditor = () => {
     if (!editingRecipe) return null;
     return (
-      <div className="fixed inset-0 z-[60] bg-[#001F3F]/50 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="fixed inset-0 z-[60] bg-[#0F2B3C]/50 backdrop-blur-sm flex items-center justify-center p-4">
         <div className="bg-white w-full max-w-2xl rounded-xl shadow-lg overflow-hidden flex flex-col max-h-[90vh]">
           <div className="p-6 border-b border-neutral-100 flex justify-between items-center">
-            <h3 className="text-xl font-black text-[#001F3F] uppercase tracking-tight">Edit Recipe Card</h3>
+            <h3 className="text-xl font-black text-[#0F2B3C] uppercase tracking-tight">Edit Recipe Card</h3>
             <button onClick={() => setEditingRecipe(null)} className="p-2 hover:bg-neutral-100 rounded-full"><X size={20}/></button>
           </div>
           <div className="p-6 overflow-y-auto space-y-6 flex-1">
@@ -174,7 +174,7 @@ const RecipeBook: React.FC<RecipeBookProps> = ({ manual, recipes, isManager = fa
                  <input 
                    value={editingRecipe.title} 
                    onChange={e => setEditingRecipe({...editingRecipe, title: e.target.value})}
-                   className="w-full bg-white border border-neutral-200 rounded-xl px-3 py-2 font-bold text-[#001F3F] outline-none focus:ring-2 focus:ring-[#001F3F]/10"
+                   className="w-full bg-white border border-neutral-200 rounded-xl px-3 py-2 font-bold text-[#0F2B3C] outline-none focus:ring-2 focus:ring-[#0F2B3C]/10"
                  />
                </div>
                <div>
@@ -182,7 +182,7 @@ const RecipeBook: React.FC<RecipeBookProps> = ({ manual, recipes, isManager = fa
                  <input 
                    value={editingRecipe.category} 
                    onChange={e => setEditingRecipe({...editingRecipe, category: e.target.value})}
-                   className="w-full bg-white border border-neutral-200 rounded-xl px-3 py-2 font-bold text-[#001F3F] outline-none focus:ring-2 focus:ring-[#001F3F]/10"
+                   className="w-full bg-white border border-neutral-200 rounded-xl px-3 py-2 font-bold text-[#0F2B3C] outline-none focus:ring-2 focus:ring-[#0F2B3C]/10"
                  />
                </div>
              </div>
@@ -195,7 +195,7 @@ const RecipeBook: React.FC<RecipeBookProps> = ({ manual, recipes, isManager = fa
                       key={t}
                       onClick={() => setEditingRecipe({...editingRecipe, type: t})}
                       className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all ${
-                        editingRecipe.type === t ? 'bg-[#001F3F] text-white border-[#001F3F]' : 'bg-white text-neutral-400 border-neutral-200'
+                        editingRecipe.type === t ? 'bg-[#0F2B3C] text-white border-[#0F2B3C]' : 'bg-white text-neutral-400 border-neutral-200'
                       }`}
                     >
                       {t}
@@ -207,9 +207,9 @@ const RecipeBook: React.FC<RecipeBookProps> = ({ manual, recipes, isManager = fa
              {/* Type Specific Fields */}
              {editingRecipe.type === 'ESPRESSO' && (
                 <div className="grid grid-cols-3 gap-4 bg-neutral-50 p-4 rounded-xl">
-                  <input placeholder="Dose (e.g. 18g)" value={editingRecipe.dose || ''} onChange={e => setEditingRecipe({...editingRecipe, dose: e.target.value})} className="w-full bg-white text-[#001F3F] border border-neutral-200 p-2 rounded-lg text-xs" />
-                  <input placeholder="Yield (e.g. 36g)" value={editingRecipe.yield || ''} onChange={e => setEditingRecipe({...editingRecipe, yield: e.target.value})} className="w-full bg-white text-[#001F3F] border border-neutral-200 p-2 rounded-lg text-xs" />
-                  <input placeholder="Time (e.g. 30s)" value={editingRecipe.time || ''} onChange={e => setEditingRecipe({...editingRecipe, time: e.target.value})} className="w-full bg-white text-[#001F3F] border border-neutral-200 p-2 rounded-lg text-xs" />
+                  <input placeholder="Dose (e.g. 18g)" value={editingRecipe.dose || ''} onChange={e => setEditingRecipe({...editingRecipe, dose: e.target.value})} className="w-full bg-white text-[#0F2B3C] border border-neutral-200 p-2 rounded-lg text-xs" />
+                  <input placeholder="Yield (e.g. 36g)" value={editingRecipe.yield || ''} onChange={e => setEditingRecipe({...editingRecipe, yield: e.target.value})} className="w-full bg-white text-[#0F2B3C] border border-neutral-200 p-2 rounded-lg text-xs" />
+                  <input placeholder="Time (e.g. 30s)" value={editingRecipe.time || ''} onChange={e => setEditingRecipe({...editingRecipe, time: e.target.value})} className="w-full bg-white text-[#0F2B3C] border border-neutral-200 p-2 rounded-lg text-xs" />
                 </div>
              )}
 
@@ -220,7 +220,7 @@ const RecipeBook: React.FC<RecipeBookProps> = ({ manual, recipes, isManager = fa
                      <input 
                        value={editingRecipe.gridColumns?.join(', ') || ''}
                        onChange={e => setEditingRecipe({...editingRecipe, gridColumns: e.target.value.split(',').map(s => s.trim())})}
-                       className="w-full bg-white text-[#001F3F] border border-neutral-200 p-2 rounded-lg text-xs"
+                       className="w-full bg-white text-[#0F2B3C] border border-neutral-200 p-2 rounded-lg text-xs"
                      />
                    </div>
                    <div className="space-y-2">
@@ -234,7 +234,7 @@ const RecipeBook: React.FC<RecipeBookProps> = ({ manual, recipes, isManager = fa
                              newRows[idx].label = e.target.value;
                              setEditingRecipe({...editingRecipe, gridRows: newRows});
                            }}
-                           className="w-1/3 bg-white text-[#001F3F] border border-neutral-200 p-2 rounded-lg text-xs font-bold"
+                           className="w-1/3 bg-white text-[#0F2B3C] border border-neutral-200 p-2 rounded-lg text-xs font-bold"
                            placeholder="Label"
                          />
                          <input 
@@ -244,7 +244,7 @@ const RecipeBook: React.FC<RecipeBookProps> = ({ manual, recipes, isManager = fa
                              newRows[idx].values = e.target.value.split(',').map(s => s.trim());
                              setEditingRecipe({...editingRecipe, gridRows: newRows});
                            }}
-                           className="flex-1 bg-white text-[#001F3F] border border-neutral-200 p-2 rounded-lg text-xs"
+                           className="flex-1 bg-white text-[#0F2B3C] border border-neutral-200 p-2 rounded-lg text-xs"
                            placeholder="Values (comma sep)"
                          />
                          <button onClick={() => {
@@ -277,7 +277,7 @@ const RecipeBook: React.FC<RecipeBookProps> = ({ manual, recipes, isManager = fa
                              newIng[i].quantity = e.target.value;
                              setEditingRecipe({...editingRecipe, ingredients: newIng});
                            }}
-                           className="w-1/4 bg-white text-[#001F3F] border border-neutral-200 p-2 rounded-lg text-xs"
+                           className="w-1/4 bg-white text-[#0F2B3C] border border-neutral-200 p-2 rounded-lg text-xs"
                          />
                          <input 
                            placeholder="Name" 
@@ -287,7 +287,7 @@ const RecipeBook: React.FC<RecipeBookProps> = ({ manual, recipes, isManager = fa
                              newIng[i].name = e.target.value;
                              setEditingRecipe({...editingRecipe, ingredients: newIng});
                            }}
-                           className="flex-1 bg-white text-[#001F3F] border border-neutral-200 p-2 rounded-lg text-xs"
+                           className="flex-1 bg-white text-[#0F2B3C] border border-neutral-200 p-2 rounded-lg text-xs"
                          />
                          <button onClick={() => {
                             const newIng = editingRecipe.ingredients?.filter((_, idx) => idx !== i);
@@ -310,7 +310,7 @@ const RecipeBook: React.FC<RecipeBookProps> = ({ manual, recipes, isManager = fa
                              newSteps[i] = e.target.value;
                              setEditingRecipe({...editingRecipe, steps: newSteps});
                            }}
-                           className="flex-1 bg-white text-[#001F3F] border border-neutral-200 p-2 rounded-lg text-xs resize-none"
+                           className="flex-1 bg-white text-[#0F2B3C] border border-neutral-200 p-2 rounded-lg text-xs resize-none"
                          />
                           <button onClick={() => {
                             const newSteps = editingRecipe.steps?.filter((_, idx) => idx !== i);
@@ -328,14 +328,14 @@ const RecipeBook: React.FC<RecipeBookProps> = ({ manual, recipes, isManager = fa
                <textarea 
                  value={editingRecipe.notes || ''}
                  onChange={e => setEditingRecipe({...editingRecipe, notes: e.target.value})}
-                 className="w-full bg-white text-[#001F3F] border border-neutral-200 rounded-xl px-3 py-2 text-sm outline-none"
+                 className="w-full bg-white text-[#0F2B3C] border border-neutral-200 rounded-xl px-3 py-2 text-sm outline-none"
                  rows={3}
                />
              </div>
           </div>
           <div className="p-6 border-t border-neutral-100 flex justify-end gap-3 bg-neutral-50">
              <button onClick={() => setEditingRecipe(null)} className="px-6 py-3 rounded-xl font-bold text-neutral-400 hover:bg-neutral-200 transition-colors text-xs uppercase tracking-widest">Cancel</button>
-             <button onClick={handleSaveRecipe} className="px-6 py-3 rounded-xl font-black text-white bg-[#001F3F] hover:bg-blue-900 transition-colors text-xs uppercase tracking-widest flex items-center gap-2"><Save size={14}/> Save Changes</button>
+             <button onClick={handleSaveRecipe} className="px-6 py-3 rounded-xl font-black text-white bg-[#0F2B3C] hover:bg-blue-900 transition-colors text-xs uppercase tracking-widest flex items-center gap-2"><Save size={14}/> Save Changes</button>
           </div>
         </div>
       </div>
@@ -346,7 +346,7 @@ const RecipeBook: React.FC<RecipeBookProps> = ({ manual, recipes, isManager = fa
     <div className="space-y-8 animate-in fade-in duration-700 pb-24 relative">
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
-          <h1 className="text-4xl sm:text-6xl font-[900] text-[#001F3F] tracking-tighter mb-2 leading-none uppercase">Standards</h1>
+          <h1 className="text-4xl sm:text-6xl font-[900] text-[#0F2B3C] tracking-tighter mb-2 leading-none uppercase">Standards</h1>
           <p className="text-neutral-500 font-medium text-base">The Official Boundaries Operations Source of Truth.</p>
         </div>
         <div className="flex items-center gap-3">
@@ -364,12 +364,12 @@ const RecipeBook: React.FC<RecipeBookProps> = ({ manual, recipes, isManager = fa
 
       {/* Delete Confirm Modal */}
       {deleteId && (
-        <div className="fixed inset-0 z-[100] bg-[#001F3F]/60 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[100] bg-[#0F2B3C]/60 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in duration-200">
           <div className="bg-white rounded-xl p-6 max-w-sm w-full shadow-lg border border-neutral-100 text-center">
              <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
                <AlertTriangle size={32} />
              </div>
-             <h3 className="text-xl font-black text-[#001F3F] uppercase tracking-tight mb-2">Delete Card?</h3>
+             <h3 className="text-xl font-black text-[#0F2B3C] uppercase tracking-tight mb-2">Delete Card?</h3>
              <p className="text-neutral-500 text-sm font-medium mb-8 leading-relaxed">
                Removing this standard will delete it for all staff. This cannot be undone.
              </p>
@@ -384,13 +384,13 @@ const RecipeBook: React.FC<RecipeBookProps> = ({ manual, recipes, isManager = fa
       <div className="flex bg-neutral-100 p-1 rounded-lg w-fit">
         <button 
           onClick={() => setActiveView('RECIPES')}
-          className={`px-6 py-3 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all flex items-center gap-2 ${activeView === 'RECIPES' ? 'bg-white text-[#001F3F] shadow-sm' : 'text-neutral-400'}`}
+          className={`px-6 py-3 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all flex items-center gap-2 ${activeView === 'RECIPES' ? 'bg-white text-[#0F2B3C] shadow-sm' : 'text-neutral-400'}`}
         >
           <Coffee size={14} /> Recipe Book
         </button>
         <button 
           onClick={() => setActiveView('MANUAL')}
-          className={`px-6 py-3 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all flex items-center gap-2 ${activeView === 'MANUAL' ? 'bg-white text-[#001F3F] shadow-sm' : 'text-neutral-400'}`}
+          className={`px-6 py-3 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all flex items-center gap-2 ${activeView === 'MANUAL' ? 'bg-white text-[#0F2B3C] shadow-sm' : 'text-neutral-400'}`}
         >
           <FileText size={14} /> Ops Manual
         </button>
@@ -398,13 +398,13 @@ const RecipeBook: React.FC<RecipeBookProps> = ({ manual, recipes, isManager = fa
 
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1 group">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-300 group-focus-within:text-[#001F3F] transition-colors" size={20} />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-300 group-focus-within:text-[#0F2B3C] transition-colors" size={20} />
           <input 
             type="text" 
             placeholder={`Search ${activeView.toLowerCase()}...`}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-12 pr-4 py-4 bg-white border border-neutral-100 rounded-xl font-bold text-[#001F3F] focus:ring-4 focus:ring-blue-900/5 outline-none transition-all"
+            className="w-full pl-12 pr-4 py-4 bg-white border border-neutral-100 rounded-xl font-bold text-[#0F2B3C] focus:ring-4 focus:ring-blue-900/5 outline-none transition-all"
           />
         </div>
         {activeView === 'RECIPES' && (
@@ -414,7 +414,7 @@ const RecipeBook: React.FC<RecipeBookProps> = ({ manual, recipes, isManager = fa
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
                 className={`px-4 py-3 rounded-xl text-[9px] font-black tracking-widest uppercase transition-all whitespace-nowrap ${
-                  selectedCategory === cat ? 'bg-[#001F3F] text-white shadow-lg' : 'text-neutral-400 hover:text-neutral-600'
+                  selectedCategory === cat ? 'bg-[#0F2B3C] text-white shadow-lg' : 'text-neutral-400 hover:text-neutral-600'
                 }`}
               >
                 {cat}
@@ -427,10 +427,10 @@ const RecipeBook: React.FC<RecipeBookProps> = ({ manual, recipes, isManager = fa
       {activeView === 'RECIPES' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredRecipes.map(recipe => (
-            <div key={recipe.id} className="bg-white rounded-xl border border-neutral-100 shadow-sm overflow-hidden flex flex-col group hover:shadow-lg hover:border-[#001F3F]/20 transition-all duration-500 relative">
+            <div key={recipe.id} className="bg-white rounded-xl border border-neutral-100 shadow-sm overflow-hidden flex flex-col group hover:shadow-lg hover:border-[#0F2B3C]/20 transition-all duration-500 relative">
               {isManager && (
                 <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                  <button onClick={() => setEditingRecipe(recipe)} className="p-2 bg-white text-[#001F3F] rounded-full shadow border border-neutral-100 hover:bg-neutral-50"><Edit3 size={14}/></button>
+                  <button onClick={() => setEditingRecipe(recipe)} className="p-2 bg-white text-[#0F2B3C] rounded-full shadow border border-neutral-100 hover:bg-neutral-50"><Edit3 size={14}/></button>
                   <button onClick={() => setDeleteId(recipe.id)} className="p-2 bg-white text-red-500 rounded-full shadow border border-neutral-100 hover:bg-red-50"><Trash2 size={14}/></button>
                 </div>
               )}
@@ -439,14 +439,14 @@ const RecipeBook: React.FC<RecipeBookProps> = ({ manual, recipes, isManager = fa
                 <div className="mb-4">
                    <div className="flex justify-between items-start">
                      <span className={`text-[8px] font-black uppercase tracking-[0.3em] px-2 py-1 rounded-full mb-3 inline-block ${
-                       recipe.type === 'ESPRESSO' ? 'bg-[#001F3F] text-white' : 
+                       recipe.type === 'ESPRESSO' ? 'bg-[#0F2B3C] text-white' : 
                        recipe.type === 'GRID' ? 'bg-blue-50 text-blue-500' : 
                        'bg-neutral-100 text-neutral-500'
                      }`}>
                        {recipe.category}
                      </span>
                    </div>
-                   <h3 className="text-2xl font-[900] text-[#001F3F] uppercase tracking-tight leading-none">
+                   <h3 className="text-2xl font-[900] text-[#0F2B3C] uppercase tracking-tight leading-none">
                      {recipe.title}
                    </h3>
                 </div>
@@ -474,10 +474,10 @@ const RecipeBook: React.FC<RecipeBookProps> = ({ manual, recipes, isManager = fa
           {filteredManual.map(section => (
             <div key={section.id} className="bg-white p-6 sm:p-8 rounded-xl border border-neutral-100 shadow-sm">
               <div className="flex items-center gap-4 mb-8">
-                <div className="w-12 h-12 bg-neutral-50 rounded-xl flex items-center justify-center font-black text-[#001F3F] text-xl border border-neutral-100">
+                <div className="w-12 h-12 bg-neutral-50 rounded-xl flex items-center justify-center font-black text-[#0F2B3C] text-xl border border-neutral-100">
                   {section.number}
                 </div>
-                <h3 className="text-2xl font-black text-[#001F3F] uppercase tracking-tight">{section.title}</h3>
+                <h3 className="text-2xl font-black text-[#0F2B3C] uppercase tracking-tight">{section.title}</h3>
               </div>
               <div className="prose prose-neutral max-w-none text-neutral-600 font-medium whitespace-pre-wrap leading-relaxed">
                 {section.content}

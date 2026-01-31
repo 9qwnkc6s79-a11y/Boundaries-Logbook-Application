@@ -429,7 +429,7 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
         <div className="flex items-center justify-between">
           <button 
             onClick={() => { setSelectedLesson(null); setIsQuizSubmitted(false); setQuizScore(null); setUserAnswers({}); }}
-            className="flex items-center gap-2 text-neutral-400 hover:text-[#001F3F] font-bold text-[10px] sm:text-xs uppercase tracking-widest transition-colors"
+            className="flex items-center gap-2 text-neutral-400 hover:text-[#0F2B3C] font-bold text-[10px] sm:text-xs uppercase tracking-widest transition-colors"
           >
             <ArrowLeft size={14} strokeWidth={3} /> Return to Academy
           </button>
@@ -463,7 +463,7 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
                       <select 
                         value={selectedLesson.type}
                         onChange={(e) => handleUpdateLesson(selectedLesson.id, { type: e.target.value as any })}
-                        className="px-4 py-2 rounded-full bg-[#001F3F] text-white text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] outline-none shadow-lg"
+                        className="px-4 py-2 rounded-full bg-[#0F2B3C] text-white text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] outline-none shadow-lg"
                       >
                         <option value="CONTENT">CONTENT</option>
                         <option value="QUIZ">QUIZ</option>
@@ -473,16 +473,16 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
                       <input 
                         value={selectedLesson.title}
                         onChange={(e) => handleUpdateLesson(selectedLesson.id, { title: e.target.value })}
-                        className="text-2xl sm:text-4xl md:text-5xl font-black text-[#001F3F] tracking-tighter leading-tight w-full bg-neutral-50 border-none p-2 focus:ring-0 rounded-xl"
+                        className="text-2xl sm:text-4xl md:text-5xl font-black text-[#0F2B3C] tracking-tighter leading-tight w-full bg-neutral-50 border-none p-2 focus:ring-0 rounded-xl"
                       />
                     </div>
                   </div>
                 ) : (
                   <>
-                    <span className="inline-block px-3 py-1 rounded-full bg-[#001F3F] text-white text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] mb-3 sm:mb-4">
+                    <span className="inline-block px-3 py-1 rounded-full bg-[#0F2B3C] text-white text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] mb-3 sm:mb-4">
                       {selectedLesson.type}
                     </span>
-                    <h2 className="text-2xl sm:text-4xl md:text-5xl font-black text-[#001F3F] tracking-tighter leading-tight">{selectedLesson.title}</h2>
+                    <h2 className="text-2xl sm:text-4xl md:text-5xl font-black text-[#0F2B3C] tracking-tighter leading-tight">{selectedLesson.title}</h2>
                   </>
                 )}
               </div>
@@ -530,7 +530,7 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
                   </div>
                 )}
 
-                <div className="rounded-[1.5rem] sm:rounded-xl overflow-hidden bg-black aspect-video shadow-lg border-4 border-[#001F3F]/10 group relative">
+                <div className="rounded-[1.5rem] sm:rounded-xl overflow-hidden bg-black aspect-video shadow-lg border-4 border-[#0F2B3C]/10 group relative">
                   {selectedLesson.videoUrl ? (
                     <iframe
                       ref={videoRef}
@@ -609,7 +609,7 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
                 />
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <h3 className="text-sm font-black text-[#001F3F] uppercase tracking-widest">Practice Checklist</h3>
+                    <h3 className="text-sm font-black text-[#0F2B3C] uppercase tracking-widest">Practice Checklist</h3>
                     {progressData?.attemptCount && progressData.attemptCount > 1 && (
                       <p className="text-[9px] font-bold text-blue-600 uppercase tracking-wider mt-1">
                         Attempt #{progressData.attemptCount}
@@ -637,7 +637,7 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
                 {showPracticeGallery && progressData?.practiceSubmissions && (
                   <div className="mb-6 p-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-100">
                     <div className="flex items-center justify-between mb-4">
-                      <h4 className="text-sm font-black text-[#001F3F] uppercase tracking-widest">Progress Gallery</h4>
+                      <h4 className="text-sm font-black text-[#0F2B3C] uppercase tracking-widest">Progress Gallery</h4>
                       <button
                         onClick={() => setShowPracticeGallery(false)}
                         className="text-neutral-400 hover:text-neutral-600"
@@ -655,7 +655,7 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
                           <div key={submission.id} className="bg-white rounded-xl p-4 border border-blue-100">
                             <div className="flex items-center justify-between mb-3">
                               <div>
-                                <p className="text-xs font-black text-[#001F3F] uppercase">Attempt #{attemptNumber}</p>
+                                <p className="text-xs font-black text-[#0F2B3C] uppercase">Attempt #{attemptNumber}</p>
                                 <p className="text-[9px] text-neutral-500 font-medium">
                                   {new Date(submission.submittedAt).toLocaleDateString()}
                                 </p>
@@ -750,7 +750,7 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
-                              <p className={`font-bold text-sm ${isChecked ? 'text-green-700' : 'text-[#001F3F]'}`}>
+                              <p className={`font-bold text-sm ${isChecked ? 'text-green-700' : 'text-[#0F2B3C]'}`}>
                                 {item.title}
                               </p>
                               {item.requiresPhoto && (
@@ -786,7 +786,7 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
                         {item.requiresPhoto && (
                           <div className="px-4 pb-4 pt-0">
                             {uploadingPhotoForItem === item.id ? (
-                              <div className="flex items-center gap-2 text-[#001F3F]">
+                              <div className="flex items-center gap-2 text-[#0F2B3C]">
                                 <Loader2 size={16} className="animate-spin" />
                                 <span className="text-xs font-bold">Uploading photo...</span>
                               </div>
@@ -803,7 +803,7 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
                                       setCapturingPhotoForItem(item.id);
                                       checklistCameraRef.current?.click();
                                     }}
-                                    className="text-xs font-bold text-[#001F3F] underline"
+                                    className="text-xs font-bold text-[#0F2B3C] underline"
                                   >
                                     Retake
                                   </button>
@@ -815,7 +815,7 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
                                   setCapturingPhotoForItem(item.id);
                                   checklistCameraRef.current?.click();
                                 }}
-                                className="flex items-center gap-2 px-4 py-2 bg-[#001F3F] text-white rounded-lg text-xs font-bold"
+                                className="flex items-center gap-2 px-4 py-2 bg-[#0F2B3C] text-white rounded-lg text-xs font-bold"
                               >
                                 <Camera size={14} /> Take Photo
                               </button>
@@ -834,9 +834,9 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
                 {lessonStatus === 'COMPLETED' ? (
                   <div className="flex flex-col items-center gap-6">
                     <FileCheckIcon size={48} />
-                    <p className="font-black text-[#001F3F] uppercase tracking-tight">Certification Logged: {progressData?.fileName}</p>
+                    <p className="font-black text-[#0F2B3C] uppercase tracking-tight">Certification Logged: {progressData?.fileName}</p>
                     {progressData?.fileUrl && (
-                      <button onClick={() => window.open(progressData.fileUrl)} className="text-xs font-bold text-[#001F3F] underline">View Copy</button>
+                      <button onClick={() => window.open(progressData.fileUrl)} className="text-xs font-bold text-[#0F2B3C] underline">View Copy</button>
                     )}
 
                     {/* Navigation for completed file uploads */}
@@ -889,16 +889,16 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
                   <div className="space-y-6">
                     <div
                       onClick={() => fileInputRef.current?.click()}
-                      className="border-2 border-dashed border-neutral-200 rounded-xl p-12 hover:border-[#001F3F] hover:bg-white transition-all group cursor-pointer"
+                      className="border-2 border-dashed border-neutral-200 rounded-xl p-12 hover:border-[#0F2B3C] hover:bg-white transition-all group cursor-pointer"
                     >
                       <input type="file" ref={fileInputRef} className="hidden" onChange={handleFileUpload} />
                       <div className="flex flex-col items-center gap-4">
-                        <Upload size={32} className="text-neutral-300 group-hover:text-[#001F3F] transition-colors" />
-                        <p className="font-black text-[#001F3F] tracking-tight text-lg">{uploadingFile ? uploadingFile.name : (selectedLesson.fileLabel || 'Choose File')}</p>
+                        <Upload size={32} className="text-neutral-300 group-hover:text-[#0F2B3C] transition-colors" />
+                        <p className="font-black text-[#0F2B3C] tracking-tight text-lg">{uploadingFile ? uploadingFile.name : (selectedLesson.fileLabel || 'Choose File')}</p>
                       </div>
                     </div>
                     {uploadingFile && (
-                      <button onClick={submitFileUpload} className="w-full sm:w-auto px-10 py-4 bg-[#001F3F] text-white rounded-xl font-black shadow-xl hover:bg-blue-900 transition-all uppercase tracking-widest text-xs">
+                      <button onClick={submitFileUpload} className="w-full sm:w-auto px-10 py-4 bg-[#0F2B3C] text-white rounded-xl font-black shadow-xl hover:bg-blue-900 transition-all uppercase tracking-widest text-xs">
                         Confirm Submission
                       </button>
                     )}
@@ -921,7 +921,7 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
                       } as QuizQuestion];
                       handleUpdateLesson(selectedLesson.id, { quizQuestions: newQuestions });
                     }}
-                    className="w-full py-4 border-2 border-dashed border-neutral-200 rounded-xl text-neutral-400 font-bold hover:bg-neutral-50 hover:text-[#001F3F] hover:border-[#001F3F] transition-all flex items-center justify-center gap-2 uppercase tracking-widest text-[10px]"
+                    className="w-full py-4 border-2 border-dashed border-neutral-200 rounded-xl text-neutral-400 font-bold hover:bg-neutral-50 hover:text-[#0F2B3C] hover:border-[#0F2B3C] transition-all flex items-center justify-center gap-2 uppercase tracking-widest text-[10px]"
                   >
                     <Plus size={16} /> Add Question
                   </button>
@@ -960,7 +960,7 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
                             <input
                               value={q.question}
                               onChange={(e) => handleUpdateQuizQuestion(q.id, { question: e.target.value })}
-                              className="w-full font-bold text-lg bg-transparent border-none p-0 focus:ring-0 text-[#001F3F]"
+                              className="w-full font-bold text-lg bg-transparent border-none p-0 focus:ring-0 text-[#0F2B3C]"
                             />
                           </div>
                           <div className="space-y-2">
@@ -975,7 +975,7 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
                           </div>
                         </div>
                       ) : (
-                        <p className="font-bold text-lg text-[#001F3F]">0{idx + 1}. {q.question}</p>
+                        <p className="font-bold text-lg text-[#0F2B3C]">0{idx + 1}. {q.question}</p>
                       )}
                     </div>
 
@@ -989,9 +989,9 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
                           <div key={oIdx} className="flex items-center gap-2 group/opt">
                             <label 
                               onClick={() => isEditMode ? toggleCorrectAnswer(q.id, opt) : handleAnswerChange(q.id, opt, q.type)} 
-                              className={`flex-1 flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-all ${isSelected ? 'border-[#001F3F] bg-blue-50/50' : 'bg-white border-neutral-100 hover:border-neutral-200'}`}
+                              className={`flex-1 flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-all ${isSelected ? 'border-[#0F2B3C] bg-blue-50/50' : 'bg-white border-neutral-100 hover:border-neutral-200'}`}
                             >
-                              <div className={`w-5 h-5 rounded flex items-center justify-center border ${isSelected ? 'bg-[#001F3F] text-white' : 'bg-white border-neutral-200'}`}>
+                              <div className={`w-5 h-5 rounded flex items-center justify-center border ${isSelected ? 'bg-[#0F2B3C] text-white' : 'bg-white border-neutral-200'}`}>
                                 {isSelected && <Check size={12} strokeWidth={4} />}
                               </div>
                               {isEditMode && q.type !== 'TRUE_FALSE' ? (
@@ -1068,7 +1068,7 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
                                   {isCorrect ? <Check size={16} strokeWidth={3} /> : <X size={16} strokeWidth={3} />}
                                 </div>
                                 <div className="flex-1">
-                                  <p className="font-bold text-sm text-[#001F3F] mb-2">0{idx + 1}. {q.question}</p>
+                                  <p className="font-bold text-sm text-[#0F2B3C] mb-2">0{idx + 1}. {q.question}</p>
                                   {!isCorrect && (
                                     <div className="space-y-2 mb-3">
                                       <div className="text-xs">
@@ -1130,7 +1130,7 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
                           {quizScore! < 80 && (
                             <button
                               onClick={() => { setIsQuizSubmitted(false); setQuizScore(null); setUserAnswers({}); setShowQuizReview(false); }}
-                              className="flex-1 flex items-center justify-center gap-2 px-10 py-4 bg-[#001F3F] text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-blue-900 transition-all shadow-lg"
+                              className="flex-1 flex items-center justify-center gap-2 px-10 py-4 bg-[#0F2B3C] text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-blue-900 transition-all shadow-lg"
                             >
                               <RefreshCw size={14} strokeWidth={3} /> Retake Quiz
                             </button>
@@ -1208,7 +1208,7 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
                             (selectedLesson.type === 'QUIZ' && !allQuestionsAnswered) ||
                             (hasChecklist && (!allItemsChecked || !allPhotosProvided))
                           }
-                          className="flex-1 px-12 py-5 bg-[#001F3F] text-white rounded-xl font-black hover:bg-blue-900 disabled:opacity-50 transition-all shadow-xl tracking-widest uppercase text-xs"
+                          className="flex-1 px-12 py-5 bg-[#0F2B3C] text-white rounded-xl font-black hover:bg-blue-900 disabled:opacity-50 transition-all shadow-xl tracking-widest uppercase text-xs"
                         >
                           {selectedLesson.type === 'QUIZ' ? 'Submit Knowledge Check' :
                            hasChecklist ? 'Submit Checklist' : 'Complete Lesson'}
@@ -1247,16 +1247,16 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
     <div className="space-y-8">
       <div className="flex items-center justify-between px-2">
         <div className="flex items-center gap-4">
-          <div className="p-3 bg-[#001F3F] text-white rounded-xl shadow-xl">
+          <div className="p-3 bg-[#0F2B3C] text-white rounded-xl shadow-xl">
             {React.createElement(icon, { size: 24, strokeWidth: 3 })}
           </div>
           <div>
-            <h2 className="text-xl sm:text-3xl font-black text-[#001F3F] tracking-tighter uppercase leading-none">{title}</h2>
+            <h2 className="text-xl sm:text-3xl font-black text-[#0F2B3C] tracking-tighter uppercase leading-none">{title}</h2>
             <p className="text-neutral-400 text-xs sm:text-sm font-medium mt-1">{subtitle}</p>
           </div>
         </div>
         {isEditMode && (
-          <button onClick={() => handleAddModule(modules[0]?.category || 'ONBOARDING')} className="p-3 bg-[#001F3F] text-white rounded-xl shadow-lg active:scale-90 transition-all">
+          <button onClick={() => handleAddModule(modules[0]?.category || 'ONBOARDING')} className="p-3 bg-[#0F2B3C] text-white rounded-xl shadow-lg active:scale-90 transition-all">
             <Plus size={18} strokeWidth={3} />
           </button>
         )}
@@ -1271,7 +1271,7 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
                   <input 
                     value={module.title}
                     onChange={(e) => handleUpdateModule(module.id, { title: e.target.value })}
-                    className="text-xl font-black text-[#001F3F] tracking-tight uppercase bg-neutral-50 border-none p-1 rounded w-full"
+                    className="text-xl font-black text-[#0F2B3C] tracking-tight uppercase bg-neutral-50 border-none p-1 rounded w-full"
                   />
                   <input 
                     value={module.description}
@@ -1280,7 +1280,7 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
                   />
                 </div>
               ) : (
-                <h3 className="text-xl font-black text-[#001F3F] tracking-tight uppercase">{module.title}</h3>
+                <h3 className="text-xl font-black text-[#0F2B3C] tracking-tight uppercase">{module.title}</h3>
               )}
               {isEditMode && (
                 <button onClick={() => setDeleteConfirm({ id: module.id, title: module.title, code: 'DELETE', input: '' })} className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors">
@@ -1299,12 +1299,12 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
                   <button
                     key={lesson.id}
                     onClick={() => setSelectedLesson(lesson)}
-                    className={`flex items-center justify-between p-6 bg-white rounded-xl border transition-all duration-300 text-left hover:border-[#001F3F] hover:shadow-xl group ${status === 'COMPLETED' ? 'border-green-100' : 'border-neutral-100'}`}
+                    className={`flex items-center justify-between p-6 bg-white rounded-xl border transition-all duration-300 text-left hover:border-[#0F2B3C] hover:shadow-xl group ${status === 'COMPLETED' ? 'border-green-100' : 'border-neutral-100'}`}
                   >
                     <div className="flex items-center gap-5">
                       {/* Icon with progress indicator */}
                       <div className="relative">
-                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${status === 'COMPLETED' ? 'bg-green-50 text-green-600' : 'bg-neutral-50 text-neutral-300 group-hover:bg-[#001F3F] group-hover:text-white'}`}>
+                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${status === 'COMPLETED' ? 'bg-green-50 text-green-600' : 'bg-neutral-50 text-neutral-300 group-hover:bg-[#0F2B3C] group-hover:text-white'}`}>
                           {lesson.type === 'QUIZ' ? <PenTool size={20} /> : lesson.type === 'FILE_UPLOAD' ? <Upload size={20} /> : lesson.type === 'PRACTICE' ? <Target size={20} /> : lesson.type === 'VIDEO' || lesson.videoUrl ? <PlayCircle size={20} /> : <BookOpen size={20} />}
                         </div>
                         {/* Attempt count badge for practice lessons */}
@@ -1327,12 +1327,12 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
                         </div>
                       </div>
                     </div>
-                    <ChevronRight size={16} className="text-neutral-200 group-hover:text-[#001F3F]" />
+                    <ChevronRight size={16} className="text-neutral-200 group-hover:text-[#0F2B3C]" />
                   </button>
                 );
               })}
               {isEditMode && (
-                <button onClick={() => handleAddLesson(module.id)} className="flex items-center justify-center p-6 bg-neutral-50 border-2 border-dashed border-neutral-200 rounded-xl text-neutral-400 hover:border-[#001F3F] hover:text-[#001F3F] transition-all">
+                <button onClick={() => handleAddLesson(module.id)} className="flex items-center justify-center p-6 bg-neutral-50 border-2 border-dashed border-neutral-200 rounded-xl text-neutral-400 hover:border-[#0F2B3C] hover:text-[#0F2B3C] transition-all">
                   <Plus size={24} strokeWidth={3} />
                 </button>
               )}
@@ -1366,13 +1366,13 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
       <header className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6">
           <div>
-            <h1 className="text-3xl sm:text-5xl font-[900] text-[#001F3F] tracking-tighter mb-4 uppercase">Academy</h1>
+            <h1 className="text-3xl sm:text-5xl font-[900] text-[#0F2B3C] tracking-tighter mb-4 uppercase">Academy</h1>
             <p className="text-neutral-500 font-medium text-sm sm:text-base">Operational mastery through self-paced learning.</p>
           </div>
           {canEdit && (
             <button
               onClick={() => setIsEditMode(!isEditMode)}
-              className={`px-8 py-4 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 shadow-lg transition-all ${isEditMode ? 'bg-green-600 text-white' : 'bg-[#001F3F] text-white'}`}
+              className={`px-8 py-4 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 shadow-lg transition-all ${isEditMode ? 'bg-green-600 text-white' : 'bg-[#0F2B3C] text-white'}`}
             >
               {isEditMode ? <><Save size={16} /> Finish Editing</> : <><Edit3 size={16} /> Edit Curriculum</>}
             </button>
@@ -1382,7 +1382,7 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
         {/* Handbook Upload Section (Edit Mode Only) */}
         {isEditMode && (
           <div className="bg-blue-50 rounded-xl p-6 border-2 border-blue-200">
-            <h3 className="text-sm font-black text-[#001F3F] uppercase tracking-widest mb-4 flex items-center gap-2">
+            <h3 className="text-sm font-black text-[#0F2B3C] uppercase tracking-widest mb-4 flex items-center gap-2">
               <FileIcon size={16} />
               Upload Employee Handbook
             </h3>
@@ -1447,7 +1447,7 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
                   alert(`Upload failed: ${error.message}`);
                 }
               }}
-              className="block w-full text-sm text-neutral-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-[#001F3F] file:text-white hover:file:bg-[#003366] file:cursor-pointer cursor-pointer"
+              className="block w-full text-sm text-neutral-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-[#0F2B3C] file:text-white hover:file:bg-[#003366] file:cursor-pointer cursor-pointer"
             />
           </div>
         )}
@@ -1465,7 +1465,7 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
                     cy="64"
                     r="56"
                     fill="none"
-                    stroke="#001F3F"
+                    stroke="#0F2B3C"
                     strokeWidth="8"
                     strokeDasharray={`${2 * Math.PI * 56}`}
                     strokeDashoffset={`${2 * Math.PI * 56 * (1 - overallProgressPercent / 100)}`}
@@ -1475,7 +1475,7 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
                 </svg>
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="text-center">
-                    <div className="text-3xl font-black text-[#001F3F]">{overallProgressPercent}%</div>
+                    <div className="text-3xl font-black text-[#0F2B3C]">{overallProgressPercent}%</div>
                     <div className="text-[8px] font-bold text-neutral-500 uppercase tracking-wider">Complete</div>
                   </div>
                 </div>
@@ -1484,7 +1484,7 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
               {/* Stats */}
               <div className="flex-1 grid grid-cols-3 gap-4">
                 <div className="text-center">
-                  <div className="text-2xl font-black text-[#001F3F]">{completedLessonsCount}</div>
+                  <div className="text-2xl font-black text-[#0F2B3C]">{completedLessonsCount}</div>
                   <div className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest mt-1">Completed</div>
                 </div>
                 <div className="text-center">
@@ -1555,14 +1555,14 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
 
       {/* Custom Delete Confirmation Modal */}
       {deleteConfirm && (
-        <div className="fixed inset-0 z-[100] bg-[#001F3F]/60 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[100] bg-[#0F2B3C]/60 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in duration-200">
            <div className="bg-white rounded-xl p-8 max-w-sm w-full shadow-lg border border-neutral-100 text-center">
               <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
                 <AlertTriangle size={32} />
               </div>
-              <h3 className="text-xl font-black text-[#001F3F] uppercase tracking-tight mb-2">Delete Module?</h3>
+              <h3 className="text-xl font-black text-[#0F2B3C] uppercase tracking-tight mb-2">Delete Module?</h3>
               <p className="text-neutral-500 text-sm font-medium mb-6 leading-relaxed">
-                Type <span className="font-black text-red-600">DELETE</span> to confirm removal of <span className="font-bold text-[#001F3F]">"{deleteConfirm.title}"</span>.
+                Type <span className="font-black text-red-600">DELETE</span> to confirm removal of <span className="font-bold text-[#0F2B3C]">"{deleteConfirm.title}"</span>.
               </p>
               <input 
                 autoFocus
@@ -1595,7 +1595,7 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
               </div>
               <button
                 onClick={() => setShowCompletedOnboarding(!showCompletedOnboarding)}
-                className="text-[10px] font-black uppercase text-[#001F3F] border-b-2 border-[#001F3F]/10 hover:border-[#001F3F] transition-all flex items-center gap-2"
+                className="text-[10px] font-black uppercase text-[#0F2B3C] border-b-2 border-[#0F2B3C]/10 hover:border-[#0F2B3C] transition-all flex items-center gap-2"
               >
                 {showCompletedOnboarding ? <><EyeOff size={14} /> Hide Completed</> : <><Eye size={14} /> Review Completed Pathway</>}
               </button>
@@ -1615,7 +1615,7 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
                 <UsersIcon size={20} />
               </div>
               <div>
-                <h3 className="text-lg font-black text-[#001F3F] uppercase tracking-tight">Team Activity</h3>
+                <h3 className="text-lg font-black text-[#0F2B3C] uppercase tracking-tight">Team Activity</h3>
                 <p className="text-xs text-neutral-500 font-medium">See what others are learning</p>
               </div>
             </div>
@@ -1626,7 +1626,7 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
             <div className="bg-white rounded-xl p-4 border border-purple-100">
               <div className="flex items-center gap-2 mb-4">
                 <Trophy size={16} className="text-amber-500" />
-                <h4 className="text-xs font-black text-[#001F3F] uppercase tracking-widest">Top Learners</h4>
+                <h4 className="text-xs font-black text-[#0F2B3C] uppercase tracking-widest">Top Learners</h4>
               </div>
               <div className="space-y-3">
                 {[1, 2, 3].map((rank) => (
@@ -1635,7 +1635,7 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
                       {rank}
                     </div>
                     <div className="flex-1">
-                      <p className="text-xs font-bold text-[#001F3F]">Team Member</p>
+                      <p className="text-xs font-bold text-[#0F2B3C]">Team Member</p>
                       <p className="text-[9px] text-neutral-500 font-medium">{Math.floor(Math.random() * 30 + 10)} lessons</p>
                     </div>
                   </div>
@@ -1647,17 +1647,17 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
             <div className="md:col-span-2 bg-white rounded-xl p-4 border border-purple-100">
               <div className="flex items-center gap-2 mb-4">
                 <Activity size={16} className="text-green-500" />
-                <h4 className="text-xs font-black text-[#001F3F] uppercase tracking-widest">Recently Completed</h4>
+                <h4 className="text-xs font-black text-[#0F2B3C] uppercase tracking-widest">Recently Completed</h4>
               </div>
               <div className="space-y-2">
                 {allLessons.slice(0, 5).map((lesson, idx) => (
                   <div key={idx} className="flex items-center justify-between py-2 border-b border-neutral-50 last:border-0">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-[#001F3F] text-white rounded-lg flex items-center justify-center text-[10px] font-black">
+                      <div className="w-8 h-8 bg-[#0F2B3C] text-white rounded-lg flex items-center justify-center text-[10px] font-black">
                         TM
                       </div>
                       <div>
-                        <p className="text-xs font-bold text-[#001F3F]">{lesson.title}</p>
+                        <p className="text-xs font-bold text-[#0F2B3C]">{lesson.title}</p>
                         <p className="text-[9px] text-neutral-500 font-medium">Team Member • {Math.floor(Math.random() * 24)} hours ago</p>
                       </div>
                     </div>
@@ -1682,7 +1682,7 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
 function FileCheckIcon({ size }: { size: number }) {
   return (
     <div className="relative">
-      <FileIcon size={size} className="text-[#001F3F]" />
+      <FileIcon size={size} className="text-[#0F2B3C]" />
       <div className="absolute -bottom-1 -right-1 bg-white rounded-full">
         <CheckCircle2 size={size / 2} className="text-green-600" />
       </div>

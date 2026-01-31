@@ -1,12 +1,12 @@
 
 {
-  "name": "Boundaries Coffee Ops",
-  "short_name": "Boundaries",
-  "description": "Operational standards and training for Boundaries Coffee staff.",
+  "name": "Brewshift",
+  "short_name": "Brewshift",
+  "description": "Operations platform for coffee shops and restaurants.",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#001F3F",
-  "theme_color": "#001F3F",
+  "background_color": "#0F2B3C",
+  "theme_color": "#0F2B3C",
   "orientation": "portrait",
   "icons": [
     {

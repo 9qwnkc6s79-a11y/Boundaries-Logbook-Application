@@ -14,7 +14,7 @@ import { getStarterPack } from './data/starterPacks';
 import { GoogleGenAI } from "@google/genai";
 import { hashPassword, verifyPassword, isHashed } from './utils/passwordUtils';
 
-const APP_VERSION = '3.5.0';
+const APP_VERSION = '3.6.0';
 
 const DEFAULT_ORG_ID = 'org-boundaries';
 
@@ -22,8 +22,8 @@ const DEFAULT_ORG_ID = 'org-boundaries';
 const DEFAULT_ORG: Organization = {
   id: DEFAULT_ORG_ID,
   name: 'BOUNDARIES',
-  primaryColor: '#001F3F',
-  accentColor: '#DC2626',
+  primaryColor: '#0F2B3C',
+  accentColor: '#C77B3C',
   stores: MOCK_STORES,
   createdAt: new Date().toISOString(),
 };
@@ -31,8 +31,8 @@ const DEFAULT_ORG: Organization = {
 // Apply org theme to CSS custom properties
 function applyOrgTheme(org: Organization | null) {
   const root = document.documentElement;
-  const primary = org?.primaryColor || '#001F3F';
-  const accent = org?.accentColor || '#DC2626';
+  const primary = org?.primaryColor || '#0F2B3C';
+  const accent = org?.accentColor || '#C77B3C';
   root.style.setProperty('--primary', primary);
   root.style.setProperty('--accent', accent);
 }
@@ -542,9 +542,9 @@ const App: React.FC = () => {
 
   if (isInitialLoading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center text-white p-12 text-center" style={{ backgroundColor: 'var(--primary, #001F3F)' }}>
+      <div className="min-h-screen flex flex-col items-center justify-center text-white p-12 text-center" style={{ backgroundColor: 'var(--primary, #0F2B3C)' }}>
         <div className="bg-white p-6 rounded-[2.5rem] mb-8 animate-bounce shadow-2xl">
-          <div className="w-12 h-12 border-4 border-t-transparent rounded-full animate-spin" style={{ borderColor: 'var(--primary, #001F3F)', borderTopColor: 'transparent' }} />
+          <div className="w-12 h-12 border-4 border-t-transparent rounded-full animate-spin" style={{ borderColor: 'var(--primary, #0F2B3C)', borderTopColor: 'transparent' }} />
         </div>
         <h2 className="text-3xl font-black uppercase tracking-tighter mb-2">Connecting to Store Cloud</h2>
         <p className="text-blue-300 font-bold uppercase tracking-widest text-[10px]">Authorizing Team Context...</p>

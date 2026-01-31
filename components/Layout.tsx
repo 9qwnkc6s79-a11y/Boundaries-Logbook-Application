@@ -40,8 +40,8 @@ const Layout: React.FC<LayoutProps> = ({
   manual, recipes, version, toastSales, toastClockedIn = [], salesComparison = null,
   org
 }) => {
-  const orgName = org?.name || 'BOUNDARIES';
-  const primaryColor = org?.primaryColor || '#001F3F';
+  const orgName = org?.name || 'BREWSHIFT';
+  const primaryColor = org?.primaryColor || '#0F2B3C';
   const orgLogo = org?.logo;
   const [isProfileOpen, setIsProfileOpen] = React.useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -170,7 +170,7 @@ User Question: ${userMsg}`,
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-4 text-sm font-black appearance-none cursor-pointer hover:bg-white/10 transition-all outline-none focus:ring-2 focus:ring-blue-500/50 pr-10 uppercase tracking-tighter shadow-inner"
                 >
                   {stores.map(s => (
-                    <option key={s.id} value={s.id} className="bg-[#001F3F] text-white py-2">{s.name.replace('Boundaries ', '')}</option>
+                    <option key={s.id} value={s.id} className="bg-[#0F2B3C] text-white py-2">{s.name.replace('Boundaries ', '')}</option>
                   ))}
                 </select>
                 <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-blue-300/50 group-hover:text-blue-300 transition-colors">
@@ -324,7 +324,7 @@ User Question: ${userMsg}`,
                 <select
                   value={user.storeId}
                   onChange={(e) => onUserStoreChange?.(e.target.value)}
-                  className="w-full bg-[#001F3F] border border-white/10 rounded-lg px-2.5 py-1.5 text-[10px] font-bold text-white outline-none focus:ring-1 focus:ring-blue-500/50"
+                  className="w-full bg-[#0F2B3C] border border-white/10 rounded-lg px-2.5 py-1.5 text-[10px] font-bold text-white outline-none focus:ring-1 focus:ring-blue-500/50"
                 >
                   {stores.map(s => (
                     <option key={s.id} value={s.id}>{s.name.replace('Boundaries ', '')}</option>
@@ -368,18 +368,18 @@ User Question: ${userMsg}`,
             <div className="flex items-center gap-1.5 min-w-0">
               <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/5 rounded-lg px-2 py-1 border border-green-500/20 flex items-center gap-1">
                 <DollarSign size={11} className="text-green-600 flex-shrink-0" />
-                <span className="text-[11px] font-black text-[#001F3F] tabular-nums">
+                <span className="text-[11px] font-black text-[#0F2B3C] tabular-nums">
                   {toastSales ? `${Math.round(toastSales.totalSales / 1000)}k` : '--'}
                 </span>
               </div>
               <div className="bg-gradient-to-br from-blue-500/10 to-indigo-500/5 rounded-lg px-2 py-1 border border-blue-500/20 flex items-center gap-1">
                 <UserCheck size={11} className="text-blue-600 flex-shrink-0" />
-                <span className="text-[11px] font-black text-[#001F3F] tabular-nums">{toastClockedIn.length}</span>
+                <span className="text-[11px] font-black text-[#0F2B3C] tabular-nums">{toastClockedIn.length}</span>
               </div>
               {toastSales && toastSales.averageTurnTime > 0 && (
                 <div className="bg-gradient-to-br from-amber-500/10 to-orange-500/5 rounded-lg px-2 py-1 border border-amber-500/20 flex items-center gap-1 hidden xs:flex">
                   <Clock size={11} className="text-amber-600 flex-shrink-0" />
-                  <span className="text-[11px] font-black text-[#001F3F] tabular-nums">{formatTurnTime(toastSales.averageTurnTime).formattedShort}</span>
+                  <span className="text-[11px] font-black text-[#0F2B3C] tabular-nums">{formatTurnTime(toastSales.averageTurnTime).formattedShort}</span>
                 </div>
               )}
             </div>
@@ -399,7 +399,7 @@ User Question: ${userMsg}`,
               <select
                 value={currentStoreId}
                 onChange={(e) => onStoreChange(e.target.value)}
-                className="w-full bg-neutral-100 border-none rounded-xl pl-8 pr-8 py-2 text-[10px] font-black uppercase tracking-widest outline-none text-[#001F3F] appearance-none shadow-inner"
+                className="w-full bg-neutral-100 border-none rounded-xl pl-8 pr-8 py-2 text-[10px] font-black uppercase tracking-widest outline-none text-[#0F2B3C] appearance-none shadow-inner"
               >
                 {stores.map(s => (
                   <option key={s.id} value={s.id}>{s.name.replace('Boundaries ', '')}</option>
@@ -413,7 +413,7 @@ User Question: ${userMsg}`,
               </div>
             </div>
           ) : (
-            <div className="text-[9px] font-black text-[#001F3F] uppercase flex items-center gap-1 bg-neutral-100/50 self-start px-2.5 py-1.5 rounded-xl border border-neutral-100 shadow-inner">
+            <div className="text-[9px] font-black text-[#0F2B3C] uppercase flex items-center gap-1 bg-neutral-100/50 self-start px-2.5 py-1.5 rounded-xl border border-neutral-100 shadow-inner">
               <MapPin size={10} strokeWidth={3} /> {currentStore?.name.replace('Boundaries ', '')}
             </div>
           )}
@@ -450,7 +450,7 @@ User Question: ${userMsg}`,
                   <select 
                     value={user.storeId}
                     onChange={(e) => onUserStoreChange?.(e.target.value)}
-                    className="w-full bg-white border border-neutral-200 rounded-xl px-4 py-3.5 text-sm font-bold text-[#001F3F] outline-none shadow-sm"
+                    className="w-full bg-white border border-neutral-200 rounded-xl px-4 py-3.5 text-sm font-bold text-[#0F2B3C] outline-none shadow-sm"
                   >
                     {stores.map(s => (
                       <option key={s.id} value={s.id}>{s.name}</option>
@@ -505,7 +505,7 @@ User Question: ${userMsg}`,
             {canNativeInstall ? (
               <button 
                 onClick={onInstall}
-                className="w-full bg-white text-[#001F3F] font-black py-3 rounded-xl text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg"
+                className="w-full bg-white text-[#0F2B3C] font-black py-3 rounded-xl text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg"
               >
                 <Download size={14} strokeWidth={3} /> Install on Phone
               </button>
@@ -520,7 +520,7 @@ User Question: ${userMsg}`,
                   </p>
                 </div>
                 <div className="flex items-start gap-3 bg-white/5 p-3 rounded-xl border border-white/5">
-                  <div className="bg-white text-[#001F3F] p-1 rounded">
+                  <div className="bg-white text-[#0F2B3C] p-1 rounded">
                     <Smartphone size={10} />
                   </div>
                   <p className="text-[9px] font-bold uppercase tracking-tight text-blue-100">
@@ -604,8 +604,8 @@ User Question: ${userMsg}`,
                 <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom-2`}>
                   <div className={`max-w-[85%] p-4 rounded-xl text-xs font-medium leading-relaxed ${
                     msg.role === 'user' 
-                      ? 'bg-[#001F3F] text-white rounded-tr-none' 
-                      : 'bg-neutral-100 text-[#001F3F] rounded-tl-none'
+                      ? 'bg-[#0F2B3C] text-white rounded-tr-none' 
+                      : 'bg-neutral-100 text-[#0F2B3C] rounded-tl-none'
                   }`}>
                     {msg.content || (isTyping && <span className="animate-pulse">Consulting Manual...</span>)}
                   </div>
@@ -621,9 +621,9 @@ User Question: ${userMsg}`,
                   placeholder="What is the greeting script?"
                   value={chatInput}
                   onChange={(e) => setChatInput(e.target.value)}
-                  className="w-full bg-white border border-neutral-100 rounded-xl pl-4 pr-14 py-4 font-bold text-[#001F3F] outline-none"
+                  className="w-full bg-white border border-neutral-100 rounded-xl pl-4 pr-14 py-4 font-bold text-[#0F2B3C] outline-none"
                 />
-                <button type="submit" disabled={isTyping} className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-[#001F3F] text-white rounded-xl shadow-lg active:scale-90 transition-all disabled:opacity-50">
+                <button type="submit" disabled={isTyping} className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-[#0F2B3C] text-white rounded-xl shadow-lg active:scale-90 transition-all disabled:opacity-50">
                   <Send size={18} strokeWidth={3} />
                 </button>
               </div>

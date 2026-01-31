@@ -93,7 +93,7 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onCapture })
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] bg-[#001F3F]/95 backdrop-blur-xl flex flex-col items-center justify-center p-3 sm:p-6 animate-in fade-in duration-300">
+    <div className="fixed inset-0 z-[100] bg-[#0F2B3C]/95 backdrop-blur-xl flex flex-col items-center justify-center p-3 sm:p-6 animate-in fade-in duration-300">
       <div className="w-full max-w-2xl bg-black rounded-xl sm:rounded-xl overflow-hidden shadow-lg border border-white/10 relative">
         <div className="aspect-[3/4] sm:aspect-video relative bg-neutral-900">
           {previewUrl ? (
@@ -121,7 +121,7 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onCapture })
               <p className="text-white font-bold mb-4 text-sm">{error}</p>
               <button 
                 onClick={startCamera}
-                className="px-6 py-3 bg-white text-[#001F3F] rounded-xl font-black text-xs active:scale-95 transition-all"
+                className="px-6 py-3 bg-white text-[#0F2B3C] rounded-xl font-black text-xs active:scale-95 transition-all"
               >
                 RETRY
               </button>
@@ -147,7 +147,7 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onCapture })
               </button>
               <button 
                 onClick={handleConfirm}
-                className="flex-[2] px-4 py-3 bg-white text-[#001F3F] rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-xl"
+                className="flex-[2] px-4 py-3 bg-white text-[#0F2B3C] rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-xl"
               >
                 Confirm
               </button>
@@ -159,8 +159,8 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onCapture })
                   onClick={handleShutter}
                   className="w-16 h-16 rounded-full bg-white flex items-center justify-center p-1 active:scale-90 transition-all group"
                 >
-                  <div className="w-full h-full rounded-full border-[3px] border-[#001F3F] flex items-center justify-center">
-                    <div className="w-10 h-10 bg-[#001F3F] rounded-full group-hover:scale-90 transition-transform" />
+                  <div className="w-full h-full rounded-full border-[3px] border-[#0F2B3C] flex items-center justify-center">
+                    <div className="w-10 h-10 bg-[#0F2B3C] rounded-full group-hover:scale-90 transition-transform" />
                   </div>
                 </button>
               )}
@@ -635,12 +635,12 @@ const OpsView: React.FC<OpsViewProps> = ({ user, allUsers, templates, existingSu
         />
 
         {showReopenConfirm && (
-          <div className="fixed inset-0 z-[110] bg-[#001F3F]/60 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in duration-200">
+          <div className="fixed inset-0 z-[110] bg-[#0F2B3C]/60 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in duration-200">
             <div className="bg-white rounded-xl p-6 max-w-sm w-full shadow-lg border border-neutral-100">
               <div className="w-16 h-16 rounded-full flex items-center justify-center mb-6 bg-amber-50 text-amber-500 mx-auto">
                 <RotateCcw size={32} />
               </div>
-              <h3 className="text-2xl font-black text-[#001F3F] uppercase tracking-tight leading-tight mb-2 text-center">
+              <h3 className="text-2xl font-black text-[#0F2B3C] uppercase tracking-tight leading-tight mb-2 text-center">
                 Reopen Protocol?
               </h3>
               <p className="text-neutral-500 text-sm font-medium mb-8 leading-relaxed text-center">
@@ -659,7 +659,7 @@ const OpsView: React.FC<OpsViewProps> = ({ user, allUsers, templates, existingSu
         <header className="sticky top-0 z-50 -mx-4 sm:-mx-8 px-4 sm:px-8 py-4 sm:py-6 bg-white/80 backdrop-blur-xl border-b border-neutral-100">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <h2 className="text-2xl sm:text-4xl font-[900] text-[#001F3F] tracking-tighter uppercase leading-none">{activeTemplate.name}</h2>
+              <h2 className="text-2xl sm:text-4xl font-[900] text-[#0F2B3C] tracking-tighter uppercase leading-none">{activeTemplate.name}</h2>
               <div className="text-xs sm:text-sm text-neutral-400 font-bold mt-1 flex items-center gap-2 flex-wrap">
                 <span className="bg-neutral-50 px-2 py-0.5 rounded-full border border-neutral-100">{displayDate}</span>
                 {isReadOnly && (
@@ -715,7 +715,7 @@ const OpsView: React.FC<OpsViewProps> = ({ user, allUsers, templates, existingSu
                   <div className="flex-1 w-full">
                     <div className="flex items-center gap-2 mb-3 flex-wrap">
                       {isVerified && (
-                        <span className={`px-2 py-0.5 text-white text-[7px] sm:text-[9px] font-black uppercase tracking-widest rounded flex items-center gap-1.5 animate-in zoom-in ${isTeammateEntry ? 'bg-[#001F3F]' : 'bg-green-600'}`}>
+                        <span className={`px-2 py-0.5 text-white text-[7px] sm:text-[9px] font-black uppercase tracking-widest rounded flex items-center gap-1.5 animate-in zoom-in ${isTeammateEntry ? 'bg-[#0F2B3C]' : 'bg-green-600'}`}>
                           {isTeammateEntry ? <Users size={10} /> : <CheckCircle2 size={10} />}
                           {verifyingUser?.name || 'Teammate'}
                         </span>
@@ -736,7 +736,7 @@ const OpsView: React.FC<OpsViewProps> = ({ user, allUsers, templates, existingSu
                         return null;
                       })()}
                       <h3 className={`font-bold text-base sm:text-lg tracking-tight leading-snug transition-colors ${
-                        isVerified ? 'text-neutral-400 line-through' : 'text-[#001F3F]'
+                        isVerified ? 'text-neutral-400 line-through' : 'text-[#0F2B3C]'
                       }`}>
                         {task.title}
                       </h3>
@@ -862,7 +862,7 @@ const OpsView: React.FC<OpsViewProps> = ({ user, allUsers, templates, existingSu
                       onClick={() => handleToggle(task.id)}
                       className={`w-14 h-14 sm:w-16 sm:h-16 rounded-xl sm:rounded-xl flex items-center justify-center transition-all duration-300 shadow-lg active:scale-90 shrink-0 ${
                         isVerified 
-                          ? isTeammateEntry ? 'bg-[#001F3F] text-white' : 'bg-green-600 text-white' 
+                          ? isTeammateEntry ? 'bg-[#0F2B3C] text-white' : 'bg-green-600 text-white' 
                           : 'bg-neutral-50 text-neutral-200 border border-neutral-100'
                       }`}
                     >
@@ -879,7 +879,7 @@ const OpsView: React.FC<OpsViewProps> = ({ user, allUsers, templates, existingSu
           <div className="pb-24">
             <button 
               onClick={() => handleAction(true)}
-              className="w-full py-6 text-white bg-[#001F3F] rounded-xl font-black flex items-center justify-center gap-3 transition-all shadow-xl uppercase tracking-widest text-xs"
+              className="w-full py-6 text-white bg-[#0F2B3C] rounded-xl font-black flex items-center justify-center gap-3 transition-all shadow-xl uppercase tracking-widest text-xs"
             >
               <Send size={18} strokeWidth={3} /> Finalize Protocol for {targetDate}
             </button>
@@ -924,7 +924,7 @@ const OpsView: React.FC<OpsViewProps> = ({ user, allUsers, templates, existingSu
                 className={`group relative bg-white p-5 sm:p-6 rounded-xl border transition-all duration-300 text-left overflow-hidden ${
                   isFinalized 
                     ? 'border-green-200 bg-green-50/20 shadow-inner' 
-                    : 'border-neutral-100 hover:border-[#001F3F] shadow-sm hover:shadow-lg active:scale-[0.98]'
+                    : 'border-neutral-100 hover:border-[#0F2B3C] shadow-sm hover:shadow-lg active:scale-[0.98]'
                 }`}
               >
                 <div className="absolute top-6 right-6 z-10 flex flex-col items-end gap-2">
@@ -941,7 +941,7 @@ const OpsView: React.FC<OpsViewProps> = ({ user, allUsers, templates, existingSu
                     </div>
                   ) : draft ? (
                     <div className="flex flex-col items-end gap-1">
-                      <span className="flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-[#001F3F] text-[9px] font-black uppercase tracking-widest rounded-xl border border-blue-100 animate-pulse">
+                      <span className="flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-[#0F2B3C] text-[9px] font-black uppercase tracking-widest rounded-xl border border-blue-100 animate-pulse">
                         <Users size={12} strokeWidth={3} /> ACTIVE
                       </span>
                     </div>
@@ -949,7 +949,7 @@ const OpsView: React.FC<OpsViewProps> = ({ user, allUsers, templates, existingSu
                 </div>
                 
                 <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-xl sm:rounded-xl flex items-center justify-center mb-8 transition-all duration-500 group-hover:rotate-6 ${
-                  isFinalized ? 'bg-green-100 text-green-600' : 'bg-[#001F3F] text-white shadow-xl group-hover:shadow-[#001F3F]/20'
+                  isFinalized ? 'bg-green-100 text-green-600' : 'bg-[#0F2B3C] text-white shadow-xl group-hover:shadow-[#0F2B3C]/20'
                 }`}>
                   {isFinalized ? <Check strokeWidth={4} size={32} /> : getTemplateIcon(tpl)}
                 </div>
@@ -969,7 +969,7 @@ const OpsView: React.FC<OpsViewProps> = ({ user, allUsers, templates, existingSu
   return (
     <div className="space-y-12 sm:space-y-16 animate-in fade-in duration-700">
       <header className="max-w-2xl">
-        <h1 className="text-4xl sm:text-6xl font-[900] text-[#001F3F] tracking-tighter mb-2 leading-none uppercase">Logbook</h1>
+        <h1 className="text-4xl sm:text-6xl font-[900] text-[#0F2B3C] tracking-tighter mb-2 leading-none uppercase">Logbook</h1>
         <p className="text-neutral-500 font-medium text-base sm:text-lg">Collaborative shift standards.</p>
       </header>
 

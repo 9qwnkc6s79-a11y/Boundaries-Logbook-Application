@@ -15,8 +15,8 @@ interface LoginProps {
 }
 
 const Login: React.FC<LoginProps> = ({ onLogin, onSignup, onPasswordReset, users, stores, version, org, onStartOnboarding }) => {
-  const orgName = org?.name || 'BOUNDARIES';
-  const primaryColor = org?.primaryColor || '#001F3F';
+  const orgName = org?.name || 'BREWSHIFT';
+  const primaryColor = org?.primaryColor || '#0F2B3C';
   const [view, setView] = useState<'LOGIN' | 'SIGNUP' | 'FORGOT_PASSWORD'>('LOGIN');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -152,18 +152,18 @@ const Login: React.FC<LoginProps> = ({ onLogin, onSignup, onPasswordReset, users
           <p className="text-blue-300 font-bold tracking-[0.3em] uppercase text-xs">Operations Platform</p>
         </div>
 
-        <div className="bg-white rounded-xl p-6 sm:p-8 shadow-lg border border-white/10 text-[#001F3F] animate-in zoom-in-95 duration-500 w-full">
+        <div className="bg-white rounded-xl p-6 sm:p-8 shadow-lg border border-white/10 text-[#0F2B3C] animate-in zoom-in-95 duration-500 w-full">
           {view === 'FORGOT_PASSWORD' ? (
             <div className="space-y-6">
               <button 
                 onClick={() => { setView('LOGIN'); setRecoveryStep('EMAIL'); setError(''); }}
-                className="flex items-center gap-2 text-neutral-400 font-bold text-xs uppercase tracking-widest hover:text-[#001F3F] transition-colors"
+                className="flex items-center gap-2 text-neutral-400 font-bold text-xs uppercase tracking-widest hover:text-[#0F2B3C] transition-colors"
               >
                 <ChevronLeft size={14} /> Back to Login
               </button>
 
               <div className="mb-2">
-                <h2 className="text-2xl font-black text-[#001F3F] tracking-tight uppercase">Account Recovery</h2>
+                <h2 className="text-2xl font-black text-[#0F2B3C] tracking-tight uppercase">Account Recovery</h2>
                 <p className="text-neutral-400 text-sm font-medium mt-1">
                   {recoveryStep === 'EMAIL' && "Enter your email to verify your account."}
                   {recoveryStep === 'NEW_PASSWORD' && "Set a new secure password for your account."}
@@ -237,7 +237,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onSignup, onPasswordReset, users
           ) : (
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="mb-2">
-                <h2 className="text-2xl font-black text-[#001F3F] tracking-tight uppercase">
+                <h2 className="text-2xl font-black text-[#0F2B3C] tracking-tight uppercase">
                   {view === 'SIGNUP' ? 'Create Account' : 'Staff Login'}
                 </h2>
                 <p className="text-neutral-400 text-sm font-medium">
@@ -308,7 +308,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onSignup, onPasswordReset, users
                       <button 
                         type="button"
                         onClick={() => { setView('FORGOT_PASSWORD'); setError(''); }}
-                        className="text-[10px] font-bold text-blue-600 hover:text-[#001F3F] transition-colors uppercase tracking-widest"
+                        className="text-[10px] font-bold text-blue-600 hover:text-[#0F2B3C] transition-colors uppercase tracking-widest"
                       >
                         Forgot?
                       </button>
@@ -333,7 +333,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onSignup, onPasswordReset, users
                     id="rememberMe"
                     checked={rememberMe}
                     onChange={(e) => setRememberMe(e.target.checked)}
-                    className="w-4 h-4 rounded border-neutral-300 text-[#001F3F] focus:ring-[#001F3F]"
+                    className="w-4 h-4 rounded border-neutral-300 text-[#0F2B3C] focus:ring-[#0F2B3C]"
                   />
                   <label htmlFor="rememberMe" className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest cursor-pointer select-none">
                     Remember email
@@ -355,7 +355,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onSignup, onPasswordReset, users
                 <button 
                   type="button"
                   onClick={() => { setView(view === 'LOGIN' ? 'SIGNUP' : 'LOGIN'); setError(''); }}
-                  className="text-neutral-500 font-bold hover:text-[#001F3F] transition-colors text-[10px] tracking-widest uppercase block w-full"
+                  className="text-neutral-500 font-bold hover:text-[#0F2B3C] transition-colors text-[10px] tracking-widest uppercase block w-full"
                 >
                   {view === 'SIGNUP' ? 'Existing Staff? Log In' : "New Recruit? Register"}
                 </button>
@@ -363,7 +363,8 @@ const Login: React.FC<LoginProps> = ({ onLogin, onSignup, onPasswordReset, users
                   <button
                     type="button"
                     onClick={onStartOnboarding}
-                    className="text-blue-500 font-bold hover:text-blue-700 transition-colors text-[10px] tracking-widest uppercase block w-full"
+                    className="font-bold hover:opacity-80 transition-colors text-[10px] tracking-widest uppercase block w-full"
+                    style={{ color: '#C77B3C' }}
                   >
                     New Shop? Get Started →
                   </button>

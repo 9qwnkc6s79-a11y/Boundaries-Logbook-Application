@@ -49,8 +49,8 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, onBack }) => {
   const [selectedPack, setSelectedPack] = useState('essentials');
 
   // Step 4: Branding
-  const [primaryColor, setPrimaryColor] = useState('#001F3F');
-  const [accentColor, setAccentColor] = useState('#DC2626');
+  const [primaryColor, setPrimaryColor] = useState('#0F2B3C');
+  const [accentColor, setAccentColor] = useState('#C77B3C');
   const [logoUrl, setLogoUrl] = useState('');
 
   const validateStep = (): boolean => {
@@ -152,7 +152,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, onBack }) => {
   const displayOrgName = orgName.trim().toUpperCase() || 'YOUR SHOP';
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-start p-4 sm:p-6 relative overflow-hidden text-white" style={{ backgroundColor: step === 3 ? primaryColor : '#001F3F' }}>
+    <div className="min-h-screen flex flex-col items-center justify-start p-4 sm:p-6 relative overflow-hidden text-white" style={{ backgroundColor: step === 3 ? primaryColor : '#0F2B3C' }}>
       {/* Background decoration */}
       <div className="absolute top-0 right-0 w-1/2 h-full bg-blue-900/20 skew-x-12 transform translate-x-1/2 -z-0" />
       <div className="absolute bottom-0 left-0 w-96 h-96 bg-white/5 rounded-full blur-[120px] -z-0" />
@@ -161,7 +161,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, onBack }) => {
         {/* Header */}
         <div className="text-center mb-6 animate-in fade-in slide-in-from-top-4 duration-700">
           <div className="inline-flex p-4 rounded-xl bg-white mb-4 shadow-lg rotate-3">
-            <Coffee size={36} strokeWidth={2.5} style={{ color: step === 3 ? primaryColor : '#001F3F' }} />
+            <Coffee size={36} strokeWidth={2.5} style={{ color: step === 3 ? primaryColor : '#0F2B3C' }} />
           </div>
           <h1 className="text-2xl sm:text-3xl font-[900] text-white tracking-tighter uppercase">Set Up Your Shop</h1>
           <p className="text-blue-300 font-bold tracking-[0.2em] uppercase text-[10px] mt-1">Step {step + 1} of {STEPS.length}</p>
@@ -178,7 +178,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, onBack }) => {
                 <div
                   className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center transition-all duration-300 ${
                     isActive
-                      ? 'bg-white text-[#001F3F] shadow-lg scale-110'
+                      ? 'bg-white text-[#0F2B3C] shadow-lg scale-110'
                       : isCompleted
                         ? 'bg-white/30 text-white'
                         : 'bg-white/10 text-white/30'
@@ -197,7 +197,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, onBack }) => {
         </div>
 
         {/* Step Content Card */}
-        <div className="bg-white rounded-xl p-5 sm:p-7 shadow-lg border border-white/10 text-[#001F3F] animate-in fade-in duration-300 w-full">
+        <div className="bg-white rounded-xl p-5 sm:p-7 shadow-lg border border-white/10 text-[#0F2B3C] animate-in fade-in duration-300 w-full">
           {error && (
             <div className="bg-red-50 text-red-600 p-3 rounded-lg text-xs font-bold border border-red-100 mb-5 animate-in fade-in duration-200">
               {error}
@@ -408,7 +408,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, onBack }) => {
                       value={primaryColor}
                       onChange={(e) => setPrimaryColor(e.target.value)}
                       className="flex-1 bg-neutral-50 border border-neutral-100 rounded-lg px-3 py-3 focus:bg-white focus:ring-4 focus:ring-blue-900/10 transition-all outline-none font-mono font-bold text-sm"
-                      placeholder="#001F3F"
+                      placeholder="#0F2B3C"
                     />
                   </div>
                   <p className="text-[9px] text-neutral-400 mt-1 ml-1">Sidebar, nav, buttons</p>
@@ -427,7 +427,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, onBack }) => {
                       value={accentColor}
                       onChange={(e) => setAccentColor(e.target.value)}
                       className="flex-1 bg-neutral-50 border border-neutral-100 rounded-lg px-3 py-3 focus:bg-white focus:ring-4 focus:ring-blue-900/10 transition-all outline-none font-mono font-bold text-sm"
-                      placeholder="#DC2626"
+                      placeholder="#C77B3C"
                     />
                   </div>
                   <p className="text-[9px] text-neutral-400 mt-1 ml-1">Alerts, highlights</p>
@@ -511,14 +511,14 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, onBack }) => {
                     <div className="bg-white rounded-lg p-3 border border-neutral-100">
                       <p className="text-[9px] font-black text-neutral-400 uppercase tracking-widest mb-1">Locations</p>
                       {stores.filter(s => s.name.trim()).map((s, i) => (
-                        <p key={i} className="font-bold text-[#001F3F] flex items-center gap-1.5">
+                        <p key={i} className="font-bold text-[#0F2B3C] flex items-center gap-1.5">
                           <MapPin size={10} /> {s.name.trim()}
                         </p>
                       ))}
                     </div>
                     <div className="bg-white rounded-lg p-3 border border-neutral-100">
                       <p className="text-[9px] font-black text-neutral-400 uppercase tracking-widest mb-1">Starter Pack</p>
-                      <p className="font-bold text-[#001F3F]">
+                      <p className="font-bold text-[#0F2B3C]">
                         {STARTER_PACK_OPTIONS.find(p => p.id === selectedPack)?.icon}{' '}
                         {STARTER_PACK_OPTIONS.find(p => p.id === selectedPack)?.name}
                       </p>
@@ -568,7 +568,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, onBack }) => {
             <button
               type="button"
               onClick={handleNext}
-              className="flex-1 py-3.5 rounded-xl font-black text-xs uppercase tracking-widest bg-white text-[#001F3F] hover:bg-blue-50 transition-all flex items-center justify-center gap-2 shadow-lg active:scale-[0.98]"
+              className="flex-1 py-3.5 rounded-xl font-black text-xs uppercase tracking-widest bg-white text-[#0F2B3C] hover:bg-blue-50 transition-all flex items-center justify-center gap-2 shadow-lg active:scale-[0.98]"
             >
               Next <ArrowRight size={14} strokeWidth={3} />
             </button>
@@ -577,11 +577,11 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, onBack }) => {
               type="button"
               onClick={handleLaunch}
               disabled={loading}
-              className="flex-1 py-3.5 rounded-xl font-black text-xs uppercase tracking-widest bg-white text-[#001F3F] hover:bg-blue-50 transition-all flex items-center justify-center gap-2 shadow-lg active:scale-[0.98] disabled:opacity-50"
+              className="flex-1 py-3.5 rounded-xl font-black text-xs uppercase tracking-widest bg-white text-[#0F2B3C] hover:bg-blue-50 transition-all flex items-center justify-center gap-2 shadow-lg active:scale-[0.98] disabled:opacity-50"
             >
               {loading ? (
                 <>
-                  <div className="w-4 h-4 border-2 border-[#001F3F] border-t-transparent rounded-full animate-spin" />
+                  <div className="w-4 h-4 border-2 border-[#0F2B3C] border-t-transparent rounded-full animate-spin" />
                   Creating Your Shop...
                 </>
               ) : (
@@ -594,7 +594,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, onBack }) => {
         </div>
 
         <div className="mt-6 text-center text-blue-200/20 text-[9px] font-black uppercase tracking-[0.4em]">
-          Powered by Logbook
+          Powered by Brewshift
         </div>
       </div>
     </div>
