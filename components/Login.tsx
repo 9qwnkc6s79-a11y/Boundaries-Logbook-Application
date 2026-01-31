@@ -11,9 +11,10 @@ interface LoginProps {
   stores: Store[];
   version: string;
   org?: Organization | null;
+  onStartOnboarding?: () => void;
 }
 
-const Login: React.FC<LoginProps> = ({ onLogin, onSignup, onPasswordReset, users, stores, version, org }) => {
+const Login: React.FC<LoginProps> = ({ onLogin, onSignup, onPasswordReset, users, stores, version, org, onStartOnboarding }) => {
   const orgName = org?.name || 'BOUNDARIES';
   const primaryColor = org?.primaryColor || '#001F3F';
   const [view, setView] = useState<'LOGIN' | 'SIGNUP' | 'FORGOT_PASSWORD'>('LOGIN');
@@ -350,14 +351,23 @@ const Login: React.FC<LoginProps> = ({ onLogin, onSignup, onPasswordReset, users
                 {!loading && <ArrowRight size={18} strokeWidth={3} />}
               </button>
               
-              <div className="text-center pt-2">
+              <div className="text-center pt-2 space-y-2">
                 <button 
                   type="button"
                   onClick={() => { setView(view === 'LOGIN' ? 'SIGNUP' : 'LOGIN'); setError(''); }}
-                  className="text-neutral-500 font-bold hover:text-[#001F3F] transition-colors text-[10px] tracking-widest uppercase"
+                  className="text-neutral-500 font-bold hover:text-[#001F3F] transition-colors text-[10px] tracking-widest uppercase block w-full"
                 >
                   {view === 'SIGNUP' ? 'Existing Staff? Log In' : "New Recruit? Register"}
                 </button>
+                {onStartOnboarding && (
+                  <button
+                    type="button"
+                    onClick={onStartOnboarding}
+                    className="text-blue-500 font-bold hover:text-blue-700 transition-colors text-[10px] tracking-widest uppercase block w-full"
+                  >
+                    New Shop? Get Started →
+                  </button>
+                )}
               </div>
             </form>
           )}

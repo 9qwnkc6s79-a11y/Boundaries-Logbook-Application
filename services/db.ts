@@ -263,6 +263,40 @@ class CloudAPI {
     }
   }
 
+  async seedOrgData(orgId: string, pack: {
+    curriculum: TrainingModule[];
+    templates: ChecklistTemplate[];
+    recipes: Recipe[];
+    manual: ManualSection[];
+  }): Promise<void> {
+    const previousOrg = this.currentOrgId;
+    this.setOrg(orgId);
+
+    try {
+      console.log(`[Firestore] seedOrgData(${orgId}): Seeding ${pack.curriculum.length} modules, ${pack.templates.length} templates, ${pack.recipes.length} recipes, ${pack.manual.length} manual sections`);
+
+      await Promise.all([
+        this.remoteSet(DOC_KEYS.CURRICULUM, pack.curriculum),
+        this.remoteSet(DOC_KEYS.TEMPLATES, pack.templates),
+        this.remoteSet(DOC_KEYS.RECIPES, pack.recipes),
+        this.remoteSet(DOC_KEYS.MANUAL, pack.manual),
+        this.remoteSet(DOC_KEYS.SUBMISSIONS, []),
+        this.remoteSet(DOC_KEYS.PROGRESS, []),
+        this.remoteSet(DOC_KEYS.CURRICULUM_VERSION, CURRICULUM_VERSION),
+      ]);
+
+      console.log(`[Firestore] seedOrgData(${orgId}): Seeding complete`);
+    } catch (error) {
+      console.error(`[Firestore] seedOrgData(${orgId}): Error:`, error);
+      throw error;
+    } finally {
+      // Restore previous org context if it was different
+      if (previousOrg && previousOrg !== orgId) {
+        this.setOrg(previousOrg);
+      }
+    }
+  }
+
   async fetchAllOrgs(): Promise<Organization[]> {
     if (!firestore) return [];
     try {

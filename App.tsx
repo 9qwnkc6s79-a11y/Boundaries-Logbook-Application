@@ -9,6 +9,8 @@ import ManagerHub from './components/ManagerHub';
 import StaffDashboard from './components/StaffDashboard';
 import RecipeBook from './components/RecipeBook';
 import Login from './components/Login';
+import Onboarding, { OnboardingData } from './components/Onboarding';
+import { getStarterPack } from './data/starterPacks';
 import { GoogleGenAI } from "@google/genai";
 import { hashPassword, verifyPassword, isHashed } from './utils/passwordUtils';
 
@@ -40,6 +42,7 @@ const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('training');
   const [currentStoreId, setCurrentStoreId] = useState<string>(MOCK_STORES[0].id);
   const [currentOrg, setCurrentOrg] = useState<Organization | null>(null);
+  const [onboardingMode, setOnboardingMode] = useState(false);
 
   // System States
   const [isSyncing, setIsSyncing] = useState(false);
@@ -260,6 +263,72 @@ const App: React.FC = () => {
       await db.syncUser(updated);
       await performCloudSync(true);
     }
+  };
+
+  const handleOnboardingComplete = async (data: OnboardingData) => {
+    // Generate orgId from shop name
+    let orgId = 'org-' + data.orgName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+    // Check for collision
+    const existing = await db.fetchOrg(orgId);
+    if (existing) {
+      orgId = orgId + '-' + Date.now();
+    }
+
+    // Create organization
+    const org: Organization = {
+      id: orgId,
+      name: data.orgName.toUpperCase(),
+      primaryColor: data.branding.primaryColor,
+      accentColor: data.branding.accentColor,
+      logo: data.branding.logo,
+      stores: data.stores,
+      createdAt: new Date().toISOString(),
+    };
+
+    await db.createOrg(org);
+    db.setOrg(orgId);
+
+    // Get starter pack data and seed to Firestore
+    const pack = getStarterPack(data.packId, data.stores.map(s => s.id));
+    await db.seedOrgData(orgId, {
+      curriculum: pack.curriculum,
+      templates: pack.templates,
+      recipes: pack.recipes,
+      manual: pack.manual,
+    });
+
+    // Create admin user with hashed password
+    const hashedPassword = await hashPassword(data.user.password);
+    const adminUser: User = {
+      id: `u-admin-${Date.now()}`,
+      name: data.user.name,
+      email: data.user.email,
+      password: hashedPassword,
+      role: UserRole.ADMIN,
+      storeId: data.stores[0].id,
+      orgId: orgId,
+    };
+
+    await db.syncUser(adminUser);
+
+    // Set org state and auto-login
+    setCurrentOrg(org);
+    applyOrgTheme(org);
+    setCurrentUser(adminUser);
+    setCurrentStoreId(data.stores[0].id);
+    setOnboardingMode(false);
+
+    // Load the new org's data
+    setCurriculum(pack.curriculum);
+    setTemplates(pack.templates);
+    setRecipes(pack.recipes);
+    setManual(pack.manual);
+    setAllUsers([adminUser]);
+    setSubmissions([]);
+    setProgress([]);
+
+    console.log(`[Onboarding] Organization "${org.name}" (${orgId}) created with pack "${data.packId}"`);
   };
 
   const handleLessonComplete = async (lessonId: string, score?: number, fileData?: { url: string, name: string }, checklistCompleted?: string[], checklistPhotos?: Record<string, string>) => {
@@ -484,6 +553,15 @@ const App: React.FC = () => {
   }
 
   if (!currentUser || !effectiveUser) {
+    if (onboardingMode) {
+      return (
+        <Onboarding
+          onComplete={handleOnboardingComplete}
+          onBack={() => setOnboardingMode(false)}
+        />
+      );
+    }
+
     return (
       <Login 
         onLogin={handleLoginAction}
@@ -493,6 +571,7 @@ const App: React.FC = () => {
         stores={orgStores}
         version={APP_VERSION}
         org={currentOrg}
+        onStartOnboarding={() => setOnboardingMode(true)}
       />
     );
   }
