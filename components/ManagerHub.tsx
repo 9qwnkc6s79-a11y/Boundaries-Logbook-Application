@@ -10,6 +10,7 @@ import { GoogleGenAI } from "@google/genai";
 import { toastAPI } from '../services/toast';
 import { db } from '../services/db';
 import { detectLeaders, calculateTimelinessScore, calculateTurnTimeScore, calculateSalesScore, calculateAvgTicketScore, calculateLeaderboard, determineShiftOwnership } from '../utils/leadershipTracking';
+import TeamManagement from './TeamManagement';
 
 interface ManagerHubProps {
   staff: User[];
@@ -31,6 +32,8 @@ interface ManagerHubProps {
   onPhotoComment?: (submissionId: string, taskId: string, comment: string) => Promise<void>;
   currentStoreId: string;
   stores: Store[];
+  currentUser?: User;
+  onUserUpdated?: () => void;
   onToastSalesUpdate?: (sales: ToastSalesData | null) => void;
   onToastClockedInUpdate?: (clockedIn: ToastTimeEntry[]) => void;
   onSalesComparisonUpdate?: (comparison: {
@@ -44,9 +47,9 @@ interface ManagerHubProps {
 const ManagerHub: React.FC<ManagerHubProps> = ({
   staff = [], allUsers = [], submissions = [], templates = [], curriculum = [], allProgress = [], manual = [], recipes = [], onReview, onOverrideAIFlag, onResetSubmission,
   onUpdateTemplate, onAddTemplate, onDeleteTemplate, onUpdateManual, onUpdateRecipes, onPhotoComment,
-  currentStoreId, stores = [], onToastSalesUpdate, onToastClockedInUpdate, onSalesComparisonUpdate
+  currentStoreId, stores = [], currentUser, onUserUpdated, onToastSalesUpdate, onToastClockedInUpdate, onSalesComparisonUpdate
 }) => {
-  const [activeSubTab, setActiveSubTab] = useState<'dashboard' | 'compliance' | 'editor' | 'staff' | 'gallery' | 'audit' | 'manual' | 'cash-audit' | 'performance'>('dashboard');
+  const [activeSubTab, setActiveSubTab] = useState<'dashboard' | 'compliance' | 'editor' | 'staff' | 'gallery' | 'audit' | 'manual' | 'cash-audit' | 'performance' | 'team'>('dashboard');
   const [auditFilter, setAuditFilter] = useState<'pending' | 'approved' | 'all'>('pending');
   const [aiInsight, setAiInsight] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -876,7 +879,8 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
             { id: 'gallery', label: 'AUDIT', icon: ImageIcon },
             { id: 'cash-audit', label: 'CASH', icon: DollarSign },
             { id: 'manual', label: 'MANUAL', icon: FileText },
-            { id: 'editor', label: 'PROTOCOLS', icon: Settings }
+            { id: 'editor', label: 'PROTOCOLS', icon: Settings },
+            ...(currentUser?.role === UserRole.ADMIN ? [{ id: 'team', label: 'TEAM', icon: ShieldCheck }] : []),
           ].map(tab => (
             <button key={tab.id} onClick={() => setActiveSubTab(tab.id as any)} className={`px-5 py-2.5 text-[9px] font-black rounded-lg transition-all flex items-center gap-2 whitespace-nowrap tracking-widest ${activeSubTab === tab.id ? 'bg-[#001F3F] text-white shadow-lg' : 'text-neutral-500 hover:text-[#001F3F]'}`}>
               <tab.icon size={14} /> {tab.label}
@@ -2507,6 +2511,16 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
             </section>
           );
         })()}
+
+        {activeSubTab === 'team' && currentUser?.role === UserRole.ADMIN && (
+          <TeamManagement
+            allUsers={allUsers}
+            currentUser={currentUser}
+            stores={stores}
+            currentStoreId={currentStoreId}
+            onUserUpdated={onUserUpdated || (() => {})}
+          />
+        )}
 
       </div>
     </div>

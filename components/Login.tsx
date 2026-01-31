@@ -24,19 +24,18 @@ const Login: React.FC<LoginProps> = ({ onLogin, onSignup, onPasswordReset, users
 
   // Forgot Password flow states
   const [resetEmail, setResetEmail] = useState('');
-  const [recoveryStep, setRecoveryStep] = useState<'EMAIL' | 'CODE' | 'NEW_PASSWORD' | 'SUCCESS'>('EMAIL');
-  const [recoveryCode, setRecoveryCode] = useState('');
+  const [recoveryStep, setRecoveryStep] = useState<'EMAIL' | 'NEW_PASSWORD' | 'SUCCESS'>('EMAIL');
   const [newPassword, setNewPassword] = useState('');
 
-  // Load remembered credentials on mount
+  // Load remembered email on mount (password is never stored)
   useEffect(() => {
     const savedEmail = localStorage.getItem('boundaries_remembered_email');
-    const savedPass = localStorage.getItem('boundaries_remembered_pass');
-    if (savedEmail && savedPass) {
+    if (savedEmail) {
       setEmail(savedEmail);
-      setPassword(savedPass);
       setRememberMe(true);
     }
+    // Clean up any legacy plaintext password storage
+    localStorage.removeItem('boundaries_remembered_pass');
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -69,20 +68,17 @@ const Login: React.FC<LoginProps> = ({ onLogin, onSignup, onPasswordReset, users
 
         if (rememberMe) {
           localStorage.setItem('boundaries_remembered_email', newUser.email);
-          localStorage.setItem('boundaries_remembered_pass', password);
         }
 
         await onSignup(newUser);
       } else {
         await onLogin(email, password);
         
-        // Handle Remember Me after successful login
+        // Handle Remember Me — only store email, never password
         if (rememberMe) {
           localStorage.setItem('boundaries_remembered_email', email);
-          localStorage.setItem('boundaries_remembered_pass', password);
         } else {
           localStorage.removeItem('boundaries_remembered_email');
-          localStorage.removeItem('boundaries_remembered_pass');
         }
       }
     } catch (err: any) {
@@ -102,20 +98,11 @@ const Login: React.FC<LoginProps> = ({ onLogin, onSignup, onPasswordReset, users
         setError("We couldn't find an account with that email.");
         setLoading(false);
       } else {
-        setRecoveryStep('CODE');
+        // Skip code step — go directly to new password
+        setRecoveryStep('NEW_PASSWORD');
         setLoading(false);
       }
     }, 1000);
-  };
-
-  const handleVerifyCode = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (recoveryCode === '1234') { 
-      setRecoveryStep('NEW_PASSWORD');
-      setError('');
-    } else {
-      setError('Invalid code. For testing, use 1234.');
-    }
   };
 
   const handleSetNewPassword = async (e: React.FormEvent) => {
@@ -168,10 +155,9 @@ const Login: React.FC<LoginProps> = ({ onLogin, onSignup, onPasswordReset, users
               <div className="mb-2">
                 <h2 className="text-2xl font-black text-[#001F3F] tracking-tight uppercase">Account Recovery</h2>
                 <p className="text-neutral-400 text-sm font-medium mt-1">
-                  {recoveryStep === 'EMAIL' && "Enter your email to receive a recovery code."}
-                  {recoveryStep === 'CODE' && "Enter the 4-digit code sent to your device."}
+                  {recoveryStep === 'EMAIL' && "Enter your email to verify your account."}
                   {recoveryStep === 'NEW_PASSWORD' && "Set a new secure password for your account."}
-                  {recoveryStep === 'SUCCESS' && "Identity verified. Updating access..."}
+                  {recoveryStep === 'SUCCESS' && "Password updated. Redirecting..."}
                 </p>
               </div>
 
@@ -199,31 +185,8 @@ const Login: React.FC<LoginProps> = ({ onLogin, onSignup, onPasswordReset, users
                     disabled={loading}
                     className="w-full bg-[#001F3F] text-white font-black py-3.5 rounded-lg hover:bg-blue-900 active:scale-[0.98] transition-all flex items-center justify-center gap-3 shadow-md"
                   >
-                    {loading ? 'Verifying...' : 'Send Recovery Code'}
+                    {loading ? 'Verifying...' : 'Verify Account'}
                     {!loading && <Key size={18} strokeWidth={3} />}
-                  </button>
-                </form>
-              )}
-
-              {recoveryStep === 'CODE' && (
-                <form onSubmit={handleVerifyCode} className="space-y-6">
-                   <div className="relative group text-center">
-                    <input
-                      type="text"
-                      maxLength={4}
-                      required
-                      value={recoveryCode}
-                      onChange={(e) => setRecoveryCode(e.target.value)}
-                      className="w-full bg-neutral-50 border border-neutral-100 rounded-lg px-4 py-6 text-center text-3xl font-black tracking-[1em] focus:bg-white focus:ring-4 focus:ring-blue-900/10 outline-none"
-                      placeholder="----"
-                    />
-                  </div>
-                  <p className="text-[10px] text-center font-bold text-neutral-400 uppercase tracking-widest">Universal Reset Code: 1234</p>
-                  <button
-                    type="submit"
-                    className="w-full bg-[#001F3F] text-white font-black py-3.5 rounded-lg hover:bg-blue-900 active:scale-[0.98] transition-all flex items-center justify-center gap-3 shadow-md"
-                  >
-                    Verify Code
                   </button>
                 </form>
               )}
@@ -361,7 +324,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onSignup, onPasswordReset, users
                     className="w-4 h-4 rounded border-neutral-300 text-[#001F3F] focus:ring-[#001F3F]"
                   />
                   <label htmlFor="rememberMe" className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest cursor-pointer select-none">
-                    Remember credentials
+                    Remember email
                   </label>
                 </div>
               </div>

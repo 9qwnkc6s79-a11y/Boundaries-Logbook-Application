@@ -10,6 +10,7 @@ import StaffDashboard from './components/StaffDashboard';
 import RecipeBook from './components/RecipeBook';
 import Login from './components/Login';
 import { GoogleGenAI } from "@google/genai";
+import { hashPassword, verifyPassword, isHashed } from './utils/passwordUtils';
 
 const APP_VERSION = '3.4.2';
 
@@ -142,18 +143,42 @@ const App: React.FC = () => {
     const freshData = await performCloudSync();
     const userList = freshData?.users || allUsers;
     
-    const found = userList.find(u => u.email.toLowerCase() === email.toLowerCase().trim() && u.password === pass);
-    if (!found) throw new Error("Invalid credentials or account not found.");
-    
+    const found = userList.find(u => u.email.toLowerCase() === email.toLowerCase().trim());
+    if (!found || !found.password) throw new Error("Invalid credentials or account not found.");
+
+    const passwordMatch = await verifyPassword(pass, found.password);
+    if (!passwordMatch) throw new Error("Invalid credentials or account not found.");
+
+    // Check if account has been deactivated by an admin
+    if (found.active === false) {
+      throw new Error("Your account has been deactivated. Contact your manager.");
+    }
+
+    // Auto-migrate plaintext password to hashed on successful login
+    if (!isHashed(found.password)) {
+      try {
+        const hashed = await hashPassword(pass);
+        const updated = { ...found, password: hashed };
+        await db.syncUser(updated);
+        console.log(`[Auth] Auto-migrated password hash for ${found.email}`);
+      } catch (e) {
+        // Migration failure is non-blocking — user can still log in
+        console.warn('[Auth] Password migration failed:', e);
+      }
+    }
+
     setCurrentUser(found);
     return found;
   };
 
   const handleSignupAction = async (user: User) => {
-    await db.syncUser(user);
+    // Hash password before saving
+    const hashed = await hashPassword(user.password || '');
+    const secureUser = { ...user, password: hashed };
+    await db.syncUser(secureUser);
     const freshData = await performCloudSync();
     setAllUsers(freshData?.users || []);
-    setCurrentUser(user);
+    setCurrentUser(secureUser);
   };
 
   const handlePasswordResetAction = async (email: string, pass: string) => {
@@ -162,7 +187,8 @@ const App: React.FC = () => {
     const user = userList.find(u => u.email === email);
     
     if (user) {
-      const updated = { ...user, password: pass };
+      const hashed = await hashPassword(pass);
+      const updated = { ...user, password: hashed };
       await db.syncUser(updated);
       await performCloudSync(true);
     }
@@ -466,6 +492,7 @@ const App: React.FC = () => {
           <ManagerHub
             staff={storeUsers}
             allUsers={allUsers}
+            currentUser={currentUser}
             submissions={storeSubmissions}
             templates={storeTemplates}
             curriculum={curriculum}
@@ -524,6 +551,7 @@ const App: React.FC = () => {
             onUpdateRecipes={handleUpdateRecipes}
             currentStoreId={currentStoreId}
             stores={MOCK_STORES}
+            onUserUpdated={() => performCloudSync(true)}
             onToastSalesUpdate={setToastSales}
             onToastClockedInUpdate={setToastClockedIn}
             onSalesComparisonUpdate={setSalesComparison}

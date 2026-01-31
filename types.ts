@@ -13,6 +13,7 @@ export interface User {
   password?: string;
   role: UserRole;
   storeId: string;
+  active?: boolean;
 }
 
 export interface Store {
