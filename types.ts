@@ -15,6 +15,7 @@ export interface User {
   storeId: string;
   active?: boolean;
   toastEmployeeGuid?: string;
+  orgId?: string;
 }
 
 // Employee data returned from Toast sync endpoint (api/toast-employees)
@@ -35,6 +36,23 @@ export interface ToastSyncEmployee {
 export interface Store {
   id: string;
   name: string;
+}
+
+export interface Organization {
+  id: string;
+  name: string;
+  logo?: string;           // URL to logo image
+  primaryColor: string;    // hex, default '#001F3F'
+  accentColor: string;     // hex, default '#DC2626'
+  stores: Store[];
+  toastConfig?: {
+    clientId?: string;
+    clientSecret?: string;
+    managementGroupGuid?: string;
+    locations: Record<string, string[]>;  // location key → restaurant GUIDs
+  };
+  createdAt: string;
+  plan?: string;           // 'starter' | 'pro' | 'scale'
 }
 
 export interface ManualSection {

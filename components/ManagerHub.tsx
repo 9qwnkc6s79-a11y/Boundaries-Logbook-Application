@@ -1,10 +1,10 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { User, ChecklistSubmission, ChecklistTemplate, ChecklistTask, UserRole, TrainingModule, UserProgress, ManualSection, Recipe, Store, ToastSalesData, ToastLaborEntry, ToastTimeEntry, CashDeposit, GoogleReview, TrackedGoogleReview, GoogleReviewsData } from '../types';
+import { User, ChecklistSubmission, ChecklistTemplate, ChecklistTask, UserRole, TrainingModule, UserProgress, ManualSection, Recipe, Store, ToastSalesData, ToastLaborEntry, ToastTimeEntry, CashDeposit, GoogleReview, TrackedGoogleReview, GoogleReviewsData, Organization } from '../types';
 import {
   CheckCircle2, AlertCircle, Eye, User as UserIcon, Calendar, Check, X,
   Sparkles, Settings, Plus, Trash2, Edit3, BarChart3, ListTodo, BrainCircuit, Clock, TrendingDown, TrendingUp,
   ArrowRight, MessageSquare, Save, Users, LayoutDashboard, Flag, Activity, GraduationCap, Award, FileText, MoveUp, MoveDown, Coffee, Camera, Hash, AlertTriangle, ExternalLink, FileText as FileIcon, Image as ImageIcon, Search, ShieldCheck,
-  RefreshCw, RotateCcw, CalendarDays, Timer, Store as StoreIcon, MapPin, GripVertical, AlertOctagon, Info, Zap, Gauge, History, SearchCheck, ChevronUp, ChevronDown, ClipboardList, DollarSign, TrendingUp as TrendingUpIcon, UserCheck, Target, Trophy, Star
+  RefreshCw, RotateCcw, CalendarDays, Timer, Store as StoreIcon, MapPin, GripVertical, AlertOctagon, Info, Zap, Gauge, History, SearchCheck, ChevronUp, ChevronDown, ClipboardList, DollarSign, TrendingUp as TrendingUpIcon, UserCheck, Target, Trophy, Star, Palette, Building2
 } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
 import { toastAPI } from '../services/toast';
@@ -42,14 +42,17 @@ interface ManagerHubProps {
     ordersDiff: number;
     ordersPercent: number;
   } | null) => void;
+  org?: Organization | null;
+  onSaveOrg?: (org: Organization) => Promise<boolean>;
 }
 
 const ManagerHub: React.FC<ManagerHubProps> = ({
   staff = [], allUsers = [], submissions = [], templates = [], curriculum = [], allProgress = [], manual = [], recipes = [], onReview, onOverrideAIFlag, onResetSubmission,
   onUpdateTemplate, onAddTemplate, onDeleteTemplate, onUpdateManual, onUpdateRecipes, onPhotoComment,
-  currentStoreId, stores = [], currentUser, onUserUpdated, onToastSalesUpdate, onToastClockedInUpdate, onSalesComparisonUpdate
+  currentStoreId, stores = [], currentUser, onUserUpdated, onToastSalesUpdate, onToastClockedInUpdate, onSalesComparisonUpdate,
+  org, onSaveOrg
 }) => {
-  const [activeSubTab, setActiveSubTab] = useState<'dashboard' | 'compliance' | 'editor' | 'staff' | 'gallery' | 'audit' | 'manual' | 'cash-audit' | 'performance' | 'team'>('dashboard');
+  const [activeSubTab, setActiveSubTab] = useState<'dashboard' | 'compliance' | 'editor' | 'staff' | 'gallery' | 'audit' | 'manual' | 'cash-audit' | 'performance' | 'team' | 'branding' | 'stores'>('dashboard');
   const [auditFilter, setAuditFilter] = useState<'pending' | 'approved' | 'all'>('pending');
   const [aiInsight, setAiInsight] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -880,7 +883,11 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
             { id: 'cash-audit', label: 'CASH', icon: DollarSign },
             { id: 'manual', label: 'MANUAL', icon: FileText },
             { id: 'editor', label: 'PROTOCOLS', icon: Settings },
-            ...(currentUser?.role === UserRole.ADMIN ? [{ id: 'team', label: 'TEAM', icon: ShieldCheck }] : []),
+            ...(currentUser?.role === UserRole.ADMIN ? [
+              { id: 'team', label: 'TEAM', icon: ShieldCheck },
+              { id: 'branding', label: 'BRANDING', icon: Palette },
+              { id: 'stores', label: 'STORES', icon: Building2 },
+            ] : []),
           ].map(tab => (
             <button key={tab.id} onClick={() => setActiveSubTab(tab.id as any)} className={`px-5 py-2.5 text-[9px] font-black rounded-lg transition-all flex items-center gap-2 whitespace-nowrap tracking-widest ${activeSubTab === tab.id ? 'bg-[#001F3F] text-white shadow-lg' : 'text-neutral-500 hover:text-[#001F3F]'}`}>
               <tab.icon size={14} /> {tab.label}
@@ -2522,8 +2529,323 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
           />
         )}
 
+        {activeSubTab === 'branding' && currentUser?.role === UserRole.ADMIN && (
+          <BrandingSettings org={org || null} onSaveOrg={onSaveOrg || (async () => false)} />
+        )}
+
+        {activeSubTab === 'stores' && currentUser?.role === UserRole.ADMIN && (
+          <StoreManagement org={org || null} onSaveOrg={onSaveOrg || (async () => false)} />
+        )}
+
       </div>
     </div>
+  );
+};
+
+// ── Branding Settings Sub-Component ──
+const BrandingSettings: React.FC<{ org: Organization | null; onSaveOrg: (org: Organization) => Promise<boolean> }> = ({ org, onSaveOrg }) => {
+  const [orgName, setOrgName] = useState(org?.name || 'BOUNDARIES');
+  const [primaryColor, setPrimaryColor] = useState(org?.primaryColor || '#001F3F');
+  const [accentColor, setAccentColor] = useState(org?.accentColor || '#DC2626');
+  const [logoUrl, setLogoUrl] = useState(org?.logo || '');
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    if (org) {
+      setOrgName(org.name);
+      setPrimaryColor(org.primaryColor);
+      setAccentColor(org.accentColor);
+      setLogoUrl(org.logo || '');
+    }
+  }, [org]);
+
+  const handleSave = async () => {
+    if (!org) return;
+    setSaving(true);
+    const updated: Organization = {
+      ...org,
+      name: orgName.trim(),
+      primaryColor,
+      accentColor,
+      logo: logoUrl.trim() || undefined,
+    };
+    const success = await onSaveOrg(updated);
+    setSaving(false);
+    if (success) {
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    }
+  };
+
+  return (
+    <section className="animate-in fade-in space-y-6">
+      <div className="bg-white p-6 rounded-xl border border-neutral-100 shadow-sm">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-2 bg-purple-100 text-purple-600 rounded-xl"><Palette size={20} /></div>
+          <div>
+            <h2 className="text-xl font-black text-[#001F3F] uppercase tracking-tight">Branding Settings</h2>
+            <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">Customize your organization's appearance</p>
+          </div>
+        </div>
+
+        <div className="space-y-6">
+          {/* Organization Name */}
+          <div>
+            <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1 mb-2 block">Organization Name</label>
+            <input
+              type="text"
+              value={orgName}
+              onChange={(e) => setOrgName(e.target.value)}
+              className="w-full bg-neutral-50 border border-neutral-100 rounded-xl px-4 py-3.5 focus:bg-white focus:ring-4 focus:ring-blue-900/10 focus:border-blue-900 transition-all outline-none font-bold text-lg uppercase tracking-tight"
+              placeholder="Your Organization Name"
+            />
+          </div>
+
+          {/* Colors */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1 mb-2 block">Primary Color</label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="color"
+                  value={primaryColor}
+                  onChange={(e) => setPrimaryColor(e.target.value)}
+                  className="w-14 h-14 rounded-xl border-2 border-neutral-200 cursor-pointer"
+                />
+                <input
+                  type="text"
+                  value={primaryColor}
+                  onChange={(e) => setPrimaryColor(e.target.value)}
+                  className="flex-1 bg-neutral-50 border border-neutral-100 rounded-xl px-4 py-3.5 focus:bg-white focus:ring-4 focus:ring-blue-900/10 transition-all outline-none font-mono font-bold"
+                  placeholder="#001F3F"
+                />
+              </div>
+              <p className="text-[9px] text-neutral-400 mt-1 ml-1">Sidebar, buttons, navigation</p>
+            </div>
+            <div>
+              <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1 mb-2 block">Accent Color</label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="color"
+                  value={accentColor}
+                  onChange={(e) => setAccentColor(e.target.value)}
+                  className="w-14 h-14 rounded-xl border-2 border-neutral-200 cursor-pointer"
+                />
+                <input
+                  type="text"
+                  value={accentColor}
+                  onChange={(e) => setAccentColor(e.target.value)}
+                  className="flex-1 bg-neutral-50 border border-neutral-100 rounded-xl px-4 py-3.5 focus:bg-white focus:ring-4 focus:ring-blue-900/10 transition-all outline-none font-mono font-bold"
+                  placeholder="#DC2626"
+                />
+              </div>
+              <p className="text-[9px] text-neutral-400 mt-1 ml-1">Alerts, highlights</p>
+            </div>
+          </div>
+
+          {/* Logo URL */}
+          <div>
+            <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1 mb-2 block">Logo URL (optional)</label>
+            <input
+              type="text"
+              value={logoUrl}
+              onChange={(e) => setLogoUrl(e.target.value)}
+              className="w-full bg-neutral-50 border border-neutral-100 rounded-xl px-4 py-3.5 focus:bg-white focus:ring-4 focus:ring-blue-900/10 transition-all outline-none font-medium text-sm"
+              placeholder="https://example.com/logo.png"
+            />
+            <p className="text-[9px] text-neutral-400 mt-1 ml-1">Upload to Firebase Storage and paste URL here</p>
+          </div>
+
+          {/* Preview */}
+          <div className="border border-neutral-200 rounded-xl overflow-hidden">
+            <div className="text-[10px] font-black text-neutral-400 uppercase tracking-widest px-4 py-3 bg-neutral-50 border-b border-neutral-200">Live Preview</div>
+            <div className="p-6">
+              <div className="flex items-center gap-4 p-4 rounded-xl text-white" style={{ backgroundColor: primaryColor }}>
+                {logoUrl ? (
+                  <div className="bg-white p-2 rounded-xl">
+                    <img src={logoUrl} alt="Logo" className="w-8 h-8 object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                  </div>
+                ) : (
+                  <div className="bg-white p-2 rounded-xl">
+                    <Coffee style={{ color: primaryColor }} className="w-8 h-8" />
+                  </div>
+                )}
+                <div>
+                  <span className="font-extrabold text-lg tracking-tighter block">{orgName || 'ORG NAME'}</span>
+                  <span className="text-[9px] font-bold text-blue-300 tracking-[0.2em] uppercase">Operations</span>
+                </div>
+              </div>
+              <div className="mt-4 flex gap-3">
+                <button className="px-6 py-3 text-white rounded-xl font-black text-xs uppercase tracking-widest" style={{ backgroundColor: primaryColor }}>
+                  Primary Button
+                </button>
+                <button className="px-6 py-3 text-white rounded-xl font-black text-xs uppercase tracking-widest" style={{ backgroundColor: accentColor }}>
+                  Accent Button
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Save */}
+        <div className="mt-8 flex justify-end">
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="px-8 py-4 text-white rounded-xl font-black uppercase text-xs tracking-widest transition-all shadow-lg flex items-center gap-2 active:scale-95 disabled:opacity-50"
+            style={{ backgroundColor: saved ? '#16a34a' : (org?.primaryColor || '#001F3F') }}
+          >
+            {saving ? <><RefreshCw size={14} className="animate-spin" /> Saving...</> : saved ? <><Check size={14} /> Saved!</> : <><Save size={14} /> Save Branding</>}
+          </button>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+// ── Store Management Sub-Component ──
+const StoreManagement: React.FC<{ org: Organization | null; onSaveOrg: (org: Organization) => Promise<boolean> }> = ({ org, onSaveOrg }) => {
+  const [localStores, setLocalStores] = useState<Store[]>(org?.stores || []);
+  const [newStoreName, setNewStoreName] = useState('');
+  const [editingStore, setEditingStore] = useState<{ id: string; name: string } | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    if (org?.stores) {
+      setLocalStores(org.stores);
+    }
+  }, [org]);
+
+  const handleAddStore = () => {
+    if (!newStoreName.trim()) return;
+    const newStore: Store = {
+      id: `store-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      name: newStoreName.trim(),
+    };
+    setLocalStores(prev => [...prev, newStore]);
+    setNewStoreName('');
+  };
+
+  const handleRemoveStore = (storeId: string) => {
+    setLocalStores(prev => prev.filter(s => s.id !== storeId));
+  };
+
+  const handleUpdateStore = (storeId: string, name: string) => {
+    setLocalStores(prev => prev.map(s => s.id === storeId ? { ...s, name } : s));
+    setEditingStore(null);
+  };
+
+  const handleSave = async () => {
+    if (!org) return;
+    setSaving(true);
+    const updated: Organization = { ...org, stores: localStores };
+    const success = await onSaveOrg(updated);
+    setSaving(false);
+    if (success) {
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    }
+  };
+
+  return (
+    <section className="animate-in fade-in space-y-6">
+      <div className="bg-white p-6 rounded-xl border border-neutral-100 shadow-sm">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-2 bg-indigo-100 text-indigo-600 rounded-xl"><Building2 size={20} /></div>
+          <div>
+            <h2 className="text-xl font-black text-[#001F3F] uppercase tracking-tight">Store Management</h2>
+            <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">Add and manage store locations</p>
+          </div>
+        </div>
+
+        {/* Add New Store */}
+        <div className="flex gap-3 mb-6">
+          <input
+            type="text"
+            value={newStoreName}
+            onChange={(e) => setNewStoreName(e.target.value)}
+            placeholder="New store name..."
+            className="flex-1 bg-neutral-50 border border-neutral-100 rounded-xl px-4 py-3.5 focus:bg-white focus:ring-4 focus:ring-blue-900/10 transition-all outline-none font-medium"
+            onKeyDown={(e) => e.key === 'Enter' && handleAddStore()}
+          />
+          <button
+            onClick={handleAddStore}
+            disabled={!newStoreName.trim()}
+            className="px-6 py-3.5 bg-[#001F3F] text-white rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-blue-900 transition-all shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          >
+            <Plus size={14} /> Add Store
+          </button>
+        </div>
+
+        {/* Store List */}
+        <div className="space-y-3">
+          {localStores.length === 0 ? (
+            <div className="py-12 text-center border-2 border-dashed border-neutral-200 rounded-xl">
+              <Building2 size={32} className="text-neutral-300 mx-auto mb-3" />
+              <p className="text-neutral-400 font-bold uppercase text-xs tracking-widest">No stores configured</p>
+            </div>
+          ) : (
+            localStores.map((store) => (
+              <div key={store.id} className="flex items-center gap-4 p-4 bg-neutral-50 rounded-xl border border-neutral-100 group hover:border-neutral-200 transition-all">
+                <div className="p-2 bg-white rounded-lg border border-neutral-100">
+                  <MapPin size={16} className="text-neutral-400" />
+                </div>
+                {editingStore?.id === store.id ? (
+                  <div className="flex-1 flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={editingStore.name}
+                      onChange={(e) => setEditingStore({ ...editingStore, name: e.target.value })}
+                      className="flex-1 bg-white border border-neutral-200 rounded-lg px-3 py-2 font-bold text-sm outline-none focus:ring-2 focus:ring-blue-500/50"
+                      autoFocus
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleUpdateStore(store.id, editingStore.name);
+                        if (e.key === 'Escape') setEditingStore(null);
+                      }}
+                    />
+                    <button onClick={() => handleUpdateStore(store.id, editingStore.name)} className="p-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200 transition-colors">
+                      <Check size={14} />
+                    </button>
+                    <button onClick={() => setEditingStore(null)} className="p-2 bg-neutral-100 text-neutral-400 rounded-lg hover:bg-neutral-200 transition-colors">
+                      <X size={14} />
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex-1">
+                      <p className="font-black text-sm text-[#001F3F] uppercase tracking-tight">{store.name}</p>
+                      <p className="text-[9px] text-neutral-400 font-mono">{store.id}</p>
+                    </div>
+                    <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button onClick={() => setEditingStore({ id: store.id, name: store.name })} className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors">
+                        <Edit3 size={14} />
+                      </button>
+                      <button onClick={() => handleRemoveStore(store.id)} className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors">
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Save */}
+        <div className="mt-8 flex justify-end">
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="px-8 py-4 bg-[#001F3F] text-white rounded-xl font-black uppercase text-xs tracking-widest hover:bg-blue-900 transition-all shadow-lg flex items-center gap-2 active:scale-95 disabled:opacity-50"
+            style={{ backgroundColor: saved ? '#16a34a' : undefined }}
+          >
+            {saving ? <><RefreshCw size={14} className="animate-spin" /> Saving...</> : saved ? <><Check size={14} /> Saved!</> : <><Save size={14} /> Save Stores</>}
+          </button>
+        </div>
+      </div>
+    </section>
   );
 };
 

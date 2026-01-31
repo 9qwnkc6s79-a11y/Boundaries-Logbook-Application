@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --primary: #001F3F;
+  --accent: #DC2626;
+}
+
 body {
   font-family: 'Plus Jakarta Sans', sans-serif;
   letter-spacing: -0.01em;

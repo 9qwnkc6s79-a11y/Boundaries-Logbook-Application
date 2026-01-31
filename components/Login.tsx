@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Coffee, ArrowRight, Lock, Mail, User as UserIcon, MapPin, Key, ShieldCheck, ChevronLeft } from 'lucide-react';
-import { User, UserRole, Store } from '../types';
+import { User, UserRole, Store, Organization } from '../types';
 
 interface LoginProps {
   onLogin: (email: string, pass: string) => Promise<User>;
@@ -10,9 +10,12 @@ interface LoginProps {
   users: User[];
   stores: Store[];
   version: string;
+  org?: Organization | null;
 }
 
-const Login: React.FC<LoginProps> = ({ onLogin, onSignup, onPasswordReset, users, stores, version }) => {
+const Login: React.FC<LoginProps> = ({ onLogin, onSignup, onPasswordReset, users, stores, version, org }) => {
+  const orgName = org?.name || 'BOUNDARIES';
+  const primaryColor = org?.primaryColor || '#001F3F';
   const [view, setView] = useState<'LOGIN' | 'SIGNUP' | 'FORGOT_PASSWORD'>('LOGIN');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -129,17 +132,23 @@ const Login: React.FC<LoginProps> = ({ onLogin, onSignup, onPasswordReset, users
   };
 
   return (
-    <div className="min-h-screen bg-[#001F3F] flex flex-col items-center justify-center p-6 relative overflow-hidden text-white">
+    <div className="min-h-screen flex flex-col items-center justify-center p-6 relative overflow-hidden text-white" style={{ backgroundColor: primaryColor }}>
       <div className="absolute top-0 right-0 w-1/2 h-full bg-blue-900/20 skew-x-12 transform translate-x-1/2 -z-0" />
       <div className="absolute bottom-0 left-0 w-96 h-96 bg-white/5 rounded-full blur-[120px] -z-0" />
 
       <div className="max-w-md w-full relative z-10 flex flex-col items-center">
         <div className="text-center mb-12 animate-in fade-in slide-in-from-top-4 duration-700">
-          <div className="inline-flex p-5 rounded-xl bg-white mb-8 shadow-lg rotate-3">
-            <Coffee size={48} strokeWidth={2.5} className="text-[#001F3F]" />
-          </div>
-          <h1 className="text-5xl font-[900] text-white tracking-tighter mb-2 uppercase">BOUNDARIES</h1>
-          <p className="text-blue-300 font-bold tracking-[0.3em] uppercase text-xs">Coffee & Co. Operations</p>
+          {org?.logo ? (
+            <div className="inline-flex p-3 rounded-xl bg-white mb-8 shadow-lg rotate-3">
+              <img src={org.logo} alt={orgName} className="w-12 h-12 object-contain" />
+            </div>
+          ) : (
+            <div className="inline-flex p-5 rounded-xl bg-white mb-8 shadow-lg rotate-3">
+              <Coffee size={48} strokeWidth={2.5} style={{ color: primaryColor }} />
+            </div>
+          )}
+          <h1 className="text-5xl font-[900] text-white tracking-tighter mb-2 uppercase">{orgName}</h1>
+          <p className="text-blue-300 font-bold tracking-[0.3em] uppercase text-xs">Operations Platform</p>
         </div>
 
         <div className="bg-white rounded-xl p-6 sm:p-8 shadow-lg border border-white/10 text-[#001F3F] animate-in zoom-in-95 duration-500 w-full">
@@ -183,7 +192,8 @@ const Login: React.FC<LoginProps> = ({ onLogin, onSignup, onPasswordReset, users
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full bg-[#001F3F] text-white font-black py-3.5 rounded-lg hover:bg-blue-900 active:scale-[0.98] transition-all flex items-center justify-center gap-3 shadow-md"
+                    className="w-full text-white font-black py-3.5 rounded-lg active:scale-[0.98] transition-all flex items-center justify-center gap-3 shadow-md"
+                    style={{ backgroundColor: primaryColor }}
                   >
                     {loading ? 'Verifying...' : 'Verify Account'}
                     {!loading && <Key size={18} strokeWidth={3} />}
@@ -206,7 +216,8 @@ const Login: React.FC<LoginProps> = ({ onLogin, onSignup, onPasswordReset, users
                   </div>
                   <button
                     type="submit"
-                    className="w-full bg-[#001F3F] text-white font-black py-3.5 rounded-lg hover:bg-blue-900 active:scale-[0.98] transition-all flex items-center justify-center gap-3 shadow-md"
+                    className="w-full text-white font-black py-3.5 rounded-lg active:scale-[0.98] transition-all flex items-center justify-center gap-3 shadow-md"
+                    style={{ backgroundColor: primaryColor }}
                   >
                     Update Password
                   </button>
@@ -332,7 +343,8 @@ const Login: React.FC<LoginProps> = ({ onLogin, onSignup, onPasswordReset, users
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-[#001F3F] text-white font-black py-3.5 rounded-lg hover:bg-blue-900 active:scale-[0.98] transition-all flex items-center justify-center gap-3 shadow-md disabled:opacity-50"
+                className="w-full text-white font-black py-3.5 rounded-lg active:scale-[0.98] transition-all flex items-center justify-center gap-3 shadow-md disabled:opacity-50"
+                style={{ backgroundColor: primaryColor }}
               >
                 {loading ? 'Authenticating...' : (view === 'SIGNUP' ? 'Create Account' : 'Sign In')}
                 {!loading && <ArrowRight size={18} strokeWidth={3} />}

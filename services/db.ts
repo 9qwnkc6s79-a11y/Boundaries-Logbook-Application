@@ -1,6 +1,6 @@
 
 // No imports needed - Firebase is loaded globally via CDN script tags in index.html
-import { User, UserProgress, ChecklistSubmission, ChecklistTemplate, TrainingModule, ManualSection, Recipe, CashDeposit, GoogleReviewsData } from '../types';
+import { User, UserProgress, ChecklistSubmission, ChecklistTemplate, TrainingModule, ManualSection, Recipe, CashDeposit, GoogleReviewsData, Organization, Store } from '../types';
 
 declare const firebase: any;
 
@@ -61,30 +61,64 @@ function removeUndefined(obj: any): any {
 }
 
 class CloudAPI {
+  private currentOrgId: string | null = null;
+
+  setOrg(orgId: string) {
+    this.currentOrgId = orgId;
+    console.log(`[Firestore] Organization context set to: ${orgId}`);
+  }
+
+  getOrgId(): string | null {
+    return this.currentOrgId;
+  }
+
+  private getCollectionPath(): string {
+    if (this.currentOrgId) {
+      return `organizations/${this.currentOrgId}`;
+    }
+    return 'appData';
+  }
+
   private async remoteGet<T>(docId: string, defaultValue: T): Promise<T> {
     if (!firestore) {
       console.warn(`[Firestore] remoteGet(${docId}): Firestore not available, returning default`);
       return defaultValue;
     }
+    const collectionPath = this.getCollectionPath();
     try {
-      const docRef = firestore.collection('appData').doc(docId);
+      const docRef = collectionPath.includes('/')
+        ? firestore.doc(`${collectionPath}/${docId}`)
+        : firestore.collection(collectionPath).doc(docId);
       const snap = await docRef.get();
       if (!snap.exists) {
-        console.log(`[Firestore] remoteGet(${docId}): Document doesn't exist, returning default`);
+        // If using org path and doc doesn't exist, try fallback to appData
+        if (this.currentOrgId) {
+          console.log(`[Firestore] remoteGet(${collectionPath}/${docId}): Not found in org, trying appData fallback`);
+          const fallbackRef = firestore.collection('appData').doc(docId);
+          const fallbackSnap = await fallbackRef.get();
+          if (fallbackSnap.exists) {
+            const fallbackData = fallbackSnap.data();
+            const result = fallbackData && fallbackData.data ? fallbackData.data : defaultValue;
+            console.log(`[Firestore] remoteGet(${docId}): Retrieved from appData fallback`);
+            return result;
+          }
+        }
+        console.log(`[Firestore] remoteGet(${collectionPath}/${docId}): Document doesn't exist, returning default`);
         return defaultValue;
       }
       const data = snap.data();
       const result = data && data.data ? data.data : defaultValue;
-      console.log(`[Firestore] remoteGet(${docId}): Retrieved ${Array.isArray(result) ? result.length + ' items' : 'data'}`);
+      console.log(`[Firestore] remoteGet(${collectionPath}/${docId}): Retrieved ${Array.isArray(result) ? result.length + ' items' : 'data'}`);
       return result;
     } catch (error) {
-      console.error(`[Firestore] remoteGet(${docId}): Error:`, error);
+      console.error(`[Firestore] remoteGet(${collectionPath}/${docId}): Error:`, error);
       return defaultValue;
     }
   }
 
   private async remoteSet<T>(docId: string, data: T): Promise<boolean> {
-    const path = `appData/${docId}`;
+    const collectionPath = this.getCollectionPath();
+    const path = `${collectionPath}/${docId}`;
     console.log(`[Firestore] remoteSet START: ${path}`);
 
     if (!firestore) {
@@ -116,7 +150,9 @@ class CloudAPI {
         console.warn(`[Firestore] remoteSet(${path}): WARNING - Document size ${estimatedDocSize}KB is dangerously close to 1MB limit`);
       }
 
-      const docRef = firestore.collection('appData').doc(docId);
+      const docRef = collectionPath.includes('/')
+        ? firestore.doc(`${collectionPath}/${docId}`)
+        : firestore.collection(collectionPath).doc(docId);
       console.log(`[Firestore] remoteSet(${path}): Calling set()...`);
 
       await docRef.set({
@@ -141,6 +177,104 @@ class CloudAPI {
       }
 
       return false;
+    }
+  }
+
+  // ── Organization CRUD ──
+
+  async fetchOrg(orgId: string): Promise<Organization | null> {
+    if (!firestore) return null;
+    try {
+      const docRef = firestore.doc(`organizations/${orgId}/config/main`);
+      const snap = await docRef.get();
+      if (!snap.exists) return null;
+      const data = snap.data();
+      return data?.data || null;
+    } catch (error) {
+      console.error(`[Firestore] fetchOrg(${orgId}): Error:`, error);
+      return null;
+    }
+  }
+
+  async saveOrg(org: Organization): Promise<boolean> {
+    if (!firestore) return false;
+    try {
+      const cleaned = removeUndefined(org);
+      const docRef = firestore.doc(`organizations/${org.id}/config/main`);
+      await docRef.set({
+        data: cleaned,
+        lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: false });
+      console.log(`[Firestore] saveOrg(${org.id}): SUCCESS`);
+      return true;
+    } catch (error) {
+      console.error(`[Firestore] saveOrg(${org.id}): Error:`, error);
+      return false;
+    }
+  }
+
+  async createOrg(org: Organization): Promise<boolean> {
+    return this.saveOrg(org);
+  }
+
+  async migrateToOrg(orgId: string): Promise<boolean> {
+    if (!firestore) return false;
+    console.log(`[Firestore] migrateToOrg(${orgId}): Starting migration from appData...`);
+
+    try {
+      // Copy each document from appData to organizations/{orgId}/
+      const docKeys = Object.values(DOC_KEYS);
+      for (const docKey of docKeys) {
+        const sourceRef = firestore.collection('appData').doc(docKey);
+        const snap = await sourceRef.get();
+        if (snap.exists) {
+          const data = snap.data();
+          const targetRef = firestore.doc(`organizations/${orgId}/${docKey}`);
+          await targetRef.set(data);
+          console.log(`[Firestore] migrateToOrg: Copied appData/${docKey} → organizations/${orgId}/${docKey}`);
+        }
+      }
+
+      // Update all users with orgId
+      const usersRef = firestore.collection('appData').doc('users');
+      const usersSnap = await usersRef.get();
+      if (usersSnap.exists) {
+        const usersData = usersSnap.data();
+        if (usersData?.data && Array.isArray(usersData.data)) {
+          const updatedUsers = usersData.data.map((u: User) => ({ ...u, orgId }));
+          // Save to both locations
+          await firestore.doc(`organizations/${orgId}/users`).set({
+            data: updatedUsers,
+            lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+          });
+          await usersRef.set({
+            data: updatedUsers,
+            lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+          });
+          console.log(`[Firestore] migrateToOrg: Updated ${updatedUsers.length} users with orgId=${orgId}`);
+        }
+      }
+
+      console.log(`[Firestore] migrateToOrg(${orgId}): Migration complete`);
+      return true;
+    } catch (error) {
+      console.error(`[Firestore] migrateToOrg(${orgId}): Error:`, error);
+      return false;
+    }
+  }
+
+  async fetchAllOrgs(): Promise<Organization[]> {
+    if (!firestore) return [];
+    try {
+      // We need to scan organizations collection - each org has a config/main sub-doc
+      // For now, we look for known orgs. In future, maintain an index.
+      const orgs: Organization[] = [];
+      const boundariesOrg = await this.fetchOrg('org-boundaries');
+      if (boundariesOrg) orgs.push(boundariesOrg);
+      return orgs;
+    } catch (error) {
+      console.error('[Firestore] fetchAllOrgs: Error:', error);
+      return [];
     }
   }
 

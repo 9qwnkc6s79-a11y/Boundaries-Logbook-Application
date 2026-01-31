@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { User, UserRole, UserProgress, ChecklistSubmission, ChecklistTemplate, Store, TrainingModule, ManualSection, Recipe, ToastSalesData, ToastTimeEntry } from './types';
+import { User, UserRole, UserProgress, ChecklistSubmission, ChecklistTemplate, Store, TrainingModule, ManualSection, Recipe, ToastSalesData, ToastTimeEntry, Organization } from './types';
 import { TRAINING_CURRICULUM, CHECKLIST_TEMPLATES, MOCK_USERS, MOCK_STORES, BOUNDARIES_MANUAL, BOUNDARIES_RECIPES } from './data/mockData';
 import { db } from './services/db';
 import Layout from './components/Layout';
@@ -12,12 +12,34 @@ import Login from './components/Login';
 import { GoogleGenAI } from "@google/genai";
 import { hashPassword, verifyPassword, isHashed } from './utils/passwordUtils';
 
-const APP_VERSION = '3.4.2';
+const APP_VERSION = '3.5.0';
+
+const DEFAULT_ORG_ID = 'org-boundaries';
+
+// Default Boundaries Coffee organization
+const DEFAULT_ORG: Organization = {
+  id: DEFAULT_ORG_ID,
+  name: 'BOUNDARIES',
+  primaryColor: '#001F3F',
+  accentColor: '#DC2626',
+  stores: MOCK_STORES,
+  createdAt: new Date().toISOString(),
+};
+
+// Apply org theme to CSS custom properties
+function applyOrgTheme(org: Organization | null) {
+  const root = document.documentElement;
+  const primary = org?.primaryColor || '#001F3F';
+  const accent = org?.accentColor || '#DC2626';
+  root.style.setProperty('--primary', primary);
+  root.style.setProperty('--accent', accent);
+}
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [activeTab, setActiveTab] = useState('training');
   const [currentStoreId, setCurrentStoreId] = useState<string>(MOCK_STORES[0].id);
+  const [currentOrg, setCurrentOrg] = useState<Organization | null>(null);
 
   // System States
   const [isSyncing, setIsSyncing] = useState(false);
@@ -44,6 +66,25 @@ const App: React.FC = () => {
 
   // Track the last time we updated a submission locally to avoid the "sync overwrite flicker"
   const lastSubmissionUpdateRef = useRef<number>(0);
+
+  // Initialize org on first load
+  const initOrg = useCallback(async () => {
+    // Try to load the Boundaries org
+    let org = await db.fetchOrg(DEFAULT_ORG_ID);
+    if (!org) {
+      // First time: create org and migrate data
+      console.log('[App] No org found, creating default Boundaries Coffee org...');
+      org = { ...DEFAULT_ORG, stores: MOCK_STORES };
+      await db.createOrg(org);
+      // Migrate existing appData to org
+      await db.migrateToOrg(DEFAULT_ORG_ID);
+      console.log('[App] Default org created and data migrated');
+    }
+    db.setOrg(org.id);
+    setCurrentOrg(org);
+    applyOrgTheme(org);
+    return org;
+  }, []);
 
   const performCloudSync = useCallback(async (background = false) => {
     if (!background) setIsSyncing(true);
@@ -82,8 +123,12 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    performCloudSync();
-  }, [performCloudSync]);
+    const init = async () => {
+      await initOrg();
+      await performCloudSync();
+    };
+    init();
+  }, [performCloudSync, initOrg]);
 
   // Aggressive sync heartbeat to ensure Manager sees Trainee work near real-time
   useEffect(() => {
@@ -164,6 +209,29 @@ const App: React.FC = () => {
       } catch (e) {
         // Migration failure is non-blocking — user can still log in
         console.warn('[Auth] Password migration failed:', e);
+      }
+    }
+
+    // Ensure user has orgId set (migrate legacy users)
+    if (!found.orgId) {
+      const orgId = DEFAULT_ORG_ID;
+      found.orgId = orgId;
+      try {
+        await db.syncUser(found);
+        console.log(`[Auth] Migrated user ${found.email} to org ${orgId}`);
+      } catch (e) {
+        console.warn('[Auth] Org migration failed for user:', e);
+      }
+    }
+
+    // Load org config for user
+    const orgId = found.orgId || DEFAULT_ORG_ID;
+    if (!currentOrg || currentOrg.id !== orgId) {
+      const org = await db.fetchOrg(orgId);
+      if (org) {
+        db.setOrg(org.id);
+        setCurrentOrg(org);
+        applyOrgTheme(org);
       }
     }
 
@@ -387,11 +455,27 @@ const App: React.FC = () => {
     performCloudSync(true);
   };
 
+  // Derive stores from org, fallback to MOCK_STORES
+  const orgStores = useMemo(() => {
+    return currentOrg?.stores && currentOrg.stores.length > 0 ? currentOrg.stores : MOCK_STORES;
+  }, [currentOrg]);
+
+  // Handler for saving org config (used by ManagerHub branding/stores)
+  const handleSaveOrg = useCallback(async (updatedOrg: Organization) => {
+    const success = await db.saveOrg(updatedOrg);
+    if (success) {
+      setCurrentOrg(updatedOrg);
+      applyOrgTheme(updatedOrg);
+      console.log('[App] Organization config saved');
+    }
+    return success;
+  }, []);
+
   if (isInitialLoading) {
     return (
-      <div className="min-h-screen bg-[#001F3F] flex flex-col items-center justify-center text-white p-12 text-center">
+      <div className="min-h-screen flex flex-col items-center justify-center text-white p-12 text-center" style={{ backgroundColor: 'var(--primary, #001F3F)' }}>
         <div className="bg-white p-6 rounded-[2.5rem] mb-8 animate-bounce shadow-2xl">
-          <div className="w-12 h-12 border-4 border-[#001F3F] border-t-transparent rounded-full animate-spin" />
+          <div className="w-12 h-12 border-4 border-t-transparent rounded-full animate-spin" style={{ borderColor: 'var(--primary, #001F3F)', borderTopColor: 'transparent' }} />
         </div>
         <h2 className="text-3xl font-black uppercase tracking-tighter mb-2">Connecting to Store Cloud</h2>
         <p className="text-blue-300 font-bold uppercase tracking-widest text-[10px]">Authorizing Team Context...</p>
@@ -406,8 +490,9 @@ const App: React.FC = () => {
         onSignup={handleSignupAction}
         onPasswordReset={handlePasswordResetAction}
         users={allUsers} 
-        stores={MOCK_STORES}
+        stores={orgStores}
         version={APP_VERSION}
+        org={currentOrg}
       />
     );
   }
@@ -417,6 +502,7 @@ const App: React.FC = () => {
   const storeUsers = allUsers.filter(u => u.storeId === currentStoreId);
   const storeProgress = progress.filter(p => storeUsers.some(u => u.id === p.userId));
   const isManager = currentUser.role === UserRole.MANAGER || currentUser.role === UserRole.ADMIN;
+  const activeStores = orgStores;
 
   return (
     <Layout
@@ -424,7 +510,7 @@ const App: React.FC = () => {
       activeTab={activeTab}
       onTabChange={setActiveTab}
       onLogout={() => setCurrentUser(null)}
-      stores={MOCK_STORES}
+      stores={activeStores}
       currentStoreId={currentStoreId}
       onStoreChange={setCurrentStoreId}
       onUserStoreChange={handleUpdateUserHomeStore}
@@ -435,6 +521,7 @@ const App: React.FC = () => {
       toastSales={toastSales}
       toastClockedIn={toastClockedIn}
       salesComparison={salesComparison}
+      org={currentOrg}
     >
       <div className="animate-in fade-in duration-500">
         {activeTab === 'training' && (
@@ -502,6 +589,8 @@ const App: React.FC = () => {
             onReview={handleReview}
             onOverrideAIFlag={handleOverrideAIFlag}
             onResetSubmission={handleResetSubmission}
+            org={currentOrg}
+            onSaveOrg={handleSaveOrg}
             onPhotoComment={async (submissionId, taskId, comment) => {
               const submission = submissions.find(s => s.id === submissionId);
               if (!submission) return;
@@ -550,7 +639,7 @@ const App: React.FC = () => {
             }}
             onUpdateRecipes={handleUpdateRecipes}
             currentStoreId={currentStoreId}
-            stores={MOCK_STORES}
+            stores={activeStores}
             onUserUpdated={() => performCloudSync(true)}
             onToastSalesUpdate={setToastSales}
             onToastClockedInUpdate={setToastClockedIn}

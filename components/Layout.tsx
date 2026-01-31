@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { User, UserRole, Store, ManualSection, Recipe, ToastSalesData, ToastTimeEntry } from '../types';
+import { User, UserRole, Store, ManualSection, Recipe, ToastSalesData, ToastTimeEntry, Organization } from '../types';
 import { Coffee, ClipboardCheck, GraduationCap, Users, LogOut, Menu, X, MapPin, ChevronDown, BookOpen, Cloud, CloudOff, Activity, Download, Share, Smartphone, Brain, Send, Sparkles, ChevronRight, Settings, DollarSign, TrendingUp, TrendingDown, UserCheck, Clock, LayoutDashboard } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
 
@@ -30,14 +30,19 @@ interface LayoutProps {
     ordersDiff: number;
     ordersPercent: number;
   } | null;
+  org?: Organization | null;
 }
 
 const Layout: React.FC<LayoutProps> = ({
   user, children, activeTab, onTabChange, onLogout,
   stores, currentStoreId, onStoreChange, onUserStoreChange, isSyncing = false,
   showInstallBanner = false, onInstall, onDismissInstall, canNativeInstall = false,
-  manual, recipes, version, toastSales, toastClockedIn = [], salesComparison = null
+  manual, recipes, version, toastSales, toastClockedIn = [], salesComparison = null,
+  org
 }) => {
+  const orgName = org?.name || 'BOUNDARIES';
+  const primaryColor = org?.primaryColor || '#001F3F';
+  const orgLogo = org?.logo;
   const [isProfileOpen, setIsProfileOpen] = React.useState(false);
   const [showSettings, setShowSettings] = useState(false);
   
@@ -135,15 +140,21 @@ User Question: ${userMsg}`,
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-[#FAFAFA]">
       {/* Sidebar - Desktop */}
-      <aside className="hidden md:flex flex-col w-72 bg-[#001F3F] text-white fixed h-full shadow-lg z-30">
+      <aside className="hidden md:flex flex-col w-72 text-white fixed h-full shadow-lg z-30" style={{ backgroundColor: primaryColor }}>
         <div className="p-4 border-b border-white/10">
           <div className="flex items-center gap-3 mb-4">
-            <div className="bg-white p-2 rounded-xl shadow-lg">
-              <Coffee className="text-[#001F3F] w-5 h-5" />
-            </div>
+            {orgLogo ? (
+              <div className="bg-white p-2 rounded-xl shadow-lg">
+                <img src={orgLogo} alt={orgName} className="w-5 h-5 object-contain" />
+              </div>
+            ) : (
+              <div className="bg-white p-2 rounded-xl shadow-lg">
+                <Coffee style={{ color: primaryColor }} className="w-5 h-5" />
+              </div>
+            )}
             <div>
-              <span className="font-extrabold text-lg tracking-tighter block leading-none">BOUNDARIES</span>
-              <span className="text-[9px] font-bold text-blue-300 tracking-[0.2em] uppercase mt-0.5 block">Coffee & Co.</span>
+              <span className="font-extrabold text-lg tracking-tighter block leading-none">{orgName}</span>
+              <span className="text-[9px] font-bold text-blue-300 tracking-[0.2em] uppercase mt-0.5 block">Operations</span>
             </div>
           </div>
 
@@ -263,9 +274,10 @@ User Question: ${userMsg}`,
               onClick={() => onTabChange(item.id)}
               className={`w-full flex items-center gap-2.5 px-4 py-3 rounded-xl transition-all duration-300 group ${
                 activeTab === item.id
-                  ? 'bg-white text-[#001F3F] font-bold shadow-xl shadow-white/10'
+                  ? 'bg-white font-bold shadow-xl shadow-white/10'
                   : 'text-blue-100/60 hover:text-white hover:bg-white/5'
               }`}
+              style={activeTab === item.id ? { color: primaryColor } : undefined}
             >
               <item.icon size={18} strokeWidth={activeTab === item.id ? 2.5 : 2} />
               <span className="text-xs tracking-widest">{item.label}</span>
@@ -339,10 +351,16 @@ User Question: ${userMsg}`,
       <div className="md:hidden glass-effect border-b border-neutral-100 p-2.5 flex flex-col gap-2.5 sticky top-0 z-50 shadow-sm">
         <div className="flex justify-between items-center w-full gap-2">
           <div className="flex items-center gap-2 flex-shrink-0">
-            <div className="bg-[#001F3F] p-1.5 rounded-lg">
-              <Coffee className="text-white w-4 h-4" />
-            </div>
-            <span className="font-black tracking-tighter text-[#001F3F] text-sm uppercase leading-none">Boundaries</span>
+            {orgLogo ? (
+              <div className="p-1.5 rounded-lg" style={{ backgroundColor: primaryColor }}>
+                <img src={orgLogo} alt={orgName} className="w-4 h-4 object-contain" />
+              </div>
+            ) : (
+              <div className="p-1.5 rounded-lg" style={{ backgroundColor: primaryColor }}>
+                <Coffee className="text-white w-4 h-4" />
+              </div>
+            )}
+            <span className="font-black tracking-tighter text-sm uppercase leading-none" style={{ color: primaryColor }}>{orgName}</span>
             <div className={`ml-1 w-1.5 h-1.5 rounded-full ${isSyncing ? 'bg-blue-500 animate-pulse' : 'bg-green-500'}`} />
           </div>
           <div className="flex items-center gap-1.5 flex-shrink min-w-0">
@@ -367,7 +385,8 @@ User Question: ${userMsg}`,
             </div>
             <button
               onClick={() => setIsProfileOpen(!isProfileOpen)}
-              className="w-8 h-8 rounded-full bg-[#001F3F] text-white flex items-center justify-center text-[10px] font-black border-2 border-white shadow-lg active:scale-90 transition-transform flex-shrink-0"
+              className="w-8 h-8 rounded-full text-white flex items-center justify-center text-[10px] font-black border-2 border-white shadow-lg active:scale-90 transition-transform flex-shrink-0"
+              style={{ backgroundColor: primaryColor }}
             >
               {user.name.charAt(0)}
             </button>
@@ -403,21 +422,22 @@ User Question: ${userMsg}`,
 
       {/* Mobile Profile Overlay */}
       {isProfileOpen && (
-        <div className="md:hidden fixed inset-0 bg-[#001F3F]/60 backdrop-blur-md z-[60] p-6 flex flex-col justify-end animate-in fade-in slide-in-from-bottom-10 duration-300">
+        <div className="md:hidden fixed inset-0 backdrop-blur-md z-[60] p-6 flex flex-col justify-end animate-in fade-in slide-in-from-bottom-10 duration-300" style={{ backgroundColor: `${primaryColor}99` }}>
           <div className="bg-white rounded-xl p-6 space-y-6">
             <div className="flex items-center justify-between border-b border-neutral-100 pb-6">
               <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-[1.5rem] bg-[#001F3F] text-white flex items-center justify-center text-xl font-black">
+                <div className="w-16 h-16 rounded-[1.5rem] text-white flex items-center justify-center text-xl font-black" style={{ backgroundColor: primaryColor }}>
                   {user.name.charAt(0)}
                 </div>
                 <div>
-                  <h3 className="text-2xl font-black text-[#001F3F] tracking-tighter uppercase leading-none">{user.name}</h3>
+                  <h3 className="text-2xl font-black tracking-tighter uppercase leading-none" style={{ color: primaryColor }}>{user.name}</h3>
                   <p className="text-sm font-bold text-neutral-400 mt-2 uppercase tracking-widest">{user.role}</p>
                 </div>
               </div>
               <button 
                 onClick={() => setShowSettings(!showSettings)}
-                className={`p-3 rounded-xl transition-all ${showSettings ? 'bg-[#001F3F] text-white' : 'bg-neutral-50 text-neutral-400'}`}
+                className={`p-3 rounded-xl transition-all ${showSettings ? 'text-white' : 'bg-neutral-50 text-neutral-400'}`}
+                style={showSettings ? { backgroundColor: primaryColor } : undefined}
               >
                 <Settings size={20} />
               </button>
@@ -462,7 +482,7 @@ User Question: ${userMsg}`,
       {/* PWA Install Banner (Mobile Only) */}
       {showInstallBanner && (
         <div className="md:hidden fixed bottom-24 left-4 right-4 z-[55] animate-in slide-in-from-bottom-20 duration-500">
-          <div className="bg-[#001F3F] text-white p-6 rounded-xl shadow-lg border border-white/10 relative overflow-hidden">
+          <div className="text-white p-6 rounded-xl shadow-lg border border-white/10 relative overflow-hidden" style={{ backgroundColor: primaryColor }}>
             <div className="absolute top-0 right-0 w-32 h-32 bg-blue-400/10 rounded-full blur-2xl -mr-16 -mt-16" />
             
             <button 
@@ -474,7 +494,7 @@ User Question: ${userMsg}`,
 
             <div className="flex items-center gap-4 mb-4">
               <div className="bg-white p-2 rounded-xl">
-                <Coffee className="text-[#001F3F] w-5 h-5" />
+                <Coffee style={{ color: primaryColor }} className="w-5 h-5" />
               </div>
               <div>
                 <h4 className="font-black text-xs uppercase tracking-widest leading-none">Install App</h4>
@@ -523,7 +543,8 @@ User Question: ${userMsg}`,
       {/* Mobile Floating Action Button for Chat */}
       <button
         onClick={() => setChatOpen(true)}
-        className="md:hidden fixed bottom-16 right-3 w-12 h-12 bg-[#001F3F] text-white rounded-full shadow-lg flex items-center justify-center z-40 active:scale-90 transition-transform border border-white/10"
+        className="md:hidden fixed bottom-16 right-3 w-12 h-12 text-white rounded-full shadow-lg flex items-center justify-center z-40 active:scale-90 transition-transform border border-white/10"
+        style={{ backgroundColor: primaryColor }}
       >
         <Brain size={20} />
       </button>
@@ -537,8 +558,9 @@ User Question: ${userMsg}`,
               key={item.id}
               onClick={() => onTabChange(item.id)}
               className={`flex flex-col items-center gap-1 transition-all relative flex-1 max-w-[80px] ${
-                isActive ? 'text-[#001F3F]' : 'text-neutral-600'
+                isActive ? '' : 'text-neutral-600'
               }`}
+              style={isActive ? { color: primaryColor } : undefined}
             >
               <div className={`p-2 rounded-xl transition-all duration-300 ${isActive ? 'bg-blue-50' : 'bg-transparent'}`}>
                 <item.icon size={22} strokeWidth={isActive ? 2.5 : 2} />
@@ -546,7 +568,7 @@ User Question: ${userMsg}`,
               <span className={`text-[7px] font-black uppercase tracking-tight leading-tight text-center ${isActive ? 'opacity-100' : 'opacity-70'}`}>
                 {item.label}
               </span>
-              {isActive && <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-[#001F3F] rounded-full" />}
+              {isActive && <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full" style={{ backgroundColor: primaryColor }} />}
             </button>
           );
         })}
@@ -554,9 +576,9 @@ User Question: ${userMsg}`,
 
       {/* Barista Brain Chat Modal */}
       {chatOpen && (
-        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-3 sm:p-6 bg-[#001F3F]/60 backdrop-blur-md animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-3 sm:p-6 backdrop-blur-md animate-in fade-in duration-300" style={{ backgroundColor: `${primaryColor}99` }}>
           <div className="bg-white w-full max-w-xl rounded-xl shadow-lg overflow-hidden flex flex-col h-[80vh] sm:h-[600px] border border-white/20">
-            <header className="p-6 bg-[#001F3F] text-white flex items-center justify-between">
+            <header className="p-6 text-white flex items-center justify-between" style={{ backgroundColor: primaryColor }}>
               <div className="flex items-center gap-4">
                 <Brain size={24} className="text-blue-300" />
                 <div>
