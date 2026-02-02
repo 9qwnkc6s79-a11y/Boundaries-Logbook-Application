@@ -180,6 +180,13 @@ export interface ToastLaborEntry {
   shifts: number;
 }
 
+export interface ToastEmployeeMetric {
+  employeeGuid: string;
+  orderCount: number;
+  avgTicket: number;
+  avgTurnTimeMinutes: number | null;
+}
+
 export interface ToastSalesData {
   startDate: string;
   endDate: string;
@@ -189,5 +196,6 @@ export interface ToastSalesData {
   totalTips: number;
   paymentMethods: Record<string, number>;
   hourlySales: Record<number, number>;
+  employeeMetrics?: ToastEmployeeMetric[];
   lastUpdated: string;
 }

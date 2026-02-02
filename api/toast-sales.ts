@@ -139,6 +139,41 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       hourlySales[hour] = (hourlySales[hour] || 0) + checks.reduce((sum: number, c: any) => sum + (c.amount || 0), 0);
     });
 
+    // Per-employee (server) metrics for turn time & avg ticket
+    const serverMetrics: Record<string, { orders: number; totalAmount: number; totalTurnTimeMs: number; turnTimeCount: number }> = {};
+
+    allOrders.forEach(order => {
+      const serverGuid = order.server?.guid;
+      if (!serverGuid) return;
+
+      if (!serverMetrics[serverGuid]) {
+        serverMetrics[serverGuid] = { orders: 0, totalAmount: 0, totalTurnTimeMs: 0, turnTimeCount: 0 };
+      }
+
+      const m = serverMetrics[serverGuid];
+      m.orders++;
+
+      const checks = order.checks || [];
+      m.totalAmount += checks.reduce((sum: number, c: any) => sum + (c.amount || 0), 0);
+
+      if (order.openedDate && order.closedDate) {
+        const turnTimeMs = new Date(order.closedDate).getTime() - new Date(order.openedDate).getTime();
+        const turnTimeMinutes = turnTimeMs / 60000;
+        // Only count reasonable turn times (under 30 min for a coffee shop)
+        if (turnTimeMinutes > 0 && turnTimeMinutes < 30) {
+          m.totalTurnTimeMs += turnTimeMs;
+          m.turnTimeCount++;
+        }
+      }
+    });
+
+    const employeeMetrics = Object.entries(serverMetrics).map(([guid, m]) => ({
+      employeeGuid: guid,
+      orderCount: m.orders,
+      avgTicket: m.orders > 0 ? Math.round((m.totalAmount / m.orders) * 100) / 100 : 0,
+      avgTurnTimeMinutes: m.turnTimeCount > 0 ? Math.round((m.totalTurnTimeMs / m.turnTimeCount / 60000) * 10) / 10 : null,
+    }));
+
     const salesData = {
       location: locationKey,
       startDate: startDateStr,
@@ -153,6 +188,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       totalTips: Math.round(totalTips * 100) / 100,
       paymentMethods,
       hourlySales,
+      employeeMetrics,
       lastUpdated: new Date().toISOString(),
     };
 

@@ -445,8 +445,8 @@ User Question: ${userMsg}`,
       )}
 
       {/* Main Content */}
-      <main className="flex-1 md:ml-72 p-4 sm:p-6 md:p-12 overflow-x-hidden transition-all">
-        <div className="max-w-6xl mx-auto pb-28 md:pb-0">
+      <main className="flex-1 md:ml-72 p-4 pt-5 sm:p-6 md:p-12 overflow-x-hidden transition-all">
+        <div className="max-w-6xl mx-auto pb-20 md:pb-0">
           {children}
         </div>
       </main>

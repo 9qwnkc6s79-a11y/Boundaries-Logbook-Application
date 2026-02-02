@@ -335,6 +335,71 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
     return allPhotos.filter(p => p.aiFlagged && !p.managerOverride).slice(0, 5);
   }, [allPhotos]);
 
+  // Map Toast employee metrics to app staff by matching names
+  const enrichedPerformanceData = useMemo(() => {
+    const enriched = performanceData.map(p => ({
+      ...p,
+      avgTicket: null as number | null,
+      turnTime: null as number | null,
+      shiftsLed: 0,
+    }));
+
+    if (!toastSales?.employeeMetrics || toastLabor.length === 0) return enriched;
+
+    // Build GUID -> name map from labor data
+    const guidToName = new Map<string, string>();
+    toastLabor.forEach(entry => {
+      guidToName.set(entry.employeeGuid, entry.employeeName);
+    });
+    toastClockedIn.forEach(entry => {
+      guidToName.set(entry.employeeGuid, entry.employeeName);
+    });
+
+    // Build name -> Toast metrics map
+    const nameToMetrics = new Map<string, { avgTicket: number; turnTime: number | null; orderCount: number }>();
+    (toastSales.employeeMetrics || []).forEach(metric => {
+      const name = guidToName.get(metric.employeeGuid);
+      if (name) {
+        nameToMetrics.set(name.toLowerCase().trim(), {
+          avgTicket: metric.avgTicket,
+          turnTime: metric.avgTurnTimeMinutes,
+          orderCount: metric.orderCount,
+        });
+      }
+    });
+
+    // Count leadership shifts from labor data
+    const leadershipKeywords = ['team leader', 'shift lead', 'lead', 'manager'];
+    const shiftsLedMap = new Map<string, number>();
+    toastLabor.forEach(entry => {
+      if (leadershipKeywords.some(k => entry.jobName.toLowerCase().includes(k))) {
+        const key = entry.employeeName.toLowerCase().trim();
+        shiftsLedMap.set(key, (shiftsLedMap.get(key) || 0) + entry.shifts);
+      }
+    });
+
+    return enriched.map(p => {
+      const nameKey = p.name.toLowerCase().trim();
+      const firstName = nameKey.split(' ')[0];
+
+      // Try exact match, then first-name match
+      const toastData = nameToMetrics.get(nameKey)
+        || Array.from(nameToMetrics.entries()).find(([key]) => key.startsWith(firstName))?.[1]
+        || null;
+
+      const shifts = shiftsLedMap.get(nameKey)
+        || Array.from(shiftsLedMap.entries()).find(([key]) => key.startsWith(firstName))?.[1]
+        || 0;
+
+      return {
+        ...p,
+        avgTicket: toastData?.avgTicket ?? null,
+        turnTime: toastData?.turnTime ?? null,
+        shiftsLed: shifts,
+      };
+    });
+  }, [performanceData, toastSales, toastLabor, toastClockedIn]);
+
   const handleUpdateTemplateLocal = (templateId: string, updates: Partial<ChecklistTemplate>) => {
     setIsDirty(true);
     setLocalTemplates(prev => prev.map(t => t.id === templateId ? { ...t, ...updates } : t));
@@ -464,7 +529,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
   }, [currentStoreId]); // Re-fetch when campus changes
 
   return (
-    <div className="space-y-6 sm:space-y-8 pb-20">
+    <div className="space-y-6 sm:space-y-8">
       {fullscreenPhoto && (
         <div className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-xl flex flex-col items-center justify-center p-6 sm:p-12 animate-in fade-in duration-300" onClick={() => setFullscreenPhoto(null)}>
           <button className="absolute top-8 right-8 text-white p-3 hover:bg-white/10 rounded-full"><X size={32} /></button>
@@ -1120,18 +1185,51 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
              </div>
 
              <div className="bg-white p-8 rounded-[2.5rem] border border-neutral-100 shadow-sm">
-                <h3 className="text-xs font-black text-neutral-400 uppercase tracking-widest mb-8 px-2">Top Performer Leaderboard</h3>
+                <div className="flex items-center justify-between mb-8 px-2">
+                  <div className="flex items-center gap-3">
+                    <Award size={20} className="text-amber-500" />
+                    <h3 className="text-lg font-black text-[#001F3F] uppercase tracking-tight">Team Leader Leaderboard</h3>
+                  </div>
+                  <span className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">Last 7 Days</span>
+                </div>
                 <div className="space-y-6">
-                  {performanceData.sort((a,b) => (b.score || 0) - (a.score || 0)).map((member, idx) => (
-                    <div key={member.id} className="flex items-center justify-between gap-4 p-4 hover:bg-neutral-50 rounded-2xl transition-colors group">
-                       <div className="flex items-center gap-4">
-                          <span className="text-[10px] font-black text-neutral-300 w-4">{idx + 1}</span>
-                          <div className="w-10 h-10 rounded-xl bg-[#001F3F] text-white flex items-center justify-center font-black text-xs">{member.name?.charAt(0)}</div>
-                          <div><p className="font-black text-xs text-[#001F3F] uppercase tracking-tight">{member.name}</p><p className="text-[8px] font-bold text-neutral-400 uppercase tracking-widest">{member.completionRate} Total Tasks</p></div>
+                  {enrichedPerformanceData.sort((a,b) => (b.score || 0) - (a.score || 0)).map((member, idx) => (
+                    <div key={member.id} className={`p-6 rounded-3xl border transition-colors ${idx === 0 ? 'border-amber-200 bg-amber-50/30' : 'border-neutral-100 bg-neutral-50/30'}`}>
+                       <div className="flex items-center gap-4 mb-5">
+                          <div className={`w-11 h-11 rounded-xl flex items-center justify-center font-black text-sm text-white ${idx === 0 ? 'bg-amber-500' : idx === 1 ? 'bg-neutral-400' : 'bg-neutral-300'}`}>#{idx + 1}</div>
+                          <div>
+                            <p className="font-black text-sm text-[#001F3F] uppercase tracking-tight">{member.name}</p>
+                            <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">{member.shiftsLed > 0 ? `${member.shiftsLed} shift${member.shiftsLed !== 1 ? 's' : ''} led` : `${member.completionRate} tasks`}</p>
+                          </div>
                        </div>
-                       <div className="flex items-center gap-4">
-                          <div className="text-right"><p className="text-lg font-black text-[#001F3F]">{member.score}%</p><p className="text-[7px] font-black text-neutral-400 uppercase">Audit Score</p></div>
-                          {idx === 0 && <Award size={20} className="text-amber-500 fill-amber-500/10" />}
+                       <div className="grid grid-cols-5 gap-3">
+                          <div className="text-center">
+                            <p className="text-[10px] font-black text-neutral-400 uppercase tracking-widest mb-1">Timeliness</p>
+                            <p className={`text-sm font-black ${(member.score || 0) >= 50 ? 'text-green-600' : 'text-red-500'}`}>
+                              {Math.round(((member.submissionsCount > 0 ? performanceData.find(p => p.id === member.id)?.score || 0 : 0) * 0.4))}
+                              <span className="text-neutral-300">/40</span>
+                            </p>
+                          </div>
+                          <div className="text-center">
+                            <p className="text-[10px] font-black text-neutral-400 uppercase tracking-widest mb-1">Turn Time</p>
+                            <p className={`text-sm font-black ${member.turnTime !== null ? 'text-[#001F3F]' : 'text-neutral-300'}`}>
+                              {member.turnTime !== null ? `${member.turnTime}m` : 'N/A'}
+                            </p>
+                          </div>
+                          <div className="text-center">
+                            <p className="text-[10px] font-black text-neutral-400 uppercase tracking-widest mb-1">Avg Ticket</p>
+                            <p className={`text-sm font-black ${member.avgTicket !== null ? 'text-[#001F3F]' : 'text-neutral-300'}`}>
+                              {member.avgTicket !== null ? `$${member.avgTicket.toFixed(2)}` : 'N/A'}
+                            </p>
+                          </div>
+                          <div className="text-center">
+                            <p className="text-[10px] font-black text-neutral-400 uppercase tracking-widest mb-1">Reviews</p>
+                            <p className="text-sm font-black text-neutral-300">&mdash;</p>
+                          </div>
+                          <div className="text-center">
+                            <p className="text-[10px] font-black text-neutral-400 uppercase tracking-widest mb-1">Score</p>
+                            <p className={`text-lg font-black ${(member.score || 0) >= 50 ? 'text-green-600' : 'text-red-500'}`}>{member.score}</p>
+                          </div>
                        </div>
                     </div>
                   ))}
