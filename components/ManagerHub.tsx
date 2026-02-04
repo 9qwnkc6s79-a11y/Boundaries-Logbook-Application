@@ -621,26 +621,32 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
     }
   };
 
-  // Fetch Toast data on mount and when campus changes
+  // Fetch Toast data on mount, when campus changes, and refresh every 5 minutes
   useEffect(() => {
-    const location = currentStoreId === 'store-prosper' ? 'prosper' : 'littleelm';
-    console.log(`[Toast] Store changed to: ${currentStoreId} (${location}), refreshing`);
+    console.log(`[Toast] Store changed to: ${currentStoreId}, forcing refresh and clearing all caches`);
 
-    // Only invalidate the *current* location's cache — keep the other store's
-    // cache intact so switching back is instant.
-    localStorage.removeItem(`toast_data_cache_${location}`);
-    localStorage.removeItem(`toast_data_cache_time_${location}`);
+    // Clear ALL Toast cache keys (both locations) when store changes
+    localStorage.removeItem('toast_data_cache_littleelm');
+    localStorage.removeItem('toast_data_cache_time_littleelm');
+    localStorage.removeItem('toast_data_cache_prosper');
+    localStorage.removeItem('toast_data_cache_time_prosper');
+    localStorage.removeItem('toast_lastweek_cache_littleelm');
+    localStorage.removeItem('toast_lastweek_cache_time_littleelm');
+    localStorage.removeItem('toast_lastweek_cache_prosper');
+    localStorage.removeItem('toast_lastweek_cache_time_prosper');
 
+    // Force refresh when store changes to clear cache and fetch new data
     fetchToastData(true);
-    fetchCashData();
-    loadDeposits();
+    fetchCashData(); // Also fetch cash entry data
+    loadDeposits(); // Load cash deposits from Firebase
 
+    // Set up interval for automatic refreshes (without forcing) - 2 minutes for snappy updates
     const interval = setInterval(() => {
       fetchToastData(false);
       fetchCashData();
-    }, 2 * 60 * 1000);
+    }, 2 * 60 * 1000); // 2 minutes for faster updates
     return () => clearInterval(interval);
-  }, [currentStoreId]);
+  }, [currentStoreId]); // Re-fetch when campus changes
 
   // Google Reviews: process and attribute new reviews to shift leaders
   const processGoogleReviews = async () => {
@@ -1838,21 +1844,21 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                               <div className="text-[8px] font-black text-neutral-400 uppercase tracking-widest mb-1">Turn Time</div>
                               <div className={`text-sm md:text-base font-black ${
                                 leader.shiftsWithToastData === 0 ? 'text-neutral-300' :
-                                leader.avgTurnTimeMinutes !== undefined && leader.avgTurnTimeMinutes < 3.5 ? 'text-green-600' :
-                                leader.avgTurnTimeMinutes !== undefined && leader.avgTurnTimeMinutes < 4.5 ? 'text-amber-600' : 'text-red-600'
+                                leader.avgTurnTimeScore >= 35 ? 'text-green-600' :
+                                leader.avgTurnTimeScore >= 20 ? 'text-amber-600' : 'text-red-600'
                               }`}>
-                                {leader.avgTurnTimeMinutes !== undefined ? `${leader.avgTurnTimeMinutes.toFixed(1)} min` : 'N/A'}
+                                {leader.shiftsWithToastData > 0 ? `${leader.avgTurnTimeScore.toFixed(0)}/40` : 'N/A'}
                               </div>
                             </div>
                             <div className="text-center flex-1 md:flex-initial md:text-right">
                               <div className="text-[8px] font-black text-neutral-400 uppercase tracking-widest mb-1">Avg Ticket</div>
                               <div className={`text-sm md:text-base font-black ${
                                 leader.shiftsWithToastData === 0 ? 'text-neutral-300' :
-                                leader.avgTicketDollars !== undefined && leader.avgTicketDollars >= 10 ? 'text-green-600' :
-                                leader.avgTicketDollars !== undefined && leader.avgTicketDollars >= 8 ? 'text-blue-600' :
-                                leader.avgTicketDollars !== undefined && leader.avgTicketDollars >= 6 ? 'text-amber-600' : 'text-neutral-400'
+                                leader.avgTicketScoreValue >= 20 ? 'text-green-600' :
+                                leader.avgTicketScoreValue >= 15 ? 'text-blue-600' :
+                                leader.avgTicketScoreValue >= 5 ? 'text-amber-600' : 'text-neutral-400'
                               }`}>
-                                {leader.avgTicketDollars !== undefined ? `$${leader.avgTicketDollars.toFixed(2)}` : 'N/A'}
+                                {leader.shiftsWithToastData > 0 ? `${leader.avgTicketScoreValue.toFixed(0)}/25` : 'N/A'}
                               </div>
                             </div>
                             <div className="text-center flex-1 md:flex-initial md:text-right">

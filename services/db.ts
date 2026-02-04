@@ -23,22 +23,15 @@ if (typeof firebase !== 'undefined') {
     console.log('[Firebase] Initialized app:', firebaseConfig.projectId);
   }
   firestore = firebase.firestore();
-
-  // Initialize Storage with error handling
-  try {
-    storage = firebase.storage();
-    console.log('[Firebase] Firestore and Storage connected');
-  } catch (error) {
-    console.warn('[Firebase] Storage initialization failed - photo uploads will not work:', error);
-    console.log('[Firebase] Firestore connected (Storage unavailable)');
-  }
+  storage = firebase.storage();
+  console.log('[Firebase] Firestore and Storage connected');
 } else {
   console.error('[Firebase] Firebase SDK not loaded! Check that CDN scripts are in index.html');
 }
 
 // Increment this version whenever curriculum structure or lesson properties change
 // This forces Firebase to update cached curriculum data
-const CURRICULUM_VERSION = 6;
+const CURRICULUM_VERSION = 5;
 
 const DOC_KEYS = {
   USERS: 'users',
@@ -81,8 +74,7 @@ class CloudAPI {
 
   private getCollectionPath(): string {
     if (this.currentOrgId) {
-      // Firestore doc refs need even segments: organizations/{orgId}/data/{docId} = 4 segments
-      return `organizations/${this.currentOrgId}/data`;
+      return `organizations/${this.currentOrgId}`;
     }
     return 'appData';
   }
@@ -120,22 +112,6 @@ class CloudAPI {
       return result;
     } catch (error) {
       console.error(`[Firestore] remoteGet(${collectionPath}/${docId}): Error:`, error);
-      // On error, also try appData fallback (handles migration edge cases)
-      if (this.currentOrgId) {
-        try {
-          console.log(`[Firestore] remoteGet(${docId}): Error reading org path, trying appData fallback`);
-          const fallbackRef = firestore.collection('appData').doc(docId);
-          const fallbackSnap = await fallbackRef.get();
-          if (fallbackSnap.exists) {
-            const fallbackData = fallbackSnap.data();
-            const result = fallbackData && fallbackData.data ? fallbackData.data : defaultValue;
-            console.log(`[Firestore] remoteGet(${docId}): Retrieved from appData fallback after error`);
-            return result;
-          }
-        } catch (fallbackError) {
-          console.error(`[Firestore] remoteGet(${docId}): appData fallback also failed:`, fallbackError);
-        }
-      }
       return defaultValue;
     }
   }
@@ -246,17 +222,16 @@ class CloudAPI {
     console.log(`[Firestore] migrateToOrg(${orgId}): Starting migration from appData...`);
 
     try {
-      // Copy each document from appData to organizations/{orgId}/data/
-      // Firestore requires even-numbered path segments for document refs
+      // Copy each document from appData to organizations/{orgId}/
       const docKeys = Object.values(DOC_KEYS);
       for (const docKey of docKeys) {
         const sourceRef = firestore.collection('appData').doc(docKey);
         const snap = await sourceRef.get();
         if (snap.exists) {
           const data = snap.data();
-          const targetRef = firestore.doc(`organizations/${orgId}/data/${docKey}`);
+          const targetRef = firestore.doc(`organizations/${orgId}/${docKey}`);
           await targetRef.set(data);
-          console.log(`[Firestore] migrateToOrg: Copied appData/${docKey} → organizations/${orgId}/data/${docKey}`);
+          console.log(`[Firestore] migrateToOrg: Copied appData/${docKey} → organizations/${orgId}/${docKey}`);
         }
       }
 
@@ -268,7 +243,7 @@ class CloudAPI {
         if (usersData?.data && Array.isArray(usersData.data)) {
           const updatedUsers = usersData.data.map((u: User) => ({ ...u, orgId }));
           // Save to both locations
-          await firestore.doc(`organizations/${orgId}/data/users`).set({
+          await firestore.doc(`organizations/${orgId}/users`).set({
             data: updatedUsers,
             lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
           });
@@ -338,40 +313,11 @@ class CloudAPI {
   }
 
   async fetchUsers(defaults: User[]): Promise<User[]> {
-    console.log('[Firestore] fetchUsers: Loading users...');
-    console.log('[Firestore] fetchUsers: Default users:', defaults.length);
     const persistedUsers = await this.remoteGet(DOC_KEYS.USERS, [] as User[]);
-    console.log('[Firestore] fetchUsers: Persisted users from cloud:', persistedUsers.length);
-
-    // Build a map of default users by email for easy lookup
-    const defaultsMap = new Map<string, User>();
-    defaults.forEach(def => defaultsMap.set(def.email.toLowerCase(), def));
-
-    // Merge: start with all persisted users
     const userMap = new Map<string, User>();
+    defaults.forEach(def => userMap.set(def.email.toLowerCase(), def));
     persistedUsers.forEach(u => userMap.set(u.email.toLowerCase(), u));
-
-    // Add any missing default users and detect if we need to update
-    let needsUpdate = false;
-    defaults.forEach(def => {
-      const email = def.email.toLowerCase();
-      if (!userMap.has(email)) {
-        console.log('[Firestore] fetchUsers: Adding missing default user:', def.email);
-        userMap.set(email, def);
-        needsUpdate = true;
-      }
-    });
-
-    const result = Array.from(userMap.values());
-
-    // Save back to database if we added any missing defaults
-    if (needsUpdate) {
-      console.log('[Firestore] fetchUsers: Saving updated user list to database');
-      await this.remoteSet(DOC_KEYS.USERS, result);
-    }
-
-    console.log('[Firestore] fetchUsers: Final merged users:', result.length, result.map(u => u.email));
-    return result;
+    return Array.from(userMap.values());
   }
 
   async syncUser(user: User): Promise<User[]> {
