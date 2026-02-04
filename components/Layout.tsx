@@ -57,7 +57,7 @@ const Layout: React.FC<LayoutProps> = ({
 
   const navItems = [
     { id: 'manager', label: 'MANAGER', icon: Users, roles: [UserRole.MANAGER, UserRole.ADMIN] },
-    { id: 'dashboard', label: 'DASHBOARD', icon: LayoutDashboard, roles: [UserRole.TRAINEE, UserRole.TRAINER] },
+    { id: 'dashboard', label: 'DASHBOARD', icon: LayoutDashboard, roles: [UserRole.TRAINEE, UserRole.TRAINER, UserRole.MANAGER, UserRole.ADMIN] },
     { id: 'training', label: 'ACADEMY', icon: GraduationCap, roles: [UserRole.TRAINEE, UserRole.TRAINER, UserRole.MANAGER, UserRole.ADMIN] },
     { id: 'ops', label: 'LOGBOOK', icon: ClipboardCheck, roles: [UserRole.TRAINEE, UserRole.TRAINER, UserRole.MANAGER, UserRole.ADMIN] },
     { id: 'recipes', label: 'RECIPES', icon: BookOpen, roles: [UserRole.TRAINEE, UserRole.TRAINER, UserRole.MANAGER, UserRole.ADMIN] },
@@ -535,7 +535,7 @@ User Question: ${userMsg}`,
 
       {/* Main Content */}
       <main className="flex-1 md:ml-72 p-4 sm:p-6 md:p-12 overflow-x-hidden transition-all">
-        <div className="max-w-6xl mx-auto pb-28 md:pb-0">
+        <div className="max-w-6xl mx-auto pb-36 md:pb-0">
           {children}
         </div>
       </main>

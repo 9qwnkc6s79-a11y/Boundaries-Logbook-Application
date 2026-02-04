@@ -16,6 +16,16 @@ import { hashPassword, verifyPassword, isHashed } from './utils/passwordUtils';
 
 const APP_VERSION = '3.6.0';
 
+// Lightweight hash for detecting data changes without deep-equal
+function fingerprint(data: unknown): string {
+  const str = JSON.stringify(data);
+  let h = 0;
+  for (let i = 0; i < str.length; i++) {
+    h = ((h << 5) - h + str.charCodeAt(i)) | 0;
+  }
+  return String(h);
+}
+
 const DEFAULT_ORG_ID = 'org-boundaries';
 
 // Default Boundaries Coffee organization
@@ -70,6 +80,9 @@ const App: React.FC = () => {
   // Track the last time we updated a submission locally to avoid the "sync overwrite flicker"
   const lastSubmissionUpdateRef = useRef<number>(0);
 
+  // Fingerprints of last-applied data so we can skip no-op state updates
+  const fingerprintsRef = useRef<Record<string, string>>({});
+
   // Initialize org on first load
   const initOrg = useCallback(async () => {
     // Try to load the Boundaries org
@@ -82,6 +95,16 @@ const App: React.FC = () => {
       // Migrate existing appData to org
       await db.migrateToOrg(DEFAULT_ORG_ID);
       console.log('[App] Default org created and data migrated');
+
+      // Seed the org with default data
+      console.log('[App] Seeding new org with default data...');
+      await db.seedOrgData(DEFAULT_ORG_ID, {
+        curriculum: TRAINING_CURRICULUM,
+        templates: CHECKLIST_TEMPLATES,
+        recipes: BOUNDARIES_RECIPES,
+        manual: BOUNDARIES_MANUAL
+      });
+      console.log('[App] Org seeded successfully');
     }
     db.setOrg(org.id);
     setCurrentOrg(org);
@@ -99,21 +122,34 @@ const App: React.FC = () => {
         manual: BOUNDARIES_MANUAL,
         recipes: BOUNDARIES_RECIPES
       });
-      
-      setAllUsers(data.users);
-      
-      // OPTIMISTIC UI PROTECTION: 
-      // If we recently updated a submission, don't overwrite the state with 
-      // potentially stale data from the server for 7 seconds.
+
+      // Only call state setters when data actually changed — avoids unnecessary
+      // re-renders and downstream useMemo recalculations on every heartbeat.
+      const fps = fingerprintsRef.current;
+
+      const usersHash = fingerprint(data.users);
+      if (fps.users !== usersHash) { fps.users = usersHash; setAllUsers(data.users); }
+
+      // OPTIMISTIC UI PROTECTION: skip stale overwrites for 7 seconds after local edits
       if (Date.now() - lastSubmissionUpdateRef.current > 7000) {
-        setSubmissions(data.submissions || []);
+        const subsHash = fingerprint(data.submissions);
+        if (fps.submissions !== subsHash) { fps.submissions = subsHash; setSubmissions(data.submissions || []); }
       }
-      
-      setProgress(data.progress || []);
-      setTemplates(data.templates || []);
-      setCurriculum(data.curriculum || []);
-      setManual(data.manual || []);
-      setRecipes(data.recipes || []);
+
+      const progHash = fingerprint(data.progress);
+      if (fps.progress !== progHash) { fps.progress = progHash; setProgress(data.progress || []); }
+
+      const tplHash = fingerprint(data.templates);
+      if (fps.templates !== tplHash) { fps.templates = tplHash; setTemplates(data.templates || []); }
+
+      const curHash = fingerprint(data.curriculum);
+      if (fps.curriculum !== curHash) { fps.curriculum = curHash; setCurriculum(data.curriculum || []); }
+
+      const manHash = fingerprint(data.manual);
+      if (fps.manual !== manHash) { fps.manual = manHash; setManual(data.manual || []); }
+
+      const recHash = fingerprint(data.recipes);
+      if (fps.recipes !== recHash) { fps.recipes = recHash; setRecipes(data.recipes || []); }
 
       return data;
     } catch (err) {
@@ -133,12 +169,12 @@ const App: React.FC = () => {
     init();
   }, [performCloudSync, initOrg]);
 
-  // Aggressive sync heartbeat to ensure Manager sees Trainee work near real-time
+  // Sync heartbeat — 30s keeps data fresh without hammering Firestore / causing re-renders
   useEffect(() => {
     if (!currentUser) return;
     const heartbeat = setInterval(() => {
-      performCloudSync(true); 
-    }, 4000); 
+      performCloudSync(true);
+    }, 30000);
     return () => clearInterval(heartbeat);
   }, [currentUser, performCloudSync]);
 
@@ -188,10 +224,13 @@ const App: React.FC = () => {
   }, [currentUser, progress, curriculum]);
 
   const handleLoginAction = async (email: string, pass: string): Promise<User> => {
+    console.log('[App] handleLoginAction: Attempting login for:', email);
     const freshData = await performCloudSync();
     const userList = freshData?.users || allUsers;
-    
+    console.log('[App] handleLoginAction: Available users:', userList.length, userList.map(u => u.email));
+
     const found = userList.find(u => u.email.toLowerCase() === email.toLowerCase().trim());
+    console.log('[App] handleLoginAction: Found user?', !!found);
     if (!found || !found.password) throw new Error("Invalid credentials or account not found.");
 
     const passwordMatch = await verifyPassword(pass, found.password);
@@ -451,7 +490,7 @@ const App: React.FC = () => {
     performCloudSync(true); 
   };
 
-  const handleReview = async (id: string, approved: boolean) => {
+  const handleReview = useCallback(async (id: string, approved: boolean) => {
     const sub = submissions.find(s => s.id === id);
     if (sub) {
       const updated = { ...sub, status: approved ? 'APPROVED' : 'REJECTED' as any };
@@ -459,9 +498,9 @@ const App: React.FC = () => {
       await db.pushSubmission(updated);
       performCloudSync(true);
     }
-  };
+  }, [submissions, performCloudSync]);
 
-  const handleOverrideAIFlag = async (submissionId: string, taskId: string, approve: boolean) => {
+  const handleOverrideAIFlag = useCallback(async (submissionId: string, taskId: string, approve: boolean) => {
     if (!currentUser) return;
     const sub = submissions.find(s => s.id === submissionId);
     if (!sub) return;
@@ -477,7 +516,6 @@ const App: React.FC = () => {
             overrideAt: new Date().toISOString()
           };
         }
-        // Keep flagged - just mark as reviewed (optional: could add reviewedBy field)
         return tr;
       }
       return tr;
@@ -487,42 +525,37 @@ const App: React.FC = () => {
     setSubmissions(prev => prev.map(s => s.id === submissionId ? updated : s));
     await db.pushSubmission(updated);
     performCloudSync(true);
-  };
+  }, [currentUser, submissions, performCloudSync]);
 
-  const handleResetSubmission = async (id: string) => {
-    // Mark interaction to prevent sync overwrites
+  const handleResetSubmission = useCallback(async (id: string) => {
     lastSubmissionUpdateRef.current = Date.now();
-    
-    // Wipe locally
     const nextSubmissions = submissions.filter(s => s.id !== id);
     setSubmissions(nextSubmissions);
-    
-    // Wipe on cloud
     await db.pushFullSubmissionsRegistry(nextSubmissions);
     performCloudSync(true);
-  };
+  }, [submissions, performCloudSync]);
 
-  const handleUpdateTemplate = async (tpl: ChecklistTemplate) => {
+  const handleUpdateTemplate = useCallback(async (tpl: ChecklistTemplate) => {
     const updated = templates.map(t => t.id === tpl.id ? tpl : t);
     setTemplates(updated);
     await db.pushTemplates(updated);
     performCloudSync(true);
-  };
-  
-  const handleUpdateRecipes = async (nextRecipes: Recipe[]) => {
+  }, [templates, performCloudSync]);
+
+  const handleUpdateRecipes = useCallback(async (nextRecipes: Recipe[]) => {
     setRecipes(nextRecipes);
     await db.pushRecipes(nextRecipes);
     performCloudSync(true);
-  };
+  }, [performCloudSync]);
 
-  const handleUpdateUserHomeStore = async (storeId: string) => {
+  const handleUpdateUserHomeStore = useCallback(async (storeId: string) => {
     if (!currentUser) return;
     const updatedUser = { ...currentUser, storeId };
     setCurrentUser(updatedUser);
     setCurrentStoreId(storeId);
     await db.syncUser(updatedUser);
     performCloudSync(true);
-  };
+  }, [currentUser, performCloudSync]);
 
   // Derive stores from org, fallback to MOCK_STORES
   const orgStores = useMemo(() => {
@@ -539,6 +572,64 @@ const App: React.FC = () => {
     }
     return success;
   }, []);
+
+  const handlePhotoComment = useCallback(async (submissionId: string, taskId: string, comment: string) => {
+    const submission = submissions.find(s => s.id === submissionId);
+    if (!submission || !currentUser) return;
+
+    const updatedResults = submission.taskResults.map(tr =>
+      tr.taskId === taskId
+        ? { ...tr, managerPhotoComment: comment, managerPhotoCommentBy: currentUser.id, managerPhotoCommentAt: new Date().toISOString() }
+        : tr
+    );
+    const updatedSubmission = { ...submission, taskResults: updatedResults };
+    setSubmissions(prev => prev.map(s => s.id === submissionId ? updatedSubmission : s));
+    await db.pushSubmission(updatedSubmission);
+    performCloudSync(true);
+  }, [submissions, currentUser, performCloudSync]);
+
+  const handleAddTemplate = useCallback(async (tpl: ChecklistTemplate) => {
+    const next = [...templates, { ...tpl, storeId: currentStoreId }];
+    setTemplates(next);
+    await db.pushTemplates(next);
+    performCloudSync(true);
+  }, [templates, currentStoreId, performCloudSync]);
+
+  const handleDeleteTemplate = useCallback(async (id: string) => {
+    const next = templates.filter(t => t.id !== id);
+    setTemplates(next);
+    await db.pushTemplates(next);
+    performCloudSync(true);
+  }, [templates, performCloudSync]);
+
+  const handleUpdateManual = useCallback(async (next: ManualSection[]) => {
+    setManual(next);
+    await db.pushManual(next);
+    performCloudSync(true);
+  }, [performCloudSync]);
+
+  const handleUpdateCurriculum = useCallback(async (next: TrainingModule[]) => {
+    setCurriculum(next);
+    await db.pushCurriculum(next);
+    performCloudSync(true);
+  }, [performCloudSync]);
+
+  const handleResetLessonProgress = useCallback(async (lessonId: string) => {
+    if (!currentUser) return;
+    console.log(`[App] Resetting progress for lesson ${lessonId} for user ${currentUser.id}`);
+    await db.deleteProgress(currentUser.id, lessonId);
+    const updatedProgress = progress.filter(p => !(p.userId === currentUser.id && p.lessonId === lessonId));
+    setProgress(updatedProgress);
+    performCloudSync(true);
+    console.log(`[App] Progress reset complete`);
+  }, [currentUser, progress, performCloudSync]);
+
+  const handleUserUpdated = useCallback(() => performCloudSync(true), [performCloudSync]);
+
+  const currentUserProgress = useMemo(() => {
+    if (!currentUser) return [];
+    return progress.filter(p => p.userId === currentUser.id);
+  }, [progress, currentUser]);
 
   if (isInitialLoading) {
     return (
@@ -576,10 +667,13 @@ const App: React.FC = () => {
     );
   }
 
-  const storeTemplates = templates.filter(t => t.storeId === currentStoreId);
-  const storeSubmissions = submissions.filter(s => s.storeId === currentStoreId);
-  const storeUsers = allUsers.filter(u => u.storeId === currentStoreId);
-  const storeProgress = progress.filter(p => storeUsers.some(u => u.id === p.userId));
+  const storeTemplates = useMemo(() => templates.filter(t => t.storeId === currentStoreId), [templates, currentStoreId]);
+  const storeSubmissions = useMemo(() => submissions.filter(s => s.storeId === currentStoreId), [submissions, currentStoreId]);
+  const storeUsers = useMemo(() => allUsers.filter(u => u.storeId === currentStoreId), [allUsers, currentStoreId]);
+  const storeProgress = useMemo(() => {
+    const storeUserIds = new Set(storeUsers.map(u => u.id));
+    return progress.filter(p => storeUserIds.has(p.userId));
+  }, [progress, storeUsers]);
   const isManager = currentUser.role === UserRole.MANAGER || currentUser.role === UserRole.ADMIN;
   const activeStores = orgStores;
 
@@ -606,22 +700,11 @@ const App: React.FC = () => {
         {activeTab === 'training' && (
           <TrainingView
             curriculum={curriculum}
-            progress={progress.filter(p => p.userId === currentUser.id)}
+            progress={currentUserProgress}
             onCompleteLesson={handleLessonComplete}
             canEdit={currentUser.email.toLowerCase().endsWith('@boundariescoffee.com')}
-            onUpdateCurriculum={async (next) => {
-              setCurriculum(next);
-              await db.pushCurriculum(next);
-              performCloudSync(true);
-            }}
-            onResetLessonProgress={async (lessonId) => {
-              console.log(`[App] Resetting progress for lesson ${lessonId} for user ${currentUser.id}`);
-              await db.deleteProgress(currentUser.id, lessonId);
-              const updatedProgress = progress.filter(p => !(p.userId === currentUser.id && p.lessonId === lessonId));
-              setProgress(updatedProgress);
-              performCloudSync(true);
-              console.log(`[App] Progress reset complete - lesson should now show interactive elements`);
-            }}
+            onUpdateCurriculum={handleUpdateCurriculum}
+            onResetLessonProgress={handleResetLessonProgress}
           />
         )}
         {activeTab === 'recipes' && (
@@ -638,7 +721,7 @@ const App: React.FC = () => {
             allUsers={allUsers}
             submissions={storeSubmissions}
             templates={storeTemplates}
-            progress={progress.filter(p => p.userId === currentUser.id)}
+            progress={currentUserProgress}
             curriculum={curriculum}
             toastSales={toastSales}
             toastClockedIn={toastClockedIn}
@@ -670,56 +753,15 @@ const App: React.FC = () => {
             onResetSubmission={handleResetSubmission}
             org={currentOrg}
             onSaveOrg={handleSaveOrg}
-            onPhotoComment={async (submissionId, taskId, comment) => {
-              const submission = submissions.find(s => s.id === submissionId);
-              if (!submission) return;
-
-              const updatedResults = submission.taskResults.map(tr =>
-                tr.taskId === taskId
-                  ? {
-                      ...tr,
-                      managerPhotoComment: comment,
-                      managerPhotoCommentBy: currentUser.id,
-                      managerPhotoCommentAt: new Date().toISOString()
-                    }
-                  : tr
-              );
-
-              const updatedSubmission = {
-                ...submission,
-                taskResults: updatedResults
-              };
-
-              const allUpdated = submissions.map(s =>
-                s.id === submissionId ? updatedSubmission : s
-              );
-
-              setSubmissions(allUpdated);
-              await db.pushSubmission(updatedSubmission);
-              performCloudSync(true);
-            }}
+            onPhotoComment={handlePhotoComment}
             onUpdateTemplate={handleUpdateTemplate}
-            onAddTemplate={async (tpl) => {
-              const next = [...templates, { ...tpl, storeId: currentStoreId }];
-              setTemplates(next);
-              await db.pushTemplates(next);
-              performCloudSync(true);
-            }}
-            onDeleteTemplate={async (id) => {
-              const next = templates.filter(t => t.id !== id);
-              setTemplates(next);
-              await db.pushTemplates(next);
-              performCloudSync(true);
-            }}
-            onUpdateManual={async (next) => {
-              setManual(next);
-              await db.pushManual(next);
-              performCloudSync(true);
-            }}
+            onAddTemplate={handleAddTemplate}
+            onDeleteTemplate={handleDeleteTemplate}
+            onUpdateManual={handleUpdateManual}
             onUpdateRecipes={handleUpdateRecipes}
             currentStoreId={currentStoreId}
             stores={activeStores}
-            onUserUpdated={() => performCloudSync(true)}
+            onUserUpdated={handleUserUpdated}
             onToastSalesUpdate={setToastSales}
             onToastClockedInUpdate={setToastClockedIn}
             onSalesComparisonUpdate={setSalesComparison}
