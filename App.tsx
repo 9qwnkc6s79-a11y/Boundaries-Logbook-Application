@@ -569,7 +569,7 @@ const App: React.FC = () => {
         storeId: emp.storeId,
         toastEmployeeGuid: emp.guid,
         active: true,
-        orgId: currentOrgId
+        orgId: currentOrg?.id
       };
 
       newUsers.push(newUser);
@@ -586,7 +586,7 @@ const App: React.FC = () => {
 
     console.log('[App] No new users to sync from Toast');
     return 0;
-  }, [allUsers, currentOrgId]);
+  }, [allUsers, currentOrg?.id]);
 
   if (isInitialLoading) {
     return (
