@@ -58,7 +58,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { startDate, endDate, location } = req.query;
+  const { startDate, endDate, location, maxTimeOfDay } = req.query;
   if (!startDate || !endDate) {
     return res.status(400).json({ error: 'startDate and endDate are required' });
   }
@@ -66,6 +66,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const startDateStr = Array.isArray(startDate) ? startDate[0] : startDate;
   const endDateStr = Array.isArray(endDate) ? endDate[0] : endDate;
   const locationKey = (Array.isArray(location) ? location[0] : location)?.toLowerCase() || 'littleelm';
+
+  // Optional: filter orders by time of day (for fair week-over-week comparisons)
+  // Format: "HH:MM" e.g. "11:45" means only include orders up to 11:45am
+  const maxTimeOfDayStr = Array.isArray(maxTimeOfDay) ? maxTimeOfDay[0] : maxTimeOfDay;
 
   // Get restaurant GUIDs to try for this location
   const restaurantGuids = LOCATIONS[locationKey] || LOCATIONS['littleelm'];
@@ -130,6 +134,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (current < end) await delay(50);
     }
 
+    // Parse max time of day filter if provided
+    let maxHour: number | null = null;
+    let maxMinute: number | null = null;
+    if (maxTimeOfDayStr) {
+      const [h, m] = maxTimeOfDayStr.split(':').map(Number);
+      if (!isNaN(h) && !isNaN(m)) {
+        maxHour = h;
+        maxMinute = m;
+      }
+    }
+
     // Process orders - use 'amount' for NET sales (excludes tax)
     let netSales = 0;
     let totalTax = 0;
@@ -139,6 +154,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const turnTimes: number[] = [];
 
     allOrders.forEach(order => {
+      // Filter by time of day if specified
+      if (maxHour !== null && maxMinute !== null) {
+        const orderDate = new Date(order.openedDate || order.createdDate);
+        const orderHour = orderDate.getHours();
+        const orderMinute = orderDate.getMinutes();
+
+        // Skip orders after the max time of day
+        if (orderHour > maxHour || (orderHour === maxHour && orderMinute > maxMinute)) {
+          return;
+        }
+      }
       const checks = order.checks || [];
       checks.forEach((check: any) => {
         // NET sales = check.amount (excludes tax)

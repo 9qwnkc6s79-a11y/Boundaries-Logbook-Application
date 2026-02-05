@@ -29,13 +29,15 @@ class ToastAPI {
    * @param startDate - ISO date string (YYYY-MM-DD)
    * @param endDate - ISO date string (YYYY-MM-DD)
    * @param location - Campus location (littleelm, prosper)
+   * @param maxTimeOfDay - Optional time filter in HH:MM format (e.g. "14:30" for 2:30 PM)
    */
-  async getSalesData(startDate: string, endDate: string, location?: string): Promise<ToastSalesData> {
+  async getSalesData(startDate: string, endDate: string, location?: string, maxTimeOfDay?: string): Promise<ToastSalesData> {
     try {
       const locationParam = location ? `&location=${location}` : '';
-      console.log(`[Toast API] Fetching sales data: ${startDate} to ${endDate} (${location || 'littleelm'})`);
+      const timeParam = maxTimeOfDay ? `&maxTimeOfDay=${maxTimeOfDay}` : '';
+      console.log(`[Toast API] Fetching sales data: ${startDate} to ${endDate} (${location || 'littleelm'})${maxTimeOfDay ? ` up to ${maxTimeOfDay}` : ''}`);
 
-      const response = await fetch(`/api/toast-sales?startDate=${startDate}&endDate=${endDate}${locationParam}`);
+      const response = await fetch(`/api/toast-sales?startDate=${startDate}&endDate=${endDate}${locationParam}${timeParam}`);
 
       if (!response.ok) {
         const error = await response.json();
@@ -132,28 +134,31 @@ class ToastAPI {
   /**
    * Get today's live sales snapshot
    * @param location - Campus location (littleelm, prosper)
+   * @param maxTimeOfDay - Optional time filter in HH:MM format for fair comparisons
    */
-  async getTodaySales(location?: string): Promise<ToastSalesData> {
+  async getTodaySales(location?: string, maxTimeOfDay?: string): Promise<ToastSalesData> {
     // Use Central Time (America/Chicago) for "today" instead of UTC
     // This ensures we get the current business day's sales, not tomorrow's
     const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Chicago' });
-    return this.getSalesData(today, today, location);
+    return this.getSalesData(today, today, location, maxTimeOfDay);
   }
 
   /**
    * Get sales data from last week (same day of week, same time)
    * @param location - Campus location (littleelm, prosper)
+   * @param maxTimeOfDay - Optional time filter in HH:MM format for fair comparisons
    */
-  async getLastWeekSales(location?: string): Promise<ToastSalesData> {
+  async getLastWeekSales(location?: string, maxTimeOfDay?: string): Promise<ToastSalesData> {
     // Get current time in Central Time
     const now = new Date();
     const lastWeek = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const lastWeekDate = lastWeek.toLocaleDateString('en-CA', { timeZone: 'America/Chicago' });
-    return this.getSalesData(lastWeekDate, lastWeekDate, location);
+    return this.getSalesData(lastWeekDate, lastWeekDate, location, maxTimeOfDay);
   }
 
   /**
    * Get today's sales with comparison to last week
+   * Uses current time of day for fair comparison (today at 11:45 AM vs last week same day at 11:45 AM)
    * @param location - Campus location (littleelm, prosper)
    */
   async getTodaySalesWithComparison(location?: string): Promise<{
@@ -167,9 +172,16 @@ class ToastAPI {
     } | null;
   }> {
     try {
+      // Get current time in Central Time for fair comparison
+      const now = new Date();
+      const centralTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/Chicago' }));
+      const currentTimeOfDay = `${centralTime.getHours().toString().padStart(2, '0')}:${centralTime.getMinutes().toString().padStart(2, '0')}`;
+
+      console.log(`[Toast API] Fetching week-over-week comparison up to ${currentTimeOfDay} Central Time`);
+
       const [today, lastWeek] = await Promise.all([
-        this.getTodaySales(location),
-        this.getLastWeekSales(location).catch(err => {
+        this.getTodaySales(location, currentTimeOfDay),
+        this.getLastWeekSales(location, currentTimeOfDay).catch(err => {
           console.warn('[Toast API] Failed to fetch last week data:', err);
           return null;
         })
