@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { User, UserRole, UserProgress, ChecklistSubmission, ChecklistTemplate, Store, TrainingModule, ManualSection, Recipe, ToastSalesData, ToastTimeEntry, Organization } from './types';
+import { User, UserRole, UserProgress, ChecklistSubmission, ChecklistTemplate, Store, TrainingModule, ManualSection, Recipe, ToastSalesData, ToastTimeEntry, Organization, ToastSyncEmployee } from './types';
 import { TRAINING_CURRICULUM, CHECKLIST_TEMPLATES, MOCK_USERS, MOCK_STORES, BOUNDARIES_MANUAL, BOUNDARIES_RECIPES } from './data/mockData';
 import { db } from './services/db';
 import Layout from './components/Layout';
@@ -540,6 +540,54 @@ const App: React.FC = () => {
     return success;
   }, []);
 
+  // Sync Toast employees as app users
+  const handleSyncToastEmployees = useCallback(async (toastEmployees: ToastSyncEmployee[]) => {
+    console.log('[App] Syncing Toast employees as users...', toastEmployees.length);
+
+    const newUsers: User[] = [];
+
+    toastEmployees.forEach(emp => {
+      // Skip deleted employees
+      if (emp.deleted) return;
+
+      // Check if user already exists (by Toast GUID or email)
+      const existingByGuid = allUsers.find(u => u.toastEmployeeGuid === emp.guid);
+      const existingByEmail = emp.email ? allUsers.find(u => u.email.toLowerCase() === emp.email.toLowerCase()) : null;
+
+      if (existingByGuid || existingByEmail) {
+        console.log(`[App] User already exists for ${emp.name} (${emp.guid})`);
+        return;
+      }
+
+      // Create new user account
+      const newUser: User = {
+        id: `toast-${emp.guid}`,
+        name: emp.name,
+        email: emp.email || `${emp.firstName.toLowerCase()}.${emp.lastName.toLowerCase()}@boundariescoffee.com`,
+        password: 'temp123', // They'll need to change this on first login
+        role: UserRole.TRAINEE, // Default to trainee
+        storeId: emp.storeId,
+        toastEmployeeGuid: emp.guid,
+        active: true,
+        orgId: currentOrgId
+      };
+
+      newUsers.push(newUser);
+      console.log(`[App] Created user account for ${emp.name} (${emp.email})`);
+    });
+
+    if (newUsers.length > 0) {
+      const updatedUsers = [...allUsers, ...newUsers];
+      setAllUsers(updatedUsers);
+      await db.remoteSet('users', updatedUsers);
+      console.log(`[App] Synced ${newUsers.length} new users from Toast`);
+      return newUsers.length;
+    }
+
+    console.log('[App] No new users to sync from Toast');
+    return 0;
+  }, [allUsers, currentOrgId]);
+
   if (isInitialLoading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center text-white p-12 text-center" style={{ backgroundColor: 'var(--primary, #0F2B3C)' }}>
@@ -724,6 +772,7 @@ const App: React.FC = () => {
             onToastSalesUpdate={setToastSales}
             onToastClockedInUpdate={setToastClockedIn}
             onSalesComparisonUpdate={setSalesComparison}
+            onSyncToastEmployees={handleSyncToastEmployees}
           />
         )}
       </div>

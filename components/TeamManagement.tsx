@@ -16,6 +16,7 @@ interface TeamManagementProps {
   stores: Store[];
   currentStoreId: string;
   onUserUpdated: () => void;
+  onSyncToastEmployees?: (employees: ToastSyncEmployee[]) => Promise<number>;
 }
 
 const ROLE_BADGE_COLORS: Record<string, string> = {
@@ -33,7 +34,7 @@ const ROLE_OPTIONS = [
 ];
 
 const TeamManagement: React.FC<TeamManagementProps> = ({
-  allUsers, currentUser, stores, currentStoreId, onUserUpdated
+  allUsers, currentUser, stores, currentStoreId, onUserUpdated, onSyncToastEmployees
 }) => {
   // Search & Filters
   const [searchQuery, setSearchQuery] = useState('');
@@ -117,6 +118,15 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
       const now = Date.now();
       setLastSyncTime(now);
       syncCacheRef.current = { employees, timestamp: now };
+
+      // Auto-create user accounts for Toast employees who don't have accounts yet
+      if (onSyncToastEmployees) {
+        const newUsersCount = await onSyncToastEmployees(employees);
+        if (newUsersCount > 0) {
+          console.log(`[TeamManagement] Auto-created ${newUsersCount} user accounts from Toast`);
+          onUserUpdated(); // Refresh the user list
+        }
+      }
     } catch (err: any) {
       setToastSyncError(err.message || 'Failed to sync from Toast');
     } finally {

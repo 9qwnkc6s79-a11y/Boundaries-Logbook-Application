@@ -44,13 +44,14 @@ interface ManagerHubProps {
   } | null) => void;
   org?: Organization | null;
   onSaveOrg?: (org: Organization) => Promise<boolean>;
+  onSyncToastEmployees?: (employees: any[]) => Promise<number>;
 }
 
 const ManagerHub: React.FC<ManagerHubProps> = ({
   staff = [], allUsers = [], submissions = [], templates = [], curriculum = [], allProgress = [], manual = [], recipes = [], onReview, onOverrideAIFlag, onResetSubmission,
   onUpdateTemplate, onAddTemplate, onDeleteTemplate, onUpdateManual, onUpdateRecipes, onPhotoComment,
   currentStoreId, stores = [], currentUser, onUserUpdated, onToastSalesUpdate, onToastClockedInUpdate, onSalesComparisonUpdate,
-  org, onSaveOrg
+  org, onSaveOrg, onSyncToastEmployees
 }) => {
   const [activeSubTab, setActiveSubTab] = useState<'dashboard' | 'compliance' | 'editor' | 'staff' | 'gallery' | 'audit' | 'manual' | 'cash-audit' | 'performance' | 'team' | 'branding' | 'stores'>('dashboard');
   const [auditFilter, setAuditFilter] = useState<'pending' | 'approved' | 'all'>('pending');
@@ -2526,6 +2527,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
             stores={stores}
             currentStoreId={currentStoreId}
             onUserUpdated={onUserUpdated || (() => {})}
+            onSyncToastEmployees={onSyncToastEmployees}
           />
         )}
 
