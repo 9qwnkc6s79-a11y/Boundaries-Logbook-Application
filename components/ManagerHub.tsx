@@ -901,24 +901,24 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
         {activeSubTab === 'dashboard' && (
           <div className="space-y-4 md:space-y-6 animate-in fade-in duration-500">
             {/* Live Store Performance - Top Priority */}
-            <section className="bg-gradient-to-br from-blue-600 to-indigo-700 p-3 md:p-6 rounded-xl shadow-md text-white">
+            <section className="bg-gradient-to-br from-[#0F2B3C] to-[#1a3d52] p-3 md:p-6 rounded-xl shadow-md text-white border border-[#B87333]/20">
               <div className="flex items-center justify-between mb-3 md:mb-6">
                 <div className="flex items-center gap-2 md:gap-3">
-                  <div className="p-1.5 md:p-2 bg-white/20 rounded-lg md:rounded-xl"><Gauge size={16} /></div>
+                  <div className="p-1.5 md:p-2 bg-[#B87333]/20 rounded-lg md:rounded-xl"><Gauge size={16} className="text-[#B87333]" /></div>
                   <h2 className="text-sm md:text-xl font-black uppercase tracking-tight">Live Store Performance</h2>
                 </div>
-                <div className="flex items-center gap-1.5 bg-white/20 backdrop-blur-sm px-2 py-1 md:px-3 md:py-1.5 rounded-full">
-                  <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-green-400 rounded-full animate-pulse" />
-                  <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest">Live</span>
+                <div className="flex items-center gap-1.5 bg-[#B87333]/20 backdrop-blur-sm px-2 py-1 md:px-3 md:py-1.5 rounded-full border border-[#B87333]/30">
+                  <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-[#B87333] rounded-full animate-pulse" />
+                  <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-[#B87333]">Live</span>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-6">
                 {/* Today's Sales */}
-                <div className="bg-white/10 backdrop-blur-sm rounded-lg md:rounded-xl p-3 md:p-6 border border-white/20">
+                <div className="bg-white/10 backdrop-blur-sm rounded-lg md:rounded-xl p-3 md:p-6 border border-[#B87333]/30">
                   <div className="flex items-center gap-1.5 mb-1.5 md:mb-3">
-                    <DollarSign size={12} className="text-green-300 md:hidden" />
-                    <DollarSign size={16} className="text-green-300 hidden md:block" />
+                    <DollarSign size={12} className="text-[#B87333] md:hidden" />
+                    <DollarSign size={16} className="text-[#B87333] hidden md:block" />
                     <h3 className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-white/80">Today's Sales</h3>
                   </div>
                   <div className="text-xl md:text-3xl font-black mb-1 md:mb-2">${toastSales?.totalSales?.toFixed(0) || '—'}</div>
@@ -939,11 +939,11 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
 
                 {/* Turn Time - Critical Metric */}
                 <div className={`backdrop-blur-sm rounded-lg md:rounded-xl p-3 md:p-6 border-2 ${
-                  !toastSales?.averageTurnTime ? 'bg-white/10 border-white/20' :
-                  toastSales.averageTurnTime < 3.5 ? 'bg-green-500/30 border-green-300' :
-                  toastSales.averageTurnTime < 4.5 ? 'bg-blue-500/30 border-blue-300' :
-                  toastSales.averageTurnTime < 5 ? 'bg-amber-500/30 border-amber-300' :
-                  'bg-red-500/30 border-red-300'
+                  !toastSales?.averageTurnTime ? 'bg-white/10 border-[#B87333]/30' :
+                  toastSales.averageTurnTime < 3.5 ? 'bg-green-500/20 border-green-400' :
+                  toastSales.averageTurnTime < 4.5 ? 'bg-[#B87333]/20 border-[#B87333]' :
+                  toastSales.averageTurnTime < 5 ? 'bg-amber-500/20 border-amber-400' :
+                  'bg-red-500/20 border-red-400'
                 }`}>
                   <div className="flex items-center gap-1.5 mb-1.5 md:mb-3">
                     <Timer size={12} className="text-white md:hidden" />
@@ -960,10 +960,10 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                 </div>
 
                 {/* Staff Clocked In */}
-                <div className="bg-white/10 backdrop-blur-sm rounded-lg md:rounded-xl p-3 md:p-6 border border-white/20">
+                <div className="bg-white/10 backdrop-blur-sm rounded-lg md:rounded-xl p-3 md:p-6 border border-[#B87333]/30">
                   <div className="flex items-center gap-1.5 mb-1.5 md:mb-3">
-                    <Users size={12} className="text-blue-300 md:hidden" />
-                    <Users size={16} className="text-blue-300 hidden md:block" />
+                    <Users size={12} className="text-[#B87333] md:hidden" />
+                    <Users size={16} className="text-[#B87333] hidden md:block" />
                     <h3 className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-white/80">Staff On Duty</h3>
                   </div>
                   <div className="text-xl md:text-3xl font-black mb-1 md:mb-2">{toastClockedIn.length}</div>
@@ -973,10 +973,10 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                 </div>
 
                 {/* Current Leader */}
-                <div className="bg-white/10 backdrop-blur-sm rounded-lg md:rounded-xl p-3 md:p-6 border border-white/20">
+                <div className="bg-white/10 backdrop-blur-sm rounded-lg md:rounded-xl p-3 md:p-6 border border-[#B87333]/30">
                   <div className="flex items-center gap-1.5 mb-1.5 md:mb-3">
-                    <Trophy size={12} className="text-amber-300 md:hidden" />
-                    <Trophy size={16} className="text-amber-300 hidden md:block" />
+                    <Trophy size={12} className="text-[#B87333] md:hidden" />
+                    <Trophy size={16} className="text-[#B87333] hidden md:block" />
                     <h3 className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-white/80">Shift Leader</h3>
                   </div>
                   {(() => {
