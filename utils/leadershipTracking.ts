@@ -234,6 +234,8 @@ export interface LeaderShiftScore {
   timelinessScore: number;
   turnTimeScore: number;
   avgTicketScore: number;
+  turnTimeMinutes: number | undefined;    // Actual turn time value
+  avgTicketDollars: number | undefined;   // Actual avg ticket value
   hasToastData: boolean;
   maxPossible: number;
   totalScore: number;
@@ -250,6 +252,8 @@ export interface LeaderLeaderboardEntry {
   avgTimelinessScore: number;
   avgTurnTimeScore: number;
   avgTicketScoreValue: number;
+  avgTurnTimeMinutes: number | undefined; // Actual turn time in minutes
+  avgTicketDollars: number | undefined;   // Actual avg ticket in dollars
   compositePercent: number;
   onTimeRate: number;
   shifts: LeaderShiftScore[];
@@ -298,8 +302,10 @@ export function calculateLeaderboard(
 
     // Calculate Toast-based scores (if snapshot available)
     const hasToastData = !!(sub.toastSnapshot?.averageTurnTime || sub.toastSnapshot?.averageCheck);
-    const turnTimeScore = hasToastData ? calculateTurnTimeScore(sub.toastSnapshot?.averageTurnTime) : 0;
-    const avgTicketScore = hasToastData ? calculateAvgTicketScore(sub.toastSnapshot?.averageCheck) : 0;
+    const turnTimeMinutes = sub.toastSnapshot?.averageTurnTime;
+    const avgTicketDollars = sub.toastSnapshot?.averageCheck;
+    const turnTimeScore = hasToastData ? calculateTurnTimeScore(turnTimeMinutes) : 0;
+    const avgTicketScore = hasToastData ? calculateAvgTicketScore(avgTicketDollars) : 0;
 
     const maxPossible = hasToastData ? 105 : 40;
     const totalScore = timelinessScore + turnTimeScore + avgTicketScore;
@@ -310,6 +316,8 @@ export function calculateLeaderboard(
       timelinessScore,
       turnTimeScore,
       avgTicketScore,
+      turnTimeMinutes,
+      avgTicketDollars,
       hasToastData,
       maxPossible,
       totalScore,
@@ -334,12 +342,23 @@ export function calculateLeaderboard(
     // Average scores
     const avgTimeliness = shifts.reduce((sum, s) => sum + s.timelinessScore, 0) / totalShifts;
     const toastShifts = shifts.filter(s => s.hasToastData);
-    const avgTurnTime = toastShifts.length > 0
+    const avgTurnTimeScore = toastShifts.length > 0
       ? toastShifts.reduce((sum, s) => sum + s.turnTimeScore, 0) / toastShifts.length
       : 0;
-    const avgTicket = toastShifts.length > 0
+    const avgTicketScore = toastShifts.length > 0
       ? toastShifts.reduce((sum, s) => sum + s.avgTicketScore, 0) / toastShifts.length
       : 0;
+
+    // Calculate actual average values (not scores)
+    const shiftsWithTurnTime = toastShifts.filter(s => s.turnTimeMinutes !== undefined);
+    const avgTurnTimeMinutes = shiftsWithTurnTime.length > 0
+      ? shiftsWithTurnTime.reduce((sum, s) => sum + s.turnTimeMinutes!, 0) / shiftsWithTurnTime.length
+      : undefined;
+
+    const shiftsWithAvgTicket = toastShifts.filter(s => s.avgTicketDollars !== undefined);
+    const avgTicketDollars = shiftsWithAvgTicket.length > 0
+      ? shiftsWithAvgTicket.reduce((sum, s) => sum + s.avgTicketDollars!, 0) / shiftsWithAvgTicket.length
+      : undefined;
 
     // Composite: normalized percentage across all shifts
     const totalScoreSum = shifts.reduce((sum, s) => sum + s.totalScore, 0);
@@ -356,8 +375,10 @@ export function calculateLeaderboard(
       totalShifts,
       shiftsWithToastData,
       avgTimelinessScore: avgTimeliness,
-      avgTurnTimeScore: avgTurnTime,
-      avgTicketScoreValue: avgTicket,
+      avgTurnTimeScore: avgTurnTimeScore,
+      avgTicketScoreValue: avgTicketScore,
+      avgTurnTimeMinutes: avgTurnTimeMinutes,
+      avgTicketDollars: avgTicketDollars,
       compositePercent,
       onTimeRate,
       shifts,

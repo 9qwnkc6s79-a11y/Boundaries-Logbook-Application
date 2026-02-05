@@ -578,7 +578,8 @@ const App: React.FC = () => {
 
   const storeTemplates = templates.filter(t => t.storeId === currentStoreId);
   const storeSubmissions = submissions.filter(s => s.storeId === currentStoreId);
-  const storeUsers = allUsers.filter(u => u.storeId === currentStoreId);
+  // Include users assigned to this store OR users without a storeId (show in all stores until assigned)
+  const storeUsers = allUsers.filter(u => u.storeId === currentStoreId || !u.storeId);
   const storeProgress = progress.filter(p => storeUsers.some(u => u.id === p.userId));
   const isManager = currentUser.role === UserRole.MANAGER || currentUser.role === UserRole.ADMIN;
   const activeStores = orgStores;

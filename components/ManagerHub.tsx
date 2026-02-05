@@ -1843,22 +1843,22 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                             <div className="text-center flex-1 md:flex-initial md:text-right">
                               <div className="text-[8px] font-black text-neutral-400 uppercase tracking-widest mb-1">Turn Time</div>
                               <div className={`text-sm md:text-base font-black ${
-                                leader.shiftsWithToastData === 0 ? 'text-neutral-300' :
-                                leader.avgTurnTimeScore >= 35 ? 'text-green-600' :
-                                leader.avgTurnTimeScore >= 20 ? 'text-amber-600' : 'text-red-600'
+                                leader.avgTurnTimeMinutes === undefined ? 'text-neutral-300' :
+                                leader.avgTurnTimeMinutes < 3.5 ? 'text-green-600' :
+                                leader.avgTurnTimeMinutes < 4.5 ? 'text-amber-600' : 'text-red-600'
                               }`}>
-                                {leader.shiftsWithToastData > 0 ? `${leader.avgTurnTimeScore.toFixed(0)}/40` : 'N/A'}
+                                {leader.avgTurnTimeMinutes !== undefined ? `${leader.avgTurnTimeMinutes.toFixed(1)} min` : 'N/A'}
                               </div>
                             </div>
                             <div className="text-center flex-1 md:flex-initial md:text-right">
                               <div className="text-[8px] font-black text-neutral-400 uppercase tracking-widest mb-1">Avg Ticket</div>
                               <div className={`text-sm md:text-base font-black ${
-                                leader.shiftsWithToastData === 0 ? 'text-neutral-300' :
-                                leader.avgTicketScoreValue >= 20 ? 'text-green-600' :
-                                leader.avgTicketScoreValue >= 15 ? 'text-blue-600' :
-                                leader.avgTicketScoreValue >= 5 ? 'text-amber-600' : 'text-neutral-400'
+                                leader.avgTicketDollars === undefined ? 'text-neutral-300' :
+                                leader.avgTicketDollars >= 10 ? 'text-green-600' :
+                                leader.avgTicketDollars >= 8 ? 'text-blue-600' :
+                                leader.avgTicketDollars >= 6 ? 'text-amber-600' : 'text-neutral-400'
                               }`}>
-                                {leader.shiftsWithToastData > 0 ? `${leader.avgTicketScoreValue.toFixed(0)}/25` : 'N/A'}
+                                {leader.avgTicketDollars !== undefined ? `$${leader.avgTicketDollars.toFixed(2)}` : 'N/A'}
                               </div>
                             </div>
                             <div className="text-center flex-1 md:flex-initial md:text-right">
