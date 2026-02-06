@@ -50,6 +50,7 @@ const LEADERSHIP_PATTERNS: { pattern: RegExp; priority: number; displayName: str
 const EXCLUDED_TITLE_PATTERNS: RegExp[] = [
   /\bbarista\b/i,
   /\btrainer\b/i,
+  /\btrainee\b/i,       // Team Leader Trainee, etc.
   /\bfoh\b/i,           // Front of House
   /\bboh\b/i,           // Back of House
   /\binventory\b/i,

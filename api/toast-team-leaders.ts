@@ -67,6 +67,7 @@ const LEADERSHIP_PATTERNS = [
 const EXCLUDED_TITLES = [
   /\bbarista\b/i,
   /\btrainer\b/i,
+  /\btrainee\b/i,       // Team Leader Trainee, etc.
   /\bfoh\b/i,           // Front of House
   /\bboh\b/i,           // Back of House
   /\binventory\b/i,
