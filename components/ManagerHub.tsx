@@ -801,52 +801,85 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
     };
   }, [currentStoreId]);
 
-  // Fetch Toast team leaders (employees with leadership job titles)
+  // Build team leaders list from currently clocked-in staff with leadership job titles
+  // This is more reliable than the employees endpoint because it shows actual shift jobs
   useEffect(() => {
-    const fetchTeamLeaders = async () => {
+    // Leadership job title patterns (case insensitive)
+    const leadershipPatterns = [
+      /\bgm\b/i,
+      /\bgeneral\s*manager\b/i,
+      /\bstore\s*manager\b/i,
+      /\bmanager\b/i,
+      /\b(team|shift)\s*(leader|lead)\b/i,
+      /\bshift\s*manager\b/i,
+      /\bsupervisor\b/i,
+    ];
+
+    // Find team leaders from currently clocked-in staff
+    const clockedInLeaders = toastClockedIn
+      .filter(entry => {
+        const jobTitle = entry.jobName || '';
+        return leadershipPatterns.some(pattern => pattern.test(jobTitle));
+      })
+      .map(entry => {
+        // Try to find matching user
+        const user = allUsers.find(u =>
+          u.toastEmployeeGuid === entry.employeeGuid ||
+          u.name.toLowerCase() === entry.employeeName.toLowerCase()
+        );
+        return {
+          id: user?.id || `toast-${entry.employeeGuid}`,
+          name: entry.employeeName,
+          jobTitle: entry.jobName,
+          toastGuid: entry.employeeGuid,
+        };
+      });
+
+    // Also fetch from employees endpoint for anyone not currently clocked in
+    const fetchEmployeeLeaders = async () => {
       const location = currentStoreId === 'store-prosper' ? 'prosper' : 'littleelm';
       try {
-        console.log(`[TeamLeaders] Fetching employees for ${location}...`);
         const response = await fetch(`/api/toast-employees?location=${location}`);
-        if (!response.ok) {
-          console.warn(`[TeamLeaders] Failed to fetch employees: ${response.status}`);
-          return;
-        }
+        if (!response.ok) return [];
 
         const data = await response.json();
         const employees = data.employees || [];
 
-        // Leadership job title patterns (case insensitive)
-        const leadershipPatterns = [
-          /\bgm\b/i,
-          /\bgeneral\s*manager\b/i,
-          /\bstore\s*manager\b/i,
-          /\bmanager\b/i,
-          /\b(team|shift)\s*(leader|lead)\b/i,
-          /\bshift\s*manager\b/i,
-          /\bsupervisor\b/i,
-        ];
-
-        // Filter for employees with leadership job titles
-        const leaders = employees.filter((emp: any) => {
-          const jobTitle = emp.jobTitle || '';
-          return leadershipPatterns.some(pattern => pattern.test(jobTitle));
-        }).map((emp: any) => ({
-          id: `toast-${emp.guid}`,
-          name: emp.name,
-          jobTitle: emp.jobTitle,
-          toastGuid: emp.guid,
-        }));
-
-        console.log(`[TeamLeaders] Found ${leaders.length} team leaders:`, leaders.map((l: any) => `${l.name} (${l.jobTitle})`).join(', '));
-        setToastTeamLeaders(leaders);
-      } catch (error: any) {
-        console.error('[TeamLeaders] Error fetching employees:', error);
+        return employees
+          .filter((emp: any) => {
+            const jobTitle = emp.jobTitle || '';
+            return leadershipPatterns.some(pattern => pattern.test(jobTitle));
+          })
+          .map((emp: any) => ({
+            id: `toast-${emp.guid}`,
+            name: emp.name,
+            jobTitle: emp.jobTitle,
+            toastGuid: emp.guid,
+          }));
+      } catch (error) {
+        return [];
       }
     };
 
-    fetchTeamLeaders();
-  }, [currentStoreId]);
+    fetchEmployeeLeaders().then(employeeLeaders => {
+      // Merge both sources, deduplicating by name
+      const leaderMap = new Map<string, typeof clockedInLeaders[0]>();
+
+      // Add clocked-in leaders first (they have accurate job titles for current shift)
+      clockedInLeaders.forEach(l => leaderMap.set(l.name.toLowerCase(), l));
+
+      // Add employee leaders if not already present
+      employeeLeaders.forEach((l: any) => {
+        if (!leaderMap.has(l.name.toLowerCase())) {
+          leaderMap.set(l.name.toLowerCase(), l);
+        }
+      });
+
+      const allLeaders = Array.from(leaderMap.values());
+      console.log(`[TeamLeaders] Found ${allLeaders.length} team leaders:`, allLeaders.map(l => `${l.name} (${l.jobTitle})`).join(', '));
+      setToastTeamLeaders(allLeaders);
+    });
+  }, [currentStoreId, toastClockedIn, allUsers]);
 
   // Fetch Toast Cash Entry Data
   const fetchCashData = async () => {
