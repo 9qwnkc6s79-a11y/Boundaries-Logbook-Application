@@ -739,7 +739,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
 
   // Order Attribution: sync orders and attribute to shift leaders
   const syncOrderAttribution = async () => {
-    if (!toastAPI.isConfigured()) return;
+    // Note: Don't check toastAPI.isConfigured() - serverless functions have hardcoded credentials
     if (attributionSyncing) return;
 
     setAttributionSyncing(true);
@@ -760,11 +760,12 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
         if (success) {
           console.log(`[OrderAttribution] Saved ${newOrders.length} attributed orders`);
         }
-
-        // Reload from database to get merged results
-        const allOrders = await db.fetchAttributedOrders(currentStoreId);
-        setAttributedOrders(allOrders);
       }
+
+      // Always reload from database to get all orders (including from other sessions)
+      const allOrders = await db.fetchAttributedOrders(currentStoreId);
+      setAttributedOrders(allOrders);
+      console.log(`[OrderAttribution] Loaded ${allOrders.length} total orders after sync`);
 
       setLastAttributionSync(new Date().toISOString());
     } catch (error: any) {
@@ -782,10 +783,11 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
       console.log(`[OrderAttribution] Loaded ${orders.length} existing orders for ${currentStoreId}`);
     });
 
-    // Initial sync after Toast data loads
+    // Initial sync after a brief delay
     const timeout = setTimeout(() => {
+      console.log('[OrderAttribution] Starting initial sync...');
       syncOrderAttribution();
-    }, 15000); // Wait 15s for Toast data
+    }, 5000); // Wait 5s for page to settle
 
     // Periodic sync every 5 minutes
     const interval = setInterval(syncOrderAttribution, 5 * 60 * 1000);
