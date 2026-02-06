@@ -5,52 +5,103 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-// Restaurant GUIDs - Prosper has multiple, try both
-const LOCATIONS: Record<string, string[]> = {
-  'littleelm': [process.env.VITE_TOAST_RESTAURANT_GUID || ''],
-  'prosper': [
-    'f5e036bc-d8d0-4da9-8ec7-aec94806253b',
-    'd1e0f278-e871-4635-8d33-74532858ccaf'
-  ],
+const TOAST_API = 'https://ws-api.toasttab.com';
+
+// Restaurant GUIDs - hardcoded with env var fallbacks for serverless compatibility
+const RESTAURANTS: Record<string, string> = {
+  littleelm: process.env.TOAST_RESTAURANT_LITTLEELM || '40980097-47ac-447d-8221-a5574db1b2f7',
+  prosper: process.env.TOAST_RESTAURANT_PROSPER || 'f5e036bc-d8d0-4da9-8ec7-aec94806253b',
 };
 
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
-// In-memory caches (persist across requests on warm Vercel instances)
-let cachedToken: string | null = null;
-let tokenExpiry: number = 0;
-const cachedGuids: Record<string, string> = {};
+// In-memory token cache (persists across requests on warm Vercel instances)
+let cachedToken: { token: string; expires: number } | null = null;
 
 async function getAuthToken(): Promise<string> {
-  // Return cached token if still valid
-  const now = Date.now();
-  if (cachedToken && tokenExpiry > now) {
-    return cachedToken;
+  if (cachedToken && cachedToken.expires > Date.now()) {
+    return cachedToken.token;
   }
 
-  const clientId = process.env.VITE_TOAST_CLIENT_ID;
-  const clientSecret = process.env.VITE_TOAST_API_KEY;
+  const clientId = process.env.VITE_TOAST_CLIENT_ID || process.env.TOAST_CLIENT_ID;
+  const clientSecret = process.env.VITE_TOAST_API_KEY || process.env.TOAST_CLIENT_SECRET;
 
   if (!clientId || !clientSecret) {
     throw new Error('Toast credentials not configured');
   }
 
-  const authResponse = await fetch('https://ws-api.toasttab.com/authentication/v1/authentication/login', {
+  const response = await fetch(`${TOAST_API}/authentication/v1/authentication/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ clientId, clientSecret, userAccessType: 'TOAST_MACHINE_CLIENT' })
   });
 
-  if (!authResponse.ok) {
-    throw new Error(`Toast auth failed (${authResponse.status})`);
+  if (!response.ok) {
+    throw new Error(`Toast auth failed (${response.status})`);
   }
 
-  const authData = await authResponse.json();
-  if (!authData.token?.accessToken) throw new Error('Invalid auth response');
+  const data = await response.json();
+  const token = data.token?.accessToken || data.accessToken;
 
-  cachedToken = authData.token.accessToken;
-  tokenExpiry = now + (23 * 60 * 60 * 1000); // 23 hours
-  return cachedToken;
+  if (!token) throw new Error('Invalid auth response');
+
+  cachedToken = {
+    token,
+    expires: Date.now() + 23 * 60 * 60 * 1000 // 23 hours
+  };
+
+  return token;
+}
+
+// Fetch all orders with pagination - matching Dashboard implementation
+async function getAllOrders(
+  restaurantGuid: string,
+  startDate: string,
+  endDate: string,
+  token: string
+): Promise<any[]> {
+  const allOrders: any[] = [];
+  let page = 1;
+  const pageSize = 100;
+  let hasMore = true;
+
+  while (hasMore) {
+    const url = `${TOAST_API}/orders/v2/ordersBulk?startDate=${startDate}T00:00:00.000Z&endDate=${endDate}T23:59:59.999Z&pageSize=${pageSize}&page=${page}`;
+
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Toast-Restaurant-External-ID': restaurantGuid,
+      },
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      // 404 means no orders found - not an error
+      if (response.status === 404) break;
+      throw new Error(`Toast API Error (${response.status}): ${errorText.substring(0, 100)}`);
+    }
+
+    const orders = await response.json();
+
+    if (Array.isArray(orders) && orders.length > 0) {
+      allOrders.push(...orders);
+      if (orders.length < pageSize) {
+        hasMore = false;
+      } else {
+        page++;
+      }
+    } else {
+      hasMore = false;
+    }
+
+    // Safety limit to prevent infinite loops
+    if (page > 50) {
+      console.warn('[Toast Sales] Hit pagination safety limit at 50 pages');
+      break;
+    }
+  }
+
+  console.log(`[Toast Sales] Fetched ${allOrders.length} orders across ${page} page(s)`);
+  return allOrders;
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -66,82 +117,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const startDateStr = Array.isArray(startDate) ? startDate[0] : startDate;
   const endDateStr = Array.isArray(endDate) ? endDate[0] : endDate;
   const locationKey = (Array.isArray(location) ? location[0] : location)?.toLowerCase() || 'littleelm';
-
-  // Optional: filter orders by time of day (for fair week-over-week comparisons)
-  // Format: "HH:MM" e.g. "11:45" means only include orders up to 11:45am
   const maxTimeOfDayStr = Array.isArray(maxTimeOfDay) ? maxTimeOfDay[0] : maxTimeOfDay;
 
-  // Get restaurant GUIDs to try for this location
-  const restaurantGuids = LOCATIONS[locationKey] || LOCATIONS['littleelm'];
+  // Get restaurant GUID for this location
+  const restaurantGuid = RESTAURANTS[locationKey] || RESTAURANTS['littleelm'];
 
-  if (!restaurantGuids || restaurantGuids.length === 0) {
+  if (!restaurantGuid) {
     return res.status(500).json({ error: 'Toast API not configured for this location' });
   }
 
+  console.log(`[Toast Sales] Fetching ${locationKey} (${restaurantGuid.substring(0, 8)}...) from ${startDateStr} to ${endDateStr}`);
+
   try {
     const token = await getAuthToken();
+    const allOrders = await getAllOrders(restaurantGuid, startDateStr, endDateStr, token);
 
-    // Use Central Time (America/Chicago) for business day boundaries
-    // This ensures we fetch the correct business day's orders
-    const startUTC = new Date(`${startDateStr}T06:00:00.000Z`); // 6 AM UTC = midnight Central
-    const endUTC = new Date(`${endDateStr}T05:59:59.999Z`);
-    endUTC.setDate(endUTC.getDate() + 1); // Next day 5:59 AM UTC = 11:59 PM Central
-
-    // Use cached GUID if available, otherwise probe to find working one
-    let restaurantGuid: string | null = cachedGuids[locationKey] || null;
-    let lastError: any = null;
-
-    if (!restaurantGuid) {
-      for (const guid of restaurantGuids) {
-        try {
-          // Test this GUID with a small request
-          const testStart = new Date(startUTC);
-          const testEnd = new Date(testStart.getTime() + 60000);
-          await fetchOrdersChunk(testStart.toISOString(), testEnd.toISOString(), token, guid);
-          restaurantGuid = guid;
-          cachedGuids[locationKey] = guid;
-          console.log(`[Toast Sales] Found working GUID: ${guid.substring(0, 8)}... for ${locationKey}`);
-          break;
-        } catch (err: any) {
-          lastError = err;
-          console.log(`[Toast Sales] GUID ${guid.substring(0, 8)}... failed: ${err.message}`);
-        }
-      }
-    } else {
-      console.log(`[Toast Sales] Using cached GUID: ${restaurantGuid.substring(0, 8)}... for ${locationKey}`);
-    }
-
-    if (!restaurantGuid) {
-      throw new Error(`No working GUID found for ${locationKey}: ${lastError?.message}`);
-    }
-
-    // Create 4-hour chunks for parallel fetching (6 chunks covers 24 hours)
-    const CHUNK_HOURS = 4;
-    const chunks: { start: Date; end: Date }[] = [];
-    let current = new Date(startUTC);
-
-    while (current < endUTC) {
-      const chunkEnd = new Date(Math.min(current.getTime() + (CHUNK_HOURS * 60 * 60 * 1000), endUTC.getTime()));
-      chunks.push({ start: new Date(current), end: chunkEnd });
-      current = chunkEnd;
-    }
-
-    console.log(`[Toast Sales] Fetching ${chunks.length} chunks in parallel for ${locationKey}`);
-
-    // Fetch all chunks in parallel for speed
-    const chunkResults = await Promise.all(
-      chunks.map(chunk =>
-        fetchOrdersChunk(chunk.start.toISOString(), chunk.end.toISOString(), token, restaurantGuid!)
-          .catch(err => {
-            console.warn(`[Toast Sales] Chunk failed: ${err.message}`);
-            return []; // Return empty array on error, don't fail entire request
-          })
-      )
-    );
-
-    const allOrders = chunkResults.flat();
-
-    // Parse max time of day filter if provided
+    // Parse max time of day filter if provided (for week-over-week comparisons)
     let maxHour: number | null = null;
     let maxMinute: number | null = null;
     if (maxTimeOfDayStr) {
@@ -152,71 +143,86 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    // Process orders - use 'amount' for NET sales (excludes tax)
+    // Process orders - matching Dashboard logic
     let netSales = 0;
     let totalTax = 0;
     let totalTips = 0;
+    let validOrderCount = 0;
     const paymentMethods: Record<string, number> = {};
     const hourlySales: Record<number, number> = {};
     const turnTimes: number[] = [];
 
-    let validOrderCount = 0;
-    allOrders.forEach(order => {
-      // Skip voided orders at the order level
-      if (order.voided || order.deleted) return;
+    for (const order of allOrders) {
+      // Skip voided orders
+      if (order.voided) continue;
 
-      // Filter by time of day if specified (for week-over-week comparisons)
+      // Filter by time of day if specified
       if (maxHour !== null && maxMinute !== null) {
         const orderDate = new Date(order.openedDate || order.createdDate);
-        const orderHour = orderDate.getUTCHours() - 6; // Convert UTC to Central (approximate)
+        const orderHour = orderDate.getUTCHours();
         const orderMinute = orderDate.getUTCMinutes();
-        const adjustedHour = orderHour < 0 ? orderHour + 24 : orderHour;
 
-        if (adjustedHour > maxHour || (adjustedHour === maxHour && orderMinute > maxMinute)) {
-          return;
+        // Convert UTC to Central Time (approximate: UTC-6)
+        let centralHour = orderHour - 6;
+        if (centralHour < 0) centralHour += 24;
+
+        if (centralHour > maxHour || (centralHour === maxHour && orderMinute > maxMinute)) {
+          continue;
         }
       }
 
-      const checks = order.checks || [];
       let orderNetSales = 0;
+      let hasValidCheck = false;
 
-      checks.forEach((check: any) => {
-        // Only skip explicitly voided checks
-        if (check.voided === true) return;
+      const checks = order.checks || [];
+      for (const check of checks) {
+        // Skip voided checks
+        if (check.voided) continue;
 
-        // Add to totals - use amount for net sales
-        const checkAmount = check.amount || 0;
-        orderNetSales += checkAmount;
-        netSales += checkAmount;
-        totalTax += check.taxAmount || 0;
+        // Only count CLOSED checks (completed transactions) - matching Dashboard
+        if (check.paymentStatus !== 'CLOSED') continue;
 
+        hasValidCheck = true;
+
+        // Use check.amount for net sales (pre-tax)
+        let checkAmount = check.amount || 0;
+
+        // Subtract any refunds
         const payments = check.payments || [];
-        payments.forEach((payment: any) => {
+        for (const payment of payments) {
+          if (payment.refund && payment.refund.refundAmount) {
+            checkAmount -= payment.refund.refundAmount;
+          }
           totalTips += payment.tipAmount || 0;
           const method = payment.type || payment.cardType || 'Unknown';
           paymentMethods[method] = (paymentMethods[method] || 0) + (payment.amount || 0);
-        });
-      });
+        }
 
-      // Count order if it has any sales
-      if (orderNetSales > 0) {
+        orderNetSales += checkAmount;
+        totalTax += check.taxAmount || 0;
+      }
+
+      if (hasValidCheck && orderNetSales > 0) {
+        netSales += orderNetSales;
         validOrderCount++;
+
+        // Hourly breakdown
         const hour = new Date(order.openedDate || order.createdDate).getUTCHours();
         hourlySales[hour] = (hourlySales[hour] || 0) + orderNetSales;
-      }
 
-      // Calculate turn time (order open to close) in minutes
-      if (order.openedDate && order.closedDate) {
-        const opened = new Date(order.openedDate).getTime();
-        const closed = new Date(order.closedDate).getTime();
-        const turnTimeMinutes = (closed - opened) / 1000 / 60;
-        if (turnTimeMinutes > 0 && turnTimeMinutes < 120) { // Filter out outliers (< 2 hours)
-          turnTimes.push(turnTimeMinutes);
+        // Calculate turn time (order open to close) in minutes
+        if (order.openedDate && order.closedDate) {
+          const opened = new Date(order.openedDate).getTime();
+          const closed = new Date(order.closedDate).getTime();
+          const turnTimeMinutes = (closed - opened) / 1000 / 60;
+          if (turnTimeMinutes > 0 && turnTimeMinutes < 120) {
+            turnTimes.push(turnTimeMinutes);
+          }
         }
       }
-    });
+    }
 
-    // Calculate turn time statistics (keep decimal precision for seconds)
+    // Calculate average turn time
     const avgTurnTime = turnTimes.length > 0
       ? turnTimes.reduce((sum, t) => sum + t, 0) / turnTimes.length
       : 0;
@@ -225,7 +231,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       location: locationKey,
       startDate: startDateStr,
       endDate: endDateStr,
-      // Keep 'totalSales' for backward compatibility (now shows NET sales)
       totalSales: Math.round(netSales * 100) / 100,
       netSales: Math.round(netSales * 100) / 100,
       totalTax: Math.round(totalTax * 100) / 100,
@@ -233,38 +238,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       totalOrders: validOrderCount,
       averageCheck: validOrderCount > 0 ? Math.round((netSales / validOrderCount) * 100) / 100 : 0,
       totalTips: Math.round(totalTips * 100) / 100,
-      averageTurnTime: avgTurnTime, // in minutes
+      averageTurnTime: avgTurnTime,
       paymentMethods,
       hourlySales,
       lastUpdated: new Date().toISOString(),
     };
 
-    console.log(`[Toast Sales] SUCCESS for ${locationKey}: $${salesData.totalSales} net, ${salesData.totalOrders} orders from ${allOrders.length} raw orders (${chunks.length} parallel chunks)`);
+    console.log(`[Toast Sales] SUCCESS: ${locationKey} = $${salesData.totalSales} net, ${salesData.totalOrders} orders from ${allOrders.length} raw`);
 
     res.setHeader('Cache-Control', 's-maxage=300');
     return res.status(200).json(salesData);
 
   } catch (error: any) {
+    console.error(`[Toast Sales] ERROR for ${locationKey}:`, error.message);
     return res.status(500).json({ error: 'Failed to fetch sales data', message: error.message });
   }
-}
-
-async function fetchOrdersChunk(startDate: string, endDate: string, token: string, restaurantGuid: string): Promise<any[]> {
-  const url = `https://ws-api.toasttab.com/orders/v2/ordersBulk?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`;
-  
-  const response = await fetch(url, {
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Toast-Restaurant-External-ID': restaurantGuid,
-    },
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    if (response.status === 404) return [];
-    throw new Error(`Toast API Error (${response.status}): ${errorText.substring(0, 100)}`);
-  }
-
-  const data = await response.json();
-  return Array.isArray(data) ? data : (data.data || []);
 }

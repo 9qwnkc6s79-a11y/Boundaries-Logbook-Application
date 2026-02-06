@@ -6,13 +6,10 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-// Restaurant GUIDs - Prosper has multiple, try both
-const LOCATIONS: Record<string, string[]> = {
-  'littleelm': [process.env.VITE_TOAST_RESTAURANT_GUID || ''],
-  'prosper': [
-    'f5e036bc-d8d0-4da9-8ec7-aec94806253b',
-    'd1e0f278-e871-4635-8d33-74532858ccaf'
-  ],
+// Restaurant GUIDs - hardcoded with env var fallbacks for serverless compatibility
+const RESTAURANTS: Record<string, string> = {
+  littleelm: process.env.TOAST_RESTAURANT_LITTLEELM || '40980097-47ac-447d-8221-a5574db1b2f7',
+  prosper: process.env.TOAST_RESTAURANT_PROSPER || 'f5e036bc-d8d0-4da9-8ec7-aec94806253b',
 };
 
 // In-memory caches (persist across requests on warm Vercel instances)
@@ -26,8 +23,8 @@ async function getAuthToken(): Promise<string> {
     return cachedToken;
   }
 
-  const clientId = process.env.VITE_TOAST_CLIENT_ID;
-  const clientSecret = process.env.VITE_TOAST_API_KEY;
+  const clientId = process.env.VITE_TOAST_CLIENT_ID || process.env.TOAST_CLIENT_ID;
+  const clientSecret = process.env.VITE_TOAST_API_KEY || process.env.TOAST_CLIENT_SECRET;
 
   if (!clientId || !clientSecret) {
     throw new Error('Toast credentials not configured');
@@ -167,14 +164,14 @@ export default async function handler(
     const endDateStr = Array.isArray(endDate) ? endDate[0] : endDate;
     const locationKey = (Array.isArray(location) ? location[0] : location)?.toLowerCase() || 'littleelm';
 
-    // Get restaurant GUIDs to try for this location
-    const restaurantGuids = LOCATIONS[locationKey] || LOCATIONS['littleelm'];
+    // Get restaurant GUID for this location
+    const restaurantGuid = RESTAURANTS[locationKey] || RESTAURANTS['littleelm'];
 
-    if (!restaurantGuids || restaurantGuids.length === 0) {
+    if (!restaurantGuid) {
       return res.status(500).json({ error: 'Toast API not configured for this location' });
     }
 
-    console.log(`[Toast Labor] Fetching ${locationKey}: ${startDateStr} to ${endDateStr}`);
+    console.log(`[Toast Labor] Fetching ${locationKey} (${restaurantGuid.substring(0, 8)}...): ${startDateStr} to ${endDateStr}`);
 
     // Get OAuth2 token
     const token = await getAuthToken();
@@ -182,64 +179,32 @@ export default async function handler(
     // Labor API uses businessDate format (YYYYMMDD)
     const businessDate = startDateStr.replace(/-/g, '');
 
-    // Try each GUID until one works, fetch employees + jobs in parallel once found
-    let data: any = null;
-    let lastError: any = null;
-    let workingGuid: string | null = null;
-    let employeePromise: Promise<Map<string, string>> | null = null;
-    let jobsPromise: Promise<Map<string, string>> | null = null;
+    // Fetch labor data + employees + jobs in parallel for speed
+    const laborUrl = `https://ws-api.toasttab.com/labor/v1/timeEntries?businessDate=${businessDate}&open=true`;
 
-    for (const guid of restaurantGuids) {
-      try {
-        // CRITICAL: Add ?open=true to get currently clocked-in employees
-        // Without this parameter, Toast only returns completed shifts
-        const laborUrl = `https://ws-api.toasttab.com/labor/v1/timeEntries?businessDate=${businessDate}&open=true`;
+    const [laborResponse, employeeMap, jobMap] = await Promise.all([
+      fetch(laborUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Toast-Restaurant-External-ID': restaurantGuid,
+          'Content-Type': 'application/json',
+        },
+      }),
+      fetchEmployees(token, restaurantGuid),
+      fetchJobs(token, restaurantGuid),
+    ]);
 
-        const response = await fetch(laborUrl, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Toast-Restaurant-External-ID': guid,
-            'Content-Type': 'application/json',
-          },
-        });
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(`${response.status}: ${errorText}`);
-        }
-
-        // Start employee + jobs fetch immediately in parallel while we parse time entries
-        employeePromise = fetchEmployees(token, guid);
-        jobsPromise = fetchJobs(token, guid);
-
-        data = await response.json();
-        workingGuid = guid;
-        console.log(`[Toast Labor] Using GUID: ${guid.substring(0, 8)}... for ${locationKey}`);
-        break;
-      } catch (err: any) {
-        lastError = err;
-        console.log(`[Toast Labor] GUID ${guid.substring(0, 8)}... failed: ${err.message}`);
-      }
-    }
-
-    // Await the parallel employee + jobs fetch
-    let employeeMap = new Map<string, string>();
-    let jobMap = new Map<string, string>();
-    if (employeePromise) {
-      employeeMap = await employeePromise;
-    }
-    if (jobsPromise) {
-      jobMap = await jobsPromise;
-    }
-
-    if (!data) {
-      console.error(`[Toast Labor] All GUIDs failed for ${locationKey}: ${lastError}`);
+    if (!laborResponse.ok) {
+      const errorText = await laborResponse.text();
+      console.error(`[Toast Labor] Failed for ${locationKey}: ${laborResponse.status} - ${errorText}`);
       return res.status(500).json({
         error: `Toast API Error for ${locationKey}`,
-        details: lastError?.message
+        details: `${laborResponse.status}: ${errorText.substring(0, 100)}`
       });
     }
+
+    const data = await laborResponse.json();
 
     // Process time entries
     // IMPORTANT: With ?open=true, Toast returns array directly, not wrapped in {timeEntries: [...]}
