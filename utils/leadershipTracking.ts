@@ -296,11 +296,72 @@ export interface LeaderLeaderboardEntry {
 }
 
 /**
+ * Identify the primary leader for a submission based on task completion.
+ * Returns the user who completed the most tasks and has a leadership role.
+ * Falls back to the submitter if no leader is found.
+ */
+function identifyShiftLeader(
+  submission: ChecklistSubmission,
+  allUsers: User[]
+): { userId: string; name: string } | null {
+  const taskResults = submission.taskResults || [];
+  if (taskResults.length === 0) {
+    const user = allUsers.find(u => u.id === submission.userId);
+    return user ? { userId: user.id, name: user.name } : null;
+  }
+
+  // Count tasks completed by each user
+  const taskCountByUser = new Map<string, number>();
+  taskResults.forEach(tr => {
+    if (tr.completed && tr.completedByUserId) {
+      taskCountByUser.set(tr.completedByUserId, (taskCountByUser.get(tr.completedByUserId) || 0) + 1);
+    }
+  });
+
+  // Leadership roles (case-insensitive)
+  const leadershipRoles = ['team leader', 'team lead', 'shift lead', 'shift leader', 'manager', 'gm', 'general manager', 'store manager', 'shift manager'];
+
+  // Find the user who completed the most tasks
+  // Prefer users with leadership roles
+  let bestLeader: { userId: string; name: string; taskCount: number; isLeader: boolean } | null = null;
+
+  taskCountByUser.forEach((count, usrId) => {
+    const user = allUsers.find(u => u.id === usrId);
+    if (!user) return;
+
+    const isLeader = leadershipRoles.some(role =>
+      user.role?.toLowerCase().includes(role) ||
+      user.name?.toLowerCase().includes('lead') ||
+      user.name?.toLowerCase().includes('manager')
+    );
+
+    // Prioritize: leaders with most tasks > non-leaders with most tasks
+    if (!bestLeader ||
+        (isLeader && !bestLeader.isLeader) ||
+        (isLeader === bestLeader.isLeader && count > bestLeader.taskCount)) {
+      bestLeader = { userId: user.id, name: user.name, taskCount: count, isLeader };
+    }
+  });
+
+  // Fallback to submitter if no task completers found
+  if (!bestLeader) {
+    const user = allUsers.find(u => u.id === submission.userId);
+    return user ? { userId: user.id, name: user.name } : null;
+  }
+
+  return { userId: bestLeader.userId, name: bestLeader.name };
+}
+
+/**
  * Calculate the leader leaderboard using per-shift averaged scoring.
  * Each shift earns: Timeliness (0-40) + Turn Time (0-40) + Avg Ticket (0-20) = 100 max.
  * Shifts without Toast data are scored on timeliness only (out of 40).
  * Final composite = (sum of all shift scores) / (sum of all max possible) * 100.
  * This ensures leaders with more shifts don't automatically outscore others.
+ *
+ * IMPORTANT: Shift ownership is determined by who completed the most tasks,
+ * not just who pressed the submit button. This ensures credit goes to the
+ * actual team leader who was working the shift.
  */
 export function calculateLeaderboard(
   submissions: ChecklistSubmission[],
@@ -316,15 +377,16 @@ export function calculateLeaderboard(
     sub.submittedAt && new Date(sub.submittedAt) >= cutoff
   );
 
-  // Group shifts by leader (submitter)
+  // Group shifts by the actual leader (based on task completion, not just submitter)
   const leaderShifts = new Map<string, { name: string; shifts: LeaderShiftScore[] }>();
 
   recentSubmissions.forEach(sub => {
     const template = templates.find(t => t.id === sub.templateId);
     if (!template || !sub.submittedAt) return;
 
-    const user = allUsers.find(u => u.id === sub.userId);
-    if (!user) return;
+    // Identify the actual shift leader based on task completion
+    const leader = identifyShiftLeader(sub, allUsers);
+    if (!leader) return;
 
     // Calculate timeliness
     const deadline = new Date(sub.date);
@@ -356,11 +418,11 @@ export function calculateLeaderboard(
       totalScore,
     };
 
-    const existing = leaderShifts.get(sub.userId);
+    const existing = leaderShifts.get(leader.userId);
     if (existing) {
       existing.shifts.push(shiftScore);
     } else {
-      leaderShifts.set(sub.userId, { name: user.name, shifts: [shiftScore] });
+      leaderShifts.set(leader.userId, { name: leader.name, shifts: [shiftScore] });
     }
   });
 
