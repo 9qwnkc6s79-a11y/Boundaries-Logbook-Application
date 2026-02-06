@@ -171,8 +171,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       checks.forEach((check: any) => {
         // Skip voided checks
         if (check.voided) return;
-        // Only count CLOSED checks (completed transactions)
-        if (check.paymentStatus !== 'CLOSED') return;
+        // Skip explicitly deleted checks
+        if (check.deleted) return;
+        // Skip checks with no amount (empty/cancelled)
+        if (!check.amount || check.amount <= 0) return;
 
         hasValidCheck = true;
         // NET sales = check.amount (excludes tax)
@@ -191,9 +193,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         validOrderCount++;
       }
 
-      // Hourly breakdown (using net sales)
-      const hour = new Date(order.openedDate || order.createdDate).getHours();
-      hourlySales[hour] = (hourlySales[hour] || 0) + checks.reduce((sum: number, c: any) => sum + (c.amount || 0), 0);
+      // Hourly breakdown (using net sales from valid checks only)
+      if (hasValidCheck) {
+        const hour = new Date(order.openedDate || order.createdDate).getHours();
+        const validCheckAmount = checks
+          .filter((c: any) => !c.voided && !c.deleted && c.amount > 0)
+          .reduce((sum: number, c: any) => sum + (c.amount || 0), 0);
+        hourlySales[hour] = (hourlySales[hour] || 0) + validCheckAmount;
+      }
 
       // Calculate turn time (order open to close) in minutes
       if (order.openedDate && order.closedDate) {
