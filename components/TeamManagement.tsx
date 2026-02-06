@@ -70,6 +70,7 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
     storeId: '',
     resetPassword: false,
     newPassword: '',
+    toastEmployeeGuid: '' as string | undefined,
   });
 
   // Toast Sync State
@@ -295,6 +296,7 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
         name: editForm.name.trim(),
         role: editForm.role,
         storeId: editForm.storeId,
+        toastEmployeeGuid: editForm.toastEmployeeGuid || undefined,
       };
 
       if (editForm.resetPassword && editForm.newPassword) {
@@ -337,6 +339,7 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
       storeId: user.storeId,
       resetPassword: false,
       newPassword: '',
+      toastEmployeeGuid: user.toastEmployeeGuid || '',
     });
     setError('');
     setShowPassword(false);
@@ -738,6 +741,28 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
                     ))}
                   </select>
                 </div>
+              </div>
+
+              {/* Toast POS Link */}
+              <div className="border border-neutral-100 rounded-xl p-4 bg-neutral-50/50">
+                <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest mb-2 block">Toast POS Account</label>
+                <select
+                  value={editForm.toastEmployeeGuid || ''}
+                  onChange={e => setEditForm({ ...editForm, toastEmployeeGuid: e.target.value || undefined })}
+                  className="w-full bg-white border border-neutral-200 rounded-xl px-4 py-3.5 focus:ring-4 focus:ring-[#0F2B3C]/10 focus:border-[#0F2B3C] transition-all outline-none font-bold text-sm appearance-none"
+                >
+                  <option value="">Not linked to Toast</option>
+                  {toastEmployees.map(emp => (
+                    <option key={emp.guid} value={emp.guid}>
+                      {emp.name} - {emp.jobTitle} ({emp.location})
+                    </option>
+                  ))}
+                </select>
+                {editForm.toastEmployeeGuid && (
+                  <p className="text-[10px] text-neutral-400 mt-2 font-mono">
+                    GUID: {editForm.toastEmployeeGuid}
+                  </p>
+                )}
               </div>
 
               {/* Password Reset */}
