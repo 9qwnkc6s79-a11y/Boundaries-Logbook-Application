@@ -153,6 +153,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const hourlySales: Record<number, number> = {};
     const turnTimes: number[] = [];
 
+    let validOrderCount = 0;
     allOrders.forEach(order => {
       // Filter by time of day if specified
       if (maxHour !== null && maxMinute !== null) {
@@ -166,7 +167,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
       }
       const checks = order.checks || [];
+      let hasValidCheck = false;
       checks.forEach((check: any) => {
+        // Skip voided checks
+        if (check.voided) return;
+        // Only count CLOSED checks (completed transactions)
+        if (check.paymentStatus !== 'CLOSED') return;
+
+        hasValidCheck = true;
         // NET sales = check.amount (excludes tax)
         // Total = check.totalAmount (includes tax + tip)
         netSales += check.amount || 0;
@@ -179,6 +187,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           paymentMethods[method] = (paymentMethods[method] || 0) + (payment.amount || 0);
         });
       });
+      if (hasValidCheck) {
+        validOrderCount++;
+      }
 
       // Hourly breakdown (using net sales)
       const hour = new Date(order.openedDate || order.createdDate).getHours();
@@ -209,8 +220,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       netSales: Math.round(netSales * 100) / 100,
       totalTax: Math.round(totalTax * 100) / 100,
       grossSales: Math.round((netSales + totalTax) * 100) / 100,
-      totalOrders: allOrders.length,
-      averageCheck: allOrders.length > 0 ? Math.round((netSales / allOrders.length) * 100) / 100 : 0,
+      totalOrders: validOrderCount,
+      averageCheck: validOrderCount > 0 ? Math.round((netSales / validOrderCount) * 100) / 100 : 0,
       totalTips: Math.round(totalTips * 100) / 100,
       averageTurnTime: avgTurnTime, // in minutes
       paymentMethods,
@@ -218,7 +229,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       lastUpdated: new Date().toISOString(),
     };
 
-    console.log(`[Toast Sales] SUCCESS for ${locationKey}: $${salesData.totalSales}, ${salesData.totalOrders} orders`);
+    console.log(`[Toast Sales] SUCCESS for ${locationKey}: $${salesData.totalSales}, ${salesData.totalOrders} orders (filtered from ${allOrders.length} total)`);
 
     res.setHeader('Cache-Control', 's-maxage=300');
     return res.status(200).json(salesData);
