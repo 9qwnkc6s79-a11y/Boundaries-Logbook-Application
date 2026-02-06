@@ -1970,7 +1970,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                             <div>
                               <h3 className="font-black text-base md:text-lg text-[#0F2B3C] uppercase tracking-tight">{leader.name}</h3>
                               <p className="text-[9px] font-bold text-neutral-500 uppercase tracking-widest mt-0.5">
-                                {leader.totalShifts} shifts led{leader.shiftsWithToastData > 0 ? ` (${leader.shiftsWithToastData} with Toast data)` : ''}
+                                {leader.totalShifts} shifts • {leader.orderCount} orders attributed
                               </p>
                             </div>
                           </div>

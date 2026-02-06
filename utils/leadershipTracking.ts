@@ -298,6 +298,7 @@ export interface LeaderLeaderboardEntry {
   name: string;
   totalShifts: number;
   shiftsWithToastData: number;
+  orderCount: number;                     // Number of orders attributed to this leader
   avgTimelinessScore: number;
   avgTurnTimeScore: number;
   avgTicketScoreValue: number;
@@ -384,27 +385,9 @@ export function calculateLeaderboard(
       }
     });
 
-  // Add users who have attributed orders (shift leaders from Toast)
-  recentOrders.forEach(order => {
-    if (!teamLeaderMap.has(order.shiftLeaderId)) {
-      // Try to find user by ID
-      const user = allUsers.find(u => u.id === order.shiftLeaderId);
-      if (user) {
-        teamLeaderMap.set(user.id, { id: user.id, name: user.name, storeId: user.storeId });
-      } else if (order.shiftLeaderId.startsWith('unknown-')) {
-        // This is a Toast employee not in our user database
-        // Only add if we have a valid name (not "Unknown")
-        const name = order.shiftLeaderName;
-        if (name && name !== 'Unknown' && !name.toLowerCase().includes('unknown')) {
-          teamLeaderMap.set(order.shiftLeaderId, {
-            id: order.shiftLeaderId,
-            name: name,
-            storeId: order.storeId
-          });
-        }
-      }
-    }
-  });
+  // NOTE: We intentionally do NOT add users just because they have attributed orders.
+  // This prevents former shift leaders from appearing on the leaderboard after their role changes.
+  // Only Toast team leaders (by current job title) and MANAGER/ADMIN users are shown.
 
   // Filter out any entries with "Unknown" names
   const teamLeaders = Array.from(teamLeaderMap.values())
@@ -540,6 +523,7 @@ export function calculateLeaderboard(
       name: leader.name,
       totalShifts,
       shiftsWithToastData,
+      orderCount: leaderOrders.length,
       avgTimelinessScore: avgTimeliness,
       avgTurnTimeScore,
       avgTicketScoreValue: avgTicketScore,
