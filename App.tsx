@@ -167,6 +167,7 @@ const App: React.FC = () => {
     console.log(`[App] Store changed to ${currentStoreId}, clearing Toast data`);
     setToastSales(null);
     setToastClockedIn([]);
+    setSalesComparison(null); // Clear week-over-week comparison to prevent showing wrong store's data
   }, [currentStoreId]);
 
   const effectiveUser = useMemo(() => {

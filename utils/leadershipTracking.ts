@@ -86,9 +86,42 @@ export function detectLeaders(clockedIn: ToastTimeEntry[], allUsers: User[]): Le
     }
 
     if (priority !== undefined) {
-      const user = allUsers.find(u =>
-        u.name.toLowerCase() === entry.employeeName.toLowerCase()
-      );
+      // FIX: Try GUID matching first (most reliable)
+      let user = allUsers.find(u => u.toastEmployeeGuid === entry.employeeGuid);
+
+      // Fallback: Fuzzy name matching
+      if (!user) {
+        user = allUsers.find(u => {
+          const userName = u.name.toLowerCase().trim();
+          const toastName = entry.employeeName.toLowerCase().trim();
+
+          // Exact match
+          if (userName === toastName) return true;
+
+          // First name match (e.g., "John Smith" matches "John")
+          const userFirst = userName.split(' ')[0];
+          const toastFirst = toastName.split(' ')[0];
+          if (userFirst === toastFirst && userFirst.length > 2) return true;
+
+          // Short form match (e.g., "Kendall M" matches "Kendall Matthews")
+          const toastParts = toastName.split(' ');
+          const userParts = userName.split(' ');
+          if (toastParts.length >= 2 && userParts.length >= 2) {
+            if (toastParts[0] === userParts[0] && userParts[1].startsWith(toastParts[1])) return true;
+            if (userParts[0] === toastParts[0] && toastParts[1].startsWith(userParts[1])) return true;
+          }
+
+          return false;
+        });
+
+        if (!user) {
+          console.warn(`[LeaderDetect] No user found for Toast employee: "${entry.employeeName}" (${entry.employeeGuid})`);
+        } else {
+          console.log(`[LeaderDetect] Fuzzy match: "${entry.employeeName}" → ${user.name}`);
+        }
+      } else {
+        console.log(`[LeaderDetect] GUID match: "${entry.employeeName}" → ${user.name} (${entry.employeeGuid})`);
+      }
 
       leaders.push({
         userId: user?.id || `unknown-${entry.employeeGuid}`,
