@@ -6,17 +6,18 @@ import { ToastTimeEntry, User, ShiftOwnership, ChecklistTemplate, ChecklistSubmi
 
 // Leadership hierarchy - lower number = higher priority
 // Exact match dictionary (case-insensitive) for known Toast POS job titles
+// NOTE: Generic "manager" is NOT included - only specific leadership roles
 const LEADERSHIP_HIERARCHY: Record<string, number> = {
   'gm (on bar)': 1,
   'gm': 1,
   'general manager': 1,
   'store manager': 1,
-  'manager': 1,
   'team leader': 2,
   'team lead': 2,
   'shift lead': 2,
   'shift leader': 2,
   'shift manager': 2,
+  'supervisor': 2,
 };
 
 // Canonical display names for exact-matched roles
@@ -25,24 +26,33 @@ const LEADERSHIP_DISPLAY_NAMES: Record<string, string> = {
   'gm': 'GM',
   'general manager': 'General Manager',
   'store manager': 'Store Manager',
-  'manager': 'Manager',
   'team leader': 'Team Leader',
   'team lead': 'Team Lead',
   'shift lead': 'Shift Lead',
   'shift leader': 'Shift Leader',
   'shift manager': 'Shift Manager',
+  'supervisor': 'Supervisor',
 };
 
 // Regex fallback patterns for catching Toast job titles that don't exactly match
-// e.g. "Team Leader - Bar", "Shift Lead (Morning)", "GM on Bar", "Assistant Manager"
+// e.g. "Team Leader - Bar", "Shift Lead (Morning)", "GM on Bar"
+// NOTE: Generic "manager" is NOT included - only specific leadership roles
 const LEADERSHIP_PATTERNS: { pattern: RegExp; priority: number; displayName: string }[] = [
   { pattern: /\bgm\b/i, priority: 1, displayName: 'GM' },
   { pattern: /\bgeneral\s*manager\b/i, priority: 1, displayName: 'General Manager' },
   { pattern: /\bstore\s*manager\b/i, priority: 1, displayName: 'Store Manager' },
-  { pattern: /\bmanager\b/i, priority: 1, displayName: 'Manager' },
   { pattern: /\b(team|shift)\s*(leader|lead)\b/i, priority: 2, displayName: 'Team Leader' },
   { pattern: /\bshift\s*manager\b/i, priority: 2, displayName: 'Shift Manager' },
   { pattern: /\bsupervisor\b/i, priority: 2, displayName: 'Supervisor' },
+];
+
+// Job titles to explicitly exclude (even if they partially match patterns above)
+const EXCLUDED_TITLE_PATTERNS: RegExp[] = [
+  /\bbarista\b/i,
+  /\btrainer\b/i,
+  /\bfoh\b/i,           // Front of House
+  /\bboh\b/i,           // Back of House
+  /\binventory\b/i,
 ];
 
 interface LeaderInfo {
@@ -68,6 +78,12 @@ export function detectLeaders(clockedIn: ToastTimeEntry[], allUsers: User[]): Le
 
   clockedIn.forEach(entry => {
     const jobTitleNormalized = entry.jobName.toLowerCase().trim();
+
+    // Check if explicitly excluded first (e.g., "Barista", "Trainer", "Inventory Manager")
+    if (EXCLUDED_TITLE_PATTERNS.some(pattern => pattern.test(entry.jobName))) {
+      console.log(`[LeaderDetect] Excluded title: "${entry.jobName}" for ${entry.employeeName}`);
+      return; // Skip this entry
+    }
 
     // 1) Try exact match first
     let priority = LEADERSHIP_HIERARCHY[jobTitleNormalized];

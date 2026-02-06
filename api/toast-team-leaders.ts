@@ -53,19 +53,36 @@ async function getAuthToken(): Promise<string> {
   return token;
 }
 
-// Leadership job title patterns
+// Leadership job title patterns - specific roles only, not generic "manager"
 const LEADERSHIP_PATTERNS = [
-  /\bgm\b/i,
-  /\bgeneral\s*manager\b/i,
-  /\bstore\s*manager\b/i,
-  /\bmanager\b/i,
-  /\b(team|shift)\s*(leader|lead)\b/i,
-  /\bshift\s*manager\b/i,
-  /\bsupervisor\b/i,
+  /\bgm\b/i,                           // GM, GM (on bar)
+  /\bgeneral\s*manager\b/i,            // General Manager
+  /\bstore\s*manager\b/i,              // Store Manager
+  /\b(team|shift)\s*(leader|lead)\b/i, // Team Leader, Shift Lead, etc.
+  /\bshift\s*manager\b/i,              // Shift Manager (specific role)
+  /\bsupervisor\b/i,                   // Supervisor
+];
+
+// Job titles to explicitly exclude (even if they match patterns above)
+const EXCLUDED_TITLES = [
+  /\bbarista\b/i,
+  /\btrainer\b/i,
+  /\bfoh\b/i,           // Front of House
+  /\bboh\b/i,           // Back of House
+  /\binventory\b/i,
 ];
 
 function isLeadershipTitle(jobTitle: string): boolean {
-  return LEADERSHIP_PATTERNS.some(pattern => pattern.test(jobTitle));
+  // Check if explicitly excluded
+  if (EXCLUDED_TITLES.some(pattern => pattern.test(jobTitle))) {
+    return false;
+  }
+  // Check if matches leadership pattern
+  const isLeader = LEADERSHIP_PATTERNS.some(pattern => pattern.test(jobTitle));
+  if (isLeader) {
+    console.log(`[TeamLeaders] Matched leadership title: "${jobTitle}"`);
+  }
+  return isLeader;
 }
 
 interface TeamLeader {
