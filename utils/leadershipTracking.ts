@@ -320,12 +320,43 @@ export function calculateLeaderboard(
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - lookbackDays);
 
-  // Get all team leaders/managers (users with MANAGER or ADMIN role)
-  const teamLeaders = allUsers.filter(u =>
-    u.role === UserRole.MANAGER || u.role === UserRole.ADMIN
+  // Filter attributed orders to lookback period
+  const recentOrders = attributedOrders.filter(o =>
+    new Date(o.openedAt) >= cutoff
   );
 
-  console.log(`[Leaderboard] Found ${teamLeaders.length} team leaders/managers:`, teamLeaders.map(u => u.name).join(', '));
+  // Build team leaders list from multiple sources:
+  // 1. Users with MANAGER or ADMIN role
+  // 2. Users who have attributed orders (they were shift leaders based on Toast job title)
+  // 3. Unknown shift leaders (Toast employees not yet in user database)
+  const teamLeaderMap = new Map<string, { id: string; name: string; storeId?: string }>();
+
+  // Add users with MANAGER/ADMIN role
+  allUsers.filter(u => u.role === UserRole.MANAGER || u.role === UserRole.ADMIN)
+    .forEach(u => teamLeaderMap.set(u.id, { id: u.id, name: u.name, storeId: u.storeId }));
+
+  // Add users who have attributed orders (shift leaders from Toast)
+  recentOrders.forEach(order => {
+    if (!teamLeaderMap.has(order.shiftLeaderId)) {
+      // Try to find user by ID
+      const user = allUsers.find(u => u.id === order.shiftLeaderId);
+      if (user) {
+        teamLeaderMap.set(user.id, { id: user.id, name: user.name, storeId: user.storeId });
+      } else if (order.shiftLeaderId.startsWith('unknown-')) {
+        // This is a Toast employee not in our user database - show them anyway
+        teamLeaderMap.set(order.shiftLeaderId, {
+          id: order.shiftLeaderId,
+          name: order.shiftLeaderName,
+          storeId: order.storeId
+        });
+      }
+    }
+  });
+
+  const teamLeaders = Array.from(teamLeaderMap.values());
+
+  console.log(`[Leaderboard] Found ${teamLeaders.length} team leaders:`, teamLeaders.map(u => u.name).join(', '));
+  console.log(`[Leaderboard] Using ${recentOrders.length} attributed orders for metrics`);
 
   // Filter to recent submissions
   const recentSubmissions = submissions.filter(sub =>
@@ -333,13 +364,6 @@ export function calculateLeaderboard(
   );
 
   console.log(`[Leaderboard] Found ${recentSubmissions.length} submissions in last ${lookbackDays} days`);
-
-  // Filter attributed orders to lookback period
-  const recentOrders = attributedOrders.filter(o =>
-    new Date(o.openedAt) >= cutoff
-  );
-
-  console.log(`[Leaderboard] Using ${recentOrders.length} attributed orders for metrics`);
 
   // Build leaderboard entries for ALL team leaders
   const entries: LeaderLeaderboardEntry[] = teamLeaders.map(leader => {
