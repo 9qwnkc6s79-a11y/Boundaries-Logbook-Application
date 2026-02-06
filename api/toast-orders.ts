@@ -115,8 +115,8 @@ async function getClosedOrders(
           const closedTime = new Date(closedAt).getTime();
           const turnTimeMinutes = (closedTime - openedTime) / 1000 / 60;
 
-          // Skip invalid turn times (negative or extremely long)
-          if (turnTimeMinutes < 0 || turnTimeMinutes > 180) continue;
+          // Skip invalid turn times (negative or outliers > 15 min which are likely technical errors)
+          if (turnTimeMinutes < 0 || turnTimeMinutes > 15) continue;
 
           allOrders.push({
             id: order.guid,
