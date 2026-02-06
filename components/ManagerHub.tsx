@@ -117,6 +117,13 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
   const [attributionSyncing, setAttributionSyncing] = useState(false);
   const [lastAttributionSync, setLastAttributionSync] = useState<string | null>(null);
 
+  // Pull-to-refresh state
+  const [pullDistance, setPullDistance] = useState(0);
+  const [isPulling, setIsPulling] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const pullStartY = React.useRef(0);
+  const PULL_THRESHOLD = 80;
+
   // Toast Team Leaders (employees with leadership job titles)
   const [toastTeamLeaders, setToastTeamLeaders] = useState<{ id: string; name: string; jobTitle: string; toastGuid: string }[]>([]);
 
@@ -802,6 +809,71 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
       clearInterval(interval);
     };
   }, [currentStoreId]);
+
+  // Pull-to-refresh: Refresh all leaderboard data
+  const refreshAllData = async () => {
+    if (isRefreshing || attributionSyncing) return;
+    setIsRefreshing(true);
+    console.log('[Refresh] Starting full data refresh...');
+
+    try {
+      // Sync order attributions
+      await syncOrderAttribution();
+
+      // Fetch fresh team leaders
+      const location = currentStoreId === 'store-prosper' ? 'prosper' : 'littleelm';
+      const response = await fetch(`/api/toast-team-leaders?location=${location}&days=30`);
+      if (response.ok) {
+        const data = await response.json();
+        const leaders = (data.teamLeaders || []).map((leader: any) => {
+          const user = allUsers.find(u =>
+            u.toastEmployeeGuid === leader.guid ||
+            u.name.toLowerCase() === leader.name.toLowerCase()
+          );
+          return {
+            id: user?.id || `toast-${leader.guid}`,
+            name: leader.name,
+            jobTitle: leader.jobTitle,
+            toastGuid: leader.guid,
+          };
+        });
+        setToastTeamLeaders(leaders);
+      }
+
+      console.log('[Refresh] Data refresh complete');
+    } catch (error) {
+      console.error('[Refresh] Error refreshing data:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  // Pull-to-refresh touch handlers
+  const handleTouchStart = (e: React.TouchEvent) => {
+    // Only enable pull-to-refresh when scrolled to top
+    const scrollTop = (e.target as HTMLElement).closest('.overflow-y-auto')?.scrollTop || 0;
+    if (scrollTop <= 0) {
+      pullStartY.current = e.touches[0].clientY;
+      setIsPulling(true);
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isPulling) return;
+    const currentY = e.touches[0].clientY;
+    const distance = Math.max(0, Math.min(currentY - pullStartY.current, PULL_THRESHOLD * 1.5));
+    setPullDistance(distance);
+  };
+
+  const handleTouchEnd = async () => {
+    if (!isPulling) return;
+    setIsPulling(false);
+
+    if (pullDistance >= PULL_THRESHOLD) {
+      await refreshAllData();
+    }
+    setPullDistance(0);
+  };
 
   // Fetch ALL team leaders from historical labor data (past 30 days)
   useEffect(() => {
@@ -1906,19 +1978,38 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
             </section>
 
             {/* Team Leader Leaderboard */}
-            <section className="bg-white p-4 md:p-6 rounded-xl border border-neutral-100 shadow-sm">
+            <section
+              className="bg-white p-4 md:p-6 rounded-xl border border-neutral-100 shadow-sm relative"
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+            >
+              {/* Pull-to-refresh indicator */}
+              {(pullDistance > 0 || isRefreshing) && (
+                <div
+                  className="absolute left-0 right-0 flex items-center justify-center transition-all overflow-hidden"
+                  style={{ top: -40, height: pullDistance > 0 ? pullDistance : 40 }}
+                >
+                  <div className={`flex items-center gap-2 text-blue-600 ${isRefreshing ? 'animate-pulse' : ''}`}>
+                    <RefreshCw size={16} className={isRefreshing || pullDistance >= PULL_THRESHOLD ? 'animate-spin' : ''} />
+                    <span className="text-[10px] font-bold uppercase tracking-wide">
+                      {isRefreshing ? 'Refreshing...' : pullDistance >= PULL_THRESHOLD ? 'Release to refresh' : 'Pull to refresh'}
+                    </span>
+                  </div>
+                </div>
+              )}
               <div className="flex items-center gap-3 mb-4 md:mb-6">
                 <div className="p-2 bg-amber-50 text-amber-600 rounded-xl"><Trophy size={20} /></div>
                 <h2 className="text-lg md:text-xl font-black text-[#0F2B3C] uppercase tracking-tight">Team Leader Leaderboard</h2>
                 <div className="flex items-center gap-2 ml-auto">
                   <button
-                    onClick={() => syncOrderAttribution()}
-                    disabled={attributionSyncing}
+                    onClick={() => refreshAllData()}
+                    disabled={attributionSyncing || isRefreshing}
                     className="text-[9px] font-bold uppercase tracking-wide text-blue-600 hover:text-blue-700 disabled:text-neutral-400 flex items-center gap-1"
                     title={lastAttributionSync ? `Last synced: ${new Date(lastAttributionSync).toLocaleTimeString()}` : 'Not yet synced'}
                   >
-                    <RefreshCw size={12} className={attributionSyncing ? 'animate-spin' : ''} />
-                    {attributionSyncing ? 'Syncing...' : 'Sync'}
+                    <RefreshCw size={12} className={(attributionSyncing || isRefreshing) ? 'animate-spin' : ''} />
+                    {(attributionSyncing || isRefreshing) ? 'Syncing...' : 'Sync'}
                   </button>
                   <span className="text-[9px] font-black text-neutral-400 uppercase tracking-widest">MTD</span>
                 </div>
