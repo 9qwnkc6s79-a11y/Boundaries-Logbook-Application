@@ -673,6 +673,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
   }, [currentStoreId]); // Re-fetch when campus changes
 
   // Google Reviews: process and attribute new reviews to shift leaders
+  // Attribution is based on who was on duty when the review was POSTED (not detected)
   const processGoogleReviews = async () => {
     const location = currentStoreId === 'store-prosper' ? 'prosper' : 'littleelm';
     try {
@@ -699,13 +700,61 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
 
       console.log(`[Reviews] Found ${newReviews.length} new review(s) for ${location}`);
 
-      const leaders = detectLeaders(toastClockedIn, allUsers);
-      const primaryLeader = leaders.length > 0 ? leaders[0] : null;
+      // Process each review and attribute based on publishTime
+      const trackedNew: TrackedGoogleReview[] = [];
 
-      const trackedNew: TrackedGoogleReview[] = newReviews.map((r: GoogleReview) => {
+      for (const r of newReviews) {
         const isFiveStar = r.rating === 5;
-        const hasLeader = primaryLeader !== null;
-        return {
+        let attributedToUserId: string | null = null;
+        let attributedToName: string | null = null;
+
+        // Try to find who was on duty when the review was posted
+        if (r.publishTime) {
+          try {
+            const reviewDate = new Date(r.publishTime);
+            // Only look up labor data if the date is valid and within last 30 days
+            const daysSinceReview = (Date.now() - reviewDate.getTime()) / (1000 * 60 * 60 * 24);
+
+            if (!isNaN(reviewDate.getTime()) && daysSinceReview <= 30) {
+              const dateStr = getLocalStr(reviewDate);
+              console.log(`[Reviews] Looking up shift leader for review posted ${dateStr}`);
+
+              // Fetch labor data for that date
+              const laborResponse = await fetch(`/api/toast-labor?location=${location}&startDate=${dateStr}&endDate=${dateStr}`);
+
+              if (laborResponse.ok) {
+                const laborData = await laborResponse.json();
+                const timeEntries: ToastTimeEntry[] = laborData.timeEntries || [];
+
+                // Find who was clocked in at the review time
+                const reviewTime = reviewDate.getTime();
+                const clockedInAtReview = timeEntries.filter(entry => {
+                  if (!entry.inDate) return false;
+                  const inMs = new Date(entry.inDate).getTime();
+                  const outMs = entry.outDate ? new Date(entry.outDate).getTime() : Date.now();
+                  return inMs <= reviewTime && reviewTime <= outMs;
+                });
+
+                // Find shift leaders from those clocked in
+                const leaders = detectLeaders(clockedInAtReview, allUsers);
+                if (leaders.length > 0) {
+                  attributedToUserId = leaders[0].userId;
+                  attributedToName = leaders[0].name;
+                  console.log(`[Reviews] Attributed to ${attributedToName} (on duty at ${r.publishTime})`);
+                } else {
+                  console.log(`[Reviews] No shift leader found on duty at ${r.publishTime}`);
+                }
+              }
+            } else {
+              console.log(`[Reviews] Review date too old or invalid: ${r.publishTime}`);
+            }
+          } catch (err) {
+            console.warn(`[Reviews] Failed to look up labor for review:`, err);
+          }
+        }
+
+        const hasLeader = attributedToUserId !== null;
+        trackedNew.push({
           id: `${r.authorName}::${r.publishTime}`,
           storeId: currentStoreId,
           location,
@@ -714,12 +763,12 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
           text: r.text,
           publishTime: r.publishTime,
           detectedAt: new Date().toISOString(),
-          attributedToUserId: hasLeader ? primaryLeader.userId : null,
-          attributedToName: hasLeader ? primaryLeader.name : null,
+          attributedToUserId,
+          attributedToName,
           bonusAwarded: isFiveStar && hasLeader,
           bonusPoints: (isFiveStar && hasLeader) ? 25 : 0,
-        };
-      });
+        });
+      }
 
       stored.trackedReviews = [...trackedNew, ...stored.trackedReviews];
       await db.pushGoogleReviews(stored);
