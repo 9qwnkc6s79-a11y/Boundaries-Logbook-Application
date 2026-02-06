@@ -555,11 +555,11 @@ export function calculateLeaderboard(
   });
 
   // Sort by effective score descending, then by name for ties
-  // Leaders with no shifts go to the bottom but are still shown
+  // Leaders with 0 attributed orders go to the bottom
   return entries.sort((a, b) => {
-    // First sort by whether they have any shifts (leaders with shifts first)
-    if (a.totalShifts > 0 && b.totalShifts === 0) return -1;
-    if (a.totalShifts === 0 && b.totalShifts > 0) return 1;
+    // First sort by whether they have any attributed orders (leaders with orders first)
+    if (a.orderCount > 0 && b.orderCount === 0) return -1;
+    if (a.orderCount === 0 && b.orderCount > 0) return 1;
     // Then by effective score
     if (b.effectiveScore !== a.effectiveScore) return b.effectiveScore - a.effectiveScore;
     // Then alphabetically by name
