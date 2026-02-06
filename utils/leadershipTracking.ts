@@ -376,17 +376,23 @@ export function calculateLeaderboard(
       if (user) {
         teamLeaderMap.set(user.id, { id: user.id, name: user.name, storeId: user.storeId });
       } else if (order.shiftLeaderId.startsWith('unknown-')) {
-        // This is a Toast employee not in our user database - show them anyway
-        teamLeaderMap.set(order.shiftLeaderId, {
-          id: order.shiftLeaderId,
-          name: order.shiftLeaderName,
-          storeId: order.storeId
-        });
+        // This is a Toast employee not in our user database
+        // Only add if we have a valid name (not "Unknown")
+        const name = order.shiftLeaderName;
+        if (name && name !== 'Unknown' && !name.toLowerCase().includes('unknown')) {
+          teamLeaderMap.set(order.shiftLeaderId, {
+            id: order.shiftLeaderId,
+            name: name,
+            storeId: order.storeId
+          });
+        }
       }
     }
   });
 
-  const teamLeaders = Array.from(teamLeaderMap.values());
+  // Filter out any entries with "Unknown" names
+  const teamLeaders = Array.from(teamLeaderMap.values())
+    .filter(leader => leader.name && leader.name !== 'Unknown' && !leader.name.toLowerCase().includes('unknown'));
 
   console.log(`[Leaderboard] Found ${teamLeaders.length} team leaders:`, teamLeaders.map(u => u.name).join(', '));
   console.log(`[Leaderboard] Using ${recentOrders.length} attributed orders for metrics`);

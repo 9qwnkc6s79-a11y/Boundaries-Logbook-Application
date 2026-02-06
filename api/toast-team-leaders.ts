@@ -97,11 +97,51 @@ async function fetchJobsMap(token: string, restaurantGuid: string): Promise<Map<
   return jobMap;
 }
 
+async function fetchEmployeesMap(token: string, restaurantGuid: string): Promise<Map<string, string>> {
+  const employeeMap = new Map<string, string>();
+  try {
+    const response = await fetch(`${TOAST_API}/labor/v1/employees`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Toast-Restaurant-External-ID': restaurantGuid,
+      },
+    });
+    if (response.ok) {
+      const data = await response.json();
+      const employees = Array.isArray(data) ? data : (data.employees || []);
+      employees.forEach((emp: any) => {
+        const guid = emp.guid || emp.id;
+        if (!guid) return;
+
+        let name = 'Unknown';
+        if (emp.chosenName) {
+          name = emp.chosenName;
+        } else if (emp.firstName && emp.lastName) {
+          name = `${emp.firstName} ${emp.lastName}`;
+        } else if (emp.firstName) {
+          name = emp.firstName;
+        } else if (emp.externalEmployeeId) {
+          name = emp.externalEmployeeId;
+        }
+
+        if (name !== 'Unknown') {
+          employeeMap.set(guid, name);
+        }
+      });
+      console.log(`[TeamLeaders] Fetched ${employeeMap.size} employees for name resolution`);
+    }
+  } catch (e) {
+    console.warn('[TeamLeaders] Failed to fetch employees:', e);
+  }
+  return employeeMap;
+}
+
 async function fetchLaborForDate(
   token: string,
   restaurantGuid: string,
   date: string,
-  jobMap: Map<string, string>
+  jobMap: Map<string, string>,
+  employeeMap: Map<string, string>
 ): Promise<{ guid: string; name: string; jobTitle: string }[]> {
   const businessDate = date.replace(/-/g, '');
 
@@ -131,18 +171,27 @@ async function fetchLaborForDate(
       const employeeGuid = entry.employeeReference?.guid || entry.employee?.guid || '';
       if (!employeeGuid) return;
 
-      // Get employee name
-      let name = 'Unknown';
-      if (entry.employee?.chosenName) {
-        name = entry.employee.chosenName;
-      } else if (entry.employee?.firstName) {
-        name = entry.employee.lastName
-          ? `${entry.employee.firstName} ${entry.employee.lastName}`
-          : entry.employee.firstName;
-      } else if (entry.employeeReference?.firstName) {
-        name = entry.employeeReference.lastName
-          ? `${entry.employeeReference.firstName} ${entry.employeeReference.lastName}`
-          : entry.employeeReference.firstName;
+      // Get employee name - first try employee map (most reliable)
+      let name = employeeMap.get(employeeGuid) || '';
+
+      // Fallback to entry data if not in map
+      if (!name) {
+        if (entry.employee?.chosenName) {
+          name = entry.employee.chosenName;
+        } else if (entry.employee?.firstName) {
+          name = entry.employee.lastName
+            ? `${entry.employee.firstName} ${entry.employee.lastName}`
+            : entry.employee.firstName;
+        } else if (entry.employeeReference?.firstName) {
+          name = entry.employeeReference.lastName
+            ? `${entry.employeeReference.firstName} ${entry.employeeReference.lastName}`
+            : entry.employeeReference.firstName;
+        }
+      }
+
+      // Skip if we still can't resolve the name
+      if (!name || name === 'Unknown') {
+        return;
       }
 
       // Get job title
@@ -193,7 +242,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const token = await getAuthToken();
-    const jobMap = await fetchJobsMap(token, restaurantGuid);
+
+    // Fetch jobs and employees maps in parallel for name resolution
+    const [jobMap, employeeMap] = await Promise.all([
+      fetchJobsMap(token, restaurantGuid),
+      fetchEmployeesMap(token, restaurantGuid),
+    ]);
 
     // Generate dates for the past N days
     const dates: string[] = [];
@@ -211,7 +265,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     for (let i = 0; i < dates.length; i += batchSize) {
       const batch = dates.slice(i, i + batchSize);
       const results = await Promise.all(
-        batch.map(date => fetchLaborForDate(token, restaurantGuid, date, jobMap))
+        batch.map(date => fetchLaborForDate(token, restaurantGuid, date, jobMap, employeeMap))
       );
 
       results.forEach((leaders, idx) => {
