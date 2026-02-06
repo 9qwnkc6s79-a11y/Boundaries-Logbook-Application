@@ -179,8 +179,16 @@ export default async function handler(
     // Labor API uses businessDate format (YYYYMMDD)
     const businessDate = startDateStr.replace(/-/g, '');
 
+    // Check if this is today's date - if so, include open entries
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}${String(today.getDate()).padStart(2, '0')}`;
+    const isToday = businessDate === todayStr;
+
     // Fetch labor data + employees + jobs in parallel for speed
-    const laborUrl = `https://ws-api.toasttab.com/labor/v1/timeEntries?businessDate=${businessDate}&open=true`;
+    // Use open=true for today to include currently clocked-in staff, omit for historical dates
+    const laborUrl = isToday
+      ? `https://ws-api.toasttab.com/labor/v1/timeEntries?businessDate=${businessDate}&open=true`
+      : `https://ws-api.toasttab.com/labor/v1/timeEntries?businessDate=${businessDate}`;
 
     const [laborResponse, employeeMap, jobMap] = await Promise.all([
       fetch(laborUrl, {
