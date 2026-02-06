@@ -2,7 +2,7 @@
  * Team Leader Performance & Accountability Utilities
  */
 
-import { ToastTimeEntry, User, ShiftOwnership, ChecklistTemplate, ChecklistSubmission, TrackedGoogleReview, UserRole } from '../types';
+import { ToastTimeEntry, User, ShiftOwnership, ChecklistTemplate, ChecklistSubmission, TrackedGoogleReview, UserRole, AttributedOrder } from '../types';
 
 // Leadership hierarchy - lower number = higher priority
 // Exact match dictionary (case-insensitive) for known Toast POS job titles
@@ -301,19 +301,21 @@ export interface LeaderLeaderboardEntry {
  * Shows ALL users with MANAGER or ADMIN roles, ranked by their performance
  * over the last 30 days based on:
  * - Timeliness: How on-time their shift checklists were submitted
- * - Turn Time: Average ticket turn time from Toast POS data
- * - Avg Ticket: Average check amount from Toast POS data
+ * - Turn Time: Average ticket turn time from attributed orders
+ * - Avg Ticket: Average check amount from attributed orders
  * - Reviews: Bonus points from attributed 5-star Google reviews
  *
- * Performance is calculated from submissions where the user completed tasks,
- * not just submissions they finalized.
+ * When attributedOrders are provided, turn time and avg ticket are calculated
+ * from orders attributed to each leader (orders opened while they were on duty).
+ * When not provided, falls back to Toast snapshot data from submissions.
  */
 export function calculateLeaderboard(
   submissions: ChecklistSubmission[],
   templates: ChecklistTemplate[],
   allUsers: User[],
   lookbackDays: number = 30,
-  trackedReviews: TrackedGoogleReview[] = []
+  trackedReviews: TrackedGoogleReview[] = [],
+  attributedOrders: AttributedOrder[] = []
 ): LeaderLeaderboardEntry[] {
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - lookbackDays);
@@ -332,6 +334,13 @@ export function calculateLeaderboard(
 
   console.log(`[Leaderboard] Found ${recentSubmissions.length} submissions in last ${lookbackDays} days`);
 
+  // Filter attributed orders to lookback period
+  const recentOrders = attributedOrders.filter(o =>
+    new Date(o.openedAt) >= cutoff
+  );
+
+  console.log(`[Leaderboard] Using ${recentOrders.length} attributed orders for metrics`);
+
   // Build leaderboard entries for ALL team leaders
   const entries: LeaderLeaderboardEntry[] = teamLeaders.map(leader => {
     // Find submissions where this leader completed tasks
@@ -339,6 +348,22 @@ export function calculateLeaderboard(
       const taskResults = sub.taskResults || [];
       return taskResults.some(tr => tr.completed && tr.completedByUserId === leader.id);
     });
+
+    // Get orders attributed to this leader
+    const leaderOrders = recentOrders.filter(o => o.shiftLeaderId === leader.id);
+    const hasOrderData = leaderOrders.length > 0;
+
+    // Calculate turn time and avg ticket from attributed orders
+    let orderTurnTime: number | undefined;
+    let orderAvgTicket: number | undefined;
+
+    if (hasOrderData) {
+      const totalTurnTime = leaderOrders.reduce((sum, o) => sum + o.turnTimeMinutes, 0);
+      const totalNetAmount = leaderOrders.reduce((sum, o) => sum + o.netAmount, 0);
+      orderTurnTime = totalTurnTime / leaderOrders.length;
+      orderAvgTicket = totalNetAmount / leaderOrders.length;
+      console.log(`[Leaderboard] ${leader.name}: ${leaderOrders.length} orders, avgTurnTime=${orderTurnTime.toFixed(2)}min, avgTicket=$${orderAvgTicket.toFixed(2)}`);
+    }
 
     // Calculate shift scores
     const shifts: LeaderShiftScore[] = [];
@@ -354,10 +379,10 @@ export function calculateLeaderboard(
       const delayMinutes = Math.floor((submittedDate.getTime() - deadline.getTime()) / 60000);
       const timelinessScore = calculateTimelinessScore(delayMinutes, true);
 
-      // Get Toast data from snapshot
-      const hasToastData = !!(sub.toastSnapshot?.averageTurnTime || sub.toastSnapshot?.averageCheck);
-      const turnTimeMinutes = sub.toastSnapshot?.averageTurnTime;
-      const avgTicketDollars = sub.toastSnapshot?.averageCheck;
+      // Use attributed order data if available, otherwise fall back to snapshot
+      const hasToastData = hasOrderData || !!(sub.toastSnapshot?.averageTurnTime || sub.toastSnapshot?.averageCheck);
+      const turnTimeMinutes = hasOrderData ? orderTurnTime : sub.toastSnapshot?.averageTurnTime;
+      const avgTicketDollars = hasOrderData ? orderAvgTicket : sub.toastSnapshot?.averageCheck;
       const turnTimeScore = hasToastData ? calculateTurnTimeScore(turnTimeMinutes) : 0;
       const avgTicketScore = hasToastData ? calculateAvgTicketScore(avgTicketDollars) : 0;
 
@@ -380,36 +405,52 @@ export function calculateLeaderboard(
 
     // Calculate aggregated metrics
     const totalShifts = shifts.length;
-    const shiftsWithToastData = shifts.filter(s => s.hasToastData).length;
+    const shiftsWithToastData = hasOrderData ? totalShifts : shifts.filter(s => s.hasToastData).length;
 
-    // Average scores (default to 0 if no shifts)
+    // Average timeliness (default to 0 if no shifts)
     const avgTimeliness = totalShifts > 0
       ? shifts.reduce((sum, s) => sum + s.timelinessScore, 0) / totalShifts
       : 0;
 
-    const toastShifts = shifts.filter(s => s.hasToastData);
-    const avgTurnTimeScore = toastShifts.length > 0
-      ? toastShifts.reduce((sum, s) => sum + s.turnTimeScore, 0) / toastShifts.length
-      : 0;
-    const avgTicketScore = toastShifts.length > 0
-      ? toastShifts.reduce((sum, s) => sum + s.avgTicketScore, 0) / toastShifts.length
-      : 0;
+    // Use attributed order data for turn time and avg ticket
+    let avgTurnTimeScore = 0;
+    let avgTicketScore = 0;
+    let avgTurnTimeMinutes: number | undefined;
+    let avgTicketDollars: number | undefined;
 
-    // Calculate actual average values
-    const shiftsWithTurnTime = toastShifts.filter(s => s.turnTimeMinutes !== undefined);
-    const avgTurnTimeMinutes = shiftsWithTurnTime.length > 0
-      ? shiftsWithTurnTime.reduce((sum, s) => sum + s.turnTimeMinutes!, 0) / shiftsWithTurnTime.length
-      : undefined;
+    if (hasOrderData) {
+      // Calculate from attributed orders directly
+      avgTurnTimeMinutes = orderTurnTime;
+      avgTicketDollars = orderAvgTicket;
+      avgTurnTimeScore = calculateTurnTimeScore(orderTurnTime);
+      avgTicketScore = calculateAvgTicketScore(orderAvgTicket);
+    } else {
+      // Fall back to snapshot data from shifts
+      const toastShifts = shifts.filter(s => s.hasToastData);
+      avgTurnTimeScore = toastShifts.length > 0
+        ? toastShifts.reduce((sum, s) => sum + s.turnTimeScore, 0) / toastShifts.length
+        : 0;
+      avgTicketScore = toastShifts.length > 0
+        ? toastShifts.reduce((sum, s) => sum + s.avgTicketScore, 0) / toastShifts.length
+        : 0;
 
-    const shiftsWithAvgTicket = toastShifts.filter(s => s.avgTicketDollars !== undefined);
-    const avgTicketDollars = shiftsWithAvgTicket.length > 0
-      ? shiftsWithAvgTicket.reduce((sum, s) => sum + s.avgTicketDollars!, 0) / shiftsWithAvgTicket.length
-      : undefined;
+      const shiftsWithTurnTime = toastShifts.filter(s => s.turnTimeMinutes !== undefined);
+      avgTurnTimeMinutes = shiftsWithTurnTime.length > 0
+        ? shiftsWithTurnTime.reduce((sum, s) => sum + s.turnTimeMinutes!, 0) / shiftsWithTurnTime.length
+        : undefined;
+
+      const shiftsWithAvgTicket = toastShifts.filter(s => s.avgTicketDollars !== undefined);
+      avgTicketDollars = shiftsWithAvgTicket.length > 0
+        ? shiftsWithAvgTicket.reduce((sum, s) => sum + s.avgTicketDollars!, 0) / shiftsWithAvgTicket.length
+        : undefined;
+    }
 
     // Composite score as percentage
-    const totalScoreSum = shifts.reduce((sum, s) => sum + s.totalScore, 0);
-    const totalMaxSum = shifts.reduce((sum, s) => sum + s.maxPossible, 0);
-    const compositePercent = totalMaxSum > 0 ? (totalScoreSum / totalMaxSum) * 100 : 0;
+    // New scoring: Timeliness (40) + Turn Time (40) + Avg Ticket (25) = 105 max
+    const hasData = totalShifts > 0 || hasOrderData;
+    const maxPossible = hasOrderData ? 105 : (totalShifts > 0 ? 40 : 0);
+    const totalScore = avgTimeliness + avgTurnTimeScore + avgTicketScore;
+    const compositePercent = maxPossible > 0 ? (totalScore / maxPossible) * 100 : 0;
 
     // On-time rate
     const onTimeShifts = shifts.filter(s => s.timelinessScore === 40).length;

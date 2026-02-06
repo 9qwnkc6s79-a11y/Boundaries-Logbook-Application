@@ -394,6 +394,60 @@ export interface TeamLeaderPerformance {
   trend: 'UP' | 'DOWN' | 'STABLE'; // Compared to last period
 }
 
+// Order Attribution - tracks which shift leader each order belongs to
+export interface AttributedOrder {
+  id: string; // Toast order GUID
+  storeId: string;
+
+  // Order details from Toast
+  orderNumber: string;
+  openedAt: string; // ISO timestamp when order was opened
+  closedAt: string; // ISO timestamp when order was closed
+
+  // Metrics
+  netAmount: number; // Net sales amount (pre-tax)
+  turnTimeMinutes: number; // Time from open to close in minutes
+  guestCount: number;
+
+  // Attribution
+  shiftLeaderId: string; // User ID of the team leader when order was opened
+  shiftLeaderName: string;
+  shiftLeaderToastGuid?: string; // Toast employee GUID for verification
+
+  // Metadata
+  attributedAt: string; // When this attribution was recorded
+  checkGuid?: string; // Toast check GUID for reference
+}
+
+// Aggregated metrics for a shift leader
+export interface ShiftLeaderMetrics {
+  userId: string;
+  name: string;
+  storeId: string;
+  periodStart: string;
+  periodEnd: string;
+
+  // Order metrics
+  totalOrders: number;
+  totalNetSales: number;
+  avgTicket: number;
+  avgTurnTime: number;
+  totalGuests: number;
+
+  // Timeliness (from checklist submissions)
+  checklistsSubmitted: number;
+  onTimeSubmissions: number;
+  lateSubmissions: number;
+  avgDelayMinutes: number;
+
+  // Scores
+  turnTimeScore: number; // 0-40
+  avgTicketScore: number; // 0-25
+  timelinessScore: number; // 0-40
+  reviewBonus: number; // From 5-star reviews
+  totalScore: number;
+}
+
 // Google Reviews Integration
 
 export interface GoogleReview {

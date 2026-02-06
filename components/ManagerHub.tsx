@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { User, ChecklistSubmission, ChecklistTemplate, ChecklistTask, UserRole, TrainingModule, UserProgress, ManualSection, Recipe, Store, ToastSalesData, ToastLaborEntry, ToastTimeEntry, CashDeposit, GoogleReview, TrackedGoogleReview, GoogleReviewsData, Organization } from '../types';
+import { User, ChecklistSubmission, ChecklistTemplate, ChecklistTask, UserRole, TrainingModule, UserProgress, ManualSection, Recipe, Store, ToastSalesData, ToastLaborEntry, ToastTimeEntry, CashDeposit, GoogleReview, TrackedGoogleReview, GoogleReviewsData, Organization, AttributedOrder } from '../types';
 import {
   CheckCircle2, AlertCircle, Eye, User as UserIcon, Calendar, Check, X,
   Sparkles, Settings, Plus, Trash2, Edit3, BarChart3, ListTodo, BrainCircuit, Clock, TrendingDown, TrendingUp,
@@ -10,6 +10,7 @@ import { GoogleGenAI } from "@google/genai";
 import { toastAPI } from '../services/toast';
 import { db } from '../services/db';
 import { detectLeaders, calculateTimelinessScore, calculateTurnTimeScore, calculateSalesScore, calculateAvgTicketScore, calculateLeaderboard, determineShiftOwnership } from '../utils/leadershipTracking';
+import { syncOrderAttributions } from '../utils/orderAttribution';
 import TeamManagement from './TeamManagement';
 
 interface ManagerHubProps {
@@ -110,6 +111,11 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
     ordersDiff: number;
     ordersPercent: number;
   } | null>(null);
+
+  // Order Attribution State
+  const [attributedOrders, setAttributedOrders] = useState<AttributedOrder[]>([]);
+  const [attributionSyncing, setAttributionSyncing] = useState(false);
+  const [lastAttributionSync, setLastAttributionSync] = useState<string | null>(null);
 
   const currentStoreName = useMemo(() => stores.find(s => s.id === currentStoreId)?.name || 'Unknown Store', [currentStoreId, stores]);
 
@@ -724,6 +730,65 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
     }, 10000); // Wait 10s for Toast data to populate first
 
     const interval = setInterval(processGoogleReviews, 3 * 60 * 1000);
+
+    return () => {
+      clearTimeout(timeout);
+      clearInterval(interval);
+    };
+  }, [currentStoreId]);
+
+  // Order Attribution: sync orders and attribute to shift leaders
+  const syncOrderAttribution = async () => {
+    if (!toastAPI.isConfigured()) return;
+    if (attributionSyncing) return;
+
+    setAttributionSyncing(true);
+    const location = currentStoreId === 'store-prosper' ? 'prosper' : 'littleelm';
+
+    try {
+      // Sync last 30 days of orders
+      const endDate = getLocalStr(new Date());
+      const startDate = getLocalStr(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000));
+
+      console.log(`[OrderAttribution] Syncing orders for ${location}: ${startDate} to ${endDate}`);
+
+      const newOrders = await syncOrderAttributions(location, currentStoreId, startDate, endDate, allUsers);
+
+      if (newOrders.length > 0) {
+        // Save to database
+        const success = await db.pushAttributedOrders(newOrders);
+        if (success) {
+          console.log(`[OrderAttribution] Saved ${newOrders.length} attributed orders`);
+        }
+
+        // Reload from database to get merged results
+        const allOrders = await db.fetchAttributedOrders(currentStoreId);
+        setAttributedOrders(allOrders);
+      }
+
+      setLastAttributionSync(new Date().toISOString());
+    } catch (error: any) {
+      console.error('[OrderAttribution] Sync failed:', error);
+    } finally {
+      setAttributionSyncing(false);
+    }
+  };
+
+  // Order Attribution: load on mount, sync every 5 minutes
+  useEffect(() => {
+    // Load existing attributed orders from database
+    db.fetchAttributedOrders(currentStoreId).then(orders => {
+      setAttributedOrders(orders);
+      console.log(`[OrderAttribution] Loaded ${orders.length} existing orders for ${currentStoreId}`);
+    });
+
+    // Initial sync after Toast data loads
+    const timeout = setTimeout(() => {
+      syncOrderAttribution();
+    }, 15000); // Wait 15s for Toast data
+
+    // Periodic sync every 5 minutes
+    const interval = setInterval(syncOrderAttribution, 5 * 60 * 1000);
 
     return () => {
       clearTimeout(timeout);
@@ -1803,7 +1868,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
               </div>
 
               {(() => {
-                const leaderboard = calculateLeaderboard(submissions, templates, allUsers, 30, googleReviewsData.trackedReviews);
+                const leaderboard = calculateLeaderboard(submissions, templates, allUsers, 30, googleReviewsData.trackedReviews, attributedOrders);
 
                 if (leaderboard.length === 0) {
                   return (

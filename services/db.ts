@@ -1,6 +1,6 @@
 
 // No imports needed - Firebase is loaded globally via CDN script tags in index.html
-import { User, UserProgress, ChecklistSubmission, ChecklistTemplate, TrainingModule, ManualSection, Recipe, CashDeposit, GoogleReviewsData, Organization, Store } from '../types';
+import { User, UserProgress, ChecklistSubmission, ChecklistTemplate, TrainingModule, ManualSection, Recipe, CashDeposit, GoogleReviewsData, Organization, Store, AttributedOrder } from '../types';
 
 declare const firebase: any;
 
@@ -51,6 +51,7 @@ const DOC_KEYS = {
   RECIPES: 'recipes',
   DEPOSITS: 'deposits',
   GOOGLE_REVIEWS: 'googleReviews',
+  ATTRIBUTED_ORDERS: 'attributedOrders',
 };
 
 function removeUndefined(obj: any): any {
@@ -546,6 +547,71 @@ class CloudAPI {
     const uniqueMap = new Map(data.trackedReviews.map(r => [r.id, r]));
     data.trackedReviews = Array.from(uniqueMap.values());
     return this.remoteSet(DOC_KEYS.GOOGLE_REVIEWS, data);
+  }
+
+  // ── Order Attribution ──
+
+  async fetchAttributedOrders(storeId?: string, startDate?: string, endDate?: string): Promise<AttributedOrder[]> {
+    const allOrders = await this.remoteGet<AttributedOrder[]>(DOC_KEYS.ATTRIBUTED_ORDERS, []);
+
+    // Filter by store and date range if provided
+    let filtered = allOrders;
+
+    if (storeId) {
+      filtered = filtered.filter(o => o.storeId === storeId);
+    }
+
+    if (startDate) {
+      const start = new Date(startDate);
+      filtered = filtered.filter(o => new Date(o.openedAt) >= start);
+    }
+
+    if (endDate) {
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      filtered = filtered.filter(o => new Date(o.openedAt) <= end);
+    }
+
+    return filtered;
+  }
+
+  async pushAttributedOrders(orders: AttributedOrder[]): Promise<boolean> {
+    console.log(`[DB] pushAttributedOrders START: ${orders.length} new orders`);
+
+    const existing = await this.remoteGet<AttributedOrder[]>(DOC_KEYS.ATTRIBUTED_ORDERS, []);
+    console.log(`[DB] pushAttributedOrders: ${existing.length} existing orders`);
+
+    // Merge: use order id + checkGuid as unique key to avoid duplicates
+    const orderMap = new Map<string, AttributedOrder>();
+    existing.forEach(o => orderMap.set(`${o.id}-${o.checkGuid}`, o));
+
+    let newCount = 0;
+    orders.forEach(o => {
+      const key = `${o.id}-${o.checkGuid}`;
+      if (!orderMap.has(key)) {
+        newCount++;
+      }
+      orderMap.set(key, o);
+    });
+
+    const merged = Array.from(orderMap.values());
+
+    // Sort by openedAt descending (newest first)
+    merged.sort((a, b) => new Date(b.openedAt).getTime() - new Date(a.openedAt).getTime());
+
+    // Keep only last 90 days of orders to prevent document bloat
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 90);
+    const pruned = merged.filter(o => new Date(o.openedAt) >= cutoff);
+
+    if (pruned.length < merged.length) {
+      console.log(`[DB] pushAttributedOrders: Pruned ${merged.length - pruned.length} orders older than 90 days`);
+    }
+
+    console.log(`[DB] pushAttributedOrders: Saving ${pruned.length} total orders (${newCount} new)`);
+    const success = await this.remoteSet(DOC_KEYS.ATTRIBUTED_ORDERS, pruned);
+    console.log(`[DB] pushAttributedOrders END: success=${success}`);
+    return success;
   }
 
   async globalSync(defaults: {
