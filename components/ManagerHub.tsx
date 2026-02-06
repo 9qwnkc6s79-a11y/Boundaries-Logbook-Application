@@ -1866,8 +1866,24 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
               <div className="flex items-center gap-3 mb-4 md:mb-6">
                 <div className="p-2 bg-amber-50 text-amber-600 rounded-xl"><Trophy size={20} /></div>
                 <h2 className="text-lg md:text-xl font-black text-[#0F2B3C] uppercase tracking-tight">Team Leader Leaderboard</h2>
-                <span className="text-[9px] font-black text-neutral-400 uppercase tracking-widest ml-auto">Last 30 Days</span>
+                <div className="flex items-center gap-2 ml-auto">
+                  <button
+                    onClick={() => syncOrderAttribution()}
+                    disabled={attributionSyncing}
+                    className="text-[9px] font-bold uppercase tracking-wide text-blue-600 hover:text-blue-700 disabled:text-neutral-400 flex items-center gap-1"
+                    title={lastAttributionSync ? `Last synced: ${new Date(lastAttributionSync).toLocaleTimeString()}` : 'Not yet synced'}
+                  >
+                    <RefreshCw size={12} className={attributionSyncing ? 'animate-spin' : ''} />
+                    {attributionSyncing ? 'Syncing...' : 'Sync'}
+                  </button>
+                  <span className="text-[9px] font-black text-neutral-400 uppercase tracking-widest">Last 30 Days</span>
+                </div>
               </div>
+              {attributedOrders.length > 0 && (
+                <div className="text-[10px] text-neutral-400 mb-3 font-medium">
+                  {attributedOrders.length} orders attributed to shift leaders
+                </div>
+              )}
 
               {(() => {
                 const leaderboard = calculateLeaderboard(submissions, templates, allUsers, 30, googleReviewsData.trackedReviews, attributedOrders);
