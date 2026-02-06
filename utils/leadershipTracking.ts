@@ -554,6 +554,22 @@ export function calculateLeaderboard(
     }
   });
 
+  // Add mention bonuses (+20 pts per mention) - applies to ALL users, not just leaders
+  const recentReviewsWithMentions = trackedReviews.filter(r =>
+    r.detectedAt >= cutoffISO && r.mentionedEmployeeIds && r.mentionedEmployeeIds.length > 0
+  );
+
+  recentReviewsWithMentions.forEach(review => {
+    if (!review.mentionedEmployeeIds) return;
+    review.mentionedEmployeeIds.forEach(employeeId => {
+      const entry = entries.find(e => e.userId === employeeId);
+      if (entry) {
+        entry.reviewBonusPoints += 20;
+        entry.effectiveScore = entry.compositePercent + entry.reviewBonusPoints;
+      }
+    });
+  });
+
   // Sort by effective score descending, then by name for ties
   // Leaders with 0 attributed orders go to the bottom
   return entries.sort((a, b) => {

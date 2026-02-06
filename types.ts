@@ -471,6 +471,10 @@ export interface TrackedGoogleReview {
   attributedToName: string | null;
   bonusAwarded: boolean;
   bonusPoints: number;
+  // Employee mention tracking (+20 pts per mention)
+  mentionedEmployeeIds?: string[];
+  mentionedEmployeeNames?: string[];
+  mentionBonusPoints?: number;
 }
 
 export interface GoogleReviewsData {

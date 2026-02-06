@@ -754,6 +754,28 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
         }
 
         const hasLeader = attributedToUserId !== null;
+
+        // Detect employee mentions in review text (+20 pts each)
+        const mentionedEmployeeIds: string[] = [];
+        const mentionedEmployeeNames: string[] = [];
+        if (r.text) {
+          const reviewTextLower = r.text.toLowerCase();
+          allUsers.forEach(user => {
+            if (!user.name || user.name === 'Unknown') return;
+            const firstName = user.name.split(' ')[0].toLowerCase();
+            // Only match if first name is at least 3 chars to avoid false positives
+            if (firstName.length >= 3 && reviewTextLower.includes(firstName)) {
+              // Avoid duplicates
+              if (!mentionedEmployeeIds.includes(user.id)) {
+                mentionedEmployeeIds.push(user.id);
+                mentionedEmployeeNames.push(user.name);
+                console.log(`[Reviews] Employee mentioned: ${user.name} (matched "${firstName}")`);
+              }
+            }
+          });
+        }
+        const mentionBonusPoints = mentionedEmployeeIds.length * 20;
+
         trackedNew.push({
           id: `${r.authorName}::${r.publishTime}`,
           storeId: currentStoreId,
@@ -767,6 +789,9 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
           attributedToName,
           bonusAwarded: isFiveStar && hasLeader,
           bonusPoints: (isFiveStar && hasLeader) ? 25 : 0,
+          mentionedEmployeeIds: mentionedEmployeeIds.length > 0 ? mentionedEmployeeIds : undefined,
+          mentionedEmployeeNames: mentionedEmployeeNames.length > 0 ? mentionedEmployeeNames : undefined,
+          mentionBonusPoints: mentionBonusPoints > 0 ? mentionBonusPoints : undefined,
         });
       }
 
@@ -2222,19 +2247,31 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                               <p className="text-xs text-neutral-600 line-clamp-2 mb-2">"{review.text}"</p>
                             )}
                             <div className="flex flex-wrap items-center gap-2 text-[9px] font-bold text-neutral-400 uppercase tracking-widest">
-                              <span>{new Date(review.detectedAt).toLocaleDateString()}</span>
+                              <span>{review.publishTime ? new Date(review.publishTime).toLocaleDateString() : 'Unknown date'}</span>
                               {review.attributedToName ? (
                                 <span className="text-blue-600">Credited to {review.attributedToName}</span>
                               ) : (
                                 <span className="text-amber-600">No leader on duty</span>
                               )}
+                              {review.mentionedEmployeeNames && review.mentionedEmployeeNames.length > 0 && (
+                                <span className="text-green-600">Mentions: {review.mentionedEmployeeNames.join(', ')}</span>
+                              )}
                             </div>
                           </div>
-                          {review.bonusAwarded && (
-                            <div className="flex-shrink-0 bg-yellow-100 text-yellow-700 px-3 py-1.5 rounded-lg">
-                              <div className="text-xs font-black">+50 pts</div>
-                            </div>
-                          )}
+                          <div className="flex-shrink-0 flex flex-col gap-1">
+                            {review.bonusAwarded && (
+                              <div className="bg-yellow-100 text-yellow-700 px-3 py-1.5 rounded-lg text-center">
+                                <div className="text-xs font-black">+25 pts</div>
+                                <div className="text-[8px] font-bold">5-star</div>
+                              </div>
+                            )}
+                            {review.mentionBonusPoints && review.mentionBonusPoints > 0 && (
+                              <div className="bg-green-100 text-green-700 px-3 py-1.5 rounded-lg text-center">
+                                <div className="text-xs font-black">+{review.mentionBonusPoints} pts</div>
+                                <div className="text-[8px] font-bold">mention</div>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
                     ))}
