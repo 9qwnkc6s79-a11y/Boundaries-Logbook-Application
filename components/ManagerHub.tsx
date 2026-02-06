@@ -253,9 +253,16 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
   }, [submissions, templates]);
 
   const performanceData = useMemo(() => {
+    // Filter to last 30 days for up-to-date performance metrics
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 30);
+    const recentSubmissions = (submissions || []).filter(s =>
+      s.submittedAt && new Date(s.submittedAt) >= cutoff
+    );
+
     return staff.map(member => {
-      const userTasks = (submissions || []).flatMap(s => s.taskResults || []).filter(tr => tr.completed && tr.completedByUserId === member.id);
-      const userSubs = (submissions || []).filter(s => (s.taskResults || []).some(tr => tr.completedByUserId === member.id));
+      const userTasks = recentSubmissions.flatMap(s => s.taskResults || []).filter(tr => tr.completed && tr.completedByUserId === member.id);
+      const userSubs = recentSubmissions.filter(s => (s.taskResults || []).some(tr => tr.completedByUserId === member.id));
       
       const stats = trainingStats.find(s => s.userId === member.id);
       
@@ -274,7 +281,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
       const continuedWt = (stats?.continuedPercent || 0) * 0.1;
       const educationScore = onboardingWt + continuedWt;
 
-      const criticalTasks = (submissions || []).flatMap(s => {
+      const criticalTasks = recentSubmissions.flatMap(s => {
         const tpl = templates.find(t => t.id === s.templateId);
         return (s.taskResults || []).filter(tr => {
           const task = tpl?.tasks?.find(tk => tk.id === tr.taskId);
@@ -1530,7 +1537,10 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
              </div>
 
              <div className="bg-white p-6 rounded-xl border border-neutral-100 shadow-sm">
-                <h3 className="text-xs font-black text-neutral-400 uppercase tracking-widest mb-6 px-2">Top Performer Leaderboard</h3>
+                <div className="flex items-center justify-between mb-6 px-2">
+                  <h3 className="text-xs font-black text-neutral-400 uppercase tracking-widest">Top Performer Leaderboard</h3>
+                  <span className="text-[9px] font-black text-neutral-400 uppercase tracking-widest">Last 30 Days</span>
+                </div>
                 <div className="space-y-6">
                   {performanceData.sort((a,b) => (b.score || 0) - (a.score || 0)).map((member, idx) => (
                     <div key={member.id} className="flex items-center justify-between gap-4 p-4 hover:bg-neutral-50 rounded-xl transition-colors group">
