@@ -80,8 +80,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const token = await getAuthToken();
-    const start = new Date(`${startDateStr}T00:00:00.000`);
-    const end = new Date(`${endDateStr}T23:59:59.999`);
+
+    // Use Central Time (America/Chicago) for business day boundaries
+    // This ensures we fetch the correct business day's orders
+    const startUTC = new Date(`${startDateStr}T06:00:00.000Z`); // 6 AM UTC = midnight Central
+    const endUTC = new Date(`${endDateStr}T05:59:59.999Z`);
+    endUTC.setDate(endUTC.getDate() + 1); // Next day 5:59 AM UTC = 11:59 PM Central
 
     // Use cached GUID if available, otherwise probe to find working one
     let restaurantGuid: string | null = cachedGuids[locationKey] || null;
@@ -91,7 +95,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       for (const guid of restaurantGuids) {
         try {
           // Test this GUID with a small request
-          await fetchOrdersChunk(start.toISOString(), new Date(start.getTime() + 1000).toISOString(), token, guid);
+          const testStart = new Date(startUTC);
+          const testEnd = new Date(testStart.getTime() + 60000);
+          await fetchOrdersChunk(testStart.toISOString(), testEnd.toISOString(), token, guid);
           restaurantGuid = guid;
           cachedGuids[locationKey] = guid;
           console.log(`[Toast Sales] Found working GUID: ${guid.substring(0, 8)}... for ${locationKey}`);
@@ -109,30 +115,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       throw new Error(`No working GUID found for ${locationKey}: ${lastError?.message}`);
     }
 
-    const allOrders: any[] = [];
-    let current = new Date(start);
-    let requestCount = 0;
+    // Create 4-hour chunks for parallel fetching (6 chunks covers 24 hours)
+    const CHUNK_HOURS = 4;
+    const chunks: { start: Date; end: Date }[] = [];
+    let current = new Date(startUTC);
 
-    while (current < end && requestCount < 25) {
-      const chunkEnd = new Date(Math.min(current.getTime() + (60 * 60 * 1000), end.getTime()));
-
-      try {
-        const orders = await fetchOrdersChunk(current.toISOString(), chunkEnd.toISOString(), token, restaurantGuid);
-        allOrders.push(...orders);
-      } catch (chunkError: any) {
-        if (chunkError.message?.includes('429')) {
-          await delay(2000);
-          try {
-            const orders = await fetchOrdersChunk(current.toISOString(), chunkEnd.toISOString(), token, restaurantGuid);
-            allOrders.push(...orders);
-          } catch (e) { /* continue */ }
-        }
-      }
-
+    while (current < endUTC) {
+      const chunkEnd = new Date(Math.min(current.getTime() + (CHUNK_HOURS * 60 * 60 * 1000), endUTC.getTime()));
+      chunks.push({ start: new Date(current), end: chunkEnd });
       current = chunkEnd;
-      requestCount++;
-      if (current < end) await delay(50);
     }
+
+    console.log(`[Toast Sales] Fetching ${chunks.length} chunks in parallel for ${locationKey}`);
+
+    // Fetch all chunks in parallel for speed
+    const chunkResults = await Promise.all(
+      chunks.map(chunk =>
+        fetchOrdersChunk(chunk.start.toISOString(), chunk.end.toISOString(), token, restaurantGuid!)
+          .catch(err => {
+            console.warn(`[Toast Sales] Chunk failed: ${err.message}`);
+            return []; // Return empty array on error, don't fail entire request
+          })
+      )
+    );
+
+    const allOrders = chunkResults.flat();
 
     // Parse max time of day filter if provided
     let maxHour: number | null = null;
@@ -155,31 +162,32 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     let validOrderCount = 0;
     allOrders.forEach(order => {
-      // Filter by time of day if specified
+      // Skip voided orders at the order level
+      if (order.voided || order.deleted) return;
+
+      // Filter by time of day if specified (for week-over-week comparisons)
       if (maxHour !== null && maxMinute !== null) {
         const orderDate = new Date(order.openedDate || order.createdDate);
-        const orderHour = orderDate.getHours();
-        const orderMinute = orderDate.getMinutes();
+        const orderHour = orderDate.getUTCHours() - 6; // Convert UTC to Central (approximate)
+        const orderMinute = orderDate.getUTCMinutes();
+        const adjustedHour = orderHour < 0 ? orderHour + 24 : orderHour;
 
-        // Skip orders after the max time of day
-        if (orderHour > maxHour || (orderHour === maxHour && orderMinute > maxMinute)) {
+        if (adjustedHour > maxHour || (adjustedHour === maxHour && orderMinute > maxMinute)) {
           return;
         }
       }
-      const checks = order.checks || [];
-      let hasValidCheck = false;
-      checks.forEach((check: any) => {
-        // Skip voided checks
-        if (check.voided) return;
-        // Skip explicitly deleted checks
-        if (check.deleted) return;
-        // Skip checks with no amount (empty/cancelled)
-        if (!check.amount || check.amount <= 0) return;
 
-        hasValidCheck = true;
-        // NET sales = check.amount (excludes tax)
-        // Total = check.totalAmount (includes tax + tip)
-        netSales += check.amount || 0;
+      const checks = order.checks || [];
+      let orderNetSales = 0;
+
+      checks.forEach((check: any) => {
+        // Only skip explicitly voided checks
+        if (check.voided === true) return;
+
+        // Add to totals - use amount for net sales
+        const checkAmount = check.amount || 0;
+        orderNetSales += checkAmount;
+        netSales += checkAmount;
         totalTax += check.taxAmount || 0;
 
         const payments = check.payments || [];
@@ -189,17 +197,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           paymentMethods[method] = (paymentMethods[method] || 0) + (payment.amount || 0);
         });
       });
-      if (hasValidCheck) {
-        validOrderCount++;
-      }
 
-      // Hourly breakdown (using net sales from valid checks only)
-      if (hasValidCheck) {
-        const hour = new Date(order.openedDate || order.createdDate).getHours();
-        const validCheckAmount = checks
-          .filter((c: any) => !c.voided && !c.deleted && c.amount > 0)
-          .reduce((sum: number, c: any) => sum + (c.amount || 0), 0);
-        hourlySales[hour] = (hourlySales[hour] || 0) + validCheckAmount;
+      // Count order if it has any sales
+      if (orderNetSales > 0) {
+        validOrderCount++;
+        const hour = new Date(order.openedDate || order.createdDate).getUTCHours();
+        hourlySales[hour] = (hourlySales[hour] || 0) + orderNetSales;
       }
 
       // Calculate turn time (order open to close) in minutes
@@ -236,7 +239,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       lastUpdated: new Date().toISOString(),
     };
 
-    console.log(`[Toast Sales] SUCCESS for ${locationKey}: $${salesData.totalSales}, ${salesData.totalOrders} orders (filtered from ${allOrders.length} total)`);
+    console.log(`[Toast Sales] SUCCESS for ${locationKey}: $${salesData.totalSales} net, ${salesData.totalOrders} orders from ${allOrders.length} raw orders (${chunks.length} parallel chunks)`);
 
     res.setHeader('Cache-Control', 's-maxage=300');
     return res.status(200).json(salesData);
