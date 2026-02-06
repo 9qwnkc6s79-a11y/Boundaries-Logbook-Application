@@ -710,7 +710,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
           attributedToUserId: hasLeader ? primaryLeader.userId : null,
           attributedToName: hasLeader ? primaryLeader.name : null,
           bonusAwarded: isFiveStar && hasLeader,
-          bonusPoints: (isFiveStar && hasLeader) ? 50 : 0,
+          bonusPoints: (isFiveStar && hasLeader) ? 25 : 0,
         };
       });
 
@@ -2145,7 +2145,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                 <div className="bg-white p-3 md:p-6 rounded-xl border border-yellow-200">
                   <h3 className="text-[9px] md:text-[10px] font-black text-yellow-600 uppercase tracking-widest mb-3 md:mb-4">Google Reviews</h3>
                   <div className="space-y-1.5 md:space-y-2 text-[10px] md:text-xs">
-                    <div className="flex justify-between"><span className="font-bold text-neutral-600">5-star:</span><span className="font-black text-yellow-600">+50</span></div>
+                    <div className="flex justify-between"><span className="font-bold text-neutral-600">5-star:</span><span className="font-black text-yellow-600">+25</span></div>
                     <div className="flex justify-between"><span className="font-bold text-neutral-600">Other:</span><span className="font-black text-neutral-400">0</span></div>
                     <div className="flex justify-between"><span className="font-bold text-neutral-600">No leader:</span><span className="font-black text-neutral-400">N/A</span></div>
                   </div>
@@ -2155,7 +2155,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
 
               <div className="mt-4 md:mt-6 bg-white/50 p-4 rounded-xl border border-blue-100">
                 <p className="text-xs font-bold text-neutral-600 leading-relaxed">
-                  <span className="font-black text-[#0F2B3C]">How it works:</span> Each shift earns up to 105 points across 3 categories. Poor turn times and late protocols carry <span className="font-black text-red-600">negative penalties</span>. Your score is the <span className="font-black">average</span> across all shifts. 5-star Google Reviews add a flat <span className="font-black text-yellow-600">+50 bonus</span> for the on-duty shift leader.
+                  <span className="font-black text-[#0F2B3C]">How it works:</span> Each shift earns up to 105 points across 3 categories. Poor turn times and late protocols carry <span className="font-black text-red-600">negative penalties</span>. Your score is the <span className="font-black">average</span> across all shifts. 5-star Google Reviews add a flat <span className="font-black text-yellow-600">+25 bonus</span> for the on-duty shift leader.
                 </p>
               </div>
             </section>
