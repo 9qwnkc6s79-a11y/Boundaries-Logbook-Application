@@ -9,16 +9,15 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-// Restaurant GUIDs — same mapping as toast-labor.ts
+// Restaurant GUIDs — hardcoded with env var fallbacks for serverless compatibility
 const LOCATIONS: Record<string, { guids: string[]; storeId: string }> = {
   'littleelm': {
-    guids: [process.env.VITE_TOAST_RESTAURANT_GUID || ''],
+    guids: [process.env.TOAST_RESTAURANT_LITTLEELM || '40980097-47ac-447d-8221-a5574db1b2f7'],
     storeId: 'store-elm',
   },
   'prosper': {
     guids: [
-      'f5e036bc-d8d0-4da9-8ec7-aec94806253b',
-      'd1e0f278-e871-4635-8d33-74532858ccaf',
+      process.env.TOAST_RESTAURANT_PROSPER || 'f5e036bc-d8d0-4da9-8ec7-aec94806253b',
     ],
     storeId: 'store-prosper',
   },
@@ -34,8 +33,8 @@ async function getAuthToken(): Promise<string> {
     return cachedToken;
   }
 
-  const clientId = process.env.VITE_TOAST_CLIENT_ID;
-  const clientSecret = process.env.VITE_TOAST_API_KEY;
+  const clientId = process.env.VITE_TOAST_CLIENT_ID || process.env.TOAST_CLIENT_ID;
+  const clientSecret = process.env.VITE_TOAST_API_KEY || process.env.TOAST_CLIENT_SECRET;
 
   if (!clientId || !clientSecret) {
     throw new Error('Toast credentials not configured');

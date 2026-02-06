@@ -117,6 +117,9 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
   const [attributionSyncing, setAttributionSyncing] = useState(false);
   const [lastAttributionSync, setLastAttributionSync] = useState<string | null>(null);
 
+  // Toast Team Leaders (employees with leadership job titles)
+  const [toastTeamLeaders, setToastTeamLeaders] = useState<{ id: string; name: string; jobTitle: string; toastGuid: string }[]>([]);
+
   const currentStoreName = useMemo(() => stores.find(s => s.id === currentStoreId)?.name || 'Unknown Store', [currentStoreId, stores]);
 
   const getLocalStr = (d: Date) => {
@@ -796,6 +799,53 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
       clearTimeout(timeout);
       clearInterval(interval);
     };
+  }, [currentStoreId]);
+
+  // Fetch Toast team leaders (employees with leadership job titles)
+  useEffect(() => {
+    const fetchTeamLeaders = async () => {
+      const location = currentStoreId === 'store-prosper' ? 'prosper' : 'littleelm';
+      try {
+        console.log(`[TeamLeaders] Fetching employees for ${location}...`);
+        const response = await fetch(`/api/toast-employees?location=${location}`);
+        if (!response.ok) {
+          console.warn(`[TeamLeaders] Failed to fetch employees: ${response.status}`);
+          return;
+        }
+
+        const data = await response.json();
+        const employees = data.employees || [];
+
+        // Leadership job title patterns (case insensitive)
+        const leadershipPatterns = [
+          /\bgm\b/i,
+          /\bgeneral\s*manager\b/i,
+          /\bstore\s*manager\b/i,
+          /\bmanager\b/i,
+          /\b(team|shift)\s*(leader|lead)\b/i,
+          /\bshift\s*manager\b/i,
+          /\bsupervisor\b/i,
+        ];
+
+        // Filter for employees with leadership job titles
+        const leaders = employees.filter((emp: any) => {
+          const jobTitle = emp.jobTitle || '';
+          return leadershipPatterns.some(pattern => pattern.test(jobTitle));
+        }).map((emp: any) => ({
+          id: `toast-${emp.guid}`,
+          name: emp.name,
+          jobTitle: emp.jobTitle,
+          toastGuid: emp.guid,
+        }));
+
+        console.log(`[TeamLeaders] Found ${leaders.length} team leaders:`, leaders.map((l: any) => `${l.name} (${l.jobTitle})`).join(', '));
+        setToastTeamLeaders(leaders);
+      } catch (error: any) {
+        console.error('[TeamLeaders] Error fetching employees:', error);
+      }
+    };
+
+    fetchTeamLeaders();
   }, [currentStoreId]);
 
   // Fetch Toast Cash Entry Data
@@ -1886,7 +1936,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
               )}
 
               {(() => {
-                const leaderboard = calculateLeaderboard(submissions, templates, allUsers, 30, googleReviewsData.trackedReviews, attributedOrders);
+                const leaderboard = calculateLeaderboard(submissions, templates, allUsers, 30, googleReviewsData.trackedReviews, attributedOrders, toastTeamLeaders);
 
                 if (leaderboard.length === 0) {
                   return (

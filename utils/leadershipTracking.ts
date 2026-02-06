@@ -315,7 +315,8 @@ export function calculateLeaderboard(
   allUsers: User[],
   lookbackDays: number = 30,
   trackedReviews: TrackedGoogleReview[] = [],
-  attributedOrders: AttributedOrder[] = []
+  attributedOrders: AttributedOrder[] = [],
+  toastTeamLeaders: { id: string; name: string; jobTitle: string; toastGuid: string }[] = []
 ): LeaderLeaderboardEntry[] {
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - lookbackDays);
@@ -326,14 +327,36 @@ export function calculateLeaderboard(
   );
 
   // Build team leaders list from multiple sources:
-  // 1. Users with MANAGER or ADMIN role
-  // 2. Users who have attributed orders (they were shift leaders based on Toast job title)
-  // 3. Unknown shift leaders (Toast employees not yet in user database)
-  const teamLeaderMap = new Map<string, { id: string; name: string; storeId?: string }>();
+  // 1. Toast employees with leadership job titles (primary source)
+  // 2. Users with MANAGER or ADMIN role in database
+  // 3. Users who have attributed orders
+  const teamLeaderMap = new Map<string, { id: string; name: string; storeId?: string; jobTitle?: string }>();
 
-  // Add users with MANAGER/ADMIN role
+  // Add Toast team leaders first (employees with Team Leader, GM, etc. job titles)
+  toastTeamLeaders.forEach(leader => {
+    // Try to find matching user in database
+    const user = allUsers.find(u =>
+      u.id === leader.id ||
+      u.toastEmployeeGuid === leader.toastGuid ||
+      u.name.toLowerCase() === leader.name.toLowerCase()
+    );
+
+    const id = user?.id || leader.id;
+    teamLeaderMap.set(id, {
+      id,
+      name: leader.name,
+      storeId: user?.storeId,
+      jobTitle: leader.jobTitle
+    });
+  });
+
+  // Add users with MANAGER/ADMIN role (in case they're not in Toast)
   allUsers.filter(u => u.role === UserRole.MANAGER || u.role === UserRole.ADMIN)
-    .forEach(u => teamLeaderMap.set(u.id, { id: u.id, name: u.name, storeId: u.storeId }));
+    .forEach(u => {
+      if (!teamLeaderMap.has(u.id)) {
+        teamLeaderMap.set(u.id, { id: u.id, name: u.name, storeId: u.storeId });
+      }
+    });
 
   // Add users who have attributed orders (shift leaders from Toast)
   recentOrders.forEach(order => {
