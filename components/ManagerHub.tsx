@@ -1799,17 +1799,17 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
               <div className="flex items-center gap-3 mb-4 md:mb-6">
                 <div className="p-2 bg-amber-50 text-amber-600 rounded-xl"><Trophy size={20} /></div>
                 <h2 className="text-lg md:text-xl font-black text-[#0F2B3C] uppercase tracking-tight">Team Leader Leaderboard</h2>
-                <span className="text-[9px] font-black text-neutral-400 uppercase tracking-widest ml-auto">Last 7 Days</span>
+                <span className="text-[9px] font-black text-neutral-400 uppercase tracking-widest ml-auto">Last 30 Days</span>
               </div>
 
               {(() => {
-                const leaderboard = calculateLeaderboard(submissions, templates, allUsers, 7, googleReviewsData.trackedReviews);
+                const leaderboard = calculateLeaderboard(submissions, templates, allUsers, 30, googleReviewsData.trackedReviews);
 
                 if (leaderboard.length === 0) {
                   return (
                     <div className="text-center py-12">
                       <Users size={48} className="text-neutral-300 mx-auto mb-4" />
-                      <p className="text-neutral-400 font-bold text-sm">No shift data available for the last 7 days</p>
+                      <p className="text-neutral-400 font-bold text-sm">No team leaders found. Add users with MANAGER role to see them here.</p>
                     </div>
                   );
                 }

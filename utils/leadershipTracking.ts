@@ -2,7 +2,7 @@
  * Team Leader Performance & Accountability Utilities
  */
 
-import { ToastTimeEntry, User, ShiftOwnership, ChecklistTemplate, ChecklistSubmission, TrackedGoogleReview } from '../types';
+import { ToastTimeEntry, User, ShiftOwnership, ChecklistTemplate, ChecklistSubmission, TrackedGoogleReview, UserRole } from '../types';
 
 // Leadership hierarchy - lower number = higher priority
 // Exact match dictionary (case-insensitive) for known Toast POS job titles
@@ -296,146 +296,97 @@ export interface LeaderLeaderboardEntry {
 }
 
 /**
- * Identify the primary leader for a submission based on task completion.
- * Returns the user who completed the most tasks and has a leadership role.
- * Falls back to the submitter if no leader is found.
- */
-function identifyShiftLeader(
-  submission: ChecklistSubmission,
-  allUsers: User[]
-): { userId: string; name: string } | null {
-  const taskResults = submission.taskResults || [];
-  if (taskResults.length === 0) {
-    const user = allUsers.find(u => u.id === submission.userId);
-    return user ? { userId: user.id, name: user.name } : null;
-  }
-
-  // Count tasks completed by each user
-  const taskCountByUser = new Map<string, number>();
-  taskResults.forEach(tr => {
-    if (tr.completed && tr.completedByUserId) {
-      taskCountByUser.set(tr.completedByUserId, (taskCountByUser.get(tr.completedByUserId) || 0) + 1);
-    }
-  });
-
-  // Leadership roles (case-insensitive)
-  const leadershipRoles = ['team leader', 'team lead', 'shift lead', 'shift leader', 'manager', 'gm', 'general manager', 'store manager', 'shift manager'];
-
-  // Find the user who completed the most tasks
-  // Prefer users with leadership roles
-  let bestLeader: { userId: string; name: string; taskCount: number; isLeader: boolean } | null = null;
-
-  taskCountByUser.forEach((count, usrId) => {
-    const user = allUsers.find(u => u.id === usrId);
-    if (!user) return;
-
-    const isLeader = leadershipRoles.some(role =>
-      user.role?.toLowerCase().includes(role) ||
-      user.name?.toLowerCase().includes('lead') ||
-      user.name?.toLowerCase().includes('manager')
-    );
-
-    // Prioritize: leaders with most tasks > non-leaders with most tasks
-    if (!bestLeader ||
-        (isLeader && !bestLeader.isLeader) ||
-        (isLeader === bestLeader.isLeader && count > bestLeader.taskCount)) {
-      bestLeader = { userId: user.id, name: user.name, taskCount: count, isLeader };
-    }
-  });
-
-  // Fallback to submitter if no task completers found
-  if (!bestLeader) {
-    const user = allUsers.find(u => u.id === submission.userId);
-    return user ? { userId: user.id, name: user.name } : null;
-  }
-
-  return { userId: bestLeader.userId, name: bestLeader.name };
-}
-
-/**
- * Calculate the leader leaderboard using per-shift averaged scoring.
- * Each shift earns: Timeliness (0-40) + Turn Time (0-40) + Avg Ticket (0-20) = 100 max.
- * Shifts without Toast data are scored on timeliness only (out of 40).
- * Final composite = (sum of all shift scores) / (sum of all max possible) * 100.
- * This ensures leaders with more shifts don't automatically outscore others.
+ * Calculate the Team Leader Leaderboard.
  *
- * IMPORTANT: Shift ownership is determined by who completed the most tasks,
- * not just who pressed the submit button. This ensures credit goes to the
- * actual team leader who was working the shift.
+ * Shows ALL users with MANAGER or ADMIN roles, ranked by their performance
+ * over the last 30 days based on:
+ * - Timeliness: How on-time their shift checklists were submitted
+ * - Turn Time: Average ticket turn time from Toast POS data
+ * - Avg Ticket: Average check amount from Toast POS data
+ * - Reviews: Bonus points from attributed 5-star Google reviews
+ *
+ * Performance is calculated from submissions where the user completed tasks,
+ * not just submissions they finalized.
  */
 export function calculateLeaderboard(
   submissions: ChecklistSubmission[],
   templates: ChecklistTemplate[],
   allUsers: User[],
-  lookbackDays: number = 7,
+  lookbackDays: number = 30,
   trackedReviews: TrackedGoogleReview[] = []
 ): LeaderLeaderboardEntry[] {
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - lookbackDays);
 
+  // Get all team leaders/managers (users with MANAGER or ADMIN role)
+  const teamLeaders = allUsers.filter(u =>
+    u.role === UserRole.MANAGER || u.role === UserRole.ADMIN
+  );
+
+  console.log(`[Leaderboard] Found ${teamLeaders.length} team leaders/managers:`, teamLeaders.map(u => u.name).join(', '));
+
+  // Filter to recent submissions
   const recentSubmissions = submissions.filter(sub =>
     sub.submittedAt && new Date(sub.submittedAt) >= cutoff
   );
 
-  // Group shifts by the actual leader (based on task completion, not just submitter)
-  const leaderShifts = new Map<string, { name: string; shifts: LeaderShiftScore[] }>();
+  console.log(`[Leaderboard] Found ${recentSubmissions.length} submissions in last ${lookbackDays} days`);
 
-  recentSubmissions.forEach(sub => {
-    const template = templates.find(t => t.id === sub.templateId);
-    if (!template || !sub.submittedAt) return;
+  // Build leaderboard entries for ALL team leaders
+  const entries: LeaderLeaderboardEntry[] = teamLeaders.map(leader => {
+    // Find submissions where this leader completed tasks
+    const leaderSubmissions = recentSubmissions.filter(sub => {
+      const taskResults = sub.taskResults || [];
+      return taskResults.some(tr => tr.completed && tr.completedByUserId === leader.id);
+    });
 
-    // Identify the actual shift leader based on task completion
-    const leader = identifyShiftLeader(sub, allUsers);
-    if (!leader) return;
+    // Calculate shift scores
+    const shifts: LeaderShiftScore[] = [];
 
-    // Calculate timeliness
-    const deadline = new Date(sub.date);
-    deadline.setHours(template.deadlineHour, 0, 0, 0);
-    const submittedDate = new Date(sub.submittedAt);
-    const delayMinutes = Math.floor((submittedDate.getTime() - deadline.getTime()) / 60000);
-    const timelinessScore = calculateTimelinessScore(delayMinutes, true);
+    leaderSubmissions.forEach(sub => {
+      const template = templates.find(t => t.id === sub.templateId);
+      if (!template || !sub.submittedAt) return;
 
-    // Calculate Toast-based scores (if snapshot available)
-    const hasToastData = !!(sub.toastSnapshot?.averageTurnTime || sub.toastSnapshot?.averageCheck);
-    const turnTimeMinutes = sub.toastSnapshot?.averageTurnTime;
-    const avgTicketDollars = sub.toastSnapshot?.averageCheck;
-    const turnTimeScore = hasToastData ? calculateTurnTimeScore(turnTimeMinutes) : 0;
-    const avgTicketScore = hasToastData ? calculateAvgTicketScore(avgTicketDollars) : 0;
+      // Calculate timeliness based on when submission was made
+      const deadline = new Date(sub.date);
+      deadline.setHours(template.deadlineHour, 0, 0, 0);
+      const submittedDate = new Date(sub.submittedAt);
+      const delayMinutes = Math.floor((submittedDate.getTime() - deadline.getTime()) / 60000);
+      const timelinessScore = calculateTimelinessScore(delayMinutes, true);
 
-    const maxPossible = hasToastData ? 105 : 40;
-    const totalScore = timelinessScore + turnTimeScore + avgTicketScore;
+      // Get Toast data from snapshot
+      const hasToastData = !!(sub.toastSnapshot?.averageTurnTime || sub.toastSnapshot?.averageCheck);
+      const turnTimeMinutes = sub.toastSnapshot?.averageTurnTime;
+      const avgTicketDollars = sub.toastSnapshot?.averageCheck;
+      const turnTimeScore = hasToastData ? calculateTurnTimeScore(turnTimeMinutes) : 0;
+      const avgTicketScore = hasToastData ? calculateAvgTicketScore(avgTicketDollars) : 0;
 
-    const shiftScore: LeaderShiftScore = {
-      date: sub.date,
-      templateName: template.name,
-      timelinessScore,
-      turnTimeScore,
-      avgTicketScore,
-      turnTimeMinutes,
-      avgTicketDollars,
-      hasToastData,
-      maxPossible,
-      totalScore,
-    };
+      const maxPossible = hasToastData ? 105 : 40;
+      const totalScore = timelinessScore + turnTimeScore + avgTicketScore;
 
-    const existing = leaderShifts.get(leader.userId);
-    if (existing) {
-      existing.shifts.push(shiftScore);
-    } else {
-      leaderShifts.set(leader.userId, { name: leader.name, shifts: [shiftScore] });
-    }
-  });
+      shifts.push({
+        date: sub.date,
+        templateName: template.name,
+        timelinessScore,
+        turnTimeScore,
+        avgTicketScore,
+        turnTimeMinutes,
+        avgTicketDollars,
+        hasToastData,
+        maxPossible,
+        totalScore,
+      });
+    });
 
-  // Build leaderboard entries
-  const entries: LeaderLeaderboardEntry[] = [];
-
-  leaderShifts.forEach((data, userId) => {
-    const { name, shifts } = data;
+    // Calculate aggregated metrics
     const totalShifts = shifts.length;
     const shiftsWithToastData = shifts.filter(s => s.hasToastData).length;
 
-    // Average scores
-    const avgTimeliness = shifts.reduce((sum, s) => sum + s.timelinessScore, 0) / totalShifts;
+    // Average scores (default to 0 if no shifts)
+    const avgTimeliness = totalShifts > 0
+      ? shifts.reduce((sum, s) => sum + s.timelinessScore, 0) / totalShifts
+      : 0;
+
     const toastShifts = shifts.filter(s => s.hasToastData);
     const avgTurnTimeScore = toastShifts.length > 0
       ? toastShifts.reduce((sum, s) => sum + s.turnTimeScore, 0) / toastShifts.length
@@ -444,7 +395,7 @@ export function calculateLeaderboard(
       ? toastShifts.reduce((sum, s) => sum + s.avgTicketScore, 0) / toastShifts.length
       : 0;
 
-    // Calculate actual average values (not scores)
+    // Calculate actual average values
     const shiftsWithTurnTime = toastShifts.filter(s => s.turnTimeMinutes !== undefined);
     const avgTurnTimeMinutes = shiftsWithTurnTime.length > 0
       ? shiftsWithTurnTime.reduce((sum, s) => sum + s.turnTimeMinutes!, 0) / shiftsWithTurnTime.length
@@ -455,35 +406,35 @@ export function calculateLeaderboard(
       ? shiftsWithAvgTicket.reduce((sum, s) => sum + s.avgTicketDollars!, 0) / shiftsWithAvgTicket.length
       : undefined;
 
-    // Composite: normalized percentage across all shifts
+    // Composite score as percentage
     const totalScoreSum = shifts.reduce((sum, s) => sum + s.totalScore, 0);
     const totalMaxSum = shifts.reduce((sum, s) => sum + s.maxPossible, 0);
     const compositePercent = totalMaxSum > 0 ? (totalScoreSum / totalMaxSum) * 100 : 0;
 
     // On-time rate
     const onTimeShifts = shifts.filter(s => s.timelinessScore === 40).length;
-    const onTimeRate = (onTimeShifts / totalShifts) * 100;
+    const onTimeRate = totalShifts > 0 ? (onTimeShifts / totalShifts) * 100 : 0;
 
-    entries.push({
-      userId,
-      name,
+    return {
+      userId: leader.id,
+      name: leader.name,
       totalShifts,
       shiftsWithToastData,
       avgTimelinessScore: avgTimeliness,
-      avgTurnTimeScore: avgTurnTimeScore,
+      avgTurnTimeScore,
       avgTicketScoreValue: avgTicketScore,
-      avgTurnTimeMinutes: avgTurnTimeMinutes,
-      avgTicketDollars: avgTicketDollars,
+      avgTurnTimeMinutes,
+      avgTicketDollars,
       compositePercent,
       onTimeRate,
       shifts,
       reviewBonusPoints: 0,
       fiveStarReviewCount: 0,
       effectiveScore: compositePercent,
-    });
+    };
   });
 
-  // Calculate review bonuses (additive, not averaged per-shift)
+  // Add review bonuses
   const cutoffISO = cutoff.toISOString();
   const recentReviews = trackedReviews.filter(r =>
     r.detectedAt >= cutoffISO && r.bonusAwarded && r.attributedToUserId
@@ -498,6 +449,15 @@ export function calculateLeaderboard(
     }
   });
 
-  // Sort by effective score (composite + review bonus) descending
-  return entries.sort((a, b) => b.effectiveScore - a.effectiveScore);
+  // Sort by effective score descending, then by name for ties
+  // Leaders with no shifts go to the bottom but are still shown
+  return entries.sort((a, b) => {
+    // First sort by whether they have any shifts (leaders with shifts first)
+    if (a.totalShifts > 0 && b.totalShifts === 0) return -1;
+    if (a.totalShifts === 0 && b.totalShifts > 0) return 1;
+    // Then by effective score
+    if (b.effectiveScore !== a.effectiveScore) return b.effectiveScore - a.effectiveScore;
+    // Then alphabetically by name
+    return a.name.localeCompare(b.name);
+  });
 }
