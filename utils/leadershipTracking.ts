@@ -316,10 +316,20 @@ export function calculateLeaderboard(
   lookbackDays: number = 30,
   trackedReviews: TrackedGoogleReview[] = [],
   attributedOrders: AttributedOrder[] = [],
-  toastTeamLeaders: { id: string; name: string; jobTitle: string; toastGuid: string }[] = []
+  toastTeamLeaders: { id: string; name: string; jobTitle: string; toastGuid: string }[] = [],
+  useMonthToDate: boolean = true
 ): LeaderLeaderboardEntry[] {
-  const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - lookbackDays);
+  // Use Month-to-Date if enabled, otherwise use lookback days
+  let cutoff: Date;
+  if (useMonthToDate) {
+    // Start of current month
+    const now = new Date();
+    cutoff = new Date(now.getFullYear(), now.getMonth(), 1);
+    console.log(`[Leaderboard] Using Month-to-Date: ${cutoff.toISOString().split('T')[0]} to today`);
+  } else {
+    cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - lookbackDays);
+  }
 
   // Filter attributed orders to lookback period
   const recentOrders = attributedOrders.filter(o =>

@@ -749,11 +749,13 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
     const location = currentStoreId === 'store-prosper' ? 'prosper' : 'littleelm';
 
     try {
-      // Sync last 30 days of orders
-      const endDate = getLocalStr(new Date());
-      const startDate = getLocalStr(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000));
+      // Sync Month-to-Date orders
+      const now = new Date();
+      const endDate = getLocalStr(now);
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      const startDate = getLocalStr(monthStart);
 
-      console.log(`[OrderAttribution] Syncing orders for ${location}: ${startDate} to ${endDate}`);
+      console.log(`[OrderAttribution] Syncing MTD orders for ${location}: ${startDate} to ${endDate}`);
 
       const newOrders = await syncOrderAttributions(location, currentStoreId, startDate, endDate, allUsers);
 
@@ -1918,17 +1920,24 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                     <RefreshCw size={12} className={attributionSyncing ? 'animate-spin' : ''} />
                     {attributionSyncing ? 'Syncing...' : 'Sync'}
                   </button>
-                  <span className="text-[9px] font-black text-neutral-400 uppercase tracking-widest">Last 30 Days</span>
+                  <span className="text-[9px] font-black text-neutral-400 uppercase tracking-widest">MTD</span>
                 </div>
               </div>
-              {attributedOrders.length > 0 && (
-                <div className="text-[10px] text-neutral-400 mb-3 font-medium">
-                  {attributedOrders.length} orders attributed to shift leaders
-                </div>
-              )}
+              {(() => {
+                // Calculate MTD date range for display
+                const now = new Date();
+                const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+                const monthName = monthStart.toLocaleDateString('en-US', { month: 'short' });
+                const mtdOrders = attributedOrders.filter(o => new Date(o.openedAt) >= monthStart);
+                return mtdOrders.length > 0 ? (
+                  <div className="text-[10px] text-neutral-400 mb-3 font-medium">
+                    {mtdOrders.length} orders attributed ({monthName} 1 - today)
+                  </div>
+                ) : null;
+              })()}
 
               {(() => {
-                const leaderboard = calculateLeaderboard(submissions, templates, allUsers, 30, googleReviewsData.trackedReviews, attributedOrders, toastTeamLeaders);
+                const leaderboard = calculateLeaderboard(submissions, templates, allUsers, 30, googleReviewsData.trackedReviews, attributedOrders, toastTeamLeaders, true);
 
                 if (leaderboard.length === 0) {
                   return (
