@@ -54,7 +54,9 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
   currentStoreId, stores = [], currentUser, onUserUpdated, onToastSalesUpdate, onToastClockedInUpdate, onSalesComparisonUpdate,
   org, onSaveOrg, onSyncToastEmployees
 }) => {
-  const [activeSubTab, setActiveSubTab] = useState<'dashboard' | 'compliance' | 'editor' | 'staff' | 'gallery' | 'audit' | 'manual' | 'cash-audit' | 'performance' | 'team' | 'branding' | 'stores'>('dashboard');
+  const [activeSubTab, setActiveSubTab] = useState<'dashboard' | 'operations' | 'settings'>('dashboard');
+  const [operationsSubTab, setOperationsSubTab] = useState<'compliance' | 'gallery' | 'cash-audit'>('compliance');
+  const [settingsSubTab, setSettingsSubTab] = useState<'editor' | 'team' | 'staff' | 'manual' | 'branding' | 'stores'>('editor');
   const [auditFilter, setAuditFilter] = useState<'pending' | 'approved' | 'all'>('pending');
   const [aiInsight, setAiInsight] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -1146,25 +1148,15 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
           <h1 className="text-3xl sm:text-4xl font-extrabold text-[#0F2B3C] uppercase tracking-tighter leading-none">Manager Hub</h1>
         </div>
 
-        {/* Tab navigation */}
+        {/* Tab navigation - 3 Main Tabs */}
         <div className="flex bg-neutral-100 p-1 rounded-xl border border-neutral-200 overflow-x-auto no-scrollbar">
           {[
             { id: 'dashboard', label: 'DASHBOARD', icon: LayoutDashboard },
-            { id: 'compliance', label: 'COMPLIANCE', icon: Timer },
-            { id: 'performance', label: 'PERFORMANCE', icon: Target },
-            { id: 'staff', label: 'STAFF', icon: Users },
-            { id: 'gallery', label: 'AUDIT', icon: ImageIcon },
-            { id: 'cash-audit', label: 'CASH', icon: DollarSign },
-            { id: 'manual', label: 'MANUAL', icon: FileText },
-            { id: 'editor', label: 'PROTOCOLS', icon: Settings },
-            ...(currentUser?.role === UserRole.ADMIN ? [
-              { id: 'team', label: 'TEAM', icon: ShieldCheck },
-              { id: 'branding', label: 'BRANDING', icon: Palette },
-              { id: 'stores', label: 'STORES', icon: Building2 },
-            ] : []),
+            { id: 'operations', label: 'OPERATIONS', icon: ClipboardList },
+            { id: 'settings', label: 'SETTINGS', icon: Settings },
           ].map(tab => (
-            <button key={tab.id} onClick={() => setActiveSubTab(tab.id as any)} className={`px-5 py-2.5 text-[9px] font-black rounded-lg transition-all flex items-center gap-2 whitespace-nowrap tracking-widest ${activeSubTab === tab.id ? 'bg-[#0F2B3C] text-white shadow-lg' : 'text-neutral-500 hover:text-[#0F2B3C]'}`}>
-              <tab.icon size={14} /> {tab.label}
+            <button key={tab.id} onClick={() => setActiveSubTab(tab.id as any)} className={`px-6 py-3 text-[10px] font-black rounded-lg transition-all flex items-center gap-2 whitespace-nowrap tracking-widest ${activeSubTab === tab.id ? 'bg-[#0F2B3C] text-white shadow-lg' : 'text-neutral-500 hover:text-[#0F2B3C]'}`}>
+              <tab.icon size={16} /> {tab.label}
             </button>
           ))}
         </div>
@@ -1316,7 +1308,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                 </div>
                 {realTimeCompliance.length > 3 && (
                   <button
-                    onClick={() => setActiveSubTab('compliance')}
+                    onClick={() => { setActiveSubTab('operations'); setOperationsSubTab('compliance'); }}
                     className="mt-4 w-full py-2 bg-neutral-50 hover:bg-neutral-100 rounded-xl text-[9px] font-black text-neutral-600 uppercase tracking-widest transition-all"
                   >
                     View All Protocols
@@ -1369,7 +1361,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                       ))}
                     </div>
                     <button
-                      onClick={() => setActiveSubTab('gallery')}
+                      onClick={() => { setActiveSubTab('operations'); setOperationsSubTab('gallery'); }}
                       className="mt-4 w-full py-2 bg-red-50 hover:bg-red-100 rounded-xl text-[9px] font-black text-red-600 uppercase tracking-widest transition-all"
                     >
                       Review All ({concernNotes.length})
@@ -1487,21 +1479,249 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
               </section>
             )}
 
+            {/* Team Leader Leaderboard */}
+            <section
+              className="bg-white p-4 md:p-6 rounded-xl border border-neutral-100 shadow-sm relative"
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+            >
+              {/* Pull-to-refresh indicator */}
+              {(pullDistance > 0 || isRefreshing) && (
+                <div
+                  className="absolute left-0 right-0 flex items-center justify-center transition-all overflow-hidden"
+                  style={{ top: -40, height: pullDistance > 0 ? pullDistance : 40 }}
+                >
+                  <div className={`flex items-center gap-2 text-blue-600 ${isRefreshing ? 'animate-pulse' : ''}`}>
+                    <RefreshCw size={16} className={isRefreshing || pullDistance >= PULL_THRESHOLD ? 'animate-spin' : ''} />
+                    <span className="text-[10px] font-bold uppercase tracking-wide">
+                      {isRefreshing ? 'Refreshing...' : pullDistance >= PULL_THRESHOLD ? 'Release to refresh' : 'Pull to refresh'}
+                    </span>
+                  </div>
+                </div>
+              )}
+              <div className="flex items-center gap-3 mb-4 md:mb-6">
+                <div className="p-2 bg-amber-50 text-amber-600 rounded-xl"><Trophy size={20} /></div>
+                <h2 className="text-lg md:text-xl font-black text-[#0F2B3C] uppercase tracking-tight">Team Leader Leaderboard</h2>
+                <div className="flex items-center gap-2 ml-auto">
+                  <button
+                    onClick={() => refreshAllData()}
+                    disabled={attributionSyncing || isRefreshing}
+                    className="text-[9px] font-bold uppercase tracking-wide text-blue-600 hover:text-blue-700 disabled:text-neutral-400 flex items-center gap-1"
+                    title={lastAttributionSync ? `Last synced: ${new Date(lastAttributionSync).toLocaleTimeString()}` : 'Not yet synced'}
+                  >
+                    <RefreshCw size={12} className={(attributionSyncing || isRefreshing) ? 'animate-spin' : ''} />
+                    {(attributionSyncing || isRefreshing) ? 'Syncing...' : 'Sync'}
+                  </button>
+                  <span className="text-[9px] font-black text-neutral-400 uppercase tracking-widest">MTD</span>
+                </div>
+              </div>
+              {(() => {
+                const now = new Date();
+                const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+                const monthName = monthStart.toLocaleDateString('en-US', { month: 'short' });
+                const mtdOrders = attributedOrders.filter(o => new Date(o.openedAt) >= monthStart);
+                return mtdOrders.length > 0 ? (
+                  <div className="text-[10px] text-neutral-400 mb-3 font-medium">
+                    {mtdOrders.length} orders attributed ({monthName} 1 - today)
+                  </div>
+                ) : null;
+              })()}
+              {(() => {
+                const leaderboard = calculateLeaderboard(submissions, templates, allUsers, 30, googleReviewsData.trackedReviews, attributedOrders, toastTeamLeaders, true);
+                if (leaderboard.length === 0) {
+                  return (
+                    <div className="text-center py-12">
+                      <Users size={48} className="text-neutral-300 mx-auto mb-4" />
+                      <p className="text-neutral-400 font-bold text-sm">No team leaders found. Add users with MANAGER role to see them here.</p>
+                    </div>
+                  );
+                }
+                return (
+                  <div className="space-y-4">
+                    {leaderboard.slice(0, 5).map((leader, index) => (
+                      <div key={leader.userId} className={`p-4 rounded-xl border-2 transition-all ${
+                        index === 0 ? 'bg-amber-50 border-amber-200' :
+                        index === 1 ? 'bg-neutral-50 border-neutral-200' :
+                        index === 2 ? 'bg-orange-50 border-orange-200' :
+                        'bg-neutral-50 border-neutral-100'
+                      }`}>
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-lg flex-shrink-0 ${
+                              index === 0 ? 'bg-amber-500 text-white' :
+                              index === 1 ? 'bg-neutral-400 text-white' :
+                              index === 2 ? 'bg-orange-400 text-white' :
+                              'bg-neutral-200 text-neutral-600'
+                            }`}>
+                              #{index + 1}
+                            </div>
+                            <div className="min-w-0">
+                              <h3 className="font-black text-sm text-[#0F2B3C] uppercase tracking-tight truncate">{leader.name}</h3>
+                              <p className="text-[9px] font-bold text-neutral-500 uppercase tracking-widest">
+                                {leader.totalShifts} shifts • {leader.orderCount} orders
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 md:gap-4 flex-shrink-0">
+                            <div className="text-center hidden sm:block">
+                              <div className="text-[8px] font-black text-neutral-400 uppercase tracking-widest mb-1">Turn</div>
+                              <div className={`text-sm font-black ${
+                                leader.avgTurnTimeMinutes === undefined ? 'text-neutral-300' :
+                                leader.avgTurnTimeMinutes < 3.5 ? 'text-green-600' :
+                                leader.avgTurnTimeMinutes < 4.5 ? 'text-amber-600' : 'text-red-600'
+                              }`}>
+                                {leader.avgTurnTimeMinutes !== undefined ? `${leader.avgTurnTimeMinutes.toFixed(1)}m` : 'N/A'}
+                              </div>
+                            </div>
+                            <div className="text-center hidden sm:block border-l border-neutral-200 pl-2 md:pl-4">
+                              <div className="text-[8px] font-black text-neutral-400 uppercase tracking-widest mb-1">Ticket</div>
+                              <div className={`text-sm font-black ${
+                                leader.avgTicketDollars === undefined ? 'text-neutral-300' :
+                                leader.avgTicketDollars >= 12 ? 'text-green-600' :
+                                leader.avgTicketDollars >= 9 ? 'text-amber-600' : 'text-red-600'
+                              }`}>
+                                {leader.avgTicketDollars !== undefined ? `$${leader.avgTicketDollars.toFixed(0)}` : 'N/A'}
+                              </div>
+                            </div>
+                            <div className="text-center hidden md:block border-l border-neutral-200 pl-4">
+                              <div className="text-[8px] font-black text-neutral-400 uppercase tracking-widest mb-1">Reviews</div>
+                              <div className={`text-sm font-black ${
+                                leader.fiveStarReviewCount > 0 ? 'text-yellow-500' : 'text-neutral-300'
+                              }`}>
+                                {leader.fiveStarReviewCount > 0 ? (
+                                  <span className="flex items-center justify-center gap-0.5">
+                                    {leader.fiveStarReviewCount}<Star size={12} className="fill-current" />
+                                  </span>
+                                ) : '—'}
+                              </div>
+                            </div>
+                            <div className="text-center hidden md:block border-l border-neutral-200 pl-4">
+                              <div className="text-[8px] font-black text-neutral-400 uppercase tracking-widest mb-1">On-Time</div>
+                              <div className={`text-sm font-black ${
+                                leader.onTimeRate >= 90 ? 'text-green-600' :
+                                leader.onTimeRate >= 70 ? 'text-amber-600' : 'text-red-600'
+                              }`}>
+                                {leader.onTimeRate.toFixed(0)}%
+                              </div>
+                            </div>
+                            <div className="text-center border-l border-neutral-200 pl-2 md:pl-4">
+                              <div className="text-[8px] font-black text-neutral-400 uppercase tracking-widest mb-1">Score</div>
+                              <div className={`text-lg font-black ${
+                                leader.effectiveScore >= 90 ? 'text-green-600' :
+                                leader.effectiveScore >= 70 ? 'text-blue-600' :
+                                leader.effectiveScore >= 50 ? 'text-amber-600' : 'text-red-600'
+                              }`}>
+                                {leader.effectiveScore.toFixed(0)}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+            </section>
+
+            {/* Recent Google Reviews */}
+            <section className="bg-white p-4 md:p-6 rounded-xl border border-neutral-100 shadow-sm">
+              <div className="flex items-center gap-3 mb-4 md:mb-6">
+                <div className="p-2 bg-yellow-50 text-yellow-600 rounded-xl"><Star size={20} /></div>
+                <h2 className="text-lg font-black text-[#0F2B3C] uppercase tracking-tight">Google Reviews</h2>
+                <span className="text-[9px] font-black text-neutral-400 uppercase tracking-widest ml-auto">
+                  {googleReviewsData.trackedReviews.filter(r => r.storeId === currentStoreId).length} tracked
+                </span>
+              </div>
+              {(() => {
+                const storeReviews = googleReviewsData.trackedReviews
+                  .filter(r => r.storeId === currentStoreId)
+                  .sort((a, b) => new Date(b.publishTime).getTime() - new Date(a.publishTime).getTime())
+                  .slice(0, 5);
+                if (storeReviews.length === 0) {
+                  return (
+                    <div className="text-center py-8">
+                      <Star size={40} className="text-neutral-200 mx-auto mb-3" />
+                      <p className="text-neutral-400 font-bold text-sm">No reviews tracked yet</p>
+                      <p className="text-neutral-300 text-xs mt-1">Reviews will appear here as they are detected from Google</p>
+                    </div>
+                  );
+                }
+                return (
+                  <div className="space-y-3">
+                    {storeReviews.map(review => (
+                      <div key={review.id} className={`p-3 rounded-xl border ${
+                        review.rating === 5 ? 'bg-yellow-50 border-yellow-200' :
+                        review.rating >= 4 ? 'bg-green-50 border-green-200' :
+                        'bg-neutral-50 border-neutral-200'
+                      }`}>
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="font-black text-sm text-[#0F2B3C]">{review.authorName}</span>
+                              <span className="text-yellow-500 font-black text-sm">
+                                {'★'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)}
+                              </span>
+                            </div>
+                            {review.text && (
+                              <p className="text-xs text-neutral-600 line-clamp-2">"{review.text}"</p>
+                            )}
+                            <div className="flex flex-wrap items-center gap-2 text-[9px] font-bold text-neutral-400 uppercase tracking-widest mt-1">
+                              <span>{review.publishTime ? new Date(review.publishTime).toLocaleDateString() : 'Unknown date'}</span>
+                              {review.attributedToName && (
+                                <span className="text-blue-600">→ {review.attributedToName}</span>
+                              )}
+                            </div>
+                          </div>
+                          {review.bonusAwarded && (
+                            <div className="bg-yellow-100 text-yellow-700 px-2 py-1 rounded-lg text-center flex-shrink-0">
+                              <div className="text-[10px] font-black">+25</div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+            </section>
+
           </div>
         )}
 
-        {activeSubTab === 'gallery' && (
-          <section className="animate-in fade-in space-y-6">
-            {/* Audit Filter Tabs */}
-            <div className="bg-white p-6 rounded-xl border border-neutral-100 shadow-sm">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-red-50 text-red-600 rounded-xl"><SearchCheck size={20} /></div>
-                  <div>
-                    <h2 className="text-xl font-black text-[#0F2B3C] uppercase tracking-tight">Photo Audit Queue</h2>
-                    <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">Review AI-flagged photos</p>
-                  </div>
-                </div>
+        {activeSubTab === 'operations' && (
+          <div className="space-y-6 animate-in fade-in duration-500">
+            {/* Operations Sub-tabs */}
+            <div className="bg-white p-4 rounded-xl border border-neutral-100 shadow-sm">
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { id: 'compliance', label: 'Compliance', icon: Timer },
+                  { id: 'gallery', label: 'Photo Audit', icon: ImageIcon },
+                  { id: 'cash-audit', label: 'Cash Audit', icon: DollarSign },
+                ].map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setOperationsSubTab(tab.id as any)}
+                    className={`px-4 py-2 text-[9px] font-black rounded-lg transition-all flex items-center gap-2 whitespace-nowrap tracking-widest ${operationsSubTab === tab.id ? 'bg-[#0F2B3C] text-white shadow-lg' : 'text-neutral-500 hover:text-[#0F2B3C] bg-neutral-50'}`}
+                  >
+                    <tab.icon size={14} /> {tab.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {operationsSubTab === 'gallery' && (
+              <section className="animate-in fade-in space-y-6">
+                {/* Audit Filter Tabs */}
+                <div className="bg-white p-6 rounded-xl border border-neutral-100 shadow-sm">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-red-50 text-red-600 rounded-xl"><SearchCheck size={20} /></div>
+                      <div>
+                        <h2 className="text-xl font-black text-[#0F2B3C] uppercase tracking-tight">Photo Audit Queue</h2>
+                        <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">Review AI-flagged photos</p>
+                      </div>
+                    </div>
                 <div className="flex bg-neutral-100 p-1 rounded-xl border border-neutral-200">
                   {[
                     { id: 'pending', label: 'Pending Review', count: allPhotos.filter(p => p.aiFlagged && !p.managerOverride).length },
@@ -1677,33 +1897,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
           </section>
         )}
 
-        {activeSubTab === 'manual' && (
-          <section className="animate-in fade-in space-y-6">
-            {localManual.map(section => (
-              <div key={section.id} className="bg-white p-6 rounded-xl border border-neutral-100 shadow-sm space-y-6">
-                 <div className="flex items-center gap-4 border-b border-neutral-50 pb-6">
-                    <div className="w-12 h-12 bg-[#0F2B3C] text-white rounded-xl flex items-center justify-center font-black text-xl">{section.number}</div>
-                    <div className="flex-1">
-                      <label className="text-[8px] font-black text-neutral-400 uppercase tracking-widest block mb-1 ml-1">Section Header</label>
-                      <input value={section.title} onChange={e => {
-                        const next = localManual.map(s => s.id === section.id ? { ...s, title: e.target.value } : s);
-                        setLocalManual(next);
-                        setIsDirty(true);
-                      }} className="text-2xl font-black text-[#0F2B3C] uppercase bg-transparent outline-none w-full focus:ring-0 border-none p-0" />
-                    </div>
-                    <button onClick={() => { onUpdateManual(localManual); setIsDirty(false); }} className="p-4 bg-blue-50 text-[#0F2B3C] rounded-xl hover:bg-[#0F2B3C] hover:text-white transition-all shadow-sm active:scale-95"><Save size={20}/></button>
-                 </div>
-                 <textarea rows={10} value={section.content} onChange={e => {
-                   const next = localManual.map(s => s.id === section.id ? { ...s, content: e.target.value } : s);
-                   setLocalManual(next);
-                   setIsDirty(true);
-                 }} className="w-full bg-neutral-50 p-6 rounded-xl border-none text-sm text-neutral-600 font-medium leading-relaxed resize-none outline-none focus:ring-4 focus:ring-[#0F2B3C]/5" />
-              </div>
-            ))}
-          </section>
-        )}
-
-        {activeSubTab === 'compliance' && (
+        {operationsSubTab === 'compliance' && (
           <section className="animate-in fade-in space-y-12">
              {/* Trailing Summary Stats */}
              <div className="bg-white p-6 rounded-xl border border-neutral-100 shadow-sm">
@@ -1826,7 +2020,36 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
           </section>
         )}
 
-        {activeSubTab === 'staff' && (
+          </div>
+        )}
+
+        {activeSubTab === 'settings' && (
+          <div className="space-y-6 animate-in fade-in duration-500">
+            {/* Settings Sub-tabs */}
+            <div className="bg-white p-4 rounded-xl border border-neutral-100 shadow-sm">
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { id: 'editor', label: 'Protocols', icon: Settings },
+                  { id: 'staff', label: 'Staff', icon: Users },
+                  { id: 'manual', label: 'Manual', icon: FileText },
+                  ...(currentUser?.role === UserRole.ADMIN ? [
+                    { id: 'team', label: 'Team', icon: ShieldCheck },
+                    { id: 'branding', label: 'Branding', icon: Palette },
+                    { id: 'stores', label: 'Stores', icon: Building2 },
+                  ] : []),
+                ].map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setSettingsSubTab(tab.id as any)}
+                    className={`px-4 py-2 text-[9px] font-black rounded-lg transition-all flex items-center gap-2 whitespace-nowrap tracking-widest ${settingsSubTab === tab.id ? 'bg-[#0F2B3C] text-white shadow-lg' : 'text-neutral-500 hover:text-[#0F2B3C] bg-neutral-50'}`}
+                  >
+                    <tab.icon size={14} /> {tab.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+        {settingsSubTab === 'staff' && (
           <section className="animate-in fade-in">
             {staff.length === 0 ? (
               <div className="bg-white p-16 rounded-xl border border-neutral-100 shadow-sm text-center">
@@ -1927,428 +2150,33 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
           </section>
         )}
 
-        {activeSubTab === 'performance' && (
-          <div className="space-y-6 animate-in fade-in duration-500">
-            {/* Current Shift Leadership */}
-            <section className="bg-white p-6 rounded-xl border border-neutral-100 shadow-sm">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="p-2 bg-blue-50 text-blue-600 rounded-xl"><Target size={20} /></div>
-                <h2 className="text-xl font-black text-[#0F2B3C] uppercase tracking-tight">Current Shift Leadership</h2>
-              </div>
-
-              {(() => {
-                // Detect current leaders
-                const currentLeaders = detectLeaders(toastClockedIn, allUsers);
-
-                if (currentLeaders.length === 0) {
-                  return (
-                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 text-center">
-                      <AlertTriangle size={32} className="text-amber-600 mx-auto mb-3" />
-                      <h3 className="text-sm font-black text-amber-900 uppercase tracking-tight mb-2">No Leader On Duty</h3>
-                      <p className="text-xs text-amber-700 font-medium">No team leader or GM is currently clocked in. Performance metrics cannot be tracked.</p>
+        {settingsSubTab === 'manual' && (
+          <section className="animate-in fade-in space-y-6">
+            {localManual.map(section => (
+              <div key={section.id} className="bg-white p-6 rounded-xl border border-neutral-100 shadow-sm space-y-6">
+                 <div className="flex items-center gap-4 border-b border-neutral-50 pb-6">
+                    <div className="w-12 h-12 bg-[#0F2B3C] text-white rounded-xl flex items-center justify-center font-black text-xl">{section.number}</div>
+                    <div className="flex-1">
+                      <label className="text-[8px] font-black text-neutral-400 uppercase tracking-widest block mb-1 ml-1">Section Header</label>
+                      <input value={section.title} onChange={e => {
+                        const next = localManual.map(s => s.id === section.id ? { ...s, title: e.target.value } : s);
+                        setLocalManual(next);
+                        setIsDirty(true);
+                      }} className="text-2xl font-black text-[#0F2B3C] uppercase bg-transparent outline-none w-full focus:ring-0 border-none p-0" />
                     </div>
-                  );
-                }
-
-                // Check for multiple leaders at same priority
-                const priorityGroups = new Map<number, typeof currentLeaders>();
-                currentLeaders.forEach(leader => {
-                  const group = priorityGroups.get(leader.priority) || [];
-                  group.push(leader);
-                  priorityGroups.set(leader.priority, group);
-                });
-
-                const highestPriority = Math.min(...currentLeaders.map(l => l.priority));
-                const highestPriorityLeaders = priorityGroups.get(highestPriority) || [];
-                const multipleLeaders = highestPriorityLeaders.length > 1;
-
-                return (
-                  <div className="space-y-6">
-                    {multipleLeaders && (
-                      <div className="bg-red-50 border border-red-200 rounded-xl p-6">
-                        <div className="flex items-start gap-3">
-                          <AlertOctagon size={24} className="text-red-600 flex-shrink-0 mt-0.5" />
-                          <div>
-                            <h3 className="text-sm font-black text-red-900 uppercase tracking-tight mb-2">Multiple Leaders Detected</h3>
-                            <p className="text-xs text-red-700 font-medium mb-3">
-                              Multiple leaders at the same priority level are clocked in. Both will share accountability for this shift's performance.
-                            </p>
-                            <div className="flex flex-wrap gap-2">
-                              {highestPriorityLeaders.map(leader => (
-                                <div key={leader.userId} className="bg-red-100 text-red-800 px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-wide">
-                                  {leader.name} ({leader.jobTitle})
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {currentLeaders.map(leader => (
-                        <div key={leader.userId} className={`p-6 rounded-xl border-2 ${leader.priority === highestPriority ? 'bg-blue-50 border-blue-200' : 'bg-neutral-50 border-neutral-200'}`}>
-                          <div className="flex items-center gap-3 mb-4">
-                            <div className="w-12 h-12 bg-[#0F2B3C] text-white rounded-xl flex items-center justify-center font-black text-lg">
-                              {leader.name.charAt(0)}
-                            </div>
-                            <div>
-                              <h3 className="font-black text-base text-[#0F2B3C] uppercase tracking-tight leading-none">{leader.name}</h3>
-                              <p className="text-[9px] font-bold text-neutral-500 uppercase tracking-widest mt-1">{leader.jobTitle}</p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            {leader.priority === highestPriority ? (
-                              <>
-                                <Trophy size={14} className="text-blue-600" />
-                                <span className="text-[9px] font-black text-blue-600 uppercase tracking-widest">Shift Owner</span>
-                              </>
-                            ) : (
-                              <span className="text-[9px] font-black text-neutral-400 uppercase tracking-widest">On Duty</span>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    {toastSales && (
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-                        <div className="bg-neutral-50 p-6 rounded-xl border border-neutral-200">
-                          <div className="text-[10px] font-black text-neutral-400 uppercase tracking-widest mb-2">Turn Time</div>
-                          <div className="text-2xl font-black text-[#0F2B3C]">{toastSales.averageTurnTime?.toFixed(1) || '—'} min</div>
-                          <div className={`text-[9px] font-bold uppercase tracking-wide mt-1 ${
-                            (toastSales.averageTurnTime || 0) < 3.5 ? 'text-green-600' :
-                            (toastSales.averageTurnTime || 0) < 4.5 ? 'text-blue-600' :
-                            (toastSales.averageTurnTime || 0) < 5 ? 'text-amber-600' : 'text-red-600'
-                          }`}>
-                            {(toastSales.averageTurnTime || 0) < 3.5 ? '40 pts' :
-                             (toastSales.averageTurnTime || 0) < 4.5 ? '35 pts' :
-                             (toastSales.averageTurnTime || 0) < 5 ? '-10 pts' : '-20 pts'}
-                          </div>
-                        </div>
-                        <div className="bg-neutral-50 p-6 rounded-xl border border-neutral-200">
-                          <div className="text-[10px] font-black text-neutral-400 uppercase tracking-widest mb-2">Total Sales</div>
-                          <div className="text-2xl font-black text-[#0F2B3C]">${toastSales.totalSales?.toFixed(0) || '—'}</div>
-                          <div className="text-[9px] font-bold text-neutral-500 uppercase tracking-wide mt-1">{toastSales.totalOrders || 0} orders</div>
-                          {salesComparison && (
-                            <div className={`mt-2 flex items-center gap-1 text-[9px] font-black ${
-                              salesComparison.salesPercent >= 0 ? 'text-green-600' : 'text-red-600'
-                            }`}>
-                              {salesComparison.salesPercent >= 0 ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
-                              <span>
-                                {salesComparison.salesPercent >= 0 ? '+' : ''}{salesComparison.salesPercent.toFixed(1)}% vs last wk
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                        <div className="bg-neutral-50 p-6 rounded-xl border border-neutral-200">
-                          <div className="text-[10px] font-black text-neutral-400 uppercase tracking-widest mb-2">Avg Check</div>
-                          <div className="text-2xl font-black text-[#0F2B3C]">${toastSales.averageCheck?.toFixed(2) || '—'}</div>
-                          <div className={`text-[9px] font-bold uppercase tracking-wide mt-1 ${
-                            (toastSales.averageCheck || 0) >= 10 ? 'text-green-600' :
-                            (toastSales.averageCheck || 0) >= 8 ? 'text-green-600' :
-                            (toastSales.averageCheck || 0) >= 6 ? 'text-blue-600' :
-                            (toastSales.averageCheck || 0) >= 4 ? 'text-amber-600' : 'text-neutral-400'
-                          }`}>
-                            {calculateAvgTicketScore(toastSales.averageCheck)} pts
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })()}
-            </section>
-
-            {/* Team Leader Leaderboard */}
-            <section
-              className="bg-white p-4 md:p-6 rounded-xl border border-neutral-100 shadow-sm relative"
-              onTouchStart={handleTouchStart}
-              onTouchMove={handleTouchMove}
-              onTouchEnd={handleTouchEnd}
-            >
-              {/* Pull-to-refresh indicator */}
-              {(pullDistance > 0 || isRefreshing) && (
-                <div
-                  className="absolute left-0 right-0 flex items-center justify-center transition-all overflow-hidden"
-                  style={{ top: -40, height: pullDistance > 0 ? pullDistance : 40 }}
-                >
-                  <div className={`flex items-center gap-2 text-blue-600 ${isRefreshing ? 'animate-pulse' : ''}`}>
-                    <RefreshCw size={16} className={isRefreshing || pullDistance >= PULL_THRESHOLD ? 'animate-spin' : ''} />
-                    <span className="text-[10px] font-bold uppercase tracking-wide">
-                      {isRefreshing ? 'Refreshing...' : pullDistance >= PULL_THRESHOLD ? 'Release to refresh' : 'Pull to refresh'}
-                    </span>
-                  </div>
-                </div>
-              )}
-              <div className="flex items-center gap-3 mb-4 md:mb-6">
-                <div className="p-2 bg-amber-50 text-amber-600 rounded-xl"><Trophy size={20} /></div>
-                <h2 className="text-lg md:text-xl font-black text-[#0F2B3C] uppercase tracking-tight">Team Leader Leaderboard</h2>
-                <div className="flex items-center gap-2 ml-auto">
-                  <button
-                    onClick={() => refreshAllData()}
-                    disabled={attributionSyncing || isRefreshing}
-                    className="text-[9px] font-bold uppercase tracking-wide text-blue-600 hover:text-blue-700 disabled:text-neutral-400 flex items-center gap-1"
-                    title={lastAttributionSync ? `Last synced: ${new Date(lastAttributionSync).toLocaleTimeString()}` : 'Not yet synced'}
-                  >
-                    <RefreshCw size={12} className={(attributionSyncing || isRefreshing) ? 'animate-spin' : ''} />
-                    {(attributionSyncing || isRefreshing) ? 'Syncing...' : 'Sync'}
-                  </button>
-                  <span className="text-[9px] font-black text-neutral-400 uppercase tracking-widest">MTD</span>
-                </div>
+                    <button onClick={() => { onUpdateManual(localManual); setIsDirty(false); }} className="p-4 bg-blue-50 text-[#0F2B3C] rounded-xl hover:bg-[#0F2B3C] hover:text-white transition-all shadow-sm active:scale-95"><Save size={20}/></button>
+                 </div>
+                 <textarea rows={10} value={section.content} onChange={e => {
+                   const next = localManual.map(s => s.id === section.id ? { ...s, content: e.target.value } : s);
+                   setLocalManual(next);
+                   setIsDirty(true);
+                 }} className="w-full bg-neutral-50 p-6 rounded-xl border-none text-sm text-neutral-600 font-medium leading-relaxed resize-none outline-none focus:ring-4 focus:ring-[#0F2B3C]/5" />
               </div>
-              {(() => {
-                // Calculate MTD date range for display
-                const now = new Date();
-                const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-                const monthName = monthStart.toLocaleDateString('en-US', { month: 'short' });
-                const mtdOrders = attributedOrders.filter(o => new Date(o.openedAt) >= monthStart);
-                return mtdOrders.length > 0 ? (
-                  <div className="text-[10px] text-neutral-400 mb-3 font-medium">
-                    {mtdOrders.length} orders attributed ({monthName} 1 - today)
-                  </div>
-                ) : null;
-              })()}
-
-              {(() => {
-                const leaderboard = calculateLeaderboard(submissions, templates, allUsers, 30, googleReviewsData.trackedReviews, attributedOrders, toastTeamLeaders, true);
-
-                if (leaderboard.length === 0) {
-                  return (
-                    <div className="text-center py-12">
-                      <Users size={48} className="text-neutral-300 mx-auto mb-4" />
-                      <p className="text-neutral-400 font-bold text-sm">No team leaders found. Add users with MANAGER role to see them here.</p>
-                    </div>
-                  );
-                }
-
-                return (
-                  <div className="space-y-4">
-                    {leaderboard.map((leader, index) => (
-                      <div key={leader.userId} className={`p-4 md:p-6 rounded-xl border-2 transition-all ${
-                        index === 0 ? 'bg-amber-50 border-amber-200' :
-                        index === 1 ? 'bg-neutral-50 border-neutral-200' :
-                        index === 2 ? 'bg-orange-50 border-orange-200' :
-                        'bg-neutral-50 border-neutral-100'
-                      }`}>
-                        <div className="flex items-start md:items-center justify-between gap-4 flex-col md:flex-row">
-                          <div className="flex items-center gap-3 md:gap-4">
-                            <div className={`w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center font-black text-lg md:text-xl flex-shrink-0 ${
-                              index === 0 ? 'bg-amber-500 text-white' :
-                              index === 1 ? 'bg-neutral-400 text-white' :
-                              index === 2 ? 'bg-orange-400 text-white' :
-                              'bg-neutral-200 text-neutral-600'
-                            }`}>
-                              #{index + 1}
-                            </div>
-                            <div>
-                              <h3 className="font-black text-base md:text-lg text-[#0F2B3C] uppercase tracking-tight">{leader.name}</h3>
-                              <p className="text-[9px] font-bold text-neutral-500 uppercase tracking-widest mt-0.5">
-                                {leader.totalShifts} shifts • {leader.orderCount} orders attributed
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-4 md:gap-6 w-full md:w-auto">
-                            <div className="text-center flex-1 md:flex-initial md:text-right">
-                              <div className="text-[8px] font-black text-neutral-400 uppercase tracking-widest mb-1">Timeliness</div>
-                              <div className={`text-sm md:text-base font-black ${
-                                leader.avgTimelinessScore >= 35 ? 'text-green-600' :
-                                leader.avgTimelinessScore >= 0 ? 'text-amber-600' : 'text-red-600'
-                              }`}>
-                                {leader.avgTimelinessScore.toFixed(0)}/40
-                              </div>
-                            </div>
-                            <div className="text-center flex-1 md:flex-initial md:text-right">
-                              <div className="text-[8px] font-black text-neutral-400 uppercase tracking-widest mb-1">Turn Time</div>
-                              <div className={`text-sm md:text-base font-black ${
-                                leader.avgTurnTimeMinutes === undefined ? 'text-neutral-300' :
-                                leader.avgTurnTimeMinutes < 3.5 ? 'text-green-600' :
-                                leader.avgTurnTimeMinutes < 4.5 ? 'text-amber-600' : 'text-red-600'
-                              }`}>
-                                {leader.avgTurnTimeMinutes !== undefined ? `${leader.avgTurnTimeMinutes.toFixed(1)} min` : 'N/A'}
-                              </div>
-                            </div>
-                            <div className="text-center flex-1 md:flex-initial md:text-right">
-                              <div className="text-[8px] font-black text-neutral-400 uppercase tracking-widest mb-1">Avg Ticket</div>
-                              <div className={`text-sm md:text-base font-black ${
-                                leader.avgTicketDollars === undefined ? 'text-neutral-300' :
-                                leader.avgTicketDollars >= 10 ? 'text-green-600' :
-                                leader.avgTicketDollars >= 8 ? 'text-blue-600' :
-                                leader.avgTicketDollars >= 6 ? 'text-amber-600' : 'text-neutral-400'
-                              }`}>
-                                {leader.avgTicketDollars !== undefined ? `$${leader.avgTicketDollars.toFixed(2)}` : 'N/A'}
-                              </div>
-                            </div>
-                            <div className="text-center flex-1 md:flex-initial md:text-right">
-                              <div className="text-[8px] font-black text-neutral-400 uppercase tracking-widest mb-1">Reviews</div>
-                              <div className={`text-sm md:text-base font-black ${
-                                leader.reviewBonusPoints > 0 ? 'text-yellow-500' : 'text-neutral-300'
-                              }`}>
-                                {leader.reviewBonusPoints > 0 ? `+${leader.reviewBonusPoints}` : '—'}
-                              </div>
-                              {leader.fiveStarReviewCount > 0 && (
-                                <div className="text-[7px] text-yellow-600 font-bold mt-0.5">{leader.fiveStarReviewCount}x 5-star</div>
-                              )}
-                            </div>
-                            <div className="text-center flex-1 md:flex-initial md:text-right border-l border-neutral-200 pl-4">
-                              <div className="text-[8px] font-black text-neutral-400 uppercase tracking-widest mb-1">Score</div>
-                              <div className={`text-lg md:text-2xl font-black ${
-                                leader.effectiveScore >= 90 ? 'text-green-600' :
-                                leader.effectiveScore >= 70 ? 'text-blue-600' :
-                                leader.effectiveScore >= 50 ? 'text-amber-600' : 'text-red-600'
-                              }`}>
-                                {leader.effectiveScore.toFixed(0)}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                );
-              })()}
-            </section>
-
-            {/* Recent Google Reviews */}
-            <section className="bg-white p-4 md:p-6 rounded-xl border border-neutral-100 shadow-sm">
-              <div className="flex items-center gap-3 mb-4 md:mb-6">
-                <div className="p-2 bg-yellow-50 text-yellow-600 rounded-xl"><Star size={20} /></div>
-                <h2 className="text-lg font-black text-[#0F2B3C] uppercase tracking-tight">Google Reviews</h2>
-                <span className="text-[9px] font-black text-neutral-400 uppercase tracking-widest ml-auto">
-                  {googleReviewsData.trackedReviews.filter(r => r.storeId === currentStoreId).length} tracked
-                </span>
-              </div>
-
-              {(() => {
-                const storeReviews = googleReviewsData.trackedReviews
-                  .filter(r => r.storeId === currentStoreId)
-                  .sort((a, b) => new Date(b.detectedAt).getTime() - new Date(a.detectedAt).getTime())
-                  .slice(0, 10);
-
-                if (storeReviews.length === 0) {
-                  return (
-                    <div className="text-center py-8">
-                      <Star size={40} className="text-neutral-200 mx-auto mb-3" />
-                      <p className="text-neutral-400 font-bold text-sm">No reviews tracked yet</p>
-                      <p className="text-neutral-300 text-xs mt-1">Reviews will appear here as they are detected from Google</p>
-                    </div>
-                  );
-                }
-
-                return (
-                  <div className="space-y-3">
-                    {storeReviews.map(review => (
-                      <div key={review.id} className={`p-3 md:p-4 rounded-xl border ${
-                        review.rating === 5 ? 'bg-yellow-50 border-yellow-200' :
-                        review.rating >= 4 ? 'bg-green-50 border-green-200' :
-                        'bg-neutral-50 border-neutral-200'
-                      }`}>
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="font-black text-sm text-[#0F2B3C]">{review.authorName}</span>
-                              <span className="text-yellow-500 font-black text-sm">
-                                {'★'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)}
-                              </span>
-                            </div>
-                            {review.text && (
-                              <p className="text-xs text-neutral-600 line-clamp-2 mb-2">"{review.text}"</p>
-                            )}
-                            <div className="flex flex-wrap items-center gap-2 text-[9px] font-bold text-neutral-400 uppercase tracking-widest">
-                              <span>{review.publishTime ? new Date(review.publishTime).toLocaleDateString() : 'Unknown date'}</span>
-                              {review.attributedToName ? (
-                                <span className="text-blue-600">Credited to {review.attributedToName}</span>
-                              ) : (
-                                <span className="text-amber-600">No leader on duty</span>
-                              )}
-                              {review.mentionedEmployeeNames && review.mentionedEmployeeNames.length > 0 && (
-                                <span className="text-green-600">Mentions: {review.mentionedEmployeeNames.join(', ')}</span>
-                              )}
-                            </div>
-                          </div>
-                          <div className="flex-shrink-0 flex flex-col gap-1">
-                            {review.bonusAwarded && (
-                              <div className="bg-yellow-100 text-yellow-700 px-3 py-1.5 rounded-lg text-center">
-                                <div className="text-xs font-black">+25 pts</div>
-                                <div className="text-[8px] font-bold">5-star</div>
-                              </div>
-                            )}
-                            {review.mentionBonusPoints && review.mentionBonusPoints > 0 && (
-                              <div className="bg-green-100 text-green-700 px-3 py-1.5 rounded-lg text-center">
-                                <div className="text-xs font-black">+{review.mentionBonusPoints} pts</div>
-                                <div className="text-[8px] font-bold">mention</div>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                );
-              })()}
-            </section>
-
-            {/* Performance Scoring Guide */}
-            <section className="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-100">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="p-2 bg-blue-100 text-blue-600 rounded-xl"><Info size={20} /></div>
-                <h2 className="text-lg font-black text-[#0F2B3C] uppercase tracking-tight">Performance Scoring Guide</h2>
-              </div>
-
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6">
-                <div className="bg-white p-3 md:p-6 rounded-xl border border-blue-100">
-                  <h3 className="text-[9px] md:text-[10px] font-black text-blue-600 uppercase tracking-widest mb-3 md:mb-4">Timeliness (40 pts)</h3>
-                  <div className="space-y-1.5 md:space-y-2 text-[10px] md:text-xs">
-                    <div className="flex justify-between"><span className="font-bold text-neutral-600">On time:</span><span className="font-black text-green-600">+40</span></div>
-                    <div className="flex justify-between"><span className="font-bold text-neutral-600">Late &lt;1hr:</span><span className="font-black text-red-600">-10</span></div>
-                    <div className="flex justify-between"><span className="font-bold text-neutral-600">Late &gt;1hr:</span><span className="font-black text-red-600">-20</span></div>
-                    <div className="flex justify-between"><span className="font-bold text-neutral-600">Missing:</span><span className="font-black text-neutral-400">0</span></div>
-                  </div>
-                </div>
-
-                <div className="bg-white p-3 md:p-6 rounded-xl border border-blue-100">
-                  <h3 className="text-[9px] md:text-[10px] font-black text-blue-600 uppercase tracking-widest mb-3 md:mb-4">Turn Time (40 pts)</h3>
-                  <div className="space-y-1.5 md:space-y-2 text-[10px] md:text-xs">
-                    <div className="flex justify-between"><span className="font-bold text-neutral-600">&lt;3.5 min:</span><span className="font-black text-green-600">+40</span></div>
-                    <div className="flex justify-between"><span className="font-bold text-neutral-600">3.5-4.5:</span><span className="font-black text-blue-600">+35</span></div>
-                    <div className="flex justify-between"><span className="font-bold text-neutral-600">4.5-5:</span><span className="font-black text-red-600">-10</span></div>
-                    <div className="flex justify-between"><span className="font-bold text-neutral-600">5+ min:</span><span className="font-black text-red-600">-20</span></div>
-                  </div>
-                </div>
-
-                <div className="bg-white p-3 md:p-6 rounded-xl border border-blue-100">
-                  <h3 className="text-[9px] md:text-[10px] font-black text-blue-600 uppercase tracking-widest mb-3 md:mb-4">Avg Ticket (25 pts)</h3>
-                  <div className="space-y-1.5 md:space-y-2 text-[10px] md:text-xs">
-                    <div className="flex justify-between"><span className="font-bold text-neutral-600">$10+:</span><span className="font-black text-green-600">+25</span></div>
-                    <div className="flex justify-between"><span className="font-bold text-neutral-600">$8-10:</span><span className="font-black text-green-600">+20</span></div>
-                    <div className="flex justify-between"><span className="font-bold text-neutral-600">$6-8:</span><span className="font-black text-blue-600">+15</span></div>
-                    <div className="flex justify-between"><span className="font-bold text-neutral-600">$4-6:</span><span className="font-black text-amber-600">+5</span></div>
-                    <div className="flex justify-between"><span className="font-bold text-neutral-600">&lt;$4:</span><span className="font-black text-neutral-400">0</span></div>
-                  </div>
-                </div>
-
-                <div className="bg-white p-3 md:p-6 rounded-xl border border-yellow-200">
-                  <h3 className="text-[9px] md:text-[10px] font-black text-yellow-600 uppercase tracking-widest mb-3 md:mb-4">Google Reviews</h3>
-                  <div className="space-y-1.5 md:space-y-2 text-[10px] md:text-xs">
-                    <div className="flex justify-between"><span className="font-bold text-neutral-600">5-star:</span><span className="font-black text-yellow-600">+25</span></div>
-                    <div className="flex justify-between"><span className="font-bold text-neutral-600">Other:</span><span className="font-black text-neutral-400">0</span></div>
-                    <div className="flex justify-between"><span className="font-bold text-neutral-600">No leader:</span><span className="font-black text-neutral-400">N/A</span></div>
-                  </div>
-                  <p className="text-[8px] text-neutral-400 mt-2 font-bold">Flat bonus, not averaged</p>
-                </div>
-              </div>
-
-              <div className="mt-4 md:mt-6 bg-white/50 p-4 rounded-xl border border-blue-100">
-                <p className="text-xs font-bold text-neutral-600 leading-relaxed">
-                  <span className="font-black text-[#0F2B3C]">How it works:</span> Each shift earns up to 105 points across 3 categories. Poor turn times and late protocols carry <span className="font-black text-red-600">negative penalties</span>. Your score is the <span className="font-black">average</span> across all shifts. 5-star Google Reviews add a flat <span className="font-black text-yellow-600">+25 bonus</span> for the on-duty shift leader.
-                </p>
-              </div>
-            </section>
-          </div>
+            ))}
+          </section>
         )}
 
-        {activeSubTab === 'editor' && (
+        {settingsSubTab === 'editor' && (
           <section className="animate-in fade-in space-y-6">
             <div className="flex justify-between items-center bg-white p-6 rounded-xl border border-neutral-100 shadow-sm mb-6">
               <div>
@@ -2556,7 +2384,10 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
           </section>
         )}
 
-        {activeSubTab === 'cash-audit' && (() => {
+          </div>
+        )}
+
+        {activeSubTab === 'operations' && operationsSubTab === 'cash-audit' && (() => {
           // Calculate expected cash on hand for theft detection
           const totalCashSales = toastSales?.paymentMethods?.['CASH'] || toastSales?.paymentMethods?.['Cash'] || 0;
           const totalCashRemoved = (toastCashData?.cashOut || 0) + (toastCashData?.payOuts || 0) + (toastCashData?.tipOuts || 0);
@@ -2850,7 +2681,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
           );
         })()}
 
-        {activeSubTab === 'team' && currentUser?.role === UserRole.ADMIN && (
+        {activeSubTab === 'settings' && settingsSubTab === 'team' && currentUser?.role === UserRole.ADMIN && (
           <TeamManagement
             allUsers={allUsers}
             currentUser={currentUser}
@@ -2861,11 +2692,11 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
           />
         )}
 
-        {activeSubTab === 'branding' && currentUser?.role === UserRole.ADMIN && (
+        {activeSubTab === 'settings' && settingsSubTab === 'branding' && currentUser?.role === UserRole.ADMIN && (
           <BrandingSettings org={org || null} onSaveOrg={onSaveOrg || (async () => false)} />
         )}
 
-        {activeSubTab === 'stores' && currentUser?.role === UserRole.ADMIN && (
+        {activeSubTab === 'settings' && settingsSubTab === 'stores' && currentUser?.role === UserRole.ADMIN && (
           <StoreManagement org={org || null} onSaveOrg={onSaveOrg || (async () => false)} />
         )}
 
