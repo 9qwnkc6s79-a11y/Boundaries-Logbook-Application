@@ -674,8 +674,17 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
 
   // Google Reviews: process and attribute new reviews to shift leaders
   // Attribution is based on who was on duty when the review was POSTED (not detected)
+  // Polls BOTH stores regardless of which one is currently viewed
   const processGoogleReviews = async () => {
-    const location = currentStoreId === 'store-prosper' ? 'prosper' : 'littleelm';
+    const locations = ['littleelm', 'prosper'];
+
+    for (const location of locations) {
+      await processGoogleReviewsForLocation(location);
+    }
+  };
+
+  const processGoogleReviewsForLocation = async (location: string) => {
+    const storeId = location === 'prosper' ? 'store-prosper' : 'store-elm';
     try {
       const response = await fetch(`/api/google-reviews?location=${location}`);
       if (!response.ok) return;
@@ -778,7 +787,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
 
         trackedNew.push({
           id: `${r.authorName}::${r.publishTime}`,
-          storeId: currentStoreId,
+          storeId,
           location,
           authorName: r.authorName,
           rating: r.rating,
