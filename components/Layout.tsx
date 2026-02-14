@@ -543,32 +543,29 @@ User Question: ${userMsg}`,
       {/* Mobile Floating Action Button for Chat */}
       <button
         onClick={() => setChatOpen(true)}
-        className="md:hidden fixed bottom-16 right-3 w-12 h-12 text-white rounded-full shadow-lg flex items-center justify-center z-40 active:scale-90 transition-transform border border-white/10"
+        className="md:hidden fixed bottom-20 right-3 w-12 h-12 text-white rounded-full shadow-lg flex items-center justify-center z-40 active:scale-90 transition-transform border border-white/10"
         style={{ backgroundColor: primaryColor }}
       >
         <Brain size={20} />
       </button>
 
       {/* Mobile Bottom Tab Bar */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 glass-effect border-t border-neutral-100 px-1 py-3 flex items-center justify-around z-50 pb-safe shadow-[0_-10px_30px_rgba(0,0,0,0.03)]">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-t border-neutral-200 px-2 pt-2 flex items-center justify-center gap-1 z-50 pb-safe shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
         {filteredNav.map(item => {
           const isActive = activeTab === item.id;
           return (
             <button
               key={item.id}
               onClick={() => onTabChange(item.id)}
-              className={`flex flex-col items-center gap-1 transition-all relative flex-1 max-w-[80px] ${
-                isActive ? '' : 'text-neutral-600'
+              className={`flex flex-col items-center gap-0.5 transition-all relative py-1 px-3 rounded-lg ${
+                isActive ? 'bg-neutral-100' : ''
               }`}
-              style={isActive ? { color: primaryColor } : undefined}
+              style={isActive ? { color: primaryColor } : { color: '#6b7280' }}
             >
-              <div className={`p-2 rounded-xl transition-all duration-300 ${isActive ? 'bg-blue-50' : 'bg-transparent'}`}>
-                <item.icon size={22} strokeWidth={isActive ? 2.5 : 2} />
-              </div>
-              <span className={`text-[7px] font-black uppercase tracking-tight leading-tight text-center ${isActive ? 'opacity-100' : 'opacity-70'}`}>
+              <item.icon size={20} strokeWidth={isActive ? 2.5 : 1.5} />
+              <span className={`text-[9px] font-bold uppercase tracking-tight leading-none ${isActive ? 'opacity-100' : 'opacity-60'}`}>
                 {item.label}
               </span>
-              {isActive && <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full" style={{ backgroundColor: primaryColor }} />}
             </button>
           );
         })}

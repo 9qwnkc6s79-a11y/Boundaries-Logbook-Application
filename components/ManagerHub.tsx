@@ -12,6 +12,9 @@ import { db } from '../services/db';
 import { detectLeaders, calculateTimelinessScore, calculateTurnTimeScore, calculateSalesScore, calculateAvgTicketScore, calculateLeaderboard, determineShiftOwnership } from '../utils/leadershipTracking';
 import { syncOrderAttributions } from '../utils/orderAttribution';
 import TeamManagement from './TeamManagement';
+import NotificationBanner from './NotificationBanner';
+import { checkLateSubmissions, checkHighTurnTime, getTodayDate } from '../services/notificationTriggers';
+import { showLocalNotification, isAnyStoreManager, getNotificationConfig } from '../services/notifications';
 
 /**
  * Fuzzy name matching for Toast employees to database users.
@@ -197,6 +200,45 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
       setPhotoComment('');
     }
   }, [fullscreenPhoto]);
+
+  // Notification polling - check for late submissions and high turn times
+  useEffect(() => {
+    // Only poll if user is a manager
+    if (!isAnyStoreManager(currentUser.email)) return;
+
+    const config = getNotificationConfig();
+    const checkNotifications = () => {
+      const today = getTodayDate();
+
+      // Check for late submissions
+      const lateNotifications = checkLateSubmissions(
+        localTemplates.filter(t => t.storeId === currentStoreId),
+        submissions,
+        currentStoreId,
+        today
+      );
+
+      lateNotifications.forEach(n => {
+        showLocalNotification(n);
+      });
+
+      // Check for high turn time
+      if (toastSales) {
+        const turnTimeNotification = checkHighTurnTime(toastSales, currentStoreId);
+        if (turnTimeNotification) {
+          showLocalNotification(turnTimeNotification);
+        }
+      }
+    };
+
+    // Check immediately on mount
+    checkNotifications();
+
+    // Poll every 5 minutes
+    const intervalId = setInterval(checkNotifications, config.pollIntervalMinutes * 60 * 1000);
+
+    return () => clearInterval(intervalId);
+  }, [currentUser.email, currentStoreId, localTemplates, submissions, toastSales]);
 
   const trainingStats = useMemo(() => {
     const onboardingLessons = curriculum.filter(m => m.category === 'ONBOARDING').flatMap(m => m.lessons);
@@ -1246,6 +1288,10 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                 </div>
               </div>
             )}
+
+            {/* Notification Permission Banner */}
+            <NotificationBanner currentUser={currentUser} storeId={currentStoreId} />
+
             {/* Live Store Performance - Top Priority */}
             <section className="bg-gradient-to-br from-[#0F2B3C] to-[#1a3d52] p-3 md:p-6 rounded-xl shadow-md text-white border border-[#B87333]/20">
               <div className="flex items-center justify-between mb-3 md:mb-6">

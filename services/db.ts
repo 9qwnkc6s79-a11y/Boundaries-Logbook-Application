@@ -52,6 +52,7 @@ const DOC_KEYS = {
   DEPOSITS: 'deposits',
   GOOGLE_REVIEWS: 'googleReviews',
   ATTRIBUTED_ORDERS: 'attributedOrders',
+  FCM_TOKENS: 'fcmTokens',
 };
 
 function removeUndefined(obj: any): any {
@@ -745,6 +746,54 @@ class CloudAPI {
     const success = await this.remoteSet(DOC_KEYS.ATTRIBUTED_ORDERS, pruned);
     console.log(`[DB] pushAttributedOrders END: success=${success}`);
     return success;
+  }
+
+  // ── FCM Token Management ──
+
+  async saveFCMToken(token: {
+    userId: string;
+    userEmail: string;
+    storeId: string;
+    token: string;
+    createdAt: string;
+    userAgent: string;
+  }): Promise<boolean> {
+    console.log(`[DB] saveFCMToken: Saving token for ${token.userEmail}`);
+    const existing = await this.remoteGet<any[]>(DOC_KEYS.FCM_TOKENS, []);
+
+    // Remove any existing token for this user on this device
+    const filtered = existing.filter(t =>
+      !(t.userId === token.userId && t.userAgent === token.userAgent)
+    );
+
+    // Add new token
+    filtered.push(token);
+
+    return this.remoteSet(DOC_KEYS.FCM_TOKENS, filtered);
+  }
+
+  async removeFCMToken(userId: string, token: string): Promise<boolean> {
+    console.log(`[DB] removeFCMToken: Removing token for user ${userId}`);
+    const existing = await this.remoteGet<any[]>(DOC_KEYS.FCM_TOKENS, []);
+    const filtered = existing.filter(t => !(t.userId === userId && t.token === token));
+    return this.remoteSet(DOC_KEYS.FCM_TOKENS, filtered);
+  }
+
+  async getManagerTokensForStore(storeId: string): Promise<any[]> {
+    const allTokens = await this.remoteGet<any[]>(DOC_KEYS.FCM_TOKENS, []);
+    return allTokens.filter(t => t.storeId === storeId);
+  }
+
+  async getAllFCMTokens(): Promise<any[]> {
+    return this.remoteGet<any[]>(DOC_KEYS.FCM_TOKENS, []);
+  }
+
+  async getGoogleReviewsData(): Promise<{ trackedReviews: any[]; lastPolled: Record<string, string> }> {
+    return this.remoteGet(DOC_KEYS.GOOGLE_REVIEWS, { trackedReviews: [], lastPolled: {} });
+  }
+
+  async getAttributedOrders(): Promise<any[]> {
+    return this.remoteGet<any[]>(DOC_KEYS.ATTRIBUTED_ORDERS, []);
   }
 
   async globalSync(defaults: {
