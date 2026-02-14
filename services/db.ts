@@ -496,20 +496,127 @@ class CloudAPI {
     await this.remoteSet(DOC_KEYS.PROGRESS, filtered);
   }
 
+  // ── Templates (with fetch-merge-save to prevent overwrites) ──
+
+  async fetchTemplates(): Promise<ChecklistTemplate[]> {
+    return this.remoteGet(DOC_KEYS.TEMPLATES, []);
+  }
+
   async pushTemplates(templates: ChecklistTemplate[]): Promise<void> {
     await this.remoteSet(DOC_KEYS.TEMPLATES, templates);
+  }
+
+  /**
+   * Update a single template using fetch-merge-save pattern.
+   * This prevents overwriting other users' changes.
+   */
+  async updateTemplate(template: ChecklistTemplate): Promise<boolean> {
+    console.log(`[DB] updateTemplate: Fetching latest templates before merge...`);
+    const current = await this.fetchTemplates();
+
+    const existingIdx = current.findIndex(t => t.id === template.id);
+    let next;
+    if (existingIdx > -1) {
+      next = current.map((t, i) => i === existingIdx ? template : t);
+      console.log(`[DB] updateTemplate: Merged update for ${template.id} at index ${existingIdx}`);
+    } else {
+      next = [...current, template];
+      console.log(`[DB] updateTemplate: Added new template ${template.id}`);
+    }
+
+    return this.remoteSet(DOC_KEYS.TEMPLATES, next);
+  }
+
+  /**
+   * Delete a template using fetch-merge-save pattern.
+   */
+  async deleteTemplate(templateId: string): Promise<boolean> {
+    console.log(`[DB] deleteTemplate: Fetching latest templates before delete...`);
+    const current = await this.fetchTemplates();
+    const next = current.filter(t => t.id !== templateId);
+    console.log(`[DB] deleteTemplate: Removing ${templateId}, ${current.length} → ${next.length} templates`);
+    return this.remoteSet(DOC_KEYS.TEMPLATES, next);
+  }
+
+  // ── Curriculum (with fetch-merge-save) ──
+
+  async fetchCurriculum(): Promise<TrainingModule[]> {
+    return this.remoteGet(DOC_KEYS.CURRICULUM, []);
   }
 
   async pushCurriculum(curriculum: TrainingModule[]): Promise<void> {
     await this.remoteSet(DOC_KEYS.CURRICULUM, curriculum);
   }
 
+  async updateModule(module: TrainingModule): Promise<boolean> {
+    console.log(`[DB] updateModule: Fetching latest curriculum before merge...`);
+    const current = await this.fetchCurriculum();
+
+    const existingIdx = current.findIndex(m => m.id === module.id);
+    let next;
+    if (existingIdx > -1) {
+      next = current.map((m, i) => i === existingIdx ? module : m);
+    } else {
+      next = [...current, module];
+    }
+
+    return this.remoteSet(DOC_KEYS.CURRICULUM, next);
+  }
+
+  // ── Manual (with fetch-merge-save) ──
+
+  async fetchManual(): Promise<ManualSection[]> {
+    return this.remoteGet(DOC_KEYS.MANUAL, []);
+  }
+
   async pushManual(manual: ManualSection[]): Promise<void> {
     await this.remoteSet(DOC_KEYS.MANUAL, manual);
   }
 
+  async updateManualSection(section: ManualSection): Promise<boolean> {
+    console.log(`[DB] updateManualSection: Fetching latest manual before merge...`);
+    const current = await this.fetchManual();
+
+    const existingIdx = current.findIndex(s => s.id === section.id);
+    let next;
+    if (existingIdx > -1) {
+      next = current.map((s, i) => i === existingIdx ? section : s);
+    } else {
+      next = [...current, section];
+    }
+
+    return this.remoteSet(DOC_KEYS.MANUAL, next);
+  }
+
+  // ── Recipes (with fetch-merge-save) ──
+
+  async fetchRecipes(): Promise<Recipe[]> {
+    return this.remoteGet(DOC_KEYS.RECIPES, []);
+  }
+
   async pushRecipes(recipes: Recipe[]): Promise<void> {
     await this.remoteSet(DOC_KEYS.RECIPES, recipes);
+  }
+
+  async updateRecipe(recipe: Recipe): Promise<boolean> {
+    console.log(`[DB] updateRecipe: Fetching latest recipes before merge...`);
+    const current = await this.fetchRecipes();
+
+    const existingIdx = current.findIndex(r => r.id === recipe.id);
+    let next;
+    if (existingIdx > -1) {
+      next = current.map((r, i) => i === existingIdx ? recipe : r);
+    } else {
+      next = [...current, recipe];
+    }
+
+    return this.remoteSet(DOC_KEYS.RECIPES, next);
+  }
+
+  async deleteRecipe(recipeId: string): Promise<boolean> {
+    const current = await this.fetchRecipes();
+    const next = current.filter(r => r.id !== recipeId);
+    return this.remoteSet(DOC_KEYS.RECIPES, next);
   }
 
   async fetchDeposits(): Promise<CashDeposit[]> {
@@ -573,6 +680,21 @@ class CloudAPI {
     }
 
     return filtered;
+  }
+
+  /**
+   * Clear all attributed orders for a store (forces fresh re-attribution on next sync)
+   */
+  async clearAttributedOrders(storeId?: string): Promise<boolean> {
+    if (storeId) {
+      const existing = await this.remoteGet<AttributedOrder[]>(DOC_KEYS.ATTRIBUTED_ORDERS, []);
+      const filtered = existing.filter(o => o.storeId !== storeId);
+      console.log(`[DB] clearAttributedOrders: Cleared ${existing.length - filtered.length} orders for ${storeId}`);
+      return this.remoteSet(DOC_KEYS.ATTRIBUTED_ORDERS, filtered);
+    } else {
+      console.log(`[DB] clearAttributedOrders: Clearing ALL orders`);
+      return this.remoteSet(DOC_KEYS.ATTRIBUTED_ORDERS, []);
+    }
   }
 
   async pushAttributedOrders(orders: AttributedOrder[]): Promise<boolean> {

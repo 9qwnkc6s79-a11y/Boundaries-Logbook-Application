@@ -141,7 +141,8 @@ export function detectLeaders(clockedIn: ToastTimeEntry[], allUsers: User[]): Le
       }
 
       leaders.push({
-        userId: user?.id || `unknown-${entry.employeeGuid}`,
+        // Use toast-{guid} format to match toastTeamLeaders ID format in ManagerHub
+        userId: user?.id || `toast-${entry.employeeGuid}`,
         name: entry.employeeName,
         jobTitle: displayName,
         priority: priority,
@@ -327,6 +328,69 @@ export interface LeaderLeaderboardEntry {
  * from orders attributed to each leader (orders opened while they were on duty).
  * When not provided, falls back to Toast snapshot data from submissions.
  */
+
+/**
+ * Helper to match user IDs accounting for different prefix formats (toast-, unknown-, or raw).
+ * Returns true if the IDs refer to the same person.
+ */
+function idsMatch(id1: string | undefined | null, id2: string | undefined | null): boolean {
+  if (!id1 || !id2) return false;
+  if (id1 === id2) return true;
+
+  // Extract GUID from prefixed IDs
+  const extractGuid = (id: string) => id.replace(/^(toast-|unknown-)/, '');
+  const guid1 = extractGuid(id1);
+  const guid2 = extractGuid(id2);
+
+  // Match if GUIDs are the same (handles toast-X matching unknown-X)
+  if (guid1 === guid2 && (id1.includes('-') || id2.includes('-'))) return true;
+
+  // Match if one contains the other's GUID
+  if (id1.includes(guid2) || id2.includes(guid1)) return true;
+
+  return false;
+}
+
+/**
+ * Enhanced matching for submissions: checks if a user ID matches a leader,
+ * including cross-reference via Toast employee GUIDs.
+ *
+ * This handles the case where:
+ * - Leader has toastGuid from Toast API
+ * - User has toastEmployeeGuid in their database record
+ * - The completedByUserId is the user's database ID
+ */
+function userMatchesLeader(
+  completedByUserId: string | undefined,
+  leaderId: string,
+  leaderToastGuid: string | undefined,
+  allUsers: User[]
+): boolean {
+  if (!completedByUserId) return false;
+
+  // Direct ID match
+  if (idsMatch(completedByUserId, leaderId)) return true;
+
+  // If leader has a Toast GUID, check if the completing user's toastEmployeeGuid matches
+  if (leaderToastGuid) {
+    const completingUser = allUsers.find(u => u.id === completedByUserId);
+    if (completingUser?.toastEmployeeGuid === leaderToastGuid) {
+      return true;
+    }
+  }
+
+  // Check if completedByUserId is a user whose toastEmployeeGuid matches the leader's extracted GUID
+  const leaderExtractedGuid = leaderId.replace(/^(toast-|unknown-)/, '');
+  if (leaderExtractedGuid !== leaderId) {  // Only if leaderId had a prefix
+    const completingUser = allUsers.find(u => u.id === completedByUserId);
+    if (completingUser?.toastEmployeeGuid === leaderExtractedGuid) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 export function calculateLeaderboard(
   submissions: ChecklistSubmission[],
   templates: ChecklistTemplate[],
@@ -358,7 +422,7 @@ export function calculateLeaderboard(
   // 1. Toast employees with leadership job titles (primary source)
   // 2. Users with MANAGER or ADMIN role in database
   // 3. Users who have attributed orders
-  const teamLeaderMap = new Map<string, { id: string; name: string; storeId?: string; jobTitle?: string }>();
+  const teamLeaderMap = new Map<string, { id: string; name: string; storeId?: string; jobTitle?: string; toastGuid?: string }>();
 
   // Add Toast team leaders first (employees with Team Leader, GM, etc. job titles)
   toastTeamLeaders.forEach(leader => {
@@ -374,7 +438,8 @@ export function calculateLeaderboard(
       id,
       name: leader.name,
       storeId: user?.storeId,
-      jobTitle: leader.jobTitle
+      jobTitle: leader.jobTitle,
+      toastGuid: leader.toastGuid || user?.toastEmployeeGuid  // Preserve Toast GUID for order matching
     });
   });
 
@@ -382,7 +447,7 @@ export function calculateLeaderboard(
   allUsers.filter(u => u.role === UserRole.MANAGER || u.role === UserRole.ADMIN)
     .forEach(u => {
       if (!teamLeaderMap.has(u.id)) {
-        teamLeaderMap.set(u.id, { id: u.id, name: u.name, storeId: u.storeId });
+        teamLeaderMap.set(u.id, { id: u.id, name: u.name, storeId: u.storeId, toastGuid: u.toastEmployeeGuid });
       }
     });
 
@@ -407,13 +472,31 @@ export function calculateLeaderboard(
   // Build leaderboard entries for ALL team leaders
   const entries: LeaderLeaderboardEntry[] = teamLeaders.map(leader => {
     // Find submissions where this leader completed tasks
+    // Use enhanced matching that handles Toast GUID cross-references
     const leaderSubmissions = recentSubmissions.filter(sub => {
       const taskResults = sub.taskResults || [];
-      return taskResults.some(tr => tr.completed && tr.completedByUserId === leader.id);
+      return taskResults.some(tr =>
+        tr.completed && userMatchesLeader(tr.completedByUserId, leader.id, leader.toastGuid, allUsers)
+      );
     });
 
+    if (leaderSubmissions.length > 0) {
+      console.log(`[Leaderboard] ${leader.name}: Found ${leaderSubmissions.length} submissions`);
+    }
+
     // Get orders attributed to this leader
-    const leaderOrders = recentOrders.filter(o => o.shiftLeaderId === leader.id);
+    // Match by: user ID, Toast GUID stored on leader, or Toast GUID in order
+    const leaderOrders = recentOrders.filter(o => {
+      // Direct ID match
+      if (idsMatch(o.shiftLeaderId, leader.id)) return true;
+      // Match order's Toast GUID with leader's ID
+      if (idsMatch(o.shiftLeaderToastGuid, leader.id)) return true;
+      // Match order's Toast GUID with leader's stored Toast GUID
+      if (leader.toastGuid && o.shiftLeaderToastGuid === leader.toastGuid) return true;
+      // Match if order's shiftLeaderId contains leader's toastGuid
+      if (leader.toastGuid && o.shiftLeaderId?.includes(leader.toastGuid)) return true;
+      return false;
+    });
     const hasOrderData = leaderOrders.length > 0;
 
     // Calculate turn time and avg ticket from attributed orders
@@ -546,7 +629,8 @@ export function calculateLeaderboard(
   );
 
   recentReviews.forEach(review => {
-    const entry = entries.find(e => e.userId === review.attributedToUserId);
+    // Use idsMatch to handle different ID formats
+    const entry = entries.find(e => idsMatch(e.userId, review.attributedToUserId));
     if (entry) {
       entry.reviewBonusPoints += review.bonusPoints;
       if (review.rating === 5) entry.fiveStarReviewCount += 1;
@@ -562,7 +646,8 @@ export function calculateLeaderboard(
   recentReviewsWithMentions.forEach(review => {
     if (!review.mentionedEmployeeIds) return;
     review.mentionedEmployeeIds.forEach(employeeId => {
-      const entry = entries.find(e => e.userId === employeeId);
+      // Use idsMatch to handle different ID formats
+      const entry = entries.find(e => idsMatch(e.userId, employeeId));
       if (entry) {
         entry.reviewBonusPoints += 20;
         entry.effectiveScore = entry.compositePercent + entry.reviewBonusPoints;

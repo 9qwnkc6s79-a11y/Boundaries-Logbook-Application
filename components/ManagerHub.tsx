@@ -13,6 +13,44 @@ import { detectLeaders, calculateTimelinessScore, calculateTurnTimeScore, calcul
 import { syncOrderAttributions } from '../utils/orderAttribution';
 import TeamManagement from './TeamManagement';
 
+/**
+ * Fuzzy name matching for Toast employees to database users.
+ * Handles variations like "Kendall M" vs "Kendall Matthews", first name matches, etc.
+ */
+function fuzzyNameMatch(toastName: string, userName: string): boolean {
+  const toast = toastName.toLowerCase().trim();
+  const user = userName.toLowerCase().trim();
+
+  // Exact match
+  if (toast === user) return true;
+
+  const toastParts = toast.split(/\s+/);
+  const userParts = user.split(/\s+/);
+
+  // First name must match
+  if (toastParts[0] !== userParts[0]) return false;
+
+  // If only first names, that's a match (for single-name users)
+  if (toastParts.length === 1 || userParts.length === 1) return true;
+
+  // Check last name variations
+  const toastLast = toastParts[toastParts.length - 1];
+  const userLast = userParts[userParts.length - 1];
+
+  // Full last name match
+  if (toastLast === userLast) return true;
+
+  // Initial match: "M" matches "Matthews", "Matthews" matches "M"
+  if (toastLast.length === 1 && userLast.startsWith(toastLast)) return true;
+  if (userLast.length === 1 && toastLast.startsWith(userLast)) return true;
+
+  // Partial match: "Matt" matches "Matthews"
+  if (toastLast.length >= 3 && userLast.startsWith(toastLast)) return true;
+  if (userLast.length >= 3 && toastLast.startsWith(userLast)) return true;
+
+  return false;
+}
+
 interface ManagerHubProps {
   staff: User[];
   allUsers: User[];
@@ -125,6 +163,9 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
   const [isRefreshing, setIsRefreshing] = useState(false);
   const pullStartY = React.useRef(0);
   const PULL_THRESHOLD = 80;
+
+  // Expanded leader for score breakdown
+  const [expandedLeaderId, setExpandedLeaderId] = useState<string | null>(null);
 
   // Toast Team Leaders (employees with leadership job titles)
   const [toastTeamLeaders, setToastTeamLeaders] = useState<{ id: string; name: string; jobTitle: string; toastGuid: string }[]>([]);
@@ -833,7 +874,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
   }, [currentStoreId]);
 
   // Order Attribution: sync orders and attribute to shift leaders
-  const syncOrderAttribution = async () => {
+  const syncOrderAttribution = async (forceRefresh = false) => {
     // Note: Don't check toastAPI.isConfigured() - serverless functions have hardcoded credentials
     if (attributionSyncing) return;
 
@@ -841,6 +882,12 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
     const location = currentStoreId === 'store-prosper' ? 'prosper' : 'littleelm';
 
     try {
+      // If force refresh, clear existing orders first to ensure fresh attribution
+      if (forceRefresh) {
+        console.log(`[OrderAttribution] Force refresh: clearing existing orders for ${currentStoreId}`);
+        await db.clearAttributedOrders(currentStoreId);
+      }
+
       // Sync Month-to-Date orders
       const now = new Date();
       const endDate = getLocalStr(now);
@@ -911,13 +958,21 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
       if (response.ok) {
         const data = await response.json();
         const leaders = (data.teamLeaders || []).map((leader: any) => {
+          // Try multiple matching strategies to link Toast employees to database users
           const user = allUsers.find(u =>
+            // 1. Exact GUID match (most reliable)
             u.toastEmployeeGuid === leader.guid ||
-            u.name.toLowerCase() === leader.name.toLowerCase()
+            // 2. Fuzzy name match (handles "Kendall M" vs "Kendall Matthews" etc.)
+            fuzzyNameMatch(leader.name, u.name)
           );
+          if (user) {
+            console.log(`[TeamLeaders] Matched "${leader.name}" → user "${user.name}" (${user.id})`);
+          } else {
+            console.warn(`[TeamLeaders] No user match for "${leader.name}" (${leader.guid})`);
+          }
           return {
             id: user?.id || `toast-${leader.guid}`,
-            name: leader.name,
+            name: user?.name || leader.name,  // Prefer database name for consistency
             jobTitle: leader.jobTitle,
             toastGuid: leader.guid,
           };
@@ -975,14 +1030,21 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
 
         const data = await response.json();
         const leaders = (data.teamLeaders || []).map((leader: any) => {
-          // Try to find matching user in database
+          // Try multiple matching strategies to link Toast employees to database users
           const user = allUsers.find(u =>
+            // 1. Exact GUID match (most reliable)
             u.toastEmployeeGuid === leader.guid ||
-            u.name.toLowerCase() === leader.name.toLowerCase()
+            // 2. Fuzzy name match (handles "Kendall M" vs "Kendall Matthews" etc.)
+            fuzzyNameMatch(leader.name, u.name)
           );
+          if (user) {
+            console.log(`[TeamLeaders] Matched "${leader.name}" → user "${user.name}" (${user.id})`);
+          } else {
+            console.warn(`[TeamLeaders] No user match for "${leader.name}" (${leader.guid})`);
+          }
           return {
             id: user?.id || `toast-${leader.guid}`,
-            name: leader.name,
+            name: user?.name || leader.name,  // Prefer database name for consistency
             jobTitle: leader.jobTitle,
             toastGuid: leader.guid,
           };
@@ -1164,7 +1226,26 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
 
       <div className="space-y-4 md:space-y-6">
         {activeSubTab === 'dashboard' && (
-          <div className="space-y-4 md:space-y-6 animate-in fade-in duration-500">
+          <div
+            className="space-y-4 md:space-y-6 animate-in fade-in duration-500 relative"
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+          >
+            {/* Pull-to-refresh indicator at top of dashboard */}
+            {(pullDistance > 0 || isRefreshing) && (
+              <div
+                className="absolute left-0 right-0 flex items-center justify-center transition-all overflow-hidden z-50"
+                style={{ top: -50, height: pullDistance > 0 ? pullDistance : 40 }}
+              >
+                <div className={`flex items-center gap-2 text-blue-600 bg-white/90 backdrop-blur px-4 py-2 rounded-full shadow-lg ${isRefreshing ? 'animate-pulse' : ''}`}>
+                  <RefreshCw size={16} className={isRefreshing || pullDistance >= PULL_THRESHOLD ? 'animate-spin' : ''} />
+                  <span className="text-[10px] font-bold uppercase tracking-wide">
+                    {isRefreshing ? 'Refreshing...' : pullDistance >= PULL_THRESHOLD ? 'Release to refresh' : 'Pull to refresh'}
+                  </span>
+                </div>
+              </div>
+            )}
             {/* Live Store Performance - Top Priority */}
             <section className="bg-gradient-to-br from-[#0F2B3C] to-[#1a3d52] p-3 md:p-6 rounded-xl shadow-md text-white border border-[#B87333]/20">
               <div className="flex items-center justify-between mb-3 md:mb-6">
@@ -1480,26 +1561,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
             )}
 
             {/* Team Leader Leaderboard */}
-            <section
-              className="bg-white p-4 md:p-6 rounded-xl border border-neutral-100 shadow-sm relative"
-              onTouchStart={handleTouchStart}
-              onTouchMove={handleTouchMove}
-              onTouchEnd={handleTouchEnd}
-            >
-              {/* Pull-to-refresh indicator */}
-              {(pullDistance > 0 || isRefreshing) && (
-                <div
-                  className="absolute left-0 right-0 flex items-center justify-center transition-all overflow-hidden"
-                  style={{ top: -40, height: pullDistance > 0 ? pullDistance : 40 }}
-                >
-                  <div className={`flex items-center gap-2 text-blue-600 ${isRefreshing ? 'animate-pulse' : ''}`}>
-                    <RefreshCw size={16} className={isRefreshing || pullDistance >= PULL_THRESHOLD ? 'animate-spin' : ''} />
-                    <span className="text-[10px] font-bold uppercase tracking-wide">
-                      {isRefreshing ? 'Refreshing...' : pullDistance >= PULL_THRESHOLD ? 'Release to refresh' : 'Pull to refresh'}
-                    </span>
-                  </div>
-                </div>
-              )}
+            <section className="bg-white p-4 md:p-6 rounded-xl border border-neutral-100 shadow-sm">
               <div className="flex items-center gap-3 mb-4 md:mb-6">
                 <div className="p-2 bg-amber-50 text-amber-600 rounded-xl"><Trophy size={20} /></div>
                 <h2 className="text-lg md:text-xl font-black text-[#0F2B3C] uppercase tracking-tight">Team Leader Leaderboard</h2>
@@ -1512,6 +1574,19 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                   >
                     <RefreshCw size={12} className={(attributionSyncing || isRefreshing) ? 'animate-spin' : ''} />
                     {(attributionSyncing || isRefreshing) ? 'Syncing...' : 'Sync'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (confirm('This will clear all order attributions and re-fetch from Toast. Use this if team leader links were recently updated. Continue?')) {
+                        syncOrderAttribution(true);
+                      }
+                    }}
+                    disabled={attributionSyncing || isRefreshing}
+                    className="text-[9px] font-bold uppercase tracking-wide text-orange-600 hover:text-orange-700 disabled:text-neutral-400 flex items-center gap-1"
+                    title="Clear and re-attribute all orders (use after linking team members)"
+                  >
+                    <RotateCcw size={12} />
+                    Reset
                   </button>
                   <span className="text-[9px] font-black text-neutral-400 uppercase tracking-widest">MTD</span>
                 </div>
@@ -1538,87 +1613,187 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                   );
                 }
                 return (
-                  <div className="space-y-4">
-                    {leaderboard.slice(0, 5).map((leader, index) => (
-                      <div key={leader.userId} className={`p-4 rounded-xl border-2 transition-all ${
-                        index === 0 ? 'bg-amber-50 border-amber-200' :
-                        index === 1 ? 'bg-neutral-50 border-neutral-200' :
-                        index === 2 ? 'bg-orange-50 border-orange-200' :
-                        'bg-neutral-50 border-neutral-100'
-                      }`}>
-                        <div className="flex items-center justify-between gap-4">
-                          <div className="flex items-center gap-3 min-w-0">
-                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-lg flex-shrink-0 ${
-                              index === 0 ? 'bg-amber-500 text-white' :
-                              index === 1 ? 'bg-neutral-400 text-white' :
-                              index === 2 ? 'bg-orange-400 text-white' :
-                              'bg-neutral-200 text-neutral-600'
-                            }`}>
-                              #{index + 1}
-                            </div>
-                            <div className="min-w-0">
-                              <h3 className="font-black text-sm text-[#0F2B3C] uppercase tracking-tight truncate">{leader.name}</h3>
-                              <p className="text-[9px] font-bold text-neutral-500 uppercase tracking-widest">
-                                {leader.totalShifts} shifts • {leader.orderCount} orders
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2 md:gap-4 flex-shrink-0">
-                            <div className="text-center hidden sm:block">
-                              <div className="text-[8px] font-black text-neutral-400 uppercase tracking-widest mb-1">Turn</div>
-                              <div className={`text-sm font-black ${
-                                leader.avgTurnTimeMinutes === undefined ? 'text-neutral-300' :
-                                leader.avgTurnTimeMinutes < 3.5 ? 'text-green-600' :
-                                leader.avgTurnTimeMinutes < 4.5 ? 'text-amber-600' : 'text-red-600'
-                              }`}>
-                                {leader.avgTurnTimeMinutes !== undefined ? `${leader.avgTurnTimeMinutes.toFixed(1)}m` : 'N/A'}
+                  <div className="space-y-3">
+                    {leaderboard.slice(0, 5).map((leader, index) => {
+                      const isExpanded = expandedLeaderId === leader.userId;
+                      return (
+                        <div key={leader.userId} className={`rounded-xl border-2 transition-all overflow-hidden ${
+                          index === 0 ? 'bg-amber-50 border-amber-200' :
+                          index === 1 ? 'bg-neutral-50 border-neutral-200' :
+                          index === 2 ? 'bg-orange-50 border-orange-200' :
+                          'bg-neutral-50 border-neutral-100'
+                        }`}>
+                          {/* Clickable header */}
+                          <button
+                            onClick={() => setExpandedLeaderId(isExpanded ? null : leader.userId)}
+                            className="w-full p-4 text-left"
+                          >
+                            <div className="flex items-center justify-between gap-4">
+                              <div className="flex items-center gap-3 min-w-0">
+                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-lg flex-shrink-0 ${
+                                  index === 0 ? 'bg-amber-500 text-white' :
+                                  index === 1 ? 'bg-neutral-400 text-white' :
+                                  index === 2 ? 'bg-orange-400 text-white' :
+                                  'bg-neutral-200 text-neutral-600'
+                                }`}>
+                                  #{index + 1}
+                                </div>
+                                <div className="min-w-0">
+                                  <h3 className="font-black text-sm text-[#0F2B3C] uppercase tracking-tight truncate flex items-center gap-2">
+                                    {leader.name}
+                                    <ChevronDown size={14} className={`transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                                  </h3>
+                                  <p className="text-[9px] font-bold text-neutral-500 uppercase tracking-widest">
+                                    {leader.totalShifts} shifts • {leader.orderCount} orders
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2 md:gap-4 flex-shrink-0">
+                                <div className="text-center hidden sm:block">
+                                  <div className="text-[8px] font-black text-neutral-400 uppercase tracking-widest mb-1">Turn</div>
+                                  <div className={`text-sm font-black ${
+                                    leader.avgTurnTimeMinutes === undefined ? 'text-neutral-300' :
+                                    leader.avgTurnTimeMinutes < 3.5 ? 'text-green-600' :
+                                    leader.avgTurnTimeMinutes < 4.5 ? 'text-amber-600' : 'text-red-600'
+                                  }`}>
+                                    {leader.avgTurnTimeMinutes !== undefined ? `${leader.avgTurnTimeMinutes.toFixed(1)}m` : 'N/A'}
+                                  </div>
+                                </div>
+                                <div className="text-center hidden sm:block border-l border-neutral-200 pl-2 md:pl-4">
+                                  <div className="text-[8px] font-black text-neutral-400 uppercase tracking-widest mb-1">Ticket</div>
+                                  <div className={`text-sm font-black ${
+                                    leader.avgTicketDollars === undefined ? 'text-neutral-300' :
+                                    leader.avgTicketDollars >= 12 ? 'text-green-600' :
+                                    leader.avgTicketDollars >= 9 ? 'text-amber-600' : 'text-red-600'
+                                  }`}>
+                                    {leader.avgTicketDollars !== undefined ? `$${leader.avgTicketDollars.toFixed(0)}` : 'N/A'}
+                                  </div>
+                                </div>
+                                <div className="text-center hidden md:block border-l border-neutral-200 pl-4">
+                                  <div className="text-[8px] font-black text-neutral-400 uppercase tracking-widest mb-1">Reviews</div>
+                                  <div className={`text-sm font-black ${
+                                    leader.fiveStarReviewCount > 0 ? 'text-yellow-500' : 'text-neutral-300'
+                                  }`}>
+                                    {leader.fiveStarReviewCount > 0 ? (
+                                      <span className="flex items-center justify-center gap-0.5">
+                                        {leader.fiveStarReviewCount}<Star size={12} className="fill-current" />
+                                      </span>
+                                    ) : '—'}
+                                  </div>
+                                </div>
+                                <div className="text-center hidden md:block border-l border-neutral-200 pl-4">
+                                  <div className="text-[8px] font-black text-neutral-400 uppercase tracking-widest mb-1">On-Time</div>
+                                  <div className={`text-sm font-black ${
+                                    leader.onTimeRate >= 90 ? 'text-green-600' :
+                                    leader.onTimeRate >= 70 ? 'text-amber-600' : 'text-red-600'
+                                  }`}>
+                                    {leader.onTimeRate.toFixed(0)}%
+                                  </div>
+                                </div>
+                                <div className="text-center border-l border-neutral-200 pl-2 md:pl-4">
+                                  <div className="text-[8px] font-black text-neutral-400 uppercase tracking-widest mb-1">Score</div>
+                                  <div className={`text-lg font-black ${
+                                    leader.effectiveScore >= 90 ? 'text-green-600' :
+                                    leader.effectiveScore >= 70 ? 'text-blue-600' :
+                                    leader.effectiveScore >= 50 ? 'text-amber-600' : 'text-red-600'
+                                  }`}>
+                                    {leader.effectiveScore.toFixed(0)}
+                                  </div>
+                                </div>
                               </div>
                             </div>
-                            <div className="text-center hidden sm:block border-l border-neutral-200 pl-2 md:pl-4">
-                              <div className="text-[8px] font-black text-neutral-400 uppercase tracking-widest mb-1">Ticket</div>
-                              <div className={`text-sm font-black ${
-                                leader.avgTicketDollars === undefined ? 'text-neutral-300' :
-                                leader.avgTicketDollars >= 12 ? 'text-green-600' :
-                                leader.avgTicketDollars >= 9 ? 'text-amber-600' : 'text-red-600'
-                              }`}>
-                                {leader.avgTicketDollars !== undefined ? `$${leader.avgTicketDollars.toFixed(0)}` : 'N/A'}
+                          </button>
+
+                          {/* Expandable score breakdown */}
+                          {isExpanded && (
+                            <div className="px-4 pb-4 border-t border-neutral-200/50 animate-in slide-in-from-top-2 duration-200">
+                              <div className="pt-4">
+                                <h4 className="text-[10px] font-black text-neutral-500 uppercase tracking-widest mb-3">Score Breakdown</h4>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                  {/* Turn Time Score */}
+                                  <div className="bg-white/70 rounded-lg p-3 border border-neutral-200">
+                                    <div className="text-[9px] font-bold text-neutral-400 uppercase tracking-wide mb-1">Turn Time</div>
+                                    <div className="flex items-baseline gap-1">
+                                      <span className={`text-xl font-black ${leader.avgTurnTimeScore > 30 ? 'text-green-600' : leader.avgTurnTimeScore > 20 ? 'text-amber-600' : 'text-red-600'}`}>
+                                        +{leader.avgTurnTimeScore.toFixed(0)}
+                                      </span>
+                                      <span className="text-[10px] text-neutral-400">/40 pts</span>
+                                    </div>
+                                    <div className="text-[9px] text-neutral-500 mt-1">
+                                      {leader.avgTurnTimeMinutes !== undefined ? (
+                                        <>Avg: {leader.avgTurnTimeMinutes.toFixed(1)}min • {leader.avgTurnTimeMinutes < 3.5 ? 'Excellent!' : leader.avgTurnTimeMinutes < 4.5 ? 'Good' : 'Needs work'}</>
+                                      ) : 'No data'}
+                                    </div>
+                                  </div>
+
+                                  {/* Avg Ticket Score */}
+                                  <div className="bg-white/70 rounded-lg p-3 border border-neutral-200">
+                                    <div className="text-[9px] font-bold text-neutral-400 uppercase tracking-wide mb-1">Avg Ticket</div>
+                                    <div className="flex items-baseline gap-1">
+                                      <span className={`text-xl font-black ${leader.avgTicketScoreValue > 20 ? 'text-green-600' : leader.avgTicketScoreValue > 10 ? 'text-amber-600' : 'text-red-600'}`}>
+                                        +{leader.avgTicketScoreValue.toFixed(0)}
+                                      </span>
+                                      <span className="text-[10px] text-neutral-400">/25 pts</span>
+                                    </div>
+                                    <div className="text-[9px] text-neutral-500 mt-1">
+                                      {leader.avgTicketDollars !== undefined ? (
+                                        <>Avg: ${leader.avgTicketDollars.toFixed(2)} • {leader.avgTicketDollars >= 12 ? 'Great upselling!' : leader.avgTicketDollars >= 9 ? 'Solid' : 'Push add-ons'}</>
+                                      ) : 'No data'}
+                                    </div>
+                                  </div>
+
+                                  {/* Timeliness Score */}
+                                  <div className="bg-white/70 rounded-lg p-3 border border-neutral-200">
+                                    <div className="text-[9px] font-bold text-neutral-400 uppercase tracking-wide mb-1">Timeliness</div>
+                                    <div className="flex items-baseline gap-1">
+                                      <span className={`text-xl font-black ${leader.avgTimelinessScore > 30 ? 'text-green-600' : leader.avgTimelinessScore > 20 ? 'text-amber-600' : 'text-red-600'}`}>
+                                        +{leader.avgTimelinessScore.toFixed(0)}
+                                      </span>
+                                      <span className="text-[10px] text-neutral-400">/40 pts</span>
+                                    </div>
+                                    <div className="text-[9px] text-neutral-500 mt-1">
+                                      {leader.totalShifts > 0 ? (
+                                        <>{leader.onTimeRate.toFixed(0)}% on-time • {leader.onTimeRate >= 90 ? 'Consistent!' : leader.onTimeRate >= 70 ? 'Good' : 'Submit earlier'}</>
+                                      ) : 'No shifts logged'}
+                                    </div>
+                                  </div>
+
+                                  {/* Review Bonus */}
+                                  <div className="bg-white/70 rounded-lg p-3 border border-neutral-200">
+                                    <div className="text-[9px] font-bold text-neutral-400 uppercase tracking-wide mb-1">Review Bonus</div>
+                                    <div className="flex items-baseline gap-1">
+                                      <span className={`text-xl font-black ${leader.reviewBonusPoints > 0 ? 'text-yellow-500' : 'text-neutral-300'}`}>
+                                        +{leader.reviewBonusPoints}
+                                      </span>
+                                      <span className="text-[10px] text-neutral-400">bonus</span>
+                                    </div>
+                                    <div className="text-[9px] text-neutral-500 mt-1">
+                                      {leader.fiveStarReviewCount > 0 ? (
+                                        <>{leader.fiveStarReviewCount} 5-star review{leader.fiveStarReviewCount > 1 ? 's' : ''} (+{leader.fiveStarReviewCount * 10}pts)</>
+                                      ) : 'No 5-star reviews yet'}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Total calculation */}
+                                <div className="mt-3 pt-3 border-t border-neutral-200 flex items-center justify-between">
+                                  <div className="text-[10px] font-bold text-neutral-500 uppercase tracking-wide">
+                                    Total: {leader.avgTurnTimeScore.toFixed(0)} + {leader.avgTicketScoreValue.toFixed(0)} + {leader.avgTimelinessScore.toFixed(0)} + {leader.reviewBonusPoints} =
+                                  </div>
+                                  <div className={`text-2xl font-black ${
+                                    leader.effectiveScore >= 90 ? 'text-green-600' :
+                                    leader.effectiveScore >= 70 ? 'text-blue-600' :
+                                    leader.effectiveScore >= 50 ? 'text-amber-600' : 'text-red-600'
+                                  }`}>
+                                    {leader.effectiveScore.toFixed(0)} pts
+                                  </div>
+                                </div>
                               </div>
                             </div>
-                            <div className="text-center hidden md:block border-l border-neutral-200 pl-4">
-                              <div className="text-[8px] font-black text-neutral-400 uppercase tracking-widest mb-1">Reviews</div>
-                              <div className={`text-sm font-black ${
-                                leader.fiveStarReviewCount > 0 ? 'text-yellow-500' : 'text-neutral-300'
-                              }`}>
-                                {leader.fiveStarReviewCount > 0 ? (
-                                  <span className="flex items-center justify-center gap-0.5">
-                                    {leader.fiveStarReviewCount}<Star size={12} className="fill-current" />
-                                  </span>
-                                ) : '—'}
-                              </div>
-                            </div>
-                            <div className="text-center hidden md:block border-l border-neutral-200 pl-4">
-                              <div className="text-[8px] font-black text-neutral-400 uppercase tracking-widest mb-1">On-Time</div>
-                              <div className={`text-sm font-black ${
-                                leader.onTimeRate >= 90 ? 'text-green-600' :
-                                leader.onTimeRate >= 70 ? 'text-amber-600' : 'text-red-600'
-                              }`}>
-                                {leader.onTimeRate.toFixed(0)}%
-                              </div>
-                            </div>
-                            <div className="text-center border-l border-neutral-200 pl-2 md:pl-4">
-                              <div className="text-[8px] font-black text-neutral-400 uppercase tracking-widest mb-1">Score</div>
-                              <div className={`text-lg font-black ${
-                                leader.effectiveScore >= 90 ? 'text-green-600' :
-                                leader.effectiveScore >= 70 ? 'text-blue-600' :
-                                leader.effectiveScore >= 50 ? 'text-amber-600' : 'text-red-600'
-                              }`}>
-                                {leader.effectiveScore.toFixed(0)}
-                              </div>
-                            </div>
-                          </div>
+                          )}
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 );
               })()}

@@ -17,6 +17,7 @@ import { hashPassword, verifyPassword, isHashed } from './utils/passwordUtils';
 const APP_VERSION = '3.6.0';
 
 const DEFAULT_ORG_ID = 'org-boundaries';
+const SESSION_STORAGE_KEY = 'boundaries_session_email';
 
 // Default Boundaries Coffee organization
 const DEFAULT_ORG: Organization = {
@@ -47,6 +48,7 @@ const App: React.FC = () => {
   // System States
   const [isSyncing, setIsSyncing] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   // Toast POS Data (for sidebar widgets)
   const [toastSales, setToastSales] = useState<ToastSalesData | null>(null);
@@ -128,7 +130,22 @@ const App: React.FC = () => {
   useEffect(() => {
     const init = async () => {
       await initOrg();
-      await performCloudSync();
+      const syncResult = await performCloudSync();
+
+      // Restore session from localStorage if exists
+      const savedEmail = localStorage.getItem(SESSION_STORAGE_KEY);
+      if (savedEmail && syncResult?.users) {
+        const savedUser = syncResult.users.find(
+          (u: User) => u.email.toLowerCase() === savedEmail.toLowerCase()
+        );
+        if (savedUser && savedUser.active !== false) {
+          console.log('[Auth] Restored session for:', savedUser.email);
+          setCurrentUser(savedUser);
+        } else {
+          // User not found or deactivated - clear invalid session
+          localStorage.removeItem(SESSION_STORAGE_KEY);
+        }
+      }
     };
     init();
   }, [performCloudSync, initOrg]);
@@ -239,6 +256,9 @@ const App: React.FC = () => {
       }
     }
 
+    // Persist session to localStorage
+    localStorage.setItem(SESSION_STORAGE_KEY, found.email);
+
     setCurrentUser(found);
     return found;
   };
@@ -250,6 +270,10 @@ const App: React.FC = () => {
     await db.syncUser(secureUser);
     const freshData = await performCloudSync();
     setAllUsers(freshData?.users || []);
+
+    // Persist session to localStorage
+    localStorage.setItem(SESSION_STORAGE_KEY, secureUser.email);
+
     setCurrentUser(secureUser);
   };
 
@@ -447,9 +471,15 @@ const App: React.FC = () => {
       const filtered = prev.filter(s => s.id !== submission.id);
       return [submission, ...filtered];
     });
-    
-    await db.pushSubmission(submission);
-    performCloudSync(true); 
+
+    const success = await db.pushSubmission(submission);
+    if (!success) {
+      setSaveError('Failed to save logbook entry. Please check your connection and try again.');
+      console.error('[App] Failed to save submission:', submission.id);
+    } else {
+      setSaveError(null);
+    }
+    performCloudSync(true);
   };
 
   const handleReview = async (id: string, approved: boolean) => {
@@ -457,7 +487,12 @@ const App: React.FC = () => {
     if (sub) {
       const updated = { ...sub, status: approved ? 'APPROVED' : 'REJECTED' as any };
       setSubmissions(prev => prev.map(s => s.id === id ? updated : s));
-      await db.pushSubmission(updated);
+      const success = await db.pushSubmission(updated);
+      if (!success) {
+        setSaveError('Failed to save review. Please check your connection and try again.');
+      } else {
+        setSaveError(null);
+      }
       performCloudSync(true);
     }
   };
@@ -486,7 +521,12 @@ const App: React.FC = () => {
 
     const updated = { ...sub, taskResults: updatedTaskResults };
     setSubmissions(prev => prev.map(s => s.id === submissionId ? updated : s));
-    await db.pushSubmission(updated);
+    const success = await db.pushSubmission(updated);
+    if (!success) {
+      setSaveError('Failed to save override. Please check your connection and try again.');
+    } else {
+      setSaveError(null);
+    }
     performCloudSync(true);
   };
 
@@ -504,15 +544,26 @@ const App: React.FC = () => {
   };
 
   const handleUpdateTemplate = async (tpl: ChecklistTemplate) => {
+    // Optimistic UI update
     const updated = templates.map(t => t.id === tpl.id ? tpl : t);
     setTemplates(updated);
-    await db.pushTemplates(updated);
+    // Use fetch-merge-save to prevent overwriting other users' changes
+    await db.updateTemplate(tpl);
     performCloudSync(true);
   };
-  
+
   const handleUpdateRecipes = async (nextRecipes: Recipe[]) => {
     setRecipes(nextRecipes);
     await db.pushRecipes(nextRecipes);
+    performCloudSync(true);
+  };
+
+  const handleUpdateSingleRecipe = async (recipe: Recipe) => {
+    // Optimistic UI update
+    const updated = recipes.map(r => r.id === recipe.id ? recipe : r);
+    setRecipes(updated);
+    // Use fetch-merge-save to prevent overwriting other users' changes
+    await db.updateRecipe(recipe);
     performCloudSync(true);
   };
 
@@ -638,7 +689,10 @@ const App: React.FC = () => {
       user={effectiveUser}
       activeTab={activeTab}
       onTabChange={setActiveTab}
-      onLogout={() => setCurrentUser(null)}
+      onLogout={() => {
+        localStorage.removeItem(SESSION_STORAGE_KEY);
+        setCurrentUser(null);
+      }}
       stores={activeStores}
       currentStoreId={currentStoreId}
       onStoreChange={setCurrentStoreId}
@@ -652,6 +706,14 @@ const App: React.FC = () => {
       salesComparison={salesComparison}
       org={currentOrg}
     >
+      {saveError && (
+        <div className="bg-red-500 text-white px-4 py-3 text-sm font-bold flex items-center justify-between">
+          <span>{saveError}</span>
+          <button onClick={() => setSaveError(null)} className="text-white/80 hover:text-white">
+            Dismiss
+          </button>
+        </div>
+      )}
       <div className="animate-in fade-in duration-500">
         {activeTab === 'training' && (
           <TrainingView
@@ -750,15 +812,18 @@ const App: React.FC = () => {
             }}
             onUpdateTemplate={handleUpdateTemplate}
             onAddTemplate={async (tpl) => {
-              const next = [...templates, { ...tpl, storeId: currentStoreId }];
-              setTemplates(next);
-              await db.pushTemplates(next);
+              const newTemplate = { ...tpl, storeId: currentStoreId };
+              // Optimistic UI update
+              setTemplates(prev => [...prev, newTemplate]);
+              // Use fetch-merge-save to prevent overwriting other users' changes
+              await db.updateTemplate(newTemplate);
               performCloudSync(true);
             }}
             onDeleteTemplate={async (id) => {
-              const next = templates.filter(t => t.id !== id);
-              setTemplates(next);
-              await db.pushTemplates(next);
+              // Optimistic UI update
+              setTemplates(prev => prev.filter(t => t.id !== id));
+              // Use fetch-merge-save to prevent overwriting other users' changes
+              await db.deleteTemplate(id);
               performCloudSync(true);
             }}
             onUpdateManual={async (next) => {
