@@ -549,26 +549,26 @@ User Question: ${userMsg}`,
         <Brain size={20} />
       </button>
 
-      {/* Mobile Bottom Tab Bar */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-t border-neutral-200 px-2 pt-2 flex items-center justify-center gap-1 z-50 pb-safe shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
-        {filteredNav.map(item => {
-          const isActive = activeTab === item.id;
-          return (
-            <button
-              key={item.id}
-              onClick={() => onTabChange(item.id)}
-              className={`flex flex-col items-center gap-0.5 transition-all relative py-1 px-3 rounded-lg ${
-                isActive ? 'bg-neutral-100' : ''
-              }`}
-              style={isActive ? { color: primaryColor } : { color: '#6b7280' }}
-            >
-              <item.icon size={20} strokeWidth={isActive ? 2.5 : 1.5} />
-              <span className={`text-[9px] font-bold uppercase tracking-tight leading-none ${isActive ? 'opacity-100' : 'opacity-60'}`}>
-                {item.label}
-              </span>
-            </button>
-          );
-        })}
+      {/* Mobile Bottom Tab Bar - iOS Native Style */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-xl border-t border-neutral-200/60 z-50 pb-safe">
+        <div className="flex items-end justify-around px-4 pt-2 pb-1">
+          {filteredNav.map(item => {
+            const isActive = activeTab === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => onTabChange(item.id)}
+                className="flex flex-col items-center min-w-[64px] py-1 transition-colors"
+                style={{ color: isActive ? primaryColor : '#8e8e93' }}
+              >
+                <item.icon size={24} strokeWidth={isActive ? 2 : 1.5} />
+                <span className={`text-[10px] mt-1 ${isActive ? 'font-semibold' : 'font-medium'}`}>
+                  {item.label.charAt(0) + item.label.slice(1).toLowerCase()}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </nav>
 
       {/* Barista Brain Chat Modal */}
