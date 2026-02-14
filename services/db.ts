@@ -94,49 +94,60 @@ class CloudAPI {
       return defaultValue;
     }
     const collectionPath = this.getCollectionPath();
+
+    // Helper to try appData fallback
+    const tryAppDataFallback = async (): Promise<T | null> => {
+      if (!this.currentOrgId) return null;
+      try {
+        console.log(`[Firestore] remoteGet(${docId}): Trying appData fallback`);
+        const fallbackRef = firestore.collection('appData').doc(docId);
+        const fallbackSnap = await fallbackRef.get();
+        if (fallbackSnap.exists) {
+          const fallbackData = fallbackSnap.data();
+          const result = fallbackData && fallbackData.data ? fallbackData.data : null;
+          if (result && (!Array.isArray(result) || result.length > 0)) {
+            console.log(`[Firestore] remoteGet(${docId}): Retrieved ${Array.isArray(result) ? result.length + ' items' : 'data'} from appData fallback`);
+            return result;
+          }
+        }
+      } catch (fallbackError) {
+        console.error(`[Firestore] remoteGet(${docId}): appData fallback failed:`, fallbackError);
+      }
+      return null;
+    };
+
     try {
       const docRef = collectionPath.includes('/')
         ? firestore.doc(`${collectionPath}/${docId}`)
         : firestore.collection(collectionPath).doc(docId);
       const snap = await docRef.get();
+
       if (!snap.exists) {
-        // If using org path and doc doesn't exist, try fallback to appData
-        if (this.currentOrgId) {
-          console.log(`[Firestore] remoteGet(${collectionPath}/${docId}): Not found in org, trying appData fallback`);
-          const fallbackRef = firestore.collection('appData').doc(docId);
-          const fallbackSnap = await fallbackRef.get();
-          if (fallbackSnap.exists) {
-            const fallbackData = fallbackSnap.data();
-            const result = fallbackData && fallbackData.data ? fallbackData.data : defaultValue;
-            console.log(`[Firestore] remoteGet(${docId}): Retrieved from appData fallback`);
-            return result;
-          }
-        }
+        // Document doesn't exist in org path, try appData fallback
+        const fallbackResult = await tryAppDataFallback();
+        if (fallbackResult !== null) return fallbackResult;
         console.log(`[Firestore] remoteGet(${collectionPath}/${docId}): Document doesn't exist, returning default`);
         return defaultValue;
       }
+
       const data = snap.data();
-      const result = data && data.data ? data.data : defaultValue;
+      const result = data && data.data ? data.data : null;
+
+      // If org path exists but has no data or empty array, try appData fallback
+      if (result === null || (Array.isArray(result) && result.length === 0)) {
+        console.log(`[Firestore] remoteGet(${collectionPath}/${docId}): Org path empty, trying appData fallback`);
+        const fallbackResult = await tryAppDataFallback();
+        if (fallbackResult !== null) return fallbackResult;
+        return defaultValue;
+      }
+
       console.log(`[Firestore] remoteGet(${collectionPath}/${docId}): Retrieved ${Array.isArray(result) ? result.length + ' items' : 'data'}`);
       return result;
     } catch (error) {
       console.error(`[Firestore] remoteGet(${collectionPath}/${docId}): Error:`, error);
-      // On error, also try appData fallback (handles migration edge cases)
-      if (this.currentOrgId) {
-        try {
-          console.log(`[Firestore] remoteGet(${docId}): Error reading org path, trying appData fallback`);
-          const fallbackRef = firestore.collection('appData').doc(docId);
-          const fallbackSnap = await fallbackRef.get();
-          if (fallbackSnap.exists) {
-            const fallbackData = fallbackSnap.data();
-            const result = fallbackData && fallbackData.data ? fallbackData.data : defaultValue;
-            console.log(`[Firestore] remoteGet(${docId}): Retrieved from appData fallback after error`);
-            return result;
-          }
-        } catch (fallbackError) {
-          console.error(`[Firestore] remoteGet(${docId}): appData fallback also failed:`, fallbackError);
-        }
-      }
+      // On error, also try appData fallback
+      const fallbackResult = await tryAppDataFallback();
+      if (fallbackResult !== null) return fallbackResult;
       return defaultValue;
     }
   }
