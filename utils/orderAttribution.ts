@@ -280,8 +280,9 @@ export function calculateShiftLeaderMetrics(
       const template = templates.find(t => t.id === sub.templateId);
       if (!template || !sub.submittedAt) return;
 
-      const deadline = new Date(sub.date);
-      deadline.setHours(template.deadlineHour, 0, 0, 0);
+      // Parse date as local time to avoid timezone issues
+      const [year, month, day] = sub.date.split('-').map(Number);
+      const deadline = new Date(year, month - 1, day, template.deadlineHour, 0, 0, 0);
       const submittedAt = new Date(sub.submittedAt);
       const delayMinutes = Math.floor((submittedAt.getTime() - deadline.getTime()) / 60000);
 

@@ -161,25 +161,28 @@ export function detectLeaders(clockedIn: ToastTimeEntry[], allUsers: User[]): Le
 
 /**
  * Calculate timeliness score based on submission delay
- * On-time: 40 pts, Late <1hr: -10 pts, Late >1hr: -20 pts, Not submitted: 0 pts
+ * On-time: 40 pts, Late <1hr: 20 pts, Late >1hr: 10 pts, Not submitted: 0 pts
+ * No negative scores - late submissions get fewer points, not penalties
  */
 export function calculateTimelinessScore(delayMinutes: number, wasSubmitted: boolean): number {
   if (!wasSubmitted) return 0;
   if (delayMinutes <= 0) return 40; // On time or early
-  if (delayMinutes <= 60) return -10; // Late within 1 hour
-  return -20; // Over 1 hour late
+  if (delayMinutes <= 60) return 20; // Late within 1 hour - reduced points
+  return 10; // Over 1 hour late - minimal points
 }
 
 /**
  * Calculate turn time score
- * Under 3.5min: 40pts, 3.5-4.5min: 35pts, 4.5-5min: -10pts, 5+min: -20pts
+ * Under 3.5min: 40pts, 3.5-4.5min: 35pts, 4.5-5.5min: 25pts, 5.5-7min: 15pts, 7+min: 5pts
+ * No negative scores - slower times get fewer points, not penalties
  */
 export function calculateTurnTimeScore(turnTimeMinutes: number | undefined): number {
   if (turnTimeMinutes === undefined) return 0;
   if (turnTimeMinutes < 3.5) return 40;
   if (turnTimeMinutes < 4.5) return 35;
-  if (turnTimeMinutes < 5) return -10;
-  return -20;
+  if (turnTimeMinutes < 5.5) return 25;
+  if (turnTimeMinutes < 7) return 15;
+  return 5; // 7+ minutes still gets some points
 }
 
 /**
@@ -262,9 +265,9 @@ export function determineShiftOwnership(
  * Calculate shift deadline based on template and date
  */
 export function calculateShiftDeadline(date: string, template: ChecklistTemplate): Date {
-  const dateObj = new Date(date);
-  dateObj.setHours(template.deadlineHour, 0, 0, 0);
-  return dateObj;
+  // Parse date as local time (not UTC) to avoid timezone issues
+  const [year, month, day] = date.split('-').map(Number);
+  return new Date(year, month - 1, day, template.deadlineHour, 0, 0, 0);
 }
 
 /**
@@ -519,8 +522,9 @@ export function calculateLeaderboard(
       if (!template || !sub.submittedAt) return;
 
       // Calculate timeliness based on when submission was made
-      const deadline = new Date(sub.date);
-      deadline.setHours(template.deadlineHour, 0, 0, 0);
+      // Parse date as local time (not UTC) to avoid timezone issues
+      const [year, month, day] = sub.date.split('-').map(Number);
+      const deadline = new Date(year, month - 1, day, template.deadlineHour, 0, 0, 0);
       const submittedDate = new Date(sub.submittedAt);
       const delayMinutes = Math.floor((submittedDate.getTime() - deadline.getTime()) / 60000);
       const timelinessScore = calculateTimelinessScore(delayMinutes, true);
@@ -592,15 +596,21 @@ export function calculateLeaderboard(
     }
 
     // Composite score as percentage
-    // New scoring: Timeliness (40) + Turn Time (40) + Avg Ticket (25) = 105 max
-    const hasData = totalShifts > 0 || hasOrderData;
-    const maxPossible = hasOrderData ? 105 : (totalShifts > 0 ? 40 : 0);
+    // Scoring: Timeliness (40) + Turn Time (40) + Avg Ticket (25) = 105 max
+    // Leaders are scored on the metrics they have data for:
+    // - With order data: scored on all three (max 105)
+    // - Without order data: scored on timeliness only (max 40)
+    const hasAnyData = totalShifts > 0 || hasOrderData;
+    const maxPossible = hasOrderData ? 105 : 40;  // Scale based on what data they have
+
     const totalScore = avgTimeliness + avgTurnTimeScore + avgTicketScore;
-    const compositePercent = maxPossible > 0 ? (totalScore / maxPossible) * 100 : 0;
+    const compositePercent = hasAnyData ? (totalScore / maxPossible) * 100 : 0;
 
     // On-time rate
     const onTimeShifts = shifts.filter(s => s.timelinessScore === 40).length;
     const onTimeRate = totalShifts > 0 ? (onTimeShifts / totalShifts) * 100 : 0;
+
+    console.log(`[Leaderboard] ${leader.name}: shifts=${totalShifts}, orders=${leaderOrders.length}, timeliness=${avgTimeliness.toFixed(1)}, turnTime=${avgTurnTimeScore.toFixed(1)}, ticket=${avgTicketScore.toFixed(1)}, total=${totalScore.toFixed(1)}/${maxPossible}, composite=${compositePercent.toFixed(1)}%, onTime=${onTimeRate.toFixed(0)}%`);
 
     return {
       userId: leader.id,
@@ -622,23 +632,21 @@ export function calculateLeaderboard(
     };
   });
 
-  // Add review bonuses
+  // Add review data
   const cutoffISO = cutoff.toISOString();
   const recentReviews = trackedReviews.filter(r =>
     r.detectedAt >= cutoffISO && r.bonusAwarded && r.attributedToUserId
   );
 
   recentReviews.forEach(review => {
-    // Use idsMatch to handle different ID formats
     const entry = entries.find(e => idsMatch(e.userId, review.attributedToUserId));
     if (entry) {
       entry.reviewBonusPoints += review.bonusPoints;
       if (review.rating === 5) entry.fiveStarReviewCount += 1;
-      entry.effectiveScore = entry.compositePercent + entry.reviewBonusPoints;
     }
   });
 
-  // Add mention bonuses (+20 pts per mention) - applies to ALL users, not just leaders
+  // Add mention bonuses
   const recentReviewsWithMentions = trackedReviews.filter(r =>
     r.detectedAt >= cutoffISO && r.mentionedEmployeeIds && r.mentionedEmployeeIds.length > 0
   );
@@ -646,24 +654,87 @@ export function calculateLeaderboard(
   recentReviewsWithMentions.forEach(review => {
     if (!review.mentionedEmployeeIds) return;
     review.mentionedEmployeeIds.forEach(employeeId => {
-      // Use idsMatch to handle different ID formats
       const entry = entries.find(e => idsMatch(e.userId, employeeId));
       if (entry) {
         entry.reviewBonusPoints += 20;
-        entry.effectiveScore = entry.compositePercent + entry.reviewBonusPoints;
+        entry.fiveStarReviewCount += 1;
       }
     });
   });
 
-  // Sort by effective score descending, then by name for ties
-  // Leaders with 0 attributed orders go to the bottom
+  // ============================================
+  // COMPETITIVE RANKING SYSTEM
+  // Instead of absolute scores, rank leaders relative to each other
+  // ============================================
+
+  // Only rank leaders with some activity
+  const activeEntries = entries.filter(e => e.totalShifts > 0 || e.orderCount > 0);
+  const n = activeEntries.length;
+
+  if (n === 0) return entries;
+
+  // Helper to calculate percentile rank (0-100, higher is better)
+  // For a sorted array where index 0 is best, percentile = 100 * (n - rank) / (n - 1)
+  const calcPercentile = (rank: number, total: number): number => {
+    if (total <= 1) return 100;
+    return 100 * (total - rank) / (total - 1);
+  };
+
+  // Rank by Turn Time (lower is better)
+  const withTurnTime = activeEntries.filter(e => e.avgTurnTimeMinutes !== undefined);
+  withTurnTime.sort((a, b) => a.avgTurnTimeMinutes! - b.avgTurnTimeMinutes!);
+  const turnTimeRanks = new Map<string, number>();
+  withTurnTime.forEach((e, i) => turnTimeRanks.set(e.userId, calcPercentile(i, withTurnTime.length)));
+
+  // Rank by Avg Ticket (higher is better)
+  const withTicket = activeEntries.filter(e => e.avgTicketDollars !== undefined);
+  withTicket.sort((a, b) => b.avgTicketDollars! - a.avgTicketDollars!);
+  const ticketRanks = new Map<string, number>();
+  withTicket.forEach((e, i) => ticketRanks.set(e.userId, calcPercentile(i, withTicket.length)));
+
+  // Rank by On-Time Rate (higher is better)
+  const withOnTime = activeEntries.filter(e => e.totalShifts > 0);
+  withOnTime.sort((a, b) => b.onTimeRate - a.onTimeRate);
+  const onTimeRanks = new Map<string, number>();
+  withOnTime.forEach((e, i) => onTimeRanks.set(e.userId, calcPercentile(i, withOnTime.length)));
+
+  // Rank by Reviews (more is better)
+  const withReviews = [...activeEntries];
+  withReviews.sort((a, b) => b.fiveStarReviewCount - a.fiveStarReviewCount);
+  const reviewRanks = new Map<string, number>();
+  withReviews.forEach((e, i) => reviewRanks.set(e.userId, calcPercentile(i, withReviews.length)));
+
+  // Calculate composite score as weighted average of percentile ranks
+  // Weight: Turn Time (40%), Avg Ticket (25%), On-Time (20%), Reviews (15%)
+  activeEntries.forEach(e => {
+    const turnTimePct = turnTimeRanks.get(e.userId) ?? 50;  // Default to middle if no data
+    const ticketPct = ticketRanks.get(e.userId) ?? 50;
+    const onTimePct = onTimeRanks.get(e.userId) ?? 50;
+    const reviewPct = reviewRanks.get(e.userId) ?? 50;
+
+    // Weighted composite (out of 100)
+    e.effectiveScore = (
+      turnTimePct * 0.40 +
+      ticketPct * 0.25 +
+      onTimePct * 0.20 +
+      reviewPct * 0.15
+    );
+
+    // Also update compositePercent for display consistency
+    e.compositePercent = e.effectiveScore;
+
+    console.log(`[Leaderboard] ${e.name}: turnTime=${turnTimePct.toFixed(0)}%, ticket=${ticketPct.toFixed(0)}%, onTime=${onTimePct.toFixed(0)}%, reviews=${reviewPct.toFixed(0)}% → composite=${e.effectiveScore.toFixed(1)}%`);
+  });
+
+  // Inactive entries get 0 score
+  entries.filter(e => e.totalShifts === 0 && e.orderCount === 0).forEach(e => {
+    e.effectiveScore = 0;
+    e.compositePercent = 0;
+  });
+
+  // Sort by effective score descending, then alphabetically
   return entries.sort((a, b) => {
-    // First sort by whether they have any attributed orders (leaders with orders first)
-    if (a.orderCount > 0 && b.orderCount === 0) return -1;
-    if (a.orderCount === 0 && b.orderCount > 0) return 1;
-    // Then by effective score
     if (b.effectiveScore !== a.effectiveScore) return b.effectiveScore - a.effectiveScore;
-    // Then alphabetically by name
     return a.name.localeCompare(b.name);
   });
 }

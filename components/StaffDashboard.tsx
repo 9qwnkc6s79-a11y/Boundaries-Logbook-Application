@@ -1,11 +1,12 @@
-import React, { useMemo } from 'react';
-import { User, ChecklistSubmission, ChecklistTemplate, UserProgress, TrainingModule, ToastTimeEntry, ToastSalesData } from '../types';
+import React, { useMemo, useState, useEffect } from 'react';
+import { User, ChecklistSubmission, ChecklistTemplate, UserProgress, TrainingModule, ToastTimeEntry, ToastSalesData, AttributedOrder, TrackedGoogleReview } from '../types';
 import {
   Trophy, TrendingUp, Target, Award, Zap, Users, Clock, CheckCircle,
   Star, Flame, Medal, Crown, Activity, BarChart3, Timer, Coffee,
   GraduationCap, ClipboardCheck, AlertCircle, ChevronRight
 } from 'lucide-react';
-import { detectLeaders } from '../utils/leadershipTracking';
+import { detectLeaders, calculateLeaderboard, LeaderLeaderboardEntry } from '../utils/leadershipTracking';
+import { db } from '../services/db';
 
 interface StaffDashboardProps {
   currentUser: User;
@@ -28,6 +29,37 @@ const StaffDashboard: React.FC<StaffDashboardProps> = ({
   toastSales,
   toastClockedIn
 }) => {
+  // State for leaderboard data
+  const [attributedOrders, setAttributedOrders] = useState<AttributedOrder[]>([]);
+  const [trackedReviews, setTrackedReviews] = useState<TrackedGoogleReview[]>([]);
+  const [toastTeamLeaders, setToastTeamLeaders] = useState<{ id: string; name: string; jobTitle: string; toastGuid: string }[]>([]);
+
+  // Fetch leaderboard data on mount
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [orders, reviewsData] = await Promise.all([
+          db.getAttributedOrders(),
+          db.getGoogleReviewsData()
+        ]);
+        setAttributedOrders(orders);
+        setTrackedReviews(reviewsData.trackedReviews || []);
+
+        // Build team leaders from clocked-in staff with leadership roles
+        const leaders = detectLeaders(toastClockedIn, allUsers);
+        setToastTeamLeaders(leaders.map(l => ({
+          id: l.userId,
+          name: l.name,
+          jobTitle: l.jobTitle,
+          toastGuid: l.employeeGuid
+        })));
+      } catch (err) {
+        console.error('[StaffDashboard] Failed to fetch leaderboard data:', err);
+      }
+    };
+    fetchData();
+  }, [toastClockedIn, allUsers]);
+
   // Calculate personal stats
   const personalStats = useMemo(() => {
     // Get submissions where user completed tasks
@@ -43,8 +75,9 @@ const StaffDashboard: React.FC<StaffDashboardProps> = ({
       const template = templates.find(t => t.id === sub.templateId);
       if (!template || !sub.submittedAt) return;
 
-      const deadline = new Date(sub.date);
-      deadline.setHours(template.deadlineHour, 0, 0, 0);
+      // Parse date as local time to avoid timezone issues
+      const [year, month, day] = sub.date.split('-').map(Number);
+      const deadline = new Date(year, month - 1, day, template.deadlineHour, 0, 0, 0);
       const submittedDate = new Date(sub.submittedAt);
 
       if (submittedDate <= deadline) {
@@ -72,8 +105,9 @@ const StaffDashboard: React.FC<StaffDashboardProps> = ({
       const template = templates.find(t => t.id === sub.templateId);
       if (!template || !sub.submittedAt) break;
 
-      const deadline = new Date(sub.date);
-      deadline.setHours(template.deadlineHour, 0, 0, 0);
+      // Parse date as local time to avoid timezone issues
+      const [year2, month2, day2] = sub.date.split('-').map(Number);
+      const deadline = new Date(year2, month2 - 1, day2, template.deadlineHour, 0, 0, 0);
       const submittedDate = new Date(sub.submittedAt);
 
       if (submittedDate <= deadline) {
@@ -95,53 +129,19 @@ const StaffDashboard: React.FC<StaffDashboardProps> = ({
     };
   }, [currentUser, submissions, templates, progress, curriculum]);
 
-  // Calculate team leaderboard
+  // Calculate team leaderboard using the same competitive ranking as ManagerHub
   const leaderboard = useMemo(() => {
-    const stats = new Map<string, any>();
-
-    submissions.forEach(sub => {
-      const template = templates.find(t => t.id === sub.templateId);
-      if (!template || !sub.submittedAt) return;
-
-      const deadline = new Date(sub.date);
-      deadline.setHours(template.deadlineHour, 0, 0, 0);
-      const submittedDate = new Date(sub.submittedAt);
-      const onTime = submittedDate <= deadline;
-
-      // Get all users who contributed to this submission
-      const contributors = new Set(sub.taskResults?.map(tr => tr.completedByUserId) || []);
-
-      contributors.forEach(userId => {
-        const user = allUsers.find(u => u.id === userId);
-        if (!user) return;
-
-        const existing = stats.get(userId);
-        if (existing) {
-          existing.total++;
-          if (onTime) existing.onTime++;
-        } else {
-          stats.set(userId, {
-            userId,
-            name: user.name,
-            total: 1,
-            onTime: onTime ? 1 : 0
-          });
-        }
-      });
-    });
-
-    return Array.from(stats.values())
-      .map(stat => ({
-        ...stat,
-        onTimeRate: stat.total > 0 ? (stat.onTime / stat.total) * 100 : 0
-      }))
-      .sort((a, b) => {
-        // Sort by on-time rate, then by total submissions
-        if (b.onTimeRate !== a.onTimeRate) return b.onTimeRate - a.onTimeRate;
-        return b.total - a.total;
-      })
-      .slice(0, 10); // Top 10
-  }, [submissions, templates, allUsers]);
+    return calculateLeaderboard(
+      submissions,
+      templates,
+      allUsers,
+      30,
+      trackedReviews,
+      attributedOrders,
+      toastTeamLeaders,
+      true // useMonthToDate
+    ).slice(0, 10); // Top 10
+  }, [submissions, templates, allUsers, trackedReviews, attributedOrders, toastTeamLeaders]);
 
   const userRank = leaderboard.findIndex(l => l.userId === currentUser.id) + 1;
 
@@ -298,16 +298,30 @@ const StaffDashboard: React.FC<StaffDashboardProps> = ({
                     }`}>
                       {person.name} {isCurrentUser && '(You)'}
                     </div>
-                    <div className="text-[9px] text-neutral-500 font-medium">
-                      {person.total} submissions
+                    <div className="text-[9px] text-neutral-500 font-medium flex items-center gap-2">
+                      {person.avgTurnTimeMinutes !== undefined && (
+                        <span className={person.avgTurnTimeMinutes < 4.5 ? 'text-green-600' : 'text-amber-600'}>
+                          {person.avgTurnTimeMinutes.toFixed(1)}m
+                        </span>
+                      )}
+                      {person.avgTicketDollars !== undefined && (
+                        <span className={person.avgTicketDollars >= 8 ? 'text-green-600' : 'text-amber-600'}>
+                          ${person.avgTicketDollars.toFixed(0)}
+                        </span>
+                      )}
+                      {person.fiveStarReviewCount > 0 && (
+                        <span className="text-yellow-500 flex items-center gap-0.5">
+                          {person.fiveStarReviewCount}<Star size={10} className="fill-current" />
+                        </span>
+                      )}
                     </div>
                   </div>
                   <div className={`text-right ${
-                    person.onTimeRate >= 90 ? 'text-green-600' :
-                    person.onTimeRate >= 70 ? 'text-blue-600' : 'text-amber-600'
+                    person.effectiveScore >= 70 ? 'text-green-600' :
+                    person.effectiveScore >= 50 ? 'text-blue-600' : 'text-amber-600'
                   }`}>
-                    <div className="text-lg font-black">{person.onTimeRate.toFixed(0)}%</div>
-                    <div className="text-[8px] font-bold uppercase tracking-wide">on-time</div>
+                    <div className="text-lg font-black">{person.effectiveScore.toFixed(0)}</div>
+                    <div className="text-[8px] font-bold uppercase tracking-wide">score</div>
                   </div>
                 </div>
               );
