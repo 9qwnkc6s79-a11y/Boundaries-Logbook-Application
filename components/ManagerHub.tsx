@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { User, ChecklistSubmission, ChecklistTemplate, ChecklistTask, UserRole, TrainingModule, UserProgress, ManualSection, Recipe, Store, ToastSalesData, ToastLaborEntry, ToastTimeEntry, CashDeposit, GoogleReview, TrackedGoogleReview, GoogleReviewsData, Organization, AttributedOrder } from '../types';
+import { User, ChecklistSubmission, ChecklistTemplate, ChecklistTask, UserRole, TrainingModule, UserProgress, ManualSection, Recipe, Store, ToastSalesData, ToastLaborEntry, ToastTimeEntry, CashDeposit, GoogleReview, TrackedGoogleReview, GoogleReviewsData, Organization, AttributedOrder, ArchivedLeaderboard } from '../types';
 import {
   CheckCircle2, AlertCircle, Eye, User as UserIcon, Calendar, Check, X,
   Sparkles, Settings, Plus, Trash2, Edit3, BarChart3, ListTodo, BrainCircuit, Clock, TrendingDown, TrendingUp,
@@ -173,6 +173,9 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
   // Toast Team Leaders (employees with leadership job titles)
   const [toastTeamLeaders, setToastTeamLeaders] = useState<{ id: string; name: string; jobTitle: string; toastGuid: string }[]>([]);
 
+  // Previous month's leaderboard winner
+  const [previousMonthWinner, setPreviousMonthWinner] = useState<ArchivedLeaderboard | null>(null);
+
   const currentStoreName = useMemo(() => stores.find(s => s.id === currentStoreId)?.name || 'Unknown Store', [currentStoreId, stores]);
 
   const getLocalStr = (d: Date) => {
@@ -239,6 +242,74 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
 
     return () => clearInterval(intervalId);
   }, [currentUser.email, currentStoreId, localTemplates, submissions, toastSales]);
+
+  // Load previous month's winner and check for archiving
+  useEffect(() => {
+    const loadAndArchiveLeaderboard = async () => {
+      try {
+        // Load previous month's winner
+        const prevWinner = await db.getPreviousMonthLeaderboard(currentStoreId);
+        setPreviousMonthWinner(prevWinner);
+
+        // Check if we need to archive last month's leaderboard
+        const now = new Date();
+        const isFirstWeekOfMonth = now.getDate() <= 7;
+
+        if (isFirstWeekOfMonth && !prevWinner) {
+          // We're in the first week of the month and don't have an archive yet
+          // Calculate last month's leaderboard and archive it
+          const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+          const monthKey = `${lastMonth.getFullYear()}-${String(lastMonth.getMonth() + 1).padStart(2, '0')}`;
+
+          // Calculate the leaderboard for last month
+          const leaderboard = calculateLeaderboard(
+            submissions,
+            templates,
+            allUsers,
+            30,
+            googleReviewsData.trackedReviews,
+            attributedOrders,
+            toastTeamLeaders,
+            false // Don't use MTD, calculate for the full month
+          );
+
+          if (leaderboard.length > 0) {
+            const winner = leaderboard[0];
+            const archive: ArchivedLeaderboard = {
+              id: monthKey,
+              storeId: currentStoreId,
+              month: lastMonth.getMonth() + 1,
+              year: lastMonth.getFullYear(),
+              archivedAt: new Date().toISOString(),
+              winnerId: winner.userId,
+              winnerName: winner.name,
+              winnerScore: winner.effectiveScore,
+              rankings: leaderboard.slice(0, 10).map((entry, idx) => ({
+                userId: entry.userId,
+                name: entry.name,
+                rank: idx + 1,
+                effectiveScore: entry.effectiveScore,
+                totalShifts: entry.totalShifts,
+                orderCount: entry.orderCount,
+                avgTurnTimeMinutes: entry.avgTurnTimeMinutes,
+                avgTicketDollars: entry.avgTicketDollars,
+                onTimeRate: entry.onTimeRate,
+                fiveStarReviewCount: entry.fiveStarReviewCount,
+              })),
+            };
+
+            console.log(`[Leaderboard] Archiving ${monthKey} winner: ${winner.name}`);
+            await db.saveArchivedLeaderboard(archive);
+            setPreviousMonthWinner(archive);
+          }
+        }
+      } catch (error) {
+        console.error('[Leaderboard] Error loading/archiving leaderboard:', error);
+      }
+    };
+
+    loadAndArchiveLeaderboard();
+  }, [currentStoreId, submissions, templates, allUsers, attributedOrders, toastTeamLeaders, googleReviewsData.trackedReviews]);
 
   const trainingStats = useMemo(() => {
     const onboardingLessons = curriculum.filter(m => m.category === 'ONBOARDING').flatMap(m => m.lessons);
@@ -1621,22 +1692,30 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                     <RefreshCw size={12} className={(attributionSyncing || isRefreshing) ? 'animate-spin' : ''} />
                     {(attributionSyncing || isRefreshing) ? 'Syncing...' : 'Sync'}
                   </button>
-                  <button
-                    onClick={() => {
-                      if (confirm('This will clear all order attributions and re-fetch from Toast. Use this if team leader links were recently updated. Continue?')) {
-                        syncOrderAttribution(true);
-                      }
-                    }}
-                    disabled={attributionSyncing || isRefreshing}
-                    className="text-[9px] font-bold uppercase tracking-wide text-orange-600 hover:text-orange-700 disabled:text-neutral-400 flex items-center gap-1"
-                    title="Clear and re-attribute all orders (use after linking team members)"
-                  >
-                    <RotateCcw size={12} />
-                    Reset
-                  </button>
                   <span className="text-[9px] font-black text-neutral-400 uppercase tracking-widest">MTD</span>
                 </div>
               </div>
+              {/* Previous Month Winner Banner */}
+              {previousMonthWinner && (
+                <div className="bg-gradient-to-r from-amber-100 via-yellow-50 to-amber-100 border-2 border-amber-300 rounded-xl p-4 mb-4 flex items-center gap-4">
+                  <div className="w-12 h-12 bg-gradient-to-br from-amber-400 to-yellow-500 rounded-xl flex items-center justify-center shadow-lg">
+                    <Trophy size={24} className="text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="text-[10px] font-bold text-amber-600 uppercase tracking-widest mb-0.5">
+                      {new Date(previousMonthWinner.year, previousMonthWinner.month - 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })} Champion
+                    </div>
+                    <div className="text-lg font-black text-amber-900 uppercase tracking-tight">
+                      {previousMonthWinner.winnerName}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-2xl font-black text-amber-600">{Math.round(previousMonthWinner.winnerScore)}%</div>
+                    <div className="text-[9px] font-bold text-amber-500 uppercase tracking-widest">Score</div>
+                  </div>
+                </div>
+              )}
+
               {(() => {
                 const now = new Date();
                 const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);

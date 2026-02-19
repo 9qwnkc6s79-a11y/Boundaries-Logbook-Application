@@ -220,28 +220,34 @@ const App: React.FC = () => {
       throw new Error("Your account has been deactivated. Contact your manager.");
     }
 
+    // Build a single updated user object for any needed migrations
+    let migratedUser = { ...found };
+    let needsMigration = false;
+
     // Auto-migrate plaintext password to hashed on successful login
     if (!isHashed(found.password)) {
       try {
-        const hashed = await hashPassword(pass);
-        const updated = { ...found, password: hashed };
-        await db.syncUser(updated);
-        console.log(`[Auth] Auto-migrated password hash for ${found.email}`);
+        migratedUser.password = await hashPassword(pass);
+        needsMigration = true;
+        console.log(`[Auth] Will migrate password hash for ${found.email}`);
       } catch (e) {
-        // Migration failure is non-blocking — user can still log in
-        console.warn('[Auth] Password migration failed:', e);
+        console.warn('[Auth] Password hash failed:', e);
       }
     }
 
     // Ensure user has orgId set (migrate legacy users)
     if (!found.orgId) {
-      const orgId = DEFAULT_ORG_ID;
-      found.orgId = orgId;
+      migratedUser.orgId = DEFAULT_ORG_ID;
+      needsMigration = true;
+    }
+
+    // Save all migrations in a single write to avoid overwriting the hash
+    if (needsMigration) {
       try {
-        await db.syncUser(found);
-        console.log(`[Auth] Migrated user ${found.email} to org ${orgId}`);
+        await db.syncUser(migratedUser);
+        console.log(`[Auth] Migrated user ${found.email} (hash=${!isHashed(found.password)}, orgId=${!found.orgId})`);
       } catch (e) {
-        console.warn('[Auth] Org migration failed for user:', e);
+        console.warn('[Auth] User migration failed:', e);
       }
     }
 
@@ -280,14 +286,16 @@ const App: React.FC = () => {
   const handlePasswordResetAction = async (email: string, pass: string) => {
     const freshData = await performCloudSync();
     const userList = freshData?.users || allUsers;
-    const user = userList.find(u => u.email === email);
-    
-    if (user) {
-      const hashed = await hashPassword(pass);
-      const updated = { ...user, password: hashed };
-      await db.syncUser(updated);
-      await performCloudSync(true);
+    const user = userList.find(u => u.email.toLowerCase() === email.toLowerCase().trim());
+
+    if (!user) {
+      throw new Error("Account not found.");
     }
+
+    const hashed = await hashPassword(pass);
+    const updated = { ...user, password: hashed };
+    await db.syncUser(updated);
+    await performCloudSync(true);
   };
 
   const handleOnboardingComplete = async (data: OnboardingData) => {
@@ -476,10 +484,12 @@ const App: React.FC = () => {
     if (!success) {
       setSaveError('Failed to save logbook entry. Please check your connection and try again.');
       console.error('[App] Failed to save submission:', submission.id);
+      // Don't trigger sync after failed save — it would overwrite the local
+      // optimistic update once the 7-second protection window expires.
     } else {
       setSaveError(null);
+      performCloudSync(true);
     }
-    performCloudSync(true);
   };
 
   const handleReview = async (id: string, approved: boolean) => {
@@ -596,11 +606,11 @@ const App: React.FC = () => {
   const handleSyncToastEmployees = useCallback(async (toastEmployees: ToastSyncEmployee[]) => {
     console.log('[App] Syncing Toast employees as users...', toastEmployees.length);
 
-    const newUsers: User[] = [];
+    let newCount = 0;
 
-    toastEmployees.forEach(emp => {
+    for (const emp of toastEmployees) {
       // Skip deleted employees
-      if (emp.deleted) return;
+      if (emp.deleted) continue;
 
       // Check if user already exists (by Toast GUID or email)
       const existingByGuid = allUsers.find(u => u.toastEmployeeGuid === emp.guid);
@@ -608,37 +618,40 @@ const App: React.FC = () => {
 
       if (existingByGuid || existingByEmail) {
         console.log(`[App] User already exists for ${emp.name} (${emp.guid})`);
-        return;
+        continue;
       }
 
-      // Create new user account
+      // Hash the temp password before storing
+      const hashedTempPw = await hashPassword('temp123');
+
       const newUser: User = {
         id: `toast-${emp.guid}`,
         name: emp.name,
         email: emp.email || `${emp.firstName.toLowerCase()}.${emp.lastName.toLowerCase()}@boundariescoffee.com`,
-        password: 'temp123', // They'll need to change this on first login
-        role: UserRole.TRAINEE, // Default to trainee
+        password: hashedTempPw,
+        role: UserRole.TRAINEE,
         storeId: emp.storeId,
         toastEmployeeGuid: emp.guid,
         active: true,
         orgId: currentOrg?.id
       };
 
-      newUsers.push(newUser);
+      // Use syncUser (read-modify-write) to avoid overwriting other users' data
+      await db.syncUser(newUser);
+      newCount++;
       console.log(`[App] Created user account for ${emp.name} (${emp.email})`);
-    });
+    }
 
-    if (newUsers.length > 0) {
-      const updatedUsers = [...allUsers, ...newUsers];
-      setAllUsers(updatedUsers);
-      await db.remoteSet('users', updatedUsers);
-      console.log(`[App] Synced ${newUsers.length} new users from Toast`);
-      return newUsers.length;
+    if (newCount > 0) {
+      // Refresh state from DB to get the canonical user list
+      await performCloudSync(true);
+      console.log(`[App] Synced ${newCount} new users from Toast`);
+      return newCount;
     }
 
     console.log('[App] No new users to sync from Toast');
     return 0;
-  }, [allUsers, currentOrg?.id]);
+  }, [allUsers, currentOrg?.id, performCloudSync]);
 
   if (isInitialLoading) {
     return (

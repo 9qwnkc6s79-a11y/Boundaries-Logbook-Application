@@ -1,6 +1,6 @@
 
 // No imports needed - Firebase is loaded globally via CDN script tags in index.html
-import { User, UserProgress, ChecklistSubmission, ChecklistTemplate, TrainingModule, ManualSection, Recipe, CashDeposit, GoogleReviewsData, Organization, Store, AttributedOrder } from '../types';
+import { User, UserProgress, ChecklistSubmission, ChecklistTemplate, TrainingModule, ManualSection, Recipe, CashDeposit, GoogleReviewsData, Organization, Store, AttributedOrder, ArchivedLeaderboard } from '../types';
 
 declare const firebase: any;
 
@@ -53,6 +53,7 @@ const DOC_KEYS = {
   GOOGLE_REVIEWS: 'googleReviews',
   ATTRIBUTED_ORDERS: 'attributedOrders',
   FCM_TOKENS: 'fcmTokens',
+  ARCHIVED_LEADERBOARDS: 'archivedLeaderboards',
 };
 
 function removeUndefined(obj: any): any {
@@ -437,6 +438,75 @@ class CloudAPI {
     }
   }
 
+  /**
+   * Strip inline base64 photo data from a submission to reduce document size.
+   * Replaces data:image/* URLs with a placeholder since the photo was lost anyway.
+   */
+  private stripBase64Photos(submission: ChecklistSubmission): ChecklistSubmission {
+    const isBase64 = (url?: string) => url?.startsWith('data:image/');
+    const hadBase64 = submission.taskResults.some(
+      r => isBase64(r.photoUrl) || r.photoUrls?.some(isBase64)
+    );
+    if (!hadBase64) return submission;
+
+    return {
+      ...submission,
+      taskResults: submission.taskResults.map(r => ({
+        ...r,
+        photoUrl: isBase64(r.photoUrl) ? undefined : r.photoUrl,
+        photoUrls: r.photoUrls?.filter(url => !isBase64(url)),
+      })),
+    };
+  }
+
+  /**
+   * Prune old submissions to keep the document under Firestore's 1MB limit.
+   * Returns the pruned array sorted newest-first.
+   */
+  private pruneSubmissions(submissions: ChecklistSubmission[], maxSizeBytes = 900000): ChecklistSubmission[] {
+    // Sort newest first by date then submittedAt
+    let pruned = [...submissions].sort((a, b) => {
+      const dateCompare = b.date.localeCompare(a.date);
+      if (dateCompare !== 0) return dateCompare;
+      return (b.submittedAt || '').localeCompare(a.submittedAt || '');
+    });
+
+    // Step 1: Strip base64 photos from ALL submissions
+    pruned = pruned.map(s => this.stripBase64Photos(s));
+
+    // Step 2: Remove submissions older than 90 days
+    const cutoff90 = new Date();
+    cutoff90.setDate(cutoff90.getDate() - 90);
+    const cutoff90Str = cutoff90.toISOString().split('T')[0];
+    const beforeCount = pruned.length;
+    pruned = pruned.filter(s => s.date >= cutoff90Str);
+    if (pruned.length < beforeCount) {
+      console.log(`[DB] pruneSubmissions: Removed ${beforeCount - pruned.length} submissions older than 90 days`);
+    }
+
+    // Step 3: If still too large, prune to 60 days
+    let size = JSON.stringify(pruned).length;
+    if (size > maxSizeBytes) {
+      const cutoff60 = new Date();
+      cutoff60.setDate(cutoff60.getDate() - 60);
+      const cutoff60Str = cutoff60.toISOString().split('T')[0];
+      pruned = pruned.filter(s => s.date >= cutoff60Str);
+      console.log(`[DB] pruneSubmissions: Still ${Math.round(size / 1024)}KB, pruned to 60 days (${pruned.length} submissions)`);
+    }
+
+    // Step 4: If still too large, prune to 30 days
+    size = JSON.stringify(pruned).length;
+    if (size > maxSizeBytes) {
+      const cutoff30 = new Date();
+      cutoff30.setDate(cutoff30.getDate() - 30);
+      const cutoff30Str = cutoff30.toISOString().split('T')[0];
+      pruned = pruned.filter(s => s.date >= cutoff30Str);
+      console.log(`[DB] pruneSubmissions: Still ${Math.round(size / 1024)}KB, pruned to 30 days (${pruned.length} submissions)`);
+    }
+
+    return pruned;
+  }
+
   async pushSubmission(submission: ChecklistSubmission): Promise<boolean> {
     console.log(`[DB] pushSubmission START: id=${submission.id}, status=${submission.status}`);
 
@@ -473,12 +543,14 @@ class CloudAPI {
       next = [submission, ...all];
     }
 
-    // Log document size (should be small now that we use Storage URLs)
+    // Prune old submissions and strip base64 data to stay under Firestore's 1MB limit
+    next = this.pruneSubmissions(next);
+
     const jsonSize = JSON.stringify(next).length;
-    console.log(`[DB] pushSubmission: Document size: ${Math.round(jsonSize / 1024)}KB`);
+    console.log(`[DB] pushSubmission: Document size after pruning: ${Math.round(jsonSize / 1024)}KB (${next.length} submissions)`);
 
     if (jsonSize > 900000) {
-      console.warn(`[DB] pushSubmission: Document size is large (${Math.round(jsonSize / 1024)}KB) - consider archiving old submissions`);
+      console.warn(`[DB] pushSubmission: Document size is large (${Math.round(jsonSize / 1024)}KB) after pruning`);
     }
 
     console.log(`[DB] pushSubmission: Saving ${next.length} total submissions`);
@@ -794,6 +866,49 @@ class CloudAPI {
 
   async getAttributedOrders(): Promise<any[]> {
     return this.remoteGet<any[]>(DOC_KEYS.ATTRIBUTED_ORDERS, []);
+  }
+
+  // ── Archived Leaderboards ──
+
+  async getArchivedLeaderboards(): Promise<ArchivedLeaderboard[]> {
+    return this.remoteGet<ArchivedLeaderboard[]>(DOC_KEYS.ARCHIVED_LEADERBOARDS, []);
+  }
+
+  async getArchivedLeaderboard(monthKey: string, storeId: string): Promise<ArchivedLeaderboard | null> {
+    const all = await this.getArchivedLeaderboards();
+    return all.find(a => a.id === monthKey && a.storeId === storeId) || null;
+  }
+
+  async getPreviousMonthLeaderboard(storeId: string): Promise<ArchivedLeaderboard | null> {
+    const now = new Date();
+    const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const monthKey = `${prevMonth.getFullYear()}-${String(prevMonth.getMonth() + 1).padStart(2, '0')}`;
+    return this.getArchivedLeaderboard(monthKey, storeId);
+  }
+
+  async saveArchivedLeaderboard(archive: ArchivedLeaderboard): Promise<boolean> {
+    console.log(`[DB] saveArchivedLeaderboard: Saving ${archive.id} for store ${archive.storeId}`);
+    const existing = await this.getArchivedLeaderboards();
+
+    // Check if this month was already archived for this store
+    const existingIdx = existing.findIndex(a => a.id === archive.id && a.storeId === archive.storeId);
+
+    let next: ArchivedLeaderboard[];
+    if (existingIdx > -1) {
+      console.log(`[DB] saveArchivedLeaderboard: Updating existing archive`);
+      next = existing.map((a, i) => i === existingIdx ? archive : a);
+    } else {
+      console.log(`[DB] saveArchivedLeaderboard: Adding new archive`);
+      next = [archive, ...existing];
+    }
+
+    // Keep only last 12 months of archives per store to prevent bloat
+    const cutoffDate = new Date();
+    cutoffDate.setMonth(cutoffDate.getMonth() - 12);
+    const cutoffKey = `${cutoffDate.getFullYear()}-${String(cutoffDate.getMonth() + 1).padStart(2, '0')}`;
+    next = next.filter(a => a.id >= cutoffKey);
+
+    return this.remoteSet(DOC_KEYS.ARCHIVED_LEADERBOARDS, next);
   }
 
   async globalSync(defaults: {

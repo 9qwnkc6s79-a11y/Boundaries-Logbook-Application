@@ -481,3 +481,31 @@ export interface GoogleReviewsData {
   trackedReviews: TrackedGoogleReview[];
   lastPolled: Record<string, string>;
 }
+
+// Archived monthly leaderboard results
+export interface ArchivedLeaderboard {
+  id: string; // Format: "YYYY-MM" (e.g., "2025-01")
+  storeId: string;
+  month: number; // 1-12
+  year: number;
+  archivedAt: string; // ISO timestamp when archived
+
+  // Winner details
+  winnerId: string;
+  winnerName: string;
+  winnerScore: number;
+
+  // Full rankings
+  rankings: {
+    userId: string;
+    name: string;
+    rank: number;
+    effectiveScore: number;
+    totalShifts: number;
+    orderCount: number;
+    avgTurnTimeMinutes?: number;
+    avgTicketDollars?: number;
+    onTimeRate: number;
+    fiveStarReviewCount: number;
+  }[];
+}
