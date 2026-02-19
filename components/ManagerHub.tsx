@@ -2,11 +2,10 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { User, ChecklistSubmission, ChecklistTemplate, ChecklistTask, UserRole, TrainingModule, UserProgress, ManualSection, Recipe, Store, ToastSalesData, ToastLaborEntry, ToastTimeEntry, CashDeposit, GoogleReview, TrackedGoogleReview, GoogleReviewsData, Organization, AttributedOrder, ArchivedLeaderboard } from '../types';
 import {
   CheckCircle2, AlertCircle, Eye, User as UserIcon, Calendar, Check, X,
-  Sparkles, Settings, Plus, Trash2, Edit3, BarChart3, ListTodo, BrainCircuit, Clock, TrendingDown, TrendingUp,
+  Settings, Plus, Trash2, Edit3, BarChart3, ListTodo, BrainCircuit, Clock, TrendingDown, TrendingUp,
   ArrowRight, MessageSquare, Save, Users, LayoutDashboard, Flag, Activity, GraduationCap, Award, FileText, MoveUp, MoveDown, Coffee, Camera, Hash, AlertTriangle, ExternalLink, FileText as FileIcon, Image as ImageIcon, Search, ShieldCheck,
   RefreshCw, RotateCcw, CalendarDays, Timer, Store as StoreIcon, MapPin, GripVertical, AlertOctagon, Info, Zap, Gauge, History, SearchCheck, ChevronUp, ChevronDown, ClipboardList, DollarSign, TrendingUp as TrendingUpIcon, UserCheck, Target, Trophy, Star, Palette, Building2
 } from 'lucide-react';
-import { GoogleGenAI } from "@google/genai";
 import { toastAPI } from '../services/toast';
 import { db } from '../services/db';
 import { detectLeaders, calculateTimelinessScore, calculateTurnTimeScore, calculateSalesScore, calculateAvgTicketScore, calculateLeaderboard, determineShiftOwnership } from '../utils/leadershipTracking';
@@ -99,8 +98,6 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
   const [operationsSubTab, setOperationsSubTab] = useState<'compliance' | 'gallery' | 'cash-audit'>('compliance');
   const [settingsSubTab, setSettingsSubTab] = useState<'editor' | 'team' | 'staff' | 'manual' | 'branding' | 'stores'>('editor');
   const [auditFilter, setAuditFilter] = useState<'pending' | 'approved' | 'all'>('pending');
-  const [aiInsight, setAiInsight] = useState<string | null>(null);
-  const [isGenerating, setIsGenerating] = useState(false);
   const [fullscreenPhoto, setFullscreenPhoto] = useState<{
     url: string;
     title: string;
@@ -590,23 +587,6 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
     } catch (e) {
       setSavingStatus(prev => ({ ...prev, [templateId]: 'IDLE' }));
       alert('Failed to save protocol to cloud.');
-    }
-  };
-
-  const generateAiInsight = async () => {
-    setIsGenerating(true);
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    const context = { store: currentStoreName, compliance: complianceMatrix, performance: performanceData, onboarding: trainingStats };
-    try {
-      const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: `Act as the "Barista Brain" Operations Auditor. Analyze store data: ${JSON.stringify(context)}. Provide 3 action items.`,
-      });
-      setAiInsight(response.text || "Insight engine returned empty response.");
-    } catch (e) {
-      setAiInsight("AI Engine offline.");
-    } finally {
-      setIsGenerating(false);
     }
   };
 
@@ -1345,17 +1325,25 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
           >
-            {/* Pull-to-refresh indicator at top of dashboard */}
-            {(pullDistance > 0 || isRefreshing) && (
+            {/* Pull-to-refresh indicator */}
+            {pullDistance > 0 && (
               <div
-                className="absolute left-0 right-0 flex items-center justify-center transition-all overflow-hidden z-50"
-                style={{ top: -50, height: pullDistance > 0 ? pullDistance : 40 }}
+                className="flex items-center justify-center overflow-hidden transition-all"
+                style={{ height: pullDistance }}
               >
-                <div className={`flex items-center gap-2 text-blue-600 bg-white/90 backdrop-blur px-4 py-2 rounded-full shadow-lg ${isRefreshing ? 'animate-pulse' : ''}`}>
-                  <RefreshCw size={16} className={isRefreshing || pullDistance >= PULL_THRESHOLD ? 'animate-spin' : ''} />
+                <div className={`flex items-center gap-2 text-blue-600 bg-white/90 backdrop-blur px-4 py-2 rounded-full shadow-lg`}>
+                  <RefreshCw size={16} className={pullDistance >= PULL_THRESHOLD ? 'animate-spin' : ''} />
                   <span className="text-[10px] font-bold uppercase tracking-wide">
-                    {isRefreshing ? 'Refreshing...' : pullDistance >= PULL_THRESHOLD ? 'Release to refresh' : 'Pull to refresh'}
+                    {pullDistance >= PULL_THRESHOLD ? 'Release to refresh' : 'Pull to refresh'}
                   </span>
+                </div>
+              </div>
+            )}
+            {isRefreshing && pullDistance === 0 && (
+              <div className="flex items-center justify-center py-2">
+                <div className="flex items-center gap-2 text-blue-600 bg-white/90 backdrop-blur px-4 py-2 rounded-full shadow-lg animate-pulse">
+                  <RefreshCw size={16} className="animate-spin" />
+                  <span className="text-[10px] font-bold uppercase tracking-wide">Refreshing...</span>
                 </div>
               </div>
             )}
@@ -1603,80 +1591,6 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
               </div>
             </div>
 
-            {/* Quick Stats Bar */}
-            <section className="bg-white p-6 rounded-xl border border-neutral-100 shadow-sm">
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
-                <div className="text-center">
-                  <div className="text-2xl font-black text-[#0F2B3C] mb-1">{staff.length}</div>
-                  <div className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest">Total Staff</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-black text-[#0F2B3C] mb-1">
-                    {submissions.filter(s => s.status === 'PENDING').length}
-                  </div>
-                  <div className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest">Pending Reviews</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-black text-[#0F2B3C] mb-1">
-                    {allProgress.filter(p => p.status === 'COMPLETED').length}
-                  </div>
-                  <div className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest">Lessons Completed</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-black text-[#0F2B3C] mb-1">
-                    {templates.length}
-                  </div>
-                  <div className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest">Active Protocols</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-black text-green-600 mb-1">
-                    {Math.round((submissions.filter(s => s.status === 'APPROVED').length / Math.max(submissions.length, 1)) * 100)}%
-                  </div>
-                  <div className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest">Approval Rate</div>
-                </div>
-              </div>
-            </section>
-
-            {/* Barista Brain AI Audit */}
-            <section className="bg-gradient-to-br from-purple-50 to-blue-50 p-6 rounded-xl border border-purple-100">
-              <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-purple-100 rounded-xl">
-                    <BrainCircuit size={20} className="text-purple-600" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-black text-[#0F2B3C] uppercase tracking-tight">Barista Brain Audit</h3>
-                    <p className="text-[9px] font-bold text-neutral-500 uppercase tracking-widest mt-0.5">AI-powered store analysis</p>
-                  </div>
-                </div>
-                <button
-                  onClick={generateAiInsight}
-                  disabled={isGenerating}
-                  className="px-6 py-3 bg-purple-600 text-white rounded-xl font-black uppercase text-[9px] tracking-widest hover:bg-purple-700 transition-all flex items-center gap-2 shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isGenerating ? <RefreshCw className="animate-spin" size={14}/> : <Sparkles size={14}/>}
-                  {isGenerating ? 'Analyzing...' : 'Run Audit'}
-                </button>
-              </div>
-            </section>
-
-            {aiInsight && (
-              <section className="bg-white p-6 rounded-xl border border-purple-100 shadow-md animate-in slide-in-from-bottom-4">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-xl font-black text-[#0F2B3C] uppercase flex items-center gap-3">
-                    <BrainCircuit className="text-purple-500" size={24} />
-                    Audit Results
-                  </h3>
-                  <button onClick={() => setAiInsight(null)} className="text-neutral-400 hover:text-neutral-600 transition-colors">
-                    <X size={20}/>
-                  </button>
-                </div>
-                <div className="prose prose-sm max-w-none text-neutral-600 whitespace-pre-wrap leading-relaxed">
-                  {aiInsight}
-                </div>
-              </section>
-            )}
-
             {/* Team Leader Leaderboard */}
             <section className="bg-white p-4 md:p-6 rounded-xl border border-neutral-100 shadow-sm">
               <div className="flex items-center gap-3 mb-4 md:mb-6">
@@ -1769,7 +1683,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                                     <ChevronDown size={14} className={`transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                                   </h3>
                                   <p className="text-[9px] font-bold text-neutral-500 uppercase tracking-widest">
-                                    {leader.totalShifts} shifts • {leader.orderCount} orders
+                                    {leader.totalShifts} shift{leader.totalShifts !== 1 ? 's' : ''}
                                   </p>
                                 </div>
                               </div>
@@ -1922,6 +1836,40 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                   </div>
                 );
               })()}
+            </section>
+
+            {/* Quick Stats Bar */}
+            <section className="bg-white p-6 rounded-xl border border-neutral-100 shadow-sm">
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
+                <div className="text-center">
+                  <div className="text-2xl font-black text-[#0F2B3C] mb-1">{staff.length}</div>
+                  <div className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest">Total Staff</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-black text-[#0F2B3C] mb-1">
+                    {submissions.filter(s => s.status === 'PENDING').length}
+                  </div>
+                  <div className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest">Pending Reviews</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-black text-[#0F2B3C] mb-1">
+                    {allProgress.filter(p => p.status === 'COMPLETED').length}
+                  </div>
+                  <div className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest">Lessons Completed</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-black text-[#0F2B3C] mb-1">
+                    {templates.length}
+                  </div>
+                  <div className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest">Active Protocols</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-black text-green-600 mb-1">
+                    {Math.round((submissions.filter(s => s.status === 'APPROVED').length / Math.max(submissions.length, 1)) * 100)}%
+                  </div>
+                  <div className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest">Approval Rate</div>
+                </div>
+              </div>
             </section>
 
             {/* Recent Google Reviews */}
