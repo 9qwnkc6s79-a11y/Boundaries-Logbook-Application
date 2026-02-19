@@ -1304,13 +1304,13 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
         </div>
 
         {/* Tab navigation - 3 Main Tabs */}
-        <div className="flex bg-neutral-100 p-1 rounded-xl border border-neutral-200 overflow-x-auto no-scrollbar">
+        <div className="flex gap-2">
           {[
             { id: 'dashboard', label: 'DASHBOARD', icon: LayoutDashboard },
             { id: 'operations', label: 'OPERATIONS', icon: ClipboardList },
             { id: 'settings', label: 'SETTINGS', icon: Settings },
           ].map(tab => (
-            <button key={tab.id} onClick={() => setActiveSubTab(tab.id as any)} className={`px-6 py-3 text-[10px] font-black rounded-lg transition-all flex items-center gap-2 whitespace-nowrap tracking-widest ${activeSubTab === tab.id ? 'bg-[#0F2B3C] text-white shadow-lg' : 'text-neutral-500 hover:text-[#0F2B3C]'}`}>
+            <button key={tab.id} onClick={() => setActiveSubTab(tab.id as any)} className={`px-4 md:px-6 py-3 text-[10px] font-black rounded-xl transition-all flex items-center gap-2 whitespace-nowrap tracking-widest border-2 ${activeSubTab === tab.id ? 'bg-[#0F2B3C] text-white border-[#0F2B3C] shadow-lg' : 'bg-white text-neutral-500 border-neutral-200 hover:border-[#0F2B3C] hover:text-[#0F2B3C]'}`}>
               <tab.icon size={16} /> {tab.label}
             </button>
           ))}
@@ -2636,28 +2636,37 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
         )}
 
         {activeSubTab === 'operations' && operationsSubTab === 'cash-audit' && (() => {
-          // Calculate expected cash on hand for theft detection
-          const totalCashSales = toastSales?.paymentMethods?.['CASH'] || toastSales?.paymentMethods?.['Cash'] || 0;
-          const totalCashRemoved = (toastCashData?.cashOut || 0) + (toastCashData?.payOuts || 0) + (toastCashData?.tipOuts || 0);
-          const expectedCashOnHand = totalCashSales - totalCashRemoved;
+          // Expected bank deposit = total safe drops (CASH_OUT) since last bank deposit
+          const expectedDeposit = toastCashData?.cashOut || 0;
+          const hasCashData = expectedDeposit > 0 || (toastCashData?.entries?.length > 0);
+          const periodStart = lastDepositDate || new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+          const periodEnd = new Date().toISOString().split('T')[0];
 
-          const hasCashData = totalCashSales > 0 || totalCashRemoved > 0;
+          // Group CASH_OUT entries by date for daily breakdown
+          const cashOutEntries = (toastCashData?.entries || []).filter((e: any) => e.type === 'CASH_OUT');
+          const dailyDrops: Record<string, { total: number; entries: any[] }> = {};
+          cashOutEntries.forEach((e: any) => {
+            const date = e.createdDate?.split('T')[0] || 'Unknown';
+            if (!dailyDrops[date]) dailyDrops[date] = { total: 0, entries: [] };
+            dailyDrops[date].total += e.amount || 0;
+            dailyDrops[date].entries.push(e);
+          });
 
           return (
             <section className="animate-in fade-in space-y-6">
-              {/* Theft Detection Alert */}
-              {hasCashData && expectedCashOnHand > 500 && (
-                <div className="bg-yellow-50 border-2 border-yellow-300 rounded-xl p-6">
+              {/* Deposit Reminder */}
+              {expectedDeposit > 500 && (
+                <div className="bg-amber-50 border-2 border-amber-300 rounded-xl p-6">
                   <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 bg-yellow-500 text-white rounded-xl flex items-center justify-center shrink-0">
+                    <div className="w-12 h-12 bg-amber-500 text-white rounded-xl flex items-center justify-center shrink-0">
                       <AlertOctagon size={24} />
                     </div>
                     <div className="flex-1">
-                      <h3 className="font-black text-yellow-900 text-lg uppercase tracking-tight mb-2">Cash Deposit Needed</h3>
-                      <p className="text-yellow-800 text-sm font-medium mb-3">
-                        Expected cash on hand: <span className="font-black text-2xl">${expectedCashOnHand.toFixed(2)}</span>
+                      <h3 className="font-black text-amber-900 text-lg uppercase tracking-tight mb-2">Bank Deposit Recommended</h3>
+                      <p className="text-amber-800 text-sm font-medium mb-3">
+                        Safe drops since last deposit: <span className="font-black text-2xl">${expectedDeposit.toFixed(2)}</span>
                       </p>
-                      <p className="text-yellow-700 text-xs">Make a bank deposit soon to reduce cash risk and verify accuracy.</p>
+                      <p className="text-amber-700 text-xs">Consider making a bank deposit to verify cash accuracy.</p>
                     </div>
                   </div>
                 </div>
@@ -2670,7 +2679,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                     <DollarSign size={28} />
                     Bank Deposit Tracking
                   </h2>
-                  <p className="text-neutral-400 text-xs font-bold uppercase tracking-widest mt-1">Detect theft & cash discrepancies</p>
+                  <p className="text-neutral-400 text-xs font-bold uppercase tracking-widest mt-1">Verify safe drops match bank deposits</p>
                 </div>
                 <button
                   onClick={() => {
@@ -2687,36 +2696,50 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                 </button>
               </div>
 
-              {/* Expected Cash Breakdown */}
+              {/* Safe Drops Summary */}
               {hasCashData && (
                 <div className="bg-white p-6 rounded-xl border border-neutral-100 shadow-sm">
-                  <h3 className="text-lg font-black text-[#0F2B3C] uppercase tracking-tight mb-6">Current Cash Status</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                    <div className="bg-green-50 p-6 rounded-xl border-2 border-green-200">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-green-600 mb-2">Cash Sales</p>
-                      <p className="text-3xl font-black text-green-700">${totalCashSales.toFixed(2)}</p>
-                      <p className="text-xs text-green-600 mt-2">Money in</p>
-                    </div>
-                    <div className="bg-red-50 p-6 rounded-xl border-2 border-red-200">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-red-600 mb-2">Safe Drops</p>
-                      <p className="text-3xl font-black text-red-700">${(toastCashData?.cashOut || 0).toFixed(2)}</p>
-                      <p className="text-xs text-red-600 mt-2">To safe</p>
-                    </div>
-                    <div className="bg-orange-50 p-6 rounded-xl border-2 border-orange-200">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-orange-600 mb-2">Pay/Tip Outs</p>
-                      <p className="text-3xl font-black text-orange-700">${((toastCashData?.payOuts || 0) + (toastCashData?.tipOuts || 0)).toFixed(2)}</p>
-                      <p className="text-xs text-orange-600 mt-2">Paid out</p>
-                    </div>
-                    <div className={`p-6 rounded-xl border-2 ${expectedCashOnHand >= 0 ? 'bg-blue-50 border-blue-200' : 'bg-red-50 border-red-300'}`}>
-                      <p className={`text-[10px] font-black uppercase tracking-widest mb-2 ${expectedCashOnHand >= 0 ? 'text-blue-600' : 'text-red-600'}`}>Expected On Hand</p>
-                      <p className={`text-3xl font-black ${expectedCashOnHand >= 0 ? 'text-blue-700' : 'text-red-700'}`}>${expectedCashOnHand.toFixed(2)}</p>
-                      <p className={`text-xs mt-2 ${expectedCashOnHand >= 0 ? 'text-blue-600' : 'text-red-600'}`}>Should be in safe</p>
+                  <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-lg font-black text-[#0F2B3C] uppercase tracking-tight">Safe Drops Since Last Deposit</h3>
+                    <div className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">
+                      {new Date(periodStart).toLocaleDateString()} — {new Date(periodEnd).toLocaleDateString()}
                     </div>
                   </div>
+
+                  {/* Expected Deposit Total */}
+                  <div className="bg-[#0F2B3C] p-6 rounded-xl mb-6">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-white/60 mb-2">Expected Bank Deposit</p>
+                    <p className="text-4xl font-black text-white">${expectedDeposit.toFixed(2)}</p>
+                    <p className="text-xs text-white/50 mt-2">Total CASH_OUT from Toast (drawer → safe)</p>
+                  </div>
+
+                  {/* Daily Breakdown */}
+                  {Object.keys(dailyDrops).length > 0 ? (
+                    <div>
+                      <h4 className="text-[10px] font-black text-neutral-500 uppercase tracking-widest mb-3">Daily Breakdown</h4>
+                      <div className="space-y-2">
+                        {Object.entries(dailyDrops)
+                          .sort(([a], [b]) => b.localeCompare(a))
+                          .map(([date, data]) => (
+                          <div key={date} className="flex items-center justify-between p-3 bg-neutral-50 rounded-lg border border-neutral-100">
+                            <div className="flex items-center gap-3">
+                              <Calendar size={14} className="text-neutral-400" />
+                              <span className="text-sm font-bold text-neutral-700">{new Date(date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
+                              <span className="text-[10px] text-neutral-400 font-medium">{data.entries.length} drop{data.entries.length !== 1 ? 's' : ''}</span>
+                            </div>
+                            <span className="text-sm font-black text-[#0F2B3C]">${data.total.toFixed(2)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-neutral-400 text-center py-4">No safe drops recorded in this period</p>
+                  )}
+
                   <div className="mt-4 p-4 bg-blue-50 rounded-xl">
                     <p className="text-xs text-blue-700 font-medium flex items-center gap-2">
                       <Info size={14} />
-                      Expected On Hand = Cash Sales - Safe Drops - Pay/Tip Outs. When you deposit, we'll compare actual to expected.
+                      Expected Deposit = Total safe drops (CASH_OUT from Toast) since your last bank deposit. Record a deposit to compare.
                     </p>
                   </div>
                 </div>
@@ -2728,17 +2751,17 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                   <h3 className="text-lg font-black text-[#0F2B3C] uppercase tracking-tight mb-6">Record Bank Deposit</h3>
                   <div className="space-y-6">
                     <div>
-                      <label className="block text-xs font-black text-neutral-600 uppercase tracking-widest mb-2">Expected Deposit</label>
+                      <label className="block text-xs font-black text-neutral-600 uppercase tracking-widest mb-2">Expected Deposit (Total Safe Drops)</label>
                       <div className="relative">
                         <span className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400 font-bold">$</span>
                         <input
                           type="text"
-                          value={expectedCashOnHand.toFixed(2)}
+                          value={expectedDeposit.toFixed(2)}
                           readOnly
                           className="w-full pl-8 pr-4 py-4 rounded-xl border-2 border-green-200 bg-green-50 outline-none font-bold text-lg text-green-700"
                         />
                       </div>
-                      <p className="text-[10px] text-green-600 font-bold uppercase tracking-widest mt-2">From Toast sales data</p>
+                      <p className="text-[10px] text-green-600 font-bold uppercase tracking-widest mt-2">Total safe drops from Toast since last bank deposit</p>
                     </div>
                     <div>
                       <label className="block text-xs font-black text-neutral-600 uppercase tracking-widest mb-2">Actual Cash Counted & Deposited</label>
@@ -2769,8 +2792,8 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                     {/* Variance Preview */}
                     {depositFormData.actualDeposit && (() => {
                       const actual = parseFloat(depositFormData.actualDeposit);
-                      const variance = actual - expectedCashOnHand;
-                      const variancePercent = expectedCashOnHand > 0 ? (variance / expectedCashOnHand) * 100 : 0;
+                      const variance = actual - expectedDeposit;
+                      const variancePercent = expectedDeposit > 0 ? (variance / expectedDeposit) * 100 : 0;
                       const status = Math.abs(variance) <= 10 ? 'PASS' : Math.abs(variance) <= 50 ? 'REVIEW' : 'FAIL';
 
                       return (
@@ -2808,26 +2831,26 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
 
                           try {
                             const actual = parseFloat(depositFormData.actualDeposit);
-                            const variance = actual - expectedCashOnHand;
-                            const variancePercent = expectedCashOnHand > 0 ? (variance / expectedCashOnHand) * 100 : 0;
+                            const variance = actual - expectedDeposit;
+                            const variancePercent = expectedDeposit > 0 ? (variance / expectedDeposit) * 100 : 0;
                             const status = Math.abs(variance) <= 10 ? 'PASS' : Math.abs(variance) <= 50 ? 'REVIEW' : 'FAIL';
 
                             const deposit: CashDeposit = {
                               id: `dep-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
                               storeId: currentStoreId,
                               depositDate: new Date().toISOString().split('T')[0],
-                              depositedBy: 'current-user', // TODO: Replace with actual user ID
-                              depositedByName: 'Manager', // TODO: Replace with actual user name
+                              depositedBy: currentUser?.id || 'unknown',
+                              depositedByName: currentUser?.name || 'Unknown',
                               depositedAt: new Date().toISOString(),
-                              periodStart: lastDepositDate || new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
-                              periodEnd: new Date().toISOString().split('T')[0],
-                              expectedDeposit: expectedCashOnHand,
+                              periodStart,
+                              periodEnd,
+                              expectedDeposit,
                               actualDeposit: actual,
                               variance: variance,
                               variancePercent: variancePercent,
                               status: status as 'PASS' | 'REVIEW' | 'FAIL',
-                              totalCashSales: totalCashSales,
-                              totalCashRemoved: totalCashRemoved,
+                              totalCashSales: 0,
+                              totalCashRemoved: expectedDeposit,
                               notes: depositFormData.notes
                             };
 
