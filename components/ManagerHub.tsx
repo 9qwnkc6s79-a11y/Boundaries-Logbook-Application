@@ -162,7 +162,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
   const [isPulling, setIsPulling] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const pullStartY = React.useRef(0);
-  const PULL_THRESHOLD = 80;
+  const PULL_THRESHOLD = 40;
 
   // Expanded leader for score breakdown
   const [expandedLeaderId, setExpandedLeaderId] = useState<string | null>(null);
@@ -1094,7 +1094,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
   const handleTouchMove = (e: React.TouchEvent) => {
     if (!isPulling) return;
     const currentY = e.touches[0].clientY;
-    const distance = Math.max(0, Math.min(currentY - pullStartY.current, PULL_THRESHOLD * 1.5));
+    const distance = Math.max(0, Math.min(currentY - pullStartY.current, PULL_THRESHOLD + 10));
     setPullDistance(distance);
   };
 
@@ -1304,14 +1304,14 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
         </div>
 
         {/* Tab navigation - 3 Main Tabs */}
-        <div className="flex gap-2">
+        <div className="flex gap-1.5 w-full md:w-auto">
           {[
             { id: 'dashboard', label: 'DASHBOARD', icon: LayoutDashboard },
-            { id: 'operations', label: 'OPERATIONS', icon: ClipboardList },
+            { id: 'operations', label: 'OPS', icon: ClipboardList },
             { id: 'settings', label: 'SETTINGS', icon: Settings },
           ].map(tab => (
-            <button key={tab.id} onClick={() => setActiveSubTab(tab.id as any)} className={`px-4 md:px-6 py-3 text-[10px] font-black rounded-xl transition-all flex items-center gap-2 whitespace-nowrap tracking-widest border-2 ${activeSubTab === tab.id ? 'bg-[#0F2B3C] text-white border-[#0F2B3C] shadow-lg' : 'bg-white text-neutral-500 border-neutral-200 hover:border-[#0F2B3C] hover:text-[#0F2B3C]'}`}>
-              <tab.icon size={16} /> {tab.label}
+            <button key={tab.id} onClick={() => setActiveSubTab(tab.id as any)} className={`flex-1 md:flex-none px-3 md:px-6 py-2.5 md:py-3 text-[9px] md:text-[10px] font-black rounded-xl transition-all flex items-center justify-center gap-1.5 md:gap-2 whitespace-nowrap tracking-widest border-2 ${activeSubTab === tab.id ? 'bg-[#0F2B3C] text-white border-[#0F2B3C] shadow-lg' : 'bg-white text-neutral-500 border-neutral-200 hover:border-[#0F2B3C] hover:text-[#0F2B3C]'}`}>
+              <tab.icon size={14} className="md:hidden" /><tab.icon size={16} className="hidden md:block" /> {tab.label}
             </button>
           ))}
         </div>
@@ -1327,24 +1327,13 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
           >
             {/* Pull-to-refresh indicator */}
             {pullDistance > 0 && (
-              <div
-                className="flex items-center justify-center overflow-hidden transition-all"
-                style={{ height: pullDistance }}
-              >
-                <div className={`flex items-center gap-2 text-blue-600 bg-white/90 backdrop-blur px-4 py-2 rounded-full shadow-lg`}>
-                  <RefreshCw size={16} className={pullDistance >= PULL_THRESHOLD ? 'animate-spin' : ''} />
-                  <span className="text-[10px] font-bold uppercase tracking-wide">
-                    {pullDistance >= PULL_THRESHOLD ? 'Release to refresh' : 'Pull to refresh'}
-                  </span>
-                </div>
+              <div className="flex items-center justify-center overflow-hidden" style={{ height: pullDistance }}>
+                <RefreshCw size={18} className={`text-neutral-400 ${pullDistance >= PULL_THRESHOLD ? 'animate-spin text-blue-600' : ''}`} />
               </div>
             )}
             {isRefreshing && pullDistance === 0 && (
               <div className="flex items-center justify-center py-2">
-                <div className="flex items-center gap-2 text-blue-600 bg-white/90 backdrop-blur px-4 py-2 rounded-full shadow-lg animate-pulse">
-                  <RefreshCw size={16} className="animate-spin" />
-                  <span className="text-[10px] font-bold uppercase tracking-wide">Refreshing...</span>
-                </div>
+                <RefreshCw size={18} className="text-blue-600 animate-spin" />
               </div>
             )}
 
@@ -1683,7 +1672,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                                     <ChevronDown size={14} className={`transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                                   </h3>
                                   <p className="text-[9px] font-bold text-neutral-500 uppercase tracking-widest">
-                                    {leader.totalShifts} shift{leader.totalShifts !== 1 ? 's' : ''}
+                                    {leader.orderCount} order{leader.orderCount !== 1 ? 's' : ''}
                                   </p>
                                 </div>
                               </div>

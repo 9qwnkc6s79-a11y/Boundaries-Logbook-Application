@@ -1,6 +1,7 @@
 /**
  * Vercel Serverless Function: Google Places Reviews API Proxy
- * Fetches reviews for specified store location using Places API (New)
+ * Fetches reviews for specified store location using Places API
+ * Uses legacy Places API to support reviews_sort=newest
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
@@ -32,15 +33,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const url = `https://places.googleapis.com/v1/places/${placeId}`;
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'X-Goog-Api-Key': apiKey,
-        'X-Goog-FieldMask': 'reviews',
-        'Content-Type': 'application/json',
-      },
-    });
+    // Use legacy Places API which supports reviews_sort=newest
+    const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=reviews&reviews_sort=newest&key=${apiKey}`;
+    const response = await fetch(url);
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -53,15 +48,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const data = await response.json();
 
-    const reviews = (data.reviews || []).map((r: any) => ({
-      authorName: r.authorAttribution?.displayName || 'Anonymous',
+    if (data.status !== 'OK' && data.status !== 'ZERO_RESULTS') {
+      console.error(`[Google Reviews] Places API status: ${data.status}`, data.error_message);
+      return res.status(200).json({
+        location,
+        reviews: [],
+        fetchedAt: new Date().toISOString(),
+        configured: true,
+        error: data.error_message || data.status,
+      });
+    }
+
+    const reviews = (data.result?.reviews || []).map((r: any) => ({
+      authorName: r.author_name || 'Anonymous',
       rating: r.rating || 0,
-      text: r.text?.text || r.originalText?.text || '',
-      publishTime: r.publishTime || '',
-      profilePhotoUrl: r.authorAttribution?.photoUri || null,
+      text: r.text || '',
+      publishTime: r.time ? new Date(r.time * 1000).toISOString() : '',
+      profilePhotoUrl: r.profile_photo_url || null,
     }));
 
-    console.log(`[Google Reviews] Fetched ${reviews.length} reviews for ${location}`);
+    console.log(`[Google Reviews] Fetched ${reviews.length} reviews for ${location} (sorted by newest)`);
 
     res.setHeader('Cache-Control', 's-maxage=120');
     return res.status(200).json({
