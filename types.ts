@@ -16,6 +16,7 @@ export interface User {
   active?: boolean;
   toastEmployeeGuid?: string;
   orgId?: string;
+  mustChangePassword?: boolean;
 }
 
 // Employee data returned from Toast sync endpoint (api/toast-employees)

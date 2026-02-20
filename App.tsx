@@ -13,8 +13,74 @@ import Onboarding, { OnboardingData } from './components/Onboarding';
 import { getStarterPack } from './data/starterPacks';
 import { GoogleGenAI } from "@google/genai";
 import { hashPassword, verifyPassword, isHashed } from './utils/passwordUtils';
+import { Lock, ShieldCheck } from 'lucide-react';
 
 const APP_VERSION = '3.6.0';
+
+const ForcePasswordChange: React.FC<{
+  userName: string;
+  onSubmit: (newPassword: string) => Promise<void>;
+  primaryColor: string;
+}> = ({ userName, onSubmit, primaryColor }) => {
+  const [newPass, setNewPass] = useState('');
+  const [confirmPass, setConfirmPass] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    if (newPass.length < 6) { setError('Password must be at least 6 characters.'); return; }
+    if (newPass !== confirmPass) { setError('Passwords do not match.'); return; }
+    setLoading(true);
+    try {
+      await onSubmit(newPass);
+    } catch {
+      setError('Failed to update password. Please try again.');
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center p-6 text-white" style={{ backgroundColor: primaryColor }}>
+      <div className="max-w-md w-full">
+        <div className="text-center mb-8">
+          <div className="inline-flex p-4 rounded-xl bg-white mb-6 shadow-lg">
+            <ShieldCheck size={36} style={{ color: primaryColor }} />
+          </div>
+          <h1 className="text-3xl font-black uppercase tracking-tight mb-2">Password Update Required</h1>
+          <p className="text-blue-200 text-sm font-medium">Welcome, {userName}! Please set a new password to continue.</p>
+        </div>
+        <form onSubmit={handleSubmit} className="bg-white rounded-xl p-6 sm:p-8 shadow-lg text-[#0F2B3C] space-y-5">
+          {error && <div className="bg-red-50 text-red-600 p-3 rounded-lg text-xs font-bold border border-red-100">{error}</div>}
+          <div>
+            <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1 mb-2 block">New Password</label>
+            <div className="relative group">
+              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-300 group-focus-within:text-blue-900 transition-colors" size={18} />
+              <input type="password" required value={newPass} onChange={e => setNewPass(e.target.value)}
+                className="w-full bg-neutral-50 border border-neutral-100 rounded-lg pl-12 pr-4 py-4 focus:bg-white focus:ring-4 focus:ring-blue-900/10 focus:border-blue-900 transition-all outline-none font-medium"
+                placeholder="New password" />
+            </div>
+          </div>
+          <div>
+            <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1 mb-2 block">Confirm Password</label>
+            <div className="relative group">
+              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-300 group-focus-within:text-blue-900 transition-colors" size={18} />
+              <input type="password" required value={confirmPass} onChange={e => setConfirmPass(e.target.value)}
+                className="w-full bg-neutral-50 border border-neutral-100 rounded-lg pl-12 pr-4 py-4 focus:bg-white focus:ring-4 focus:ring-blue-900/10 focus:border-blue-900 transition-all outline-none font-medium"
+                placeholder="Confirm new password" />
+            </div>
+          </div>
+          <button type="submit" disabled={loading}
+            className="w-full text-white font-black py-3.5 rounded-lg active:scale-[0.98] transition-all flex items-center justify-center gap-3 shadow-md disabled:opacity-50"
+            style={{ backgroundColor: primaryColor }}>
+            {loading ? 'Updating...' : 'Set New Password'}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+};
 
 const DEFAULT_ORG_ID = 'org-boundaries';
 const SESSION_STORAGE_KEY = 'boundaries_session_email';
@@ -44,6 +110,7 @@ const App: React.FC = () => {
   const [currentStoreId, setCurrentStoreId] = useState<string>(MOCK_STORES[0].id);
   const [currentOrg, setCurrentOrg] = useState<Organization | null>(null);
   const [onboardingMode, setOnboardingMode] = useState(false);
+  const [forcePasswordChangeUser, setForcePasswordChangeUser] = useState<User | null>(null);
 
   // System States
   const [isSyncing, setIsSyncing] = useState(false);
@@ -208,12 +275,24 @@ const App: React.FC = () => {
   const handleLoginAction = async (email: string, pass: string): Promise<User> => {
     const freshData = await performCloudSync();
     const userList = freshData?.users || allUsers;
-    
+
+    console.log('[Auth] Login attempt for:', email);
+    console.log('[Auth] Total users available:', userList.length);
+    console.log('[Auth] User emails:', userList.map(u => u.email));
+
     const found = userList.find(u => u.email.toLowerCase() === email.toLowerCase().trim());
-    if (!found || !found.password) throw new Error("Invalid credentials or account not found.");
+    if (!found || !found.password) {
+      console.error('[Auth] User not found or no password.', { found: !!found, hasPassword: !!found?.password });
+      throw new Error("Invalid credentials or account not found.");
+    }
+
+    console.log('[Auth] Found user:', found.email, '| Password is hashed:', isHashed(found.password), '| Password preview:', found.password.substring(0, 15) + '...');
 
     const passwordMatch = await verifyPassword(pass, found.password);
-    if (!passwordMatch) throw new Error("Invalid credentials or account not found.");
+    if (!passwordMatch) {
+      console.error('[Auth] Password verification failed. Stored password hashed:', isHashed(found.password));
+      throw new Error("Invalid credentials or account not found.");
+    }
 
     // Check if account has been deactivated by an admin
     if (found.active === false) {
@@ -262,11 +341,17 @@ const App: React.FC = () => {
       }
     }
 
+    // If user must change password, intercept login and show password change screen
+    if (migratedUser.mustChangePassword) {
+      setForcePasswordChangeUser(migratedUser);
+      return migratedUser;
+    }
+
     // Persist session to localStorage
     localStorage.setItem(SESSION_STORAGE_KEY, found.email);
 
-    setCurrentUser(found);
-    return found;
+    setCurrentUser(migratedUser);
+    return migratedUser;
   };
 
   const handleSignupAction = async (user: User) => {
@@ -296,6 +381,19 @@ const App: React.FC = () => {
     const updated = { ...user, password: hashed };
     await db.syncUser(updated);
     await performCloudSync(true);
+  };
+
+  const handleForcePasswordChange = async (newPassword: string) => {
+    if (!forcePasswordChangeUser) return;
+    const hashed = await hashPassword(newPassword);
+    const updated = { ...forcePasswordChangeUser, password: hashed, mustChangePassword: false };
+    await db.syncUser(updated);
+    await performCloudSync(true);
+
+    // Complete login
+    localStorage.setItem(SESSION_STORAGE_KEY, updated.email);
+    setCurrentUser(updated);
+    setForcePasswordChangeUser(null);
   };
 
   const handleOnboardingComplete = async (data: OnboardingData) => {
@@ -662,6 +760,16 @@ const App: React.FC = () => {
         <h2 className="text-3xl font-black uppercase tracking-tighter mb-2">Connecting to Store Cloud</h2>
         <p className="text-blue-300 font-bold uppercase tracking-widest text-[10px]">Authorizing Team Context...</p>
       </div>
+    );
+  }
+
+  if (forcePasswordChangeUser) {
+    return (
+      <ForcePasswordChange
+        userName={forcePasswordChangeUser.name}
+        onSubmit={handleForcePasswordChange}
+        primaryColor={currentOrg?.primaryColor || '#0F2B3C'}
+      />
     );
   }
 

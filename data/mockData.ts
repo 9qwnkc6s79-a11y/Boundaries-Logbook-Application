@@ -6,10 +6,14 @@ export const MOCK_STORES: Store[] = [
   { id: 'store-prosper', name: 'Boundaries Prosper' }
 ];
 
+// Default seed users — passwords are intentionally omitted.
+// These serve only as in-memory fallbacks so the app has a user list
+// on first load. Real passwords live in Firestore (hashed).
+// Users must use the signup or password-reset flow to set credentials.
 export const MOCK_USERS: User[] = [
-  { id: 'u-admin-1', name: 'Daniel', email: 'Daniel@boundariescoffee.com', password: 'Baseball5', role: UserRole.ADMIN, storeId: 'store-elm' },
-  { id: 'u-admin-2', name: 'Kate', email: 'Kate@BoundariesCoffee.com', password: 'Boundaries1234', role: UserRole.ADMIN, storeId: 'store-prosper' },
-  { id: 'u-1', name: 'Alex Trainee', email: 'trainee@coffee.com', password: 'password', role: UserRole.TRAINEE, storeId: 'store-elm' },
+  { id: 'u-admin-1', name: 'Daniel', email: 'Daniel@boundariescoffee.com', role: UserRole.ADMIN, storeId: 'store-elm' },
+  { id: 'u-admin-2', name: 'Kate', email: 'Kate@BoundariesCoffee.com', role: UserRole.ADMIN, storeId: 'store-prosper' },
+  { id: 'u-itzel-1', name: 'Itzel Garcia', email: 'itzelgarcia120101@gmail.com', role: UserRole.TRAINEE, storeId: 'store-elm', mustChangePassword: true },
 ];
 
 export const BOUNDARIES_MANUAL: ManualSection[] = [

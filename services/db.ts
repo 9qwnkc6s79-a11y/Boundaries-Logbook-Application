@@ -1,6 +1,7 @@
 
 // No imports needed - Firebase is loaded globally via CDN script tags in index.html
 import { User, UserProgress, ChecklistSubmission, ChecklistTemplate, TrainingModule, ManualSection, Recipe, CashDeposit, GoogleReviewsData, Organization, Store, AttributedOrder, ArchivedLeaderboard } from '../types';
+import { isHashed } from '../utils/passwordUtils';
 
 declare const firebase: any;
 
@@ -352,45 +353,67 @@ class CloudAPI {
 
   async fetchUsers(defaults: User[]): Promise<User[]> {
     console.log('[Firestore] fetchUsers: Loading users...');
-    console.log('[Firestore] fetchUsers: Default users:', defaults.length);
     const persistedUsers = await this.remoteGet(DOC_KEYS.USERS, [] as User[]);
     console.log('[Firestore] fetchUsers: Persisted users from cloud:', persistedUsers.length);
 
-    // Build a map of default users by email for easy lookup
-    const defaultsMap = new Map<string, User>();
-    defaults.forEach(def => defaultsMap.set(def.email.toLowerCase(), def));
-
-    // Merge: start with all persisted users
+    // Cloud users are the source of truth — start with them.
     const userMap = new Map<string, User>();
     persistedUsers.forEach(u => userMap.set(u.email.toLowerCase(), u));
 
-    // Add any missing default users and detect if we need to update
-    let needsUpdate = false;
+    // Add any missing default users IN MEMORY ONLY — never write defaults back
+    // to Firestore. Writing defaults back can destroy hashed passwords and
+    // non-default users when a transient read failure returns an empty list.
+    // Default users get persisted properly when they first log in (via syncUser).
+    //
+    // IMPORTANT: If a cloud user already exists for a given email, the cloud
+    // version is ALWAYS preferred. A default must never overwrite cloud data
+    // (especially passwords).
     defaults.forEach(def => {
       const email = def.email.toLowerCase();
       if (!userMap.has(email)) {
-        console.log('[Firestore] fetchUsers: Adding missing default user:', def.email);
+        console.log('[Firestore] fetchUsers: Adding missing default user (in-memory only):', def.email);
         userMap.set(email, def);
-        needsUpdate = true;
       }
     });
 
     const result = Array.from(userMap.values());
-
-    // Save back to database if we added any missing defaults
-    if (needsUpdate) {
-      console.log('[Firestore] fetchUsers: Saving updated user list to database');
-      await this.remoteSet(DOC_KEYS.USERS, result);
-    }
-
-    console.log('[Firestore] fetchUsers: Final merged users:', result.length, result.map(u => u.email));
+    console.log('[Firestore] fetchUsers: Final merged users:', result.length);
     return result;
   }
 
   async syncUser(user: User): Promise<User[]> {
-    const currentUsers = await this.remoteGet(DOC_KEYS.USERS, [] as User[]);
+    let currentUsers = await this.remoteGet(DOC_KEYS.USERS, [] as User[]);
+
+    // Safety: if read returned empty, retry once. A transient read failure
+    // returning [] would cause us to write ONLY this user, destroying everyone else.
+    if (currentUsers.length === 0) {
+      console.warn('[Firestore] syncUser: First read returned 0 users, retrying...');
+      await new Promise(r => setTimeout(r, 500));
+      currentUsers = await this.remoteGet(DOC_KEYS.USERS, [] as User[]);
+      if (currentUsers.length === 0) {
+        console.warn('[Firestore] syncUser: Retry also returned 0 users — proceeding (may be fresh deployment)');
+      } else {
+        console.log(`[Firestore] syncUser: Retry succeeded, got ${currentUsers.length} users`);
+      }
+    }
+
     const userMap = new Map<string, User>();
     currentUsers.forEach(u => userMap.set(u.email.toLowerCase(), u));
+
+    // Guard: never downgrade a hashed password to plaintext.
+    // If the cloud user already has a hashed password and the incoming user
+    // has a plaintext (or missing) password, preserve the cloud password.
+    const existing = userMap.get(user.email.toLowerCase());
+    if (existing?.password && isHashed(existing.password)) {
+      if (user.password && !isHashed(user.password)) {
+        console.warn(`[Firestore] syncUser: BLOCKED plaintext password overwrite for ${user.email} — keeping hashed version`);
+        user = { ...user, password: existing.password };
+      } else if (!user.password) {
+        console.warn(`[Firestore] syncUser: Incoming user has no password for ${user.email} — keeping hashed version`);
+        user = { ...user, password: existing.password };
+      }
+    }
+
     userMap.set(user.email.toLowerCase(), user);
     const next = Array.from(userMap.values());
     await this.remoteSet(DOC_KEYS.USERS, next);
