@@ -1,5 +1,6 @@
 
 import { TrainingModule, ChecklistTemplate, UserRole, User, Store, Recipe, ManualSection } from '../types';
+import { NEW_TRAINING_MODULES } from './newModules';
 
 export const MOCK_STORES: Store[] = [
   { id: 'store-elm', name: 'Boundaries Little Elm' },
@@ -2136,7 +2137,8 @@ Once the trainee has completed all tasks and demonstrated proficiency, the train
         ]
       }
     ]
-  }
+  },
+  ...NEW_TRAINING_MODULES,
 ];
 
 const baseTemplates = [

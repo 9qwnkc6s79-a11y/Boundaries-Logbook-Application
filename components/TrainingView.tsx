@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { TrainingModule, Lesson, UserProgress, QuizQuestion, ChecklistItem, PracticeSubmission } from '../types';
+import { TrainingModule, Lesson, UserProgress, User, QuizQuestion, ChecklistItem, PracticeSubmission } from '../types';
 import { CheckCircle2, Clock, ChevronRight, Play, BookOpen, PenTool, ClipboardCheck, ArrowLeft, RefreshCw, XCircle, Video, Settings, Plus, Save, Trash2, Edit3, X, Zap, Target, Eye, EyeOff, Trash, Check, Square, CheckSquare, Circle, Dot, Upload, FileText, File as FileIcon, GripVertical, AlertTriangle, Camera, Loader2, Search, Filter, Award, Users as UsersIcon, TrendingUp, Star, MessageSquare, Image as ImageIcon, Pause, PlayCircle, History, Medal, Trophy, Activity, CloudOff, RotateCcw, Store } from 'lucide-react';
 import { db } from '../services/db';
 
@@ -11,9 +11,11 @@ interface TrainingViewProps {
   canEdit?: boolean;
   onUpdateCurriculum?: (curriculum: TrainingModule[]) => void;
   onResetLessonProgress?: (lessonId: string) => void;
+  teamProgress?: UserProgress[];
+  users?: User[];
 }
 
-const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCompleteLesson, canEdit, onUpdateCurriculum, onResetLessonProgress }) => {
+const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCompleteLesson, canEdit, onUpdateCurriculum, onResetLessonProgress, teamProgress, users }) => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
   const [timerActive, setTimerActive] = useState(false);
@@ -308,7 +310,7 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
     onUpdateCurriculum(nextCurriculum);
   };
 
-  const handleAddModule = (category: 'ONBOARDING' | 'CONTINUED') => {
+  const handleAddModule = (category: 'ONBOARDING' | 'CONTINUED' | 'BARISTA_SKILLS') => {
     if (!onUpdateCurriculum) return;
     const newModule: TrainingModule = {
       id: `m-${Date.now()}`,
@@ -565,7 +567,7 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
               </div>
             )}
 
-            <div className="prose prose-neutral max-w-none mb-8 sm:mb-12 text-neutral-600 leading-relaxed text-sm sm:text-lg font-medium whitespace-pre-wrap">
+            <div className="prose prose-neutral max-w-none mb-8 sm:mb-12 text-neutral-600 leading-relaxed text-sm sm:text-lg font-medium">
               {isEditMode ? (
                 <textarea
                   rows={6}
@@ -574,7 +576,11 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
                   className="w-full bg-neutral-50 p-4 rounded-xl border border-neutral-100 outline-none"
                   placeholder="Lesson text content..."
                 />
-              ) : selectedLesson.content}
+              ) : (selectedLesson.content?.includes('<') ? (
+                <div className="training-content" dangerouslySetInnerHTML={{ __html: selectedLesson.content }} />
+              ) : (
+                <div className="whitespace-pre-wrap">{selectedLesson.content}</div>
+              ))}
             </div>
 
             {/* Checklist UI for PRACTICE lessons with checklistItems */}
@@ -1629,17 +1635,33 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
                 <h4 className="text-xs font-black text-[#0F2B3C] uppercase tracking-widest">Top Learners</h4>
               </div>
               <div className="space-y-3">
-                {[1, 2, 3].map((rank) => (
-                  <div key={rank} className="flex items-center gap-3">
-                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black ${rank === 1 ? 'bg-amber-100 text-amber-600' : rank === 2 ? 'bg-neutral-100 text-neutral-600' : 'bg-orange-100 text-orange-600'}`}>
-                      {rank}
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-xs font-bold text-[#0F2B3C]">Team Member</p>
-                      <p className="text-[9px] text-neutral-500 font-medium">{Math.floor(Math.random() * 30 + 10)} lessons</p>
-                    </div>
-                  </div>
-                ))}
+                {(() => {
+                  const completedByUser = new Map<string, number>();
+                  (teamProgress || []).filter(p => p.status === 'COMPLETED').forEach(p => {
+                    completedByUser.set(p.userId, (completedByUser.get(p.userId) || 0) + 1);
+                  });
+                  const ranked = Array.from(completedByUser.entries())
+                    .sort((a, b) => b[1] - a[1])
+                    .slice(0, 3);
+                  if (ranked.length === 0) return <p className="text-xs text-neutral-400 font-medium">No completions yet</p>;
+                  return ranked.map(([userId, count], idx) => {
+                    const user = (users || []).find(u => u.id === userId);
+                    const name = user?.name || 'Unknown';
+                    const initials = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+                    const rank = idx + 1;
+                    return (
+                      <div key={userId} className="flex items-center gap-3">
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black ${rank === 1 ? 'bg-amber-100 text-amber-600' : rank === 2 ? 'bg-neutral-100 text-neutral-600' : 'bg-orange-100 text-orange-600'}`}>
+                          {rank}
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-xs font-bold text-[#0F2B3C]">{name}</p>
+                          <p className="text-[9px] text-neutral-500 font-medium">{count} lesson{count !== 1 ? 's' : ''}</p>
+                        </div>
+                      </div>
+                    );
+                  });
+                })()}
               </div>
             </div>
 
@@ -1650,20 +1672,42 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
                 <h4 className="text-xs font-black text-[#0F2B3C] uppercase tracking-widest">Recently Completed</h4>
               </div>
               <div className="space-y-2">
-                {allLessons.slice(0, 5).map((lesson, idx) => (
-                  <div key={idx} className="flex items-center justify-between py-2 border-b border-neutral-50 last:border-0">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-[#0F2B3C] text-white rounded-lg flex items-center justify-center text-[10px] font-black">
-                        TM
+                {(() => {
+                  const recentCompletions = (teamProgress || [])
+                    .filter(p => p.status === 'COMPLETED' && p.completedAt)
+                    .sort((a, b) => (b.completedAt || '').localeCompare(a.completedAt || ''))
+                    .slice(0, 5);
+                  if (recentCompletions.length === 0) return <p className="text-xs text-neutral-400 font-medium">No recent activity</p>;
+                  return recentCompletions.map((p, idx) => {
+                    const user = (users || []).find(u => u.id === p.userId);
+                    const name = user?.name || 'Unknown';
+                    const initials = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+                    const lesson = allLessons.find(l => l.id === p.lessonId);
+                    const timeAgo = p.completedAt ? (() => {
+                      const diff = Date.now() - new Date(p.completedAt!).getTime();
+                      const mins = Math.floor(diff / 60000);
+                      if (mins < 60) return `${mins}m ago`;
+                      const hrs = Math.floor(mins / 60);
+                      if (hrs < 24) return `${hrs}h ago`;
+                      const days = Math.floor(hrs / 24);
+                      return `${days}d ago`;
+                    })() : '';
+                    return (
+                      <div key={idx} className="flex items-center justify-between py-2 border-b border-neutral-50 last:border-0">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 bg-[#0F2B3C] text-white rounded-lg flex items-center justify-center text-[10px] font-black">
+                            {initials}
+                          </div>
+                          <div>
+                            <p className="text-xs font-bold text-[#0F2B3C]">{lesson?.title || p.lessonId}</p>
+                            <p className="text-[9px] text-neutral-500 font-medium">{name} • {timeAgo}</p>
+                          </div>
+                        </div>
+                        <CheckCircle2 size={14} className="text-green-500" />
                       </div>
-                      <div>
-                        <p className="text-xs font-bold text-[#0F2B3C]">{lesson.title}</p>
-                        <p className="text-[9px] text-neutral-500 font-medium">Team Member • {Math.floor(Math.random() * 24)} hours ago</p>
-                      </div>
-                    </div>
-                    <CheckCircle2 size={14} className="text-green-500" />
-                  </div>
-                ))}
+                    );
+                  });
+                })()}
               </div>
             </div>
           </div>

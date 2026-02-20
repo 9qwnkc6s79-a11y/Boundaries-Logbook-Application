@@ -855,6 +855,8 @@ const App: React.FC = () => {
               performCloudSync(true);
               console.log(`[App] Progress reset complete - lesson should now show interactive elements`);
             }}
+            teamProgress={storeProgress}
+            users={storeUsers}
           />
         )}
         {activeTab === 'recipes' && (

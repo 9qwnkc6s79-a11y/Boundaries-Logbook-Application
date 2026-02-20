@@ -28,6 +28,79 @@ body {
   padding-bottom: max(8px, env(safe-area-inset-bottom, 8px));
 }
 
+/* Training content HTML styling */
+.training-content h2 {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #0F2B3C;
+  text-transform: uppercase;
+  letter-spacing: -0.02em;
+  margin: 0 0 0.75rem 0;
+}
+
+.training-content h3 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #0F2B3C;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  margin: 1.5rem 0 0.5rem 0;
+}
+
+.training-content p {
+  margin: 0.5rem 0;
+  line-height: 1.6;
+}
+
+.training-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.75rem 0;
+  font-size: 0.875rem;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  border: 1px solid #e5e5e5;
+}
+
+.training-content thead th {
+  background: #0F2B3C;
+  color: white;
+  font-weight: 700;
+  text-align: left;
+  padding: 0.625rem 0.75rem;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.training-content tbody td {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.training-content tbody tr:nth-child(even) {
+  background: #f9fafb;
+}
+
+.training-content tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.training-content ul, .training-content ol {
+  margin: 0.5rem 0;
+  padding-left: 1.25rem;
+}
+
+.training-content li {
+  margin: 0.35rem 0;
+  line-height: 1.5;
+}
+
+.training-content strong {
+  font-weight: 700;
+  color: #0F2B3C;
+}
+
 /* iOS-specific touch improvements */
 @supports (-webkit-touch-callout: none) {
   button, a {
