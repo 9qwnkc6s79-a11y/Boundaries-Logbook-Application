@@ -484,7 +484,23 @@ const App: React.FC = () => {
   const auditPhotoWithAI = async (photoUrl: string, taskTitle: string): Promise<{ flagged: boolean; reason: string }> => {
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      const base64Data = photoUrl.split(',')[1];
+
+      // Convert photo to base64 — handle both data URLs and HTTPS URLs
+      let base64Data: string;
+      if (photoUrl.startsWith('data:')) {
+        base64Data = photoUrl.split(',')[1];
+      } else {
+        // Fetch the image from Firebase Storage URL and convert to base64
+        console.log(`[AI Audit] Fetching image from URL: ${photoUrl.substring(0, 80)}...`);
+        const imgResponse = await fetch(photoUrl);
+        const blob = await imgResponse.blob();
+        const arrayBuffer = await blob.arrayBuffer();
+        const bytes = new Uint8Array(arrayBuffer);
+        let binary = '';
+        bytes.forEach(b => binary += String.fromCharCode(b));
+        base64Data = btoa(binary);
+      }
+
       const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash-image',
         contents: {
@@ -530,12 +546,20 @@ const App: React.FC = () => {
     if (data.isFinal) {
       const template = templates.find(t => t.id === data.templateId);
       const auditPromises = taskResults.map(async (res) => {
-        if (res.photoUrl && !res.aiFlagged) {
+        const photos = res.photoUrls || (res.photoUrl ? [res.photoUrl] : []);
+        if (photos.length > 0 && !res.aiFlagged) {
           const task = template?.tasks.find(t => t.id === res.taskId);
-          console.log(`[AI Audit] Auditing photo for task: ${task?.title}`);
-          const audit = await auditPhotoWithAI(res.photoUrl, task?.title || 'Unknown Task');
-          console.log(`[AI Audit] Result: flagged=${audit.flagged}, reason="${audit.reason}"`);
-          return { ...res, aiFlagged: audit.flagged, aiReason: audit.reason };
+          // Audit each photo, flag the task if ANY photo is flagged
+          for (const url of photos) {
+            if (!url) continue;
+            console.log(`[AI Audit] Auditing photo for task: ${task?.title}`);
+            const audit = await auditPhotoWithAI(url, task?.title || 'Unknown Task');
+            console.log(`[AI Audit] Result: flagged=${audit.flagged}, reason="${audit.reason}"`);
+            if (audit.flagged) {
+              return { ...res, aiFlagged: true, aiReason: audit.reason };
+            }
+          }
+          return { ...res, aiFlagged: false, aiReason: '' };
         }
         return res;
       });

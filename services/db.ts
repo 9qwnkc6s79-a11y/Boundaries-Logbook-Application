@@ -463,14 +463,28 @@ class CloudAPI {
 
   /**
    * Strip inline base64 photo data from a submission to reduce document size.
-   * Replaces data:image/* URLs with a placeholder since the photo was lost anyway.
+   * Preserves base64 if it's the only copy (no Firebase Storage URL available).
    */
-  private stripBase64Photos(submission: ChecklistSubmission): ChecklistSubmission {
+  private stripBase64Photos(submission: ChecklistSubmission, preserveCurrent = false): ChecklistSubmission {
     const isBase64 = (url?: string) => url?.startsWith('data:image/');
     const hadBase64 = submission.taskResults.some(
       r => isBase64(r.photoUrl) || r.photoUrls?.some(isBase64)
     );
     if (!hadBase64) return submission;
+
+    // If preserving current submission, keep base64 photos that have no HTTPS backup
+    if (preserveCurrent) {
+      console.log(`[DB] stripBase64Photos: Preserving base64 photos for current submission ${submission.id}`);
+      return submission;
+    }
+
+    const strippedCount = submission.taskResults.reduce((count, r) => {
+      const base64InUrls = r.photoUrls?.filter(isBase64).length || 0;
+      return count + (isBase64(r.photoUrl) ? 1 : 0) + base64InUrls;
+    }, 0);
+    if (strippedCount > 0) {
+      console.log(`[DB] stripBase64Photos: Stripping ${strippedCount} base64 photo(s) from old submission ${submission.id}`);
+    }
 
     return {
       ...submission,
@@ -486,7 +500,7 @@ class CloudAPI {
    * Prune old submissions to keep the document under Firestore's 1MB limit.
    * Returns the pruned array sorted newest-first.
    */
-  private pruneSubmissions(submissions: ChecklistSubmission[], maxSizeBytes = 900000): ChecklistSubmission[] {
+  private pruneSubmissions(submissions: ChecklistSubmission[], maxSizeBytes = 900000, currentSubmissionId?: string): ChecklistSubmission[] {
     // Sort newest first by date then submittedAt
     let pruned = [...submissions].sort((a, b) => {
       const dateCompare = b.date.localeCompare(a.date);
@@ -494,8 +508,8 @@ class CloudAPI {
       return (b.submittedAt || '').localeCompare(a.submittedAt || '');
     });
 
-    // Step 1: Strip base64 photos from ALL submissions
-    pruned = pruned.map(s => this.stripBase64Photos(s));
+    // Step 1: Strip base64 photos from older submissions, preserve current
+    pruned = pruned.map(s => this.stripBase64Photos(s, s.id === currentSubmissionId));
 
     // Step 2: Remove submissions older than 90 days
     const cutoff90 = new Date();
@@ -554,7 +568,7 @@ class CloudAPI {
       submission.taskResults.forEach(newRes => {
         const idx = mergedResults.findIndex(r => r.taskId === newRes.taskId);
         if (idx === -1) mergedResults.push(newRes);
-        else if (newRes.completed || newRes.value || newRes.photoUrl || newRes.comment) mergedResults[idx] = newRes;
+        else if (newRes.completed || newRes.value || newRes.photoUrl || (newRes.photoUrls && newRes.photoUrls.length > 0) || newRes.comment) mergedResults[idx] = newRes;
       });
       next = all.map((s, i) => i === existingIdx ? {
         ...submission,
@@ -567,13 +581,17 @@ class CloudAPI {
     }
 
     // Prune old submissions and strip base64 data to stay under Firestore's 1MB limit
-    next = this.pruneSubmissions(next);
+    // Preserve base64 photos in the current submission (they may be the only copy if Storage upload failed)
+    next = this.pruneSubmissions(next, 900000, submission.id);
 
-    const jsonSize = JSON.stringify(next).length;
+    let jsonSize = JSON.stringify(next).length;
     console.log(`[DB] pushSubmission: Document size after pruning: ${Math.round(jsonSize / 1024)}KB (${next.length} submissions)`);
 
+    // Safety valve: if still over limit after preserving current, strip current too
     if (jsonSize > 900000) {
-      console.warn(`[DB] pushSubmission: Document size is large (${Math.round(jsonSize / 1024)}KB) after pruning`);
+      console.warn(`[DB] pushSubmission: Document still ${Math.round(jsonSize / 1024)}KB — stripping base64 from current submission too`);
+      next = next.map(s => this.stripBase64Photos(s, false));
+      jsonSize = JSON.stringify(next).length;
     }
 
     console.log(`[DB] pushSubmission: Saving ${next.length} total submissions`);
