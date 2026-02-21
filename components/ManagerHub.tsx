@@ -950,18 +950,87 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
   // Google Reviews polling — load on mount, then poll every 3 minutes
   useEffect(() => {
     db.fetchGoogleReviews().then(async (data) => {
-      // One-time migration: fix reviews that were stored with swapped storeIds
-      // (API had env var names swapped — littleelm Place ID was in PROSPER var and vice versa)
-      const needsSwap = data.trackedReviews.some((r: TrackedGoogleReview) => r.storeId);
-      const alreadyMigrated = (data as any)._reviewStoreIdFixed;
-      if (needsSwap && !alreadyMigrated) {
-        console.log('[Reviews] Migrating: swapping storeIds on existing tracked reviews');
+      // One-time migration v2: fix reviews stored with swapped storeIds AND re-attribute
+      // (API had env var names swapped — reviews were fetched for wrong store, attributed to wrong staff)
+      const alreadyMigrated = (data as any)._reviewStoreIdFixedV2;
+      if (data.trackedReviews.length > 0 && !alreadyMigrated) {
+        console.log('[Reviews] Migration v2: swapping storeIds + location + clearing attribution for re-processing');
         data.trackedReviews.forEach((r: TrackedGoogleReview) => {
+          // Swap storeId
           if (r.storeId === 'store-elm') r.storeId = 'store-prosper';
           else if (r.storeId === 'store-prosper') r.storeId = 'store-elm';
+          // Swap location
+          if (r.location === 'littleelm') r.location = 'prosper';
+          else if (r.location === 'prosper') r.location = 'littleelm';
+          // Clear attribution (was based on wrong store's labor data)
+          r.attributedToUserId = null;
+          r.attributedToName = null;
+          r.bonusAwarded = false;
+          r.bonusPoints = 0;
+          r.mentionedEmployeeIds = undefined;
+          r.mentionedEmployeeNames = undefined;
+          r.mentionBonusPoints = undefined;
         });
-        (data as any)._reviewStoreIdFixed = true;
+        (data as any)._reviewStoreIdFixedV2 = true;
+
+        // Re-attribute each review using the correct store's labor data
+        for (const review of data.trackedReviews) {
+          if (!review.publishTime) continue;
+          try {
+            const reviewDate = new Date(review.publishTime);
+            const daysSinceReview = (Date.now() - reviewDate.getTime()) / (1000 * 60 * 60 * 24);
+            if (isNaN(reviewDate.getTime()) || daysSinceReview > 30) continue;
+
+            const dateStr = getLocalStr(reviewDate);
+            const laborResponse = await fetch(`/api/toast-labor?location=${review.location}&startDate=${dateStr}&endDate=${dateStr}`);
+            if (!laborResponse.ok) continue;
+
+            const laborData = await laborResponse.json();
+            const timeEntries: ToastTimeEntry[] = laborData.timeEntries || [];
+            const reviewTime = reviewDate.getTime();
+            const clockedInAtReview = timeEntries.filter((entry: ToastTimeEntry) => {
+              if (!entry.inDate) return false;
+              const inMs = new Date(entry.inDate).getTime();
+              const outMs = entry.outDate ? new Date(entry.outDate).getTime() : Date.now();
+              return inMs <= reviewTime && reviewTime <= outMs;
+            });
+
+            const leaders = detectLeaders(clockedInAtReview, allUsers);
+            if (leaders.length > 0) {
+              review.attributedToUserId = leaders[0].userId;
+              review.attributedToName = leaders[0].name;
+              const isFiveStar = review.rating === 5;
+              review.bonusAwarded = isFiveStar;
+              review.bonusPoints = isFiveStar ? 25 : 0;
+              console.log(`[Reviews] Re-attributed "${review.authorName}" → ${leaders[0].name} (${review.location})`);
+            }
+
+            // Re-detect employee mentions
+            if (review.text) {
+              const mentionedIds: string[] = [];
+              const mentionedNames: string[] = [];
+              const textLower = review.text.toLowerCase();
+              allUsers.forEach(user => {
+                if (!user.name || user.name === 'Unknown') return;
+                const firstName = user.name.split(' ')[0].toLowerCase();
+                if (firstName.length >= 3 && textLower.includes(firstName) && !mentionedIds.includes(user.id)) {
+                  mentionedIds.push(user.id);
+                  mentionedNames.push(user.name);
+                }
+              });
+              if (mentionedIds.length > 0) {
+                review.mentionedEmployeeIds = mentionedIds;
+                review.mentionedEmployeeNames = mentionedNames;
+                review.mentionBonusPoints = mentionedIds.length * 20;
+              }
+            }
+          } catch (err) {
+            console.warn(`[Reviews] Re-attribution failed for review:`, err);
+          }
+        }
+
         await db.pushGoogleReviews(data);
+        console.log('[Reviews] Migration v2 complete');
       }
       setGoogleReviewsData(data);
     });
