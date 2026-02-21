@@ -9,9 +9,14 @@ import { ToastTimeEntry, User, ShiftOwnership, ChecklistTemplate, ChecklistSubmi
 // NOTE: Generic "manager" is NOT included - only specific leadership roles
 const LEADERSHIP_HIERARCHY: Record<string, number> = {
   'gm (on bar)': 1,
+  'gm on bar': 1,
   'gm': 1,
   'general manager': 1,
+  'general manager (on bar)': 1,
+  'general manager on bar': 1,
   'store manager': 1,
+  'manager on bar': 1,
+  'mob': 1,
   'team leader': 2,
   'team lead': 2,
   'shift lead': 2,
@@ -23,9 +28,14 @@ const LEADERSHIP_HIERARCHY: Record<string, number> = {
 // Canonical display names for exact-matched roles
 const LEADERSHIP_DISPLAY_NAMES: Record<string, string> = {
   'gm (on bar)': 'GM (on bar)',
+  'gm on bar': 'GM (on bar)',
   'gm': 'GM',
   'general manager': 'General Manager',
+  'general manager (on bar)': 'GM (on bar)',
+  'general manager on bar': 'GM (on bar)',
   'store manager': 'Store Manager',
+  'manager on bar': 'Manager on Bar',
+  'mob': 'Manager on Bar',
   'team leader': 'Team Leader',
   'team lead': 'Team Lead',
   'shift lead': 'Shift Lead',
@@ -41,6 +51,8 @@ const LEADERSHIP_PATTERNS: { pattern: RegExp; priority: number; displayName: str
   { pattern: /\bgm\b/i, priority: 1, displayName: 'GM' },
   { pattern: /\bgeneral\s*manager\b/i, priority: 1, displayName: 'General Manager' },
   { pattern: /\bstore\s*manager\b/i, priority: 1, displayName: 'Store Manager' },
+  { pattern: /\bmanager\s*on\s*bar\b/i, priority: 1, displayName: 'Manager on Bar' },
+  { pattern: /\bmob\b/i, priority: 1, displayName: 'Manager on Bar' },
   { pattern: /\b(team|shift)\s*(leader|lead)\b/i, priority: 2, displayName: 'Team Leader' },
   { pattern: /\bshift\s*manager\b/i, priority: 2, displayName: 'Shift Manager' },
   { pattern: /\bsupervisor\b/i, priority: 2, displayName: 'Supervisor' },
@@ -488,7 +500,7 @@ export function calculateLeaderboard(
     }
 
     // Get orders attributed to this leader
-    // Match by: user ID, Toast GUID stored on leader, or Toast GUID in order
+    // Match by: user ID, Toast GUID, or leader name (fallback)
     const leaderOrders = recentOrders.filter(o => {
       // Direct ID match
       if (idsMatch(o.shiftLeaderId, leader.id)) return true;
@@ -498,6 +510,20 @@ export function calculateLeaderboard(
       if (leader.toastGuid && o.shiftLeaderToastGuid === leader.toastGuid) return true;
       // Match if order's shiftLeaderId contains leader's toastGuid
       if (leader.toastGuid && o.shiftLeaderId?.includes(leader.toastGuid)) return true;
+      // Match order's Toast GUID with leader's user record toastEmployeeGuid
+      const leaderUser = allUsers.find(u => u.id === leader.id);
+      if (leaderUser?.toastEmployeeGuid && o.shiftLeaderToastGuid === leaderUser.toastEmployeeGuid) return true;
+      if (leaderUser?.toastEmployeeGuid && o.shiftLeaderId?.includes(leaderUser.toastEmployeeGuid)) return true;
+      // Name-based fallback (handles ID format mismatches between attribution and leaderboard)
+      if (o.shiftLeaderName && leader.name) {
+        const orderName = o.shiftLeaderName.toLowerCase().trim();
+        const leaderName = leader.name.toLowerCase().trim();
+        if (orderName === leaderName) return true;
+        // First name match (e.g. "Kate M" matches "Kate")
+        const orderFirst = orderName.split(' ')[0];
+        const leaderFirst = leaderName.split(' ')[0];
+        if (orderFirst === leaderFirst && orderFirst.length > 2) return true;
+      }
       return false;
     });
     const hasOrderData = leaderOrders.length > 0;

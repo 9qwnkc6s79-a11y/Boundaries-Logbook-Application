@@ -949,7 +949,22 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
 
   // Google Reviews polling — load on mount, then poll every 3 minutes
   useEffect(() => {
-    db.fetchGoogleReviews().then(data => setGoogleReviewsData(data));
+    db.fetchGoogleReviews().then(async (data) => {
+      // One-time migration: fix reviews that were stored with swapped storeIds
+      // (API had env var names swapped — littleelm Place ID was in PROSPER var and vice versa)
+      const needsSwap = data.trackedReviews.some((r: TrackedGoogleReview) => r.storeId);
+      const alreadyMigrated = (data as any)._reviewStoreIdFixed;
+      if (needsSwap && !alreadyMigrated) {
+        console.log('[Reviews] Migrating: swapping storeIds on existing tracked reviews');
+        data.trackedReviews.forEach((r: TrackedGoogleReview) => {
+          if (r.storeId === 'store-elm') r.storeId = 'store-prosper';
+          else if (r.storeId === 'store-prosper') r.storeId = 'store-elm';
+        });
+        (data as any)._reviewStoreIdFixed = true;
+        await db.pushGoogleReviews(data);
+      }
+      setGoogleReviewsData(data);
+    });
 
     const timeout = setTimeout(() => {
       processGoogleReviews();
@@ -1162,7 +1177,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
     <div className="space-y-6 sm:space-y-6 pb-20">
       {fullscreenPhoto && (
         <div
-          className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-xl flex flex-col items-center justify-center p-6 sm:p-12 animate-in fade-in duration-300"
+          className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-xl flex flex-col items-center overflow-y-auto p-4 sm:p-12 animate-in fade-in duration-300"
           onClick={(e) => {
             if (e.target === e.currentTarget) {
               setFullscreenPhoto(null);
@@ -1171,17 +1186,17 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
           }}
         >
           <button
-            className="absolute top-8 right-8 text-white p-3 hover:bg-white/10 rounded-full"
+            className="absolute top-4 right-4 sm:top-8 sm:right-8 z-10 text-white p-3 hover:bg-white/10 rounded-full"
             onClick={() => {
               setFullscreenPhoto(null);
               setPhotoComment('');
             }}
           >
-            <X size={32} />
+            <X size={28} />
           </button>
-          <div className="max-w-5xl w-full flex flex-col items-center">
-            <div className="bg-white/10 p-2 rounded-xl shadow-lg mb-6 relative">
-              <img src={fullscreenPhoto.url} className="max-h-[60vh] rounded-xl object-contain" alt="Verification" />
+          <div className="max-w-5xl w-full flex flex-col items-center pt-12 sm:pt-0 sm:my-auto">
+            <div className="bg-white/10 p-2 rounded-xl shadow-lg mb-4 sm:mb-6 relative">
+              <img src={fullscreenPhoto.url} className="max-h-[40vh] sm:max-h-[60vh] rounded-xl object-contain" alt="Verification" />
               {fullscreenPhoto.aiReview?.flagged && <div className="absolute top-6 right-6 bg-red-600 text-white p-3 rounded-xl shadow-lg animate-bounce"><AlertOctagon size={32} /></div>}
             </div>
             <div className="text-center bg-white/5 backdrop-blur-md p-6 rounded-xl w-full">
