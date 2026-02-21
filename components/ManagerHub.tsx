@@ -63,7 +63,7 @@ interface ManagerHubProps {
   manual: ManualSection[];
   recipes: Recipe[];
   onReview: (id: string, approved: boolean) => void;
-  onOverrideAIFlag: (submissionId: string, taskId: string, approve: boolean) => void;
+  onOverrideAIFlag: (submissionId: string, taskId: string, approve: boolean, feedback?: string) => void;
   onResetSubmission?: (id: string) => void;
   onUpdateTemplate: (template: ChecklistTemplate) => void;
   onAddTemplate: (template: ChecklistTemplate) => void;
@@ -98,6 +98,8 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
   const [operationsSubTab, setOperationsSubTab] = useState<'compliance' | 'gallery' | 'cash-audit'>('compliance');
   const [settingsSubTab, setSettingsSubTab] = useState<'editor' | 'team' | 'staff' | 'manual' | 'branding' | 'stores'>('editor');
   const [auditFilter, setAuditFilter] = useState<'pending' | 'approved' | 'all'>('pending');
+  const [overrideFeedback, setOverrideFeedback] = useState<Record<string, string>>({});
+  const [showFeedbackFor, setShowFeedbackFor] = useState<string | null>(null);
   const [fullscreenPhoto, setFullscreenPhoto] = useState<{
     url: string;
     title: string;
@@ -157,12 +159,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
   const [attributionSyncing, setAttributionSyncing] = useState(false);
   const [lastAttributionSync, setLastAttributionSync] = useState<string | null>(null);
 
-  // Pull-to-refresh state
-  const [pullDistance, setPullDistance] = useState(0);
-  const [isPulling, setIsPulling] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const pullStartY = React.useRef(0);
-  const PULL_THRESHOLD = 40;
 
   // Expanded leader for score breakdown
   const [expandedLeaderId, setExpandedLeaderId] = useState<string | null>(null);
@@ -1081,32 +1078,6 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
     }
   };
 
-  // Pull-to-refresh touch handlers
-  const handleTouchStart = (e: React.TouchEvent) => {
-    // Only enable pull-to-refresh when scrolled to top
-    const scrollTop = (e.target as HTMLElement).closest('.overflow-y-auto')?.scrollTop || 0;
-    if (scrollTop <= 0) {
-      pullStartY.current = e.touches[0].clientY;
-      setIsPulling(true);
-    }
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (!isPulling) return;
-    const currentY = e.touches[0].clientY;
-    const distance = Math.max(0, Math.min(currentY - pullStartY.current, PULL_THRESHOLD + 10));
-    setPullDistance(distance);
-  };
-
-  const handleTouchEnd = async () => {
-    if (!isPulling) return;
-    setIsPulling(false);
-
-    if (pullDistance >= PULL_THRESHOLD) {
-      await refreshAllData();
-    }
-    setPullDistance(0);
-  };
 
   // Fetch ALL team leaders from historical labor data (past 30 days)
   useEffect(() => {
@@ -1321,17 +1292,8 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
         {activeSubTab === 'dashboard' && (
           <div
             className="space-y-4 md:space-y-6 animate-in fade-in duration-500 relative"
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
           >
-            {/* Pull-to-refresh indicator */}
-            {pullDistance > 0 && (
-              <div className="flex items-center justify-center overflow-hidden" style={{ height: pullDistance }}>
-                <RefreshCw size={18} className={`text-neutral-400 ${pullDistance >= PULL_THRESHOLD ? 'animate-spin text-blue-600' : ''}`} />
-              </div>
-            )}
-            {isRefreshing && pullDistance === 0 && (
+            {isRefreshing && (
               <div className="flex items-center justify-center py-2">
                 <RefreshCw size={18} className="text-blue-600 animate-spin" />
               </div>
@@ -2054,22 +2016,61 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                       </div>
 
                       {/* Action Buttons - Only show for pending items */}
-                      {photo.aiFlagged && !photo.managerOverride && (
-                        <div className="flex gap-3">
-                          <button
-                            onClick={() => onOverrideAIFlag(photo.submissionId, photo.taskId, true)}
-                            className="flex-1 py-4 bg-green-600 text-white rounded-xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 hover:bg-green-700 transition-all active:scale-95 shadow-lg"
-                          >
-                            <Check size={16} /> Approve Override
-                          </button>
-                          <button
-                            onClick={() => onOverrideAIFlag(photo.submissionId, photo.taskId, false)}
-                            className="flex-1 py-4 bg-neutral-100 text-neutral-500 rounded-xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 hover:bg-neutral-200 transition-all"
-                          >
-                            <X size={16} /> Keep Flagged
-                          </button>
-                        </div>
-                      )}
+                      {photo.aiFlagged && !photo.managerOverride && (() => {
+                        const photoKey = `${photo.submissionId}-${photo.taskId}`;
+                        const isShowingFeedback = showFeedbackFor === photoKey;
+                        return isShowingFeedback ? (
+                          <div className="space-y-3">
+                            <label className="block text-[9px] font-black uppercase tracking-widest text-neutral-500">
+                              Why is this photo correct? (helps AI learn)
+                            </label>
+                            <textarea
+                              value={overrideFeedback[photoKey] || ''}
+                              onChange={e => setOverrideFeedback(prev => ({ ...prev, [photoKey]: e.target.value }))}
+                              placeholder="e.g. The espresso machine is clean — the dark spots are part of the metal finish, not residue."
+                              className="w-full p-3 border-2 border-neutral-200 rounded-xl text-sm resize-none focus:outline-none focus:border-green-500 transition-colors"
+                              rows={3}
+                              autoFocus
+                            />
+                            <div className="flex gap-3">
+                              <button
+                                onClick={() => {
+                                  onOverrideAIFlag(photo.submissionId, photo.taskId, true, overrideFeedback[photoKey] || undefined);
+                                  setShowFeedbackFor(null);
+                                  setOverrideFeedback(prev => { const next = { ...prev }; delete next[photoKey]; return next; });
+                                }}
+                                className="flex-1 py-4 bg-green-600 text-white rounded-xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 hover:bg-green-700 transition-all active:scale-95 shadow-lg"
+                              >
+                                <Check size={16} /> Confirm Override
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setShowFeedbackFor(null);
+                                  setOverrideFeedback(prev => { const next = { ...prev }; delete next[photoKey]; return next; });
+                                }}
+                                className="flex-1 py-4 bg-neutral-100 text-neutral-500 rounded-xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 hover:bg-neutral-200 transition-all"
+                              >
+                                <X size={16} /> Cancel
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex gap-3">
+                            <button
+                              onClick={() => setShowFeedbackFor(photoKey)}
+                              className="flex-1 py-4 bg-green-600 text-white rounded-xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 hover:bg-green-700 transition-all active:scale-95 shadow-lg"
+                            >
+                              <Check size={16} /> Approve Override
+                            </button>
+                            <button
+                              onClick={() => onOverrideAIFlag(photo.submissionId, photo.taskId, false)}
+                              className="flex-1 py-4 bg-neutral-100 text-neutral-500 rounded-xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 hover:bg-neutral-200 transition-all"
+                            >
+                              <X size={16} /> Keep Flagged
+                            </button>
+                          </div>
+                        );
+                      })()}
                     </div>
                   </div>
                 ))}

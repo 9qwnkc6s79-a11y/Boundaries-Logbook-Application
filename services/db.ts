@@ -1,6 +1,6 @@
 
 // No imports needed - Firebase is loaded globally via CDN script tags in index.html
-import { User, UserProgress, ChecklistSubmission, ChecklistTemplate, TrainingModule, ManualSection, Recipe, CashDeposit, GoogleReviewsData, Organization, Store, AttributedOrder, ArchivedLeaderboard } from '../types';
+import { User, UserProgress, ChecklistSubmission, ChecklistTemplate, TrainingModule, ManualSection, Recipe, CashDeposit, GoogleReviewsData, Organization, Store, AttributedOrder, ArchivedLeaderboard, AuditFeedback, InventoryItem, InventoryCount } from '../types';
 import { isHashed } from '../utils/passwordUtils';
 
 declare const firebase: any;
@@ -39,7 +39,7 @@ if (typeof firebase !== 'undefined') {
 
 // Increment this version whenever curriculum structure or lesson properties change
 // This forces Firebase to update cached curriculum data
-const CURRICULUM_VERSION = 7;
+const CURRICULUM_VERSION = 8;
 
 const DOC_KEYS = {
   USERS: 'users',
@@ -55,6 +55,9 @@ const DOC_KEYS = {
   ATTRIBUTED_ORDERS: 'attributedOrders',
   FCM_TOKENS: 'fcmTokens',
   ARCHIVED_LEADERBOARDS: 'archivedLeaderboards',
+  AI_AUDIT_FEEDBACK: 'aiAuditFeedback',
+  INVENTORY_ITEMS: 'inventoryItems',
+  INVENTORY_COUNTS: 'inventoryCounts',
 };
 
 function removeUndefined(obj: any): any {
@@ -600,6 +603,17 @@ class CloudAPI {
     return success;
   }
 
+  async fetchAuditFeedback(): Promise<AuditFeedback[]> {
+    return this.remoteGet(DOC_KEYS.AI_AUDIT_FEEDBACK, []);
+  }
+
+  async pushAuditFeedback(entry: AuditFeedback): Promise<void> {
+    const existing = await this.fetchAuditFeedback();
+    // Keep last 50 entries to avoid bloating the AI prompt
+    const updated = [entry, ...existing].slice(0, 50);
+    await this.remoteSet(DOC_KEYS.AI_AUDIT_FEEDBACK, updated);
+  }
+
   async fetchProgress(): Promise<UserProgress[]> {
     return this.remoteGet(DOC_KEYS.PROGRESS, []);
   }
@@ -952,12 +966,69 @@ class CloudAPI {
     return this.remoteSet(DOC_KEYS.ARCHIVED_LEADERBOARDS, next);
   }
 
+  // ── Inventory (per-store documents) ──
+
+  private inventoryItemsKey(storeId: string): string {
+    return `${DOC_KEYS.INVENTORY_ITEMS}-${storeId}`;
+  }
+
+  private inventoryCountsKey(storeId: string): string {
+    return `${DOC_KEYS.INVENTORY_COUNTS}-${storeId}`;
+  }
+
+  async fetchInventoryItems(storeId: string): Promise<InventoryItem[]> {
+    const key = this.inventoryItemsKey(storeId);
+    const items = await this.remoteGet<InventoryItem[]>(key, []);
+    if (items.length === 0) {
+      console.log(`[DB] fetchInventoryItems(${storeId}): Got empty array, retrying once...`);
+      return this.remoteGet<InventoryItem[]>(key, []);
+    }
+    return items;
+  }
+
+  async pushInventoryItems(storeId: string, items: InventoryItem[]): Promise<boolean> {
+    console.log(`[DB] pushInventoryItems(${storeId}): Saving ${items.length} items`);
+    return this.remoteSet(this.inventoryItemsKey(storeId), items);
+  }
+
+  async fetchInventoryCounts(storeId: string): Promise<InventoryCount[]> {
+    return this.remoteGet<InventoryCount[]>(this.inventoryCountsKey(storeId), []);
+  }
+
+  async pushInventoryCount(count: InventoryCount): Promise<boolean> {
+    const storeId = count.storeId;
+    console.log(`[DB] pushInventoryCount: id=${count.id}, store=${storeId}, date=${count.date}`);
+
+    const all = await this.fetchInventoryCounts(storeId);
+    const existingIdx = all.findIndex(c => c.id === count.id);
+    let next: InventoryCount[];
+
+    if (existingIdx > -1) {
+      next = all.map((c, i) => i === existingIdx ? count : c);
+    } else {
+      next = [count, ...all];
+    }
+
+    // Prune counts older than 90 days
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 90);
+    const cutoffStr = cutoff.toISOString().split('T')[0];
+    const beforePrune = next.length;
+    next = next.filter(c => c.date >= cutoffStr);
+    if (next.length < beforePrune) {
+      console.log(`[DB] pushInventoryCount: Pruned ${beforePrune - next.length} counts older than 90 days`);
+    }
+
+    return this.remoteSet(this.inventoryCountsKey(storeId), next);
+  }
+
   async globalSync(defaults: {
     users: User[],
     templates: ChecklistTemplate[],
     curriculum: TrainingModule[],
     manual: ManualSection[],
-    recipes: Recipe[]
+    recipes: Recipe[],
+    inventorySeed?: Record<string, InventoryItem[]>
   }) {
     const [users, submissions, progress, templates, cloudCurriculum, manual, recipes, cloudVersion] = await Promise.all([
       this.fetchUsers(defaults.users),
@@ -1056,6 +1127,21 @@ class CloudAPI {
       mergedRecipes = [...recipes, ...newRecipes];
       // Push merged recipes back to cloud
       await this.remoteSet(DOC_KEYS.RECIPES, mergedRecipes);
+    }
+
+    // Seed inventory items per store if cloud is empty
+    if (defaults.inventorySeed) {
+      const seedPromises: Promise<void>[] = [];
+      for (const [storeId, seedItems] of Object.entries(defaults.inventorySeed)) {
+        seedPromises.push((async () => {
+          const existing = await this.fetchInventoryItems(storeId);
+          if (existing.length === 0 && seedItems.length > 0) {
+            console.log(`[Firestore] globalSync: Seeding ${seedItems.length} inventory items for ${storeId}`);
+            await this.pushInventoryItems(storeId, seedItems);
+          }
+        })());
+      }
+      await Promise.all(seedPromises);
     }
 
     return { users, submissions, progress, templates, curriculum, manual, recipes: mergedRecipes };

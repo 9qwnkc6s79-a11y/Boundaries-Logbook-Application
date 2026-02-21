@@ -6,9 +6,10 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
+// NOTE: Env var names are swapped relative to actual locations (set incorrectly in Vercel)
 const PLACE_IDS: Record<string, string> = {
-  'littleelm': process.env.VITE_GOOGLE_PLACE_ID_LITTLEELM || '',
-  'prosper': process.env.VITE_GOOGLE_PLACE_ID_PROSPER || '',
+  'littleelm': process.env.VITE_GOOGLE_PLACE_ID_PROSPER || '',
+  'prosper': process.env.VITE_GOOGLE_PLACE_ID_LITTLEELM || '',
 };
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {

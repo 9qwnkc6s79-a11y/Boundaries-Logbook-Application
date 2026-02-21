@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { User, UserRole, UserProgress, ChecklistSubmission, ChecklistTemplate, Store, TrainingModule, ManualSection, Recipe, ToastSalesData, ToastTimeEntry, Organization, ToastSyncEmployee } from './types';
+import { User, UserRole, UserProgress, ChecklistSubmission, ChecklistTemplate, Store, TrainingModule, ManualSection, Recipe, ToastSalesData, ToastTimeEntry, Organization, ToastSyncEmployee, InventoryItem, InventoryCount } from './types';
 import { TRAINING_CURRICULUM, CHECKLIST_TEMPLATES, MOCK_USERS, MOCK_STORES, BOUNDARIES_MANUAL, BOUNDARIES_RECIPES } from './data/mockData';
+import { SEED_INVENTORY } from './data/inventoryItems';
 import { db } from './services/db';
 import Layout from './components/Layout';
 import TrainingView from './components/TrainingView';
@@ -8,6 +9,7 @@ import OpsView from './components/OpsView';
 import ManagerHub from './components/ManagerHub';
 import StaffDashboard from './components/StaffDashboard';
 import RecipeBook from './components/RecipeBook';
+import InventoryView from './components/InventoryView';
 import Login from './components/Login';
 import Onboarding, { OnboardingData } from './components/Onboarding';
 import { getStarterPack } from './data/starterPacks';
@@ -135,6 +137,8 @@ const App: React.FC = () => {
   const [curriculum, setCurriculum] = useState<TrainingModule[]>([]);
   const [manual, setManual] = useState<ManualSection[]>([]);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
+  const [inventoryCounts, setInventoryCounts] = useState<InventoryCount[]>([]);
 
   // Track the last time we updated a submission locally to avoid the "sync overwrite flicker"
   const lastSubmissionUpdateRef = useRef<number>(0);
@@ -166,7 +170,8 @@ const App: React.FC = () => {
         templates: CHECKLIST_TEMPLATES,
         curriculum: TRAINING_CURRICULUM,
         manual: BOUNDARIES_MANUAL,
-        recipes: BOUNDARIES_RECIPES
+        recipes: BOUNDARIES_RECIPES,
+        inventorySeed: SEED_INVENTORY
       });
       
       setAllUsers(data.users);
@@ -253,6 +258,23 @@ const App: React.FC = () => {
     setToastClockedIn([]);
     setSalesComparison(null); // Clear week-over-week comparison to prevent showing wrong store's data
   }, [currentStoreId]);
+
+  // Fetch inventory for the current store whenever it changes
+  useEffect(() => {
+    const loadInventory = async () => {
+      try {
+        const [items, counts] = await Promise.all([
+          db.fetchInventoryItems(currentStoreId),
+          db.fetchInventoryCounts(currentStoreId)
+        ]);
+        setInventoryItems(items);
+        setInventoryCounts(counts);
+      } catch (e) {
+        console.warn('[App] Failed to load inventory:', e);
+      }
+    };
+    if (currentUser) loadInventory();
+  }, [currentStoreId, currentUser]);
 
   const effectiveUser = useMemo(() => {
     if (!currentUser) return null;
@@ -490,7 +512,6 @@ const App: React.FC = () => {
       if (photoUrl.startsWith('data:')) {
         base64Data = photoUrl.split(',')[1];
       } else {
-        // Fetch the image from Firebase Storage URL and convert to base64
         console.log(`[AI Audit] Fetching image from URL: ${photoUrl.substring(0, 80)}...`);
         const imgResponse = await fetch(photoUrl);
         const blob = await imgResponse.blob();
@@ -501,12 +522,26 @@ const App: React.FC = () => {
         base64Data = btoa(binary);
       }
 
+      // Include manager corrections so the AI learns from past overrides
+      let learnedCorrections = '';
+      try {
+        const feedback = await db.fetchAuditFeedback();
+        if (feedback.length > 0) {
+          const corrections = feedback.map(f =>
+            `- Task "${f.taskTitle}": You flagged "${f.aiReason}" but the manager said: "${f.managerFeedback}"`
+          ).join('\n');
+          learnedCorrections = `\n\nLEARNED CORRECTIONS FROM MANAGERS (do NOT repeat these mistakes):\n${corrections}`;
+        }
+      } catch (e) {
+        console.warn('[AI Audit] Could not load feedback:', e);
+      }
+
       const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash-image',
         contents: {
           parts: [
             { inlineData: { mimeType: 'image/jpeg', data: base64Data } },
-            { text: `You are an operations auditor for Boundaries Coffee. The task name is: "${taskTitle}". Determine if this photo actually shows proof of the task being completed correctly in a cafe setting. Return ONLY a JSON object in this format: {"flagged": boolean, "reason": "Short explanation"}. Flag it if it is irrelevant, blurry, or incorrect.` }
+            { text: `You are an operations auditor for Boundaries Coffee. The task name is: "${taskTitle}". Determine if this photo actually shows proof of the task being completed correctly in a cafe setting. Return ONLY a JSON object in this format: {"flagged": boolean, "reason": "Short explanation"}. Flag it if it is irrelevant, blurry, or incorrect.${learnedCorrections}` }
           ]
         },
       });
@@ -629,11 +664,12 @@ const App: React.FC = () => {
     }
   };
 
-  const handleOverrideAIFlag = async (submissionId: string, taskId: string, approve: boolean) => {
+  const handleOverrideAIFlag = async (submissionId: string, taskId: string, approve: boolean, feedback?: string) => {
     if (!currentUser) return;
     const sub = submissions.find(s => s.id === submissionId);
     if (!sub) return;
 
+    const flaggedResult = sub.taskResults.find(tr => tr.taskId === taskId);
     const updatedTaskResults = sub.taskResults.map(tr => {
       if (tr.taskId === taskId) {
         if (approve) {
@@ -645,7 +681,6 @@ const App: React.FC = () => {
             overrideAt: new Date().toISOString()
           };
         }
-        // Keep flagged - just mark as reviewed (optional: could add reviewedBy field)
         return tr;
       }
       return tr;
@@ -658,6 +693,20 @@ const App: React.FC = () => {
       setSaveError('Failed to save override. Please check your connection and try again.');
     } else {
       setSaveError(null);
+      // Save feedback so AI learns from this correction
+      if (approve && feedback?.trim() && flaggedResult) {
+        const tpl = templates.find(t => t.id === sub.templateId);
+        const taskTitle = tpl?.tasks?.find(t => t.id === taskId)?.title || 'Unknown Task';
+        await db.pushAuditFeedback({
+          id: `fb-${Date.now()}`,
+          taskTitle,
+          aiReason: flaggedResult.aiReason || 'Unknown',
+          managerFeedback: feedback.trim(),
+          createdAt: new Date().toISOString(),
+          createdBy: currentUser.id,
+        });
+        console.log(`[AI Feedback] Saved manager correction for "${taskTitle}"`);
+      }
     }
     performCloudSync(true);
   };
@@ -889,6 +938,26 @@ const App: React.FC = () => {
             recipes={recipes}
             isManager={isManager}
             onUpdateRecipes={handleUpdateRecipes}
+          />
+        )}
+        {activeTab === 'inventory' && (
+          <InventoryView
+            currentUser={currentUser}
+            stores={activeStores}
+            currentStoreId={currentStoreId}
+            inventoryItems={inventoryItems}
+            inventoryCounts={inventoryCounts}
+            onSubmitCount={async (count) => {
+              setInventoryCounts(prev => {
+                const idx = prev.findIndex(c => c.id === count.id);
+                return idx > -1 ? prev.map((c, i) => i === idx ? count : c) : [count, ...prev];
+              });
+              await db.pushInventoryCount(count);
+            }}
+            onUpdateItems={async (items) => {
+              setInventoryItems(items);
+              await db.pushInventoryItems(currentStoreId, items);
+            }}
           />
         )}
         {activeTab === 'dashboard' && (

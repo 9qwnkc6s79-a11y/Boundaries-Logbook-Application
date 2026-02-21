@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { User, UserRole, Store, ManualSection, Recipe, ToastSalesData, ToastTimeEntry, Organization } from '../types';
-import { Coffee, ClipboardCheck, GraduationCap, Users, LogOut, Menu, X, MapPin, ChevronDown, BookOpen, Cloud, CloudOff, Activity, Download, Share, Smartphone, Brain, Send, Sparkles, ChevronRight, Settings, DollarSign, TrendingUp, TrendingDown, UserCheck, Clock, LayoutDashboard } from 'lucide-react';
+import { Coffee, ClipboardCheck, GraduationCap, Users, LogOut, Menu, X, MapPin, ChevronDown, BookOpen, Cloud, CloudOff, Activity, Download, Share, Smartphone, Brain, Send, Sparkles, ChevronRight, Settings, DollarSign, TrendingUp, TrendingDown, UserCheck, Clock, LayoutDashboard, Package } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
 
 interface LayoutProps {
@@ -61,6 +61,7 @@ const Layout: React.FC<LayoutProps> = ({
     { id: 'training', label: 'ACADEMY', icon: GraduationCap, roles: [UserRole.TRAINEE, UserRole.TRAINER, UserRole.MANAGER, UserRole.ADMIN] },
     { id: 'ops', label: 'LOGBOOK', icon: ClipboardCheck, roles: [UserRole.TRAINEE, UserRole.TRAINER, UserRole.MANAGER, UserRole.ADMIN] },
     { id: 'recipes', label: 'RECIPES', icon: BookOpen, roles: [UserRole.TRAINEE, UserRole.TRAINER, UserRole.MANAGER, UserRole.ADMIN] },
+    { id: 'inventory', label: 'INVENTORY', icon: Package, roles: [UserRole.TRAINEE, UserRole.TRAINER, UserRole.MANAGER, UserRole.ADMIN] },
   ];
 
   const filteredNav = navItems.filter(item => item.roles.includes(user.role));

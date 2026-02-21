@@ -308,117 +308,113 @@ All signature mixes are batched in 1-gallon increments and stored in three-gallo
 ];
 
 export const BOUNDARIES_RECIPES: Recipe[] = [
-  // 1. CORE STANDARDS
+  // ── 1. ESPRESSO STANDARDS ──
   {
     id: 'r-monarch',
     title: 'Monarch Espresso',
-    category: 'Core Standards',
+    category: 'Espresso Standards',
     type: 'ESPRESSO',
-    dose: '18-20g',
-    yield: '36-40g',
-    time: '26-32s',
-    notes: 'Equipment: La Marzocco PB3. Grinder: Mahlkönig E80 GBW.'
+    dose: '19g',
+    yield: '2 oz',
+    time: '24s',
+    notes: 'Machine: La Marzocco PB3. Grinder: Mahlkönig E80 GBW (grind-by-weight). Tamper: PuqPress Automatic. Shot window: ±2 seconds.'
   },
   {
     id: 'r-shot-standards',
-    title: 'Shot Standards',
-    category: 'Core Standards',
+    title: 'Shot Standards by Drink Type',
+    category: 'Espresso Standards',
     type: 'GRID',
-    gridColumns: ['Drink Type', 'Espresso Amount'],
+    gridColumns: ['Drink Type', 'Espresso'],
     gridRows: [
-      { label: 'Hot/Iced Lattes (All Sizes)', values: ['2 oz'] },
-      { label: 'Iced Americano', values: ['3 oz'] },
+      { label: 'Hot Lattes (all sizes)', values: ['2 oz'] },
+      { label: 'Iced Lattes (all sizes)', values: ['2 oz'] },
       { label: 'Hot Americano', values: ['2 oz'] },
-      { label: 'Cortado/Capp/Macch/Flat White', values: ['2 oz'] }
-    ]
-  },
-  {
-    id: 'r-milk-standards',
-    title: 'Milk Standards',
-    category: 'Core Standards',
-    type: 'GRID',
-    gridColumns: ['Drink Type', 'Size', 'Amount/Fill'],
-    gridRows: [
-      { label: 'Hot Latte', values: ['12oz', '8 oz steamed'] },
-      { label: 'Hot Latte', values: ['16oz', '10 oz steamed'] },
-      { label: 'Iced Latte', values: ['16oz', 'Fill to 11 oz line'] },
-      { label: 'Iced Latte', values: ['20oz', 'Fill to 14 oz line'] }
+      { label: 'Iced Americano', values: ['3 oz'] },
+      { label: 'Cortado', values: ['2 oz'] },
+      { label: 'Cappuccino', values: ['2 oz'] },
+      { label: 'Macchiato', values: ['2 oz'] },
+      { label: 'Flat White', values: ['2 oz'] }
     ]
   },
 
-  // 2. ORIGINALS
+  // ── 2. LATTES (ORIGINALS) ──
   {
-    id: 'r-originals-build',
-    title: 'Standard Original Build',
-    category: 'Originals',
+    id: 'r-latte-build',
+    title: 'Standard Latte Build',
+    category: 'Lattes',
     type: 'STANDARD',
     steps: [
-      '1 oz total syrup/sauce (regardless of size/temp)',
-      '2 oz espresso (all sizes)',
+      '1 oz total syrup/sauce (ALL sizes, ALL temperatures)',
+      '2 oz espresso (ALL sizes)',
       'Fill with milk to appropriate line'
-    ]
-  },
-  {
-    id: 'r-texas-delight',
-    title: 'Texas Delight',
-    category: 'Originals',
-    type: 'STANDARD',
-    ingredients: [
-      { name: 'Syrup', quantity: '1 oz Texas Delight (Honey, Vanilla, Cinnamon)' }
-    ]
-  },
-  {
-    id: 'r-hill-country',
-    title: 'Hill Country',
-    category: 'Originals',
-    type: 'STANDARD',
-    ingredients: [
-      { name: 'Syrup', quantity: '1 oz Hill Country Mix' },
-      { name: 'Alt Build', quantity: '20g Caramel + 0.5 oz Butter Pecan' }
-    ]
-  },
-  {
-    id: 'r-lavender-sunrise',
-    title: 'Lavender Sunrise',
-    category: 'Originals',
-    type: 'STANDARD',
-    ingredients: [
-      { name: 'Syrup', quantity: '1 oz Lavender Sunrise Mix (Honey & Lavender)' }
-    ]
-  },
-
-  // 3. BATCHES
-  {
-    id: 'r-batch-hill-country',
-    title: 'Hill Country Mix (Batch)',
-    category: 'Batches',
-    type: 'BATCH',
-    ingredients: [
-      { name: 'Butter Pecan', quantity: '64 oz' },
-      { name: 'Caramel', quantity: '64 oz' }
     ],
-    notes: 'Warm sauces in hot water bath before mixing.'
+    notes: 'Sizes — Hot: 12oz, 16oz | Iced: 16oz, 20oz'
   },
   {
-    id: 'r-batch-lavender',
-    title: 'Lavender Sunrise Mix (Batch)',
-    category: 'Batches',
-    type: 'BATCH',
-    ingredients: [
-      { name: 'Honey', quantity: '64 oz' },
-      { name: 'Lavender', quantity: '64 oz' }
+    id: 'r-latte-milk',
+    title: 'Latte Milk Amounts',
+    category: 'Lattes',
+    type: 'GRID',
+    gridColumns: ['Size / Temp', 'Milk Amount'],
+    gridRows: [
+      { label: 'Hot 12oz', values: ['8 oz (steamed)'] },
+      { label: 'Hot 16oz', values: ['10 oz (steamed)'] },
+      { label: 'Iced 16oz', values: ['Fill to 11 oz line'] },
+      { label: 'Iced 20oz', values: ['Fill to 14 oz line'] }
+    ]
+  },
+  {
+    id: 'r-sig-lattes',
+    title: 'Signature Lattes',
+    category: 'Lattes',
+    type: 'GRID',
+    gridColumns: ['Drink', 'Syrup Build', 'Notes'],
+    gridRows: [
+      { label: 'Texas Delight', values: ['1 oz Texas Delight syrup (pre-made)', 'Honey, Vanilla, Cinnamon'] },
+      { label: 'Hill Country', values: ['1 oz Hill Country mix', 'Alt: 20g Caramel + 0.5 oz Butter Pecan'] },
+      { label: 'Cinnamon Dulce', values: ['1 oz Cinnamon Dulce syrup', ''] },
+      { label: 'Lavender Sunrise', values: ['1 oz Lavender Sunrise mix', 'Honey & Lavender'] },
+      { label: 'Harvest Moon', values: ['1 oz Harvest Moon mix', 'Alt: 20g White Choc + 0.5 oz Maple + dash Cinnamon'] },
+      { label: 'Golden Cream', values: ['1 oz Golden Cream mix', 'Alt: 20g Caramel + 0.5 oz Vanilla'] },
+      { label: 'Salted Sweetheart', values: ['1 oz Salted Sweetheart mix', 'Alt: 0.5 oz Salted Caramel + 20g White Choc'] }
     ]
   },
 
-  // 4. MATCHAS
+  // ── 3. MATCHAS ──
   {
     id: 'r-matcha-base',
-    title: 'Matcha Base Prep',
+    title: 'Matcha Base Batch Recipe',
     category: 'Matchas',
-    type: 'STANDARD',
+    type: 'BATCH',
     ingredients: [
       { name: 'Matcha Powder', quantity: '30 grams' },
       { name: 'Water', quantity: '300 ml' }
+    ],
+    notes: 'Sizes — Hot: 12oz, 16oz | Iced: 16oz, 20oz. All matchas: 1 oz total syrup (all sizes, all temps).'
+  },
+  {
+    id: 'r-matcha-concentrate',
+    title: 'Matcha Concentrate Amounts',
+    category: 'Matchas',
+    type: 'GRID',
+    gridColumns: ['Size', 'Concentrate'],
+    gridRows: [
+      { label: 'Small (12oz hot / 16oz iced)', values: ['1 oz'] },
+      { label: 'Large (16oz hot / 20oz iced)', values: ['1.5 oz'] },
+      { label: 'Extra Matcha', values: ['+0.5 oz additional'] }
+    ]
+  },
+  {
+    id: 'r-matcha-milk',
+    title: 'Matcha Milk Amounts',
+    category: 'Matchas',
+    type: 'GRID',
+    gridColumns: ['Size / Temp', 'Milk Amount'],
+    gridRows: [
+      { label: 'Hot 12oz', values: ['8 oz (steamed)'] },
+      { label: 'Hot 16oz', values: ['10 oz (steamed)'] },
+      { label: 'Iced 16oz', values: ['Fill to 11 oz line'] },
+      { label: 'Iced 20oz', values: ['Fill to 14 oz line'] }
     ]
   },
   {
@@ -426,7 +422,7 @@ export const BOUNDARIES_RECIPES: Recipe[] = [
     title: 'Matcha Flavor Builds',
     category: 'Matchas',
     type: 'GRID',
-    gridColumns: ['Drink', 'Recipe (1oz Total)'],
+    gridColumns: ['Flavor', 'Syrup Build (1 oz total)'],
     gridRows: [
       { label: 'Plain Matcha', values: ['1 oz Vanilla'] },
       { label: 'Blue Coconut', values: ['1 oz Coconut'] },
@@ -435,117 +431,484 @@ export const BOUNDARIES_RECIPES: Recipe[] = [
     ]
   },
 
-  // 5. NITRO
+  // ── 4. NITRO COLD BREW ──
   {
     id: 'r-nitro-build',
     title: 'Standard Nitro Build',
-    category: 'Nitro',
+    category: 'Nitro Cold Brew',
     type: 'STANDARD',
     steps: [
-      '1 scoop ice',
+      'Cup size with 1 scoop ice',
       'Fill nitro to 2nd-to-last line',
       'Add 3 oz sweet cream',
-      'Add flavor syrup'
+      'Add 0.5 oz flavor syrup'
     ]
   },
-
-  // 7. ENERGY (LOTUS)
   {
-    id: 'r-lotus-build',
-    title: 'Lotus Energy Build',
-    category: 'Energy',
+    id: 'r-nitro-flavors',
+    title: 'Nitro Flavors',
+    category: 'Nitro Cold Brew',
     type: 'GRID',
-    gridColumns: ['Size', 'Total Syrup', 'Fill Line'],
+    gridColumns: ['Flavor', 'Build'],
     gridRows: [
-      { label: '12oz', values: ['1 oz', '9 oz line'] },
-      { label: '16oz', values: ['1.5 oz', '11 oz line'] },
-      { label: '20oz', values: ['2 oz', '14 oz line'] },
-      { label: '24oz', values: ['2 oz', '16 oz line'] }
+      { label: 'Vanilla Cream', values: ['0.5 oz Vanilla'] },
+      { label: 'Salted Caramel', values: ['0.5 oz Salted Caramel'] },
+      { label: 'Cookie Butter', values: ['0.5 oz Biscoff syrup + 10g White Choc sauce'] }
     ]
   },
 
-  // 9. FROZEN
+  // ── 5. SWEET CREAM STANDARDS ──
   {
-    id: 'r-frozen-coffee-base',
-    title: 'Frozen Coffee Base (10L)',
-    category: 'Frozen',
+    id: 'r-sweet-cream',
+    title: 'Sweet Cream Standards',
+    category: 'Sweet Cream',
+    type: 'GRID',
+    gridColumns: ['Type', 'Cream', 'Syrup'],
+    gridRows: [
+      { label: 'Standard Sweet Cream', values: ['3 oz', '0.5 oz'] },
+      { label: 'Extra Sweet Cream', values: ['4 oz total', '—'] },
+      { label: 'Extra Sweet', values: ['—', '1 oz'] }
+    ],
+    notes: 'Prepared in tumblers, labeled and dated, stored cold. 24 hours max.'
+  },
+
+  // ── 6. ENERGY DRINKS (LOTUS) ──
+  {
+    id: 'r-energy-syrup',
+    title: 'Energy Drink Syrup Amounts',
+    category: 'Energy Drinks',
+    type: 'GRID',
+    gridColumns: ['Size', 'Syrup', 'Fill Line'],
+    gridRows: [
+      { label: '12oz', values: ['1 oz', '9 oz'] },
+      { label: '16oz', values: ['1.5 oz', '11 oz'] },
+      { label: '20oz', values: ['2 oz', '14 oz'] },
+      { label: '24oz', values: ['2 oz', '16 oz'] }
+    ],
+    notes: 'Multi-flavor: divide syrup equally (e.g. 2 flavors in 16oz = 0.75 oz each).'
+  },
+  {
+    id: 'r-energy-flavors',
+    title: 'Energy Drink Menu Flavors',
+    category: 'Energy Drinks',
+    type: 'GRID',
+    gridColumns: ['Drink', 'Flavors'],
+    gridRows: [
+      { label: 'The Drift', values: ['Strawberry & Pineapple'] },
+      { label: 'Electric B', values: ['Blue Raspberry & Lime'] },
+      { label: 'Mystic Cherry', values: ['Cherry & Coconut'] },
+      { label: 'Golden Wave', values: ['Orange & Lime'] },
+      { label: 'Blue Haze', values: ['Lavender, Blue Razz, Pomegranate'] },
+      { label: 'Dreamwave', values: ['Passionfruit, Strawberry, Kiwi'] },
+      { label: 'Strawberry Storm', values: ['Strawberry & Lavender'] },
+      { label: 'Voltage', values: ['Blackberry & Lemon Concentrate'] }
+    ]
+  },
+
+  // ── 7. BUBBLY / SODA DRINKS ──
+  {
+    id: 'r-bubbly-build',
+    title: 'Bubbly / Soda Build',
+    category: 'Bubbly & Soda',
+    type: 'GRID',
+    gridColumns: ['Size', 'Syrup'],
+    gridRows: [
+      { label: '12oz', values: ['1 oz'] },
+      { label: '16oz', values: ['1.5 oz'] },
+      { label: '20oz', values: ['2 oz'] },
+      { label: '24oz', values: ['2 oz'] }
+    ],
+    notes: 'Syrup + bubbly/soda water to fill line. Multi-flavor: divide syrup equally.'
+  },
+
+  // ── 8. FROZEN COFFEE ──
+  {
+    id: 'r-frozen-coffee-syrup',
+    title: 'Frozen Coffee Syrup / Sauce',
+    category: 'Frozen Coffee',
+    type: 'GRID',
+    gridColumns: ['Size', 'Syrup', 'Sauce'],
+    gridRows: [
+      { label: '16oz', values: ['1 oz', '40g'] },
+      { label: '20oz', values: ['1.5 oz', '60g'] }
+    ],
+    notes: '16oz and 20oz ONLY (no 12oz or 24oz).'
+  },
+  {
+    id: 'r-frozen-coffee-full',
+    title: 'Frozen Coffee Base — Full Batch (10L)',
+    category: 'Frozen Coffee',
     type: 'BATCH',
     ingredients: [
-      { name: 'Espresso (Hot)', quantity: '2.0 L' },
+      { name: 'Espresso (hot)', quantity: '2.0 L' },
       { name: 'Raw Sugar', quantity: '770 g' },
       { name: 'Whole Milk', quantity: '4.6 L' },
       { name: '2% Milk', quantity: '2.7 L' }
     ],
-    steps: ['Dissolve sugar in HOT espresso', 'Chill espresso before adding milk', 'SLUSH mode only', 'Target temp: 30-32°F']
+    steps: [
+      'Dissolve sugar in HOT espresso',
+      'Chill espresso before adding milk',
+      'SLUSH mode only',
+      'Target temperature: 30-32°F'
+    ]
   },
   {
-    id: 'r-frozen-lemonade',
-    title: 'Frozen Lemonade Quick Build',
-    category: 'Frozen',
+    id: 'r-frozen-coffee-refill',
+    title: 'Frozen Coffee Base — Refill (5L)',
+    category: 'Frozen Coffee',
+    type: 'BATCH',
+    ingredients: [
+      { name: 'Espresso', quantity: '1.0 L' },
+      { name: 'Raw Sugar', quantity: '385 g' },
+      { name: 'Whole Milk', quantity: '2.3 L' },
+      { name: '2% Milk', quantity: '1.35 L' }
+    ]
+  },
+
+  // ── 9. FROZEN ENERGY ──
+  {
+    id: 'r-frozen-energy-syrup',
+    title: 'Frozen Energy Syrup Amounts',
+    category: 'Frozen Energy',
     type: 'GRID',
-    gridColumns: ['Size', 'Conc', 'Water', 'Syrup', 'Ice'],
+    gridColumns: ['Size', 'Syrup'],
+    gridRows: [
+      { label: '12oz', values: ['0.5 oz'] },
+      { label: '16oz', values: ['1 oz'] },
+      { label: '20oz', values: ['1.5 oz'] },
+      { label: '24oz', values: ['2 oz'] }
+    ],
+    notes: 'Multi-flavor: divide syrup equally.'
+  },
+  {
+    id: 'r-frozen-energy-full',
+    title: 'Frozen Energy Base — Full Batch (10L)',
+    category: 'Frozen Energy',
+    type: 'BATCH',
+    ingredients: [
+      { name: 'Lotus Concentrate', quantity: '1.0 L' },
+      { name: 'Water', quantity: '8.0 L' },
+      { name: 'Sugar', quantity: '350 g' }
+    ],
+    steps: [
+      'No dairy',
+      'No flavors in hopper',
+      'SLUSH mode only',
+      'Chill before loading'
+    ]
+  },
+  {
+    id: 'r-frozen-energy-refill',
+    title: 'Frozen Energy Base — Refill (5L)',
+    category: 'Frozen Energy',
+    type: 'BATCH',
+    ingredients: [
+      { name: 'Lotus', quantity: '0.5 L' },
+      { name: 'Water', quantity: '4.0 L' },
+      { name: 'Sugar', quantity: '175 g' }
+    ]
+  },
+
+  // ── 10. FROZEN LEMONADE ──
+  {
+    id: 'r-frozen-lemonade',
+    title: 'Frozen Lemonade Build',
+    category: 'Frozen Lemonade',
+    type: 'GRID',
+    gridColumns: ['Size', 'Concentrate', 'Water', 'Syrup', 'Ice'],
     gridRows: [
       { label: '12oz', values: ['1.5 oz', '2.5 oz', '1 oz', '12oz scoop'] },
       { label: '16oz', values: ['3 oz', '4 oz', '1.5 oz', '24oz scoop'] },
-      { label: '20oz', values: ['4.5 oz', '6 oz', '2 oz', '24oz+10oz'] },
-      { label: '24oz', values: ['6 oz', '8 oz', '2.5 oz', '24oz+12oz'] }
-    ]
-  },
-  {
-    id: 'recipe-frozen-energy-base',
-    title: 'Frozen Energy Base',
-    category: 'Frozen',
-    type: 'GRID',
-    gridColumns: ['Ingredient', 'Full Batch (10L)', 'Refill (5L)'],
-    gridRows: [
-      { label: 'Lotus Concentrate', values: ['1.0 L', '0.5 L'] },
-      { label: 'Water', values: ['8.0 L', '4.0 L'] },
-      { label: 'Sugar', values: ['350 g', '175 g'] }
+      { label: '20oz', values: ['4.5 oz', '6 oz', '2 oz', '24oz + 10oz scoop'] },
+      { label: '24oz', values: ['6 oz', '8 oz', '2.5 oz', '24oz + 12oz scoop'] }
     ],
-    notes: 'Rules: No dairy • No flavors in hopper • SLUSH mode only • Chill before loading'
+    notes: 'Level scoops only. Liquids first, ice second. No extra water. Do not top with ice after blending.'
   },
 
-  // 10. LEMONADES
+  // ── 11. REGULAR LEMONADES ──
   {
-    id: 'r-iced-lemonade',
-    title: 'Iced Lemonade (Lotus Conc)',
+    id: 'r-lemonade-build',
+    title: 'Regular Lemonade Build',
     category: 'Lemonades',
     type: 'GRID',
-    gridColumns: ['Size', 'Conc', 'Syrup', 'Water'],
+    gridColumns: ['Size', 'Concentrate', 'Syrup (if flavored)', 'Water Fill Line'],
     gridRows: [
-      { label: '12oz', values: ['1 oz', '1 oz', 'Fill to line'] },
-      { label: '16oz', values: ['1.5 oz', '1.5 oz', 'Fill to line'] },
-      { label: '20oz', values: ['2 oz', '2 oz', 'Fill to line'] },
-      { label: '24oz', values: ['2.5 oz', '2.5 oz', 'Fill to line'] }
+      { label: '12oz', values: ['1 oz', '1 oz', '9 oz'] },
+      { label: '16oz', values: ['1.5 oz', '1.5 oz', '11 oz'] },
+      { label: '20oz', values: ['2 oz', '2 oz', '14 oz'] },
+      { label: '24oz', values: ['2.5 oz', '2.5 oz', '17 oz'] }
+    ],
+    notes: 'Equal parts concentrate and syrup (if flavored), then water to fill line.'
+  },
+  {
+    id: 'r-lemonade-flavors',
+    title: 'Lemonade Menu Flavors',
+    category: 'Lemonades',
+    type: 'GRID',
+    gridColumns: ['Flavor', 'Description'],
+    gridRows: [
+      { label: 'Boundaries Lagoon', values: ['Blue Raspberry, Coconut, Lime'] },
+      { label: 'Cherry Limeade', values: ['Cherry, Lime, Lemon'] },
+      { label: 'Pink Paradise', values: ['Strawberry & Vanilla'] },
+      { label: 'Sunset', values: ['Pineapple, Mango, Strawberry'] }
     ]
   },
 
-  // 11. SMOOTHIES
+  // ── 12. SMOOTHIES ──
   {
-    id: 'r-smoothies',
-    title: '100% Fruit Puree Smoothies',
+    id: 'r-smoothie-build',
+    title: 'Smoothie Build',
     category: 'Smoothies',
     type: 'GRID',
     gridColumns: ['Size', 'Puree', 'Water', 'Ice'],
     gridRows: [
-      { label: '12oz', values: ['3 oz', '2 oz', 'Heaping scoop'] },
-      { label: '16oz', values: ['4 oz', '3 oz', 'Heaping scoop'] },
-      { label: '20oz', values: ['5 oz', '4 oz', 'Heaping scoop'] },
-      { label: '24oz', values: ['6 oz', '5 oz', 'Heaping scoop'] }
+      { label: '12oz', values: ['3 oz', '2 oz', 'Heaping scoop (overflowing)'] },
+      { label: '16oz', values: ['4 oz', '3 oz', 'Heaping scoop (overflowing)'] },
+      { label: '20oz', values: ['5 oz', '4 oz', 'Heaping scoop (overflowing)'] },
+      { label: '24oz', values: ['6 oz', '5 oz', 'Heaping scoop (overflowing)'] }
+    ],
+    notes: 'Puree + Water + Heaping scoop of ice (fill cup overflowing) → Blend.'
+  },
+  {
+    id: 'r-smoothie-flavors',
+    title: 'Smoothie Flavors',
+    category: 'Smoothies',
+    type: 'GRID',
+    gridColumns: ['Flavor', 'Puree Type'],
+    gridRows: [
+      { label: 'Strawberry Splash', values: ['100% Strawberry Puree'] },
+      { label: 'Piña Colada', values: ['Coconut & Pineapple Puree'] },
+      { label: 'Perfect Peach', values: ['100% Peach Puree'] },
+      { label: 'Mellow Mango', values: ['100% Mango Puree'] }
     ]
   },
 
-  // 14. BATCH BREW
+  // ── 13. TEAS ──
   {
-    id: 'r-fetco',
+    id: 'r-tea-concentrates',
+    title: 'Iced Tea Concentrate Recipes',
+    category: 'Teas',
+    type: 'GRID',
+    gridColumns: ['Tea', 'Grams', 'Steep Time'],
+    gridRows: [
+      { label: 'Citrus Oolong', values: ['40.8g', '5 minutes'] },
+      { label: 'Lavender Coconut Rooibos', values: ['40.8g', '10 minutes'] },
+      { label: 'Pomberry Punch', values: ['40.8g', '11 minutes'] },
+      { label: 'Honey Ginger Peach', values: ['40.8g', '6 minutes'] },
+      { label: 'Magical Unicorn', values: ['30g', '5 min (⅛ qt water → fill ½ qt)'] }
+    ],
+    notes: 'General rule: Weigh tea, steep in ½ quart hot water, strain, fill to 1 quart with cold water. Hot teas: 3.5g per sachet.'
+  },
+  {
+    id: 'r-tea-sweetening',
+    title: 'Iced Tea Sweetening Rule',
+    category: 'Teas',
+    type: 'GRID',
+    gridColumns: ['Size', 'Simple Syrup'],
+    gridRows: [
+      { label: '12oz', values: ['0.5 oz'] },
+      { label: '16oz', values: ['1 oz'] },
+      { label: '20oz', values: ['1.5 oz'] },
+      { label: '24oz', values: ['1.5 oz'] }
+    ],
+    notes: 'Only when ordered sweet.'
+  },
+
+  // ── 14. KIDS DRINKS ──
+  {
+    id: 'r-kids-unicorn',
+    title: 'Unicorn Latte',
+    category: 'Kids Drinks',
+    type: 'STANDARD',
+    ingredients: [
+      { name: 'Magical Unicorn tea concentrate', quantity: 'Equal parts' },
+      { name: 'Whole Milk', quantity: 'Equal parts' }
+    ],
+    notes: '12oz, Iced, Caffeine-free. Sweeten with simple syrup using tea sweetening rule.'
+  },
+  {
+    id: 'r-kids-dino',
+    title: 'Dino Juice',
+    category: 'Kids Drinks',
+    type: 'GRID',
+    gridColumns: ['Size', 'Lemonade Conc', 'Blue Raspberry', 'Pineapple', 'Water'],
+    gridRows: [
+      { label: '12oz', values: ['1 oz', '0.5 oz', '0.5 oz', 'To fill line'] },
+      { label: '16oz', values: ['1.5 oz', '0.75 oz', '0.75 oz', 'To fill line'] },
+      { label: '20oz', values: ['2 oz', '1 oz', '1 oz', 'To fill line'] },
+      { label: '24oz', values: ['2.5 oz', '1.25 oz', '1.25 oz', 'To fill line'] }
+    ],
+    notes: 'Blue Raspberry Pineapple Lemonade. Serve over ice.'
+  },
+  {
+    id: 'r-kids-zebra',
+    title: 'Zebra Milk',
+    category: 'Kids Drinks',
+    type: 'STANDARD',
+    ingredients: [
+      { name: 'Dark Chocolate sauce', quantity: '10 grams' },
+      { name: 'White Chocolate sauce', quantity: '10 grams' },
+      { name: 'Milk', quantity: 'Fill with cold milk' }
+    ],
+    notes: '12oz, Iced. Serve over ice.'
+  },
+  {
+    id: 'r-kids-kiddos',
+    title: 'Kiddos Coffee',
+    category: 'Kids Drinks',
+    type: 'STANDARD',
+    ingredients: [
+      { name: 'Syrup (any flavor)', quantity: '0.5 oz' },
+      { name: 'Milk', quantity: 'Steamed milk (kids temp)' }
+    ],
+    notes: '8oz, Hot, Caffeine-free.'
+  },
+
+  // ── 15. BATCH BREW & COLD BREW ──
+  {
+    id: 'r-batch-brew',
     title: 'Batch Brew (Fetco)',
     category: 'Batch Brew',
     type: 'STANDARD',
     ingredients: [
       { name: 'Coffee Weight', quantity: '240 grams' },
+      { name: 'Grinder', quantity: 'EK-43, Grind Size 9' },
       { name: 'Batch Size', quantity: '1 Gallon' }
     ],
-    steps: ['Grind on EK-43 (size 9)', 'Form filter correctly', 'Ensure pour stop closed', 'Press 1-Gallon Batch']
+    steps: [
+      'Grind beans on EK-43 (grind 9)',
+      'Form filter correctly to avoid collapse',
+      'Place filter in basket, ensure lid open and pour stop closed',
+      'Press 1-Gallon Batch',
+      'Label dispenser with brew time and initials'
+    ]
+  },
+  {
+    id: 'r-cold-brew',
+    title: 'Cold Brew (Toddy Method)',
+    category: 'Batch Brew',
+    type: 'STANDARD',
+    ingredients: [
+      { name: 'Cold Brew Roast Coffee', quantity: 'Entire 5 lb bag' },
+      { name: 'Water (initial)', quantity: '7 quarts' },
+      { name: 'Water (second pour)', quantity: '7 quarts' },
+      { name: 'Fresh Water (dilution)', quantity: '7 quarts' }
+    ],
+    steps: [
+      'Grind entire 5 lb bag of Cold Brew Roast coffee',
+      'Insert paper filter and mesh filter in Toddy bucket',
+      'Add grounds to filter bag',
+      'Pour 7 quarts water over grounds',
+      'Tie bag and pour another 7 quarts over top',
+      'Steep 10 hours',
+      'Label with name and time brewed',
+      'Strain, discard grounds carefully',
+      'Add 7 quarts fresh water to Toddy',
+      'Fill and crimp Nitro bag, label, store FIFO in walk-in'
+    ]
+  },
+
+  // ── 16. CLASSIC ESPRESSO DRINKS ──
+  {
+    id: 'r-classic-espresso',
+    title: 'Classic Espresso Drinks',
+    category: 'Classic Espresso',
+    type: 'GRID',
+    gridColumns: ['Drink', 'Temp', 'Size', 'Espresso', 'Notes'],
+    gridRows: [
+      { label: 'Americano', values: ['Hot', 'Standard', '2 oz', '+ hot water'] },
+      { label: 'Americano', values: ['Iced', 'Standard', '3 oz', '+ cold water over ice'] },
+      { label: 'Cortado', values: ['Hot', '4 oz', '2 oz', 'Equal milk & espresso'] },
+      { label: 'Cappuccino', values: ['Hot', '6 oz', '2 oz', 'Dry foam'] },
+      { label: 'Macchiato', values: ['Hot', '3 oz', '2 oz', 'Marked with foam'] },
+      { label: 'Flat White', values: ['Hot', '8 oz', '2 oz', 'Thin microfoam, no dry foam'] }
+    ]
+  },
+
+  // ── 17. PRE-BATCH RECIPES ──
+  {
+    id: 'r-prebatch-mixes',
+    title: 'Signature Mix Recipes',
+    category: 'Pre-Batch',
+    type: 'GRID',
+    gridColumns: ['Mix', 'Ingredient 1', 'Ingredient 2', 'Notes'],
+    gridRows: [
+      { label: 'Hill Country', values: ['64 oz Butter Pecan', '64 oz Caramel', ''] },
+      { label: 'Lavender Sunrise', values: ['64 oz Honey', '64 oz Lavender', ''] },
+      { label: 'Harvest Moon', values: ['64 oz White Chocolate', '64 oz Maple', 'Cinnamon at build'] },
+      { label: 'Golden Cream', values: ['64 oz Caramel', '64 oz Vanilla', ''] },
+      { label: 'Salted Sweetheart', values: ['64 oz Salted Caramel', '64 oz White Chocolate', ''] },
+      { label: 'Sweet Trio', values: ['42.67 oz Dark Chocolate', '42.67 oz Caramel', '+ 42.67 oz Hazelnut'] }
+    ],
+    notes: 'All batches: 1-gallon increments (128 oz). Warm all sauces in hot water bath before mixing. Label with product name, date, and initials.'
+  },
+
+  // ── 18. QUICK REFERENCE TABLES ──
+  {
+    id: 'r-qr-syrup',
+    title: 'Syrup Amounts by Size (All Categories)',
+    category: 'Quick Reference',
+    type: 'GRID',
+    gridColumns: ['Category', '12oz', '16oz', '20oz', '24oz'],
+    gridRows: [
+      { label: 'Lattes', values: ['1 oz', '1 oz', '1 oz', 'N/A'] },
+      { label: 'Matchas', values: ['1 oz', '1 oz', '1 oz', 'N/A'] },
+      { label: 'Energy Drinks', values: ['1 oz', '1.5 oz', '2 oz', '2 oz'] },
+      { label: 'Frozen Energy', values: ['0.5 oz', '1 oz', '1.5 oz', '2 oz'] },
+      { label: 'Bubbly', values: ['1 oz', '1.5 oz', '2 oz', '2 oz'] },
+      { label: 'Frozen Coffee', values: ['N/A', '1 oz', '1.5 oz', 'N/A'] },
+      { label: 'Frozen Lemonade', values: ['1 oz', '1.5 oz', '2 oz', '2.5 oz'] },
+      { label: 'Regular Lemonade', values: ['1 oz', '1.5 oz', '2 oz', '2.5 oz'] },
+      { label: 'Tea Sweetening', values: ['0.5 oz', '1 oz', '1.5 oz', '1.5 oz'] }
+    ]
+  },
+  {
+    id: 'r-qr-fill',
+    title: 'Fill Lines by Size',
+    category: 'Quick Reference',
+    type: 'GRID',
+    gridColumns: ['Size', 'Fill Line'],
+    gridRows: [
+      { label: '12oz', values: ['9 oz'] },
+      { label: '16oz', values: ['11 oz'] },
+      { label: '20oz', values: ['14 oz'] },
+      { label: '24oz', values: ['17 oz'] }
+    ]
+  },
+  {
+    id: 'r-qr-flavors',
+    title: 'Available Flavors',
+    category: 'Quick Reference',
+    type: 'STANDARD',
+    ingredients: [
+      { name: 'TX Delight', quantity: '' },
+      { name: 'Vanilla (SF)', quantity: '' },
+      { name: 'Dark Choc (SF)', quantity: '' },
+      { name: 'Caramel (SF)', quantity: '' },
+      { name: 'White Choc', quantity: '' },
+      { name: 'Hazelnut', quantity: '' },
+      { name: 'Salted Caramel', quantity: '' },
+      { name: 'Lavender', quantity: '' },
+      { name: 'Honey', quantity: '' },
+      { name: 'Maple', quantity: '' },
+      { name: 'Coconut', quantity: '' },
+      { name: 'Cardamom', quantity: '' },
+      { name: 'Mango', quantity: '' },
+      { name: 'Peach', quantity: '' },
+      { name: 'Banana', quantity: '' },
+      { name: 'Blue Razz', quantity: '' },
+      { name: 'Pomegranate', quantity: '' },
+      { name: 'Kiwi', quantity: '' },
+      { name: 'Raspberry', quantity: '' },
+      { name: 'Strawberry', quantity: '' },
+      { name: 'Blueberry', quantity: '' },
+      { name: 'Cherry', quantity: '' },
+      { name: 'Lime', quantity: '' },
+      { name: 'Orange', quantity: '' },
+      { name: 'Pineapple', quantity: '' },
+      { name: 'Biscoff', quantity: '' }
+    ],
+    notes: '(SF) = Sugar-Free available. Seasonal offerings rotate.'
   }
 ];
 
@@ -1278,189 +1641,162 @@ Great hospitality is about anticipating needs, clear communication, and making g
         moduleId: 'm-hospitality-ritz',
         title: 'Boundaries Core Values',
         type: 'CONTENT',
-        content: `**BOUNDARIES COFFEE CORE VALUES**
-
-These three values define who we are and how we serve:
-
-═══════════════════════════════════════
-
-**1. PASSION**
-
-We are passionate about:
-• Exceptional coffee and quality ingredients
-• Creating experiences, not just transactions
-• Continuous improvement and learning
-• Our community and the people we serve
-
-**In Action:**
-✓ Knowing the menu inside and out
-✓ Taking pride in every drink you make
-✓ Recommending drinks with genuine enthusiasm
-✓ Caring about the little details that matter
-
-═══════════════════════════════════════
-
-**2. HOSPITALITY**
-
-We believe hospitality is:
-• Treating every guest like a friend
-• Anticipating needs before they're expressed
-• Genuine warmth and authentic connection
-• Making people feel valued and welcomed
-
-**In Action:**
-✓ Smiling and making eye contact
-✓ Remembering regulars' names and orders
-✓ Going the extra mile to make things right
-✓ Creating a welcoming environment for everyone
-
-═══════════════════════════════════════
-
-**3. SELFLESSNESS**
-
-We serve others by:
-• Putting the team and guests first
-• Helping without being asked
-• Staying humble and coachable
-• Contributing to something bigger than ourselves
-
-**In Action:**
-✓ Jumping in to help a teammate during a rush
-✓ Staying late to finish closing tasks
-✓ Owning mistakes and fixing them quickly
-✓ Celebrating others' successes
-
-═══════════════════════════════════════
-
-**REMEMBER:**
-
-Values aren't just words on a wall—they're actions we take every single day. When you embody Passion, Hospitality, and Selflessness, you're not just serving coffee—you're building a culture and a community.`
+        content: `<h3>BOUNDARIES COFFEE CORE VALUES</h3>
+<p>These three values define who we are and how we serve:</p>
+<hr>
+<h3>1. PASSION</h3>
+<p>We are passionate about:</p>
+<ul>
+<li>Exceptional coffee and quality ingredients</li>
+<li>Creating experiences, not just transactions</li>
+<li>Continuous improvement and learning</li>
+<li>Our community and the people we serve</li>
+</ul>
+<h3>In Action:</h3>
+<ul>
+<li>✓ Knowing the menu inside and out</li>
+<li>✓ Taking pride in every drink you make</li>
+<li>✓ Recommending drinks with genuine enthusiasm</li>
+<li>✓ Caring about the little details that matter</li>
+</ul>
+<hr>
+<h3>2. HOSPITALITY</h3>
+<p>We believe hospitality is:</p>
+<ul>
+<li>Treating every guest like a friend</li>
+<li>Anticipating needs before they're expressed</li>
+<li>Genuine warmth and authentic connection</li>
+<li>Making people feel valued and welcomed</li>
+</ul>
+<h3>In Action:</h3>
+<ul>
+<li>✓ Smiling and making eye contact</li>
+<li>✓ Remembering regulars' names and orders</li>
+<li>✓ Going the extra mile to make things right</li>
+<li>✓ Creating a welcoming environment for everyone</li>
+</ul>
+<hr>
+<h3>3. SELFLESSNESS</h3>
+<p>We serve others by:</p>
+<ul>
+<li>Putting the team and guests first</li>
+<li>Helping without being asked</li>
+<li>Staying humble and coachable</li>
+<li>Contributing to something bigger than ourselves</li>
+</ul>
+<h3>In Action:</h3>
+<ul>
+<li>✓ Jumping in to help a teammate during a rush</li>
+<li>✓ Staying late to finish closing tasks</li>
+<li>✓ Owning mistakes and fixing them quickly</li>
+<li>✓ Celebrating others' successes</li>
+</ul>
+<hr>
+<h3>REMEMBER:</h3>
+<p>Values aren't just words on a wall—they're actions we take every single day. When you embody Passion, Hospitality, and Selflessness, you're not just serving coffee—you're building a culture and a community.</p>`
       },
       {
         id: 'l-hospitality-ritz-experience',
         moduleId: 'm-hospitality-ritz',
         title: 'The Boundaries Experience',
         type: 'CONTENT',
-        content: `**THE BOUNDARIES VALUE PROPOSITION**
-
-We promise three things to every guest:
-
-**1. SPEED**
-We respect your time. From order to hand-off, we're fast—without cutting corners.
-
-**2. QUALITY**
-We use specialty-grade coffee, real ingredients, and never compromise on taste.
-
-**3. CONSISTENCY**
-Every visit should feel the same: fast, delicious, and welcoming.
-
-═══════════════════════════════════════
-
-**THE BOUNDARIES EXPERIENCE:**
-
-When a guest leaves Boundaries, they should think:
-
-> *"That was fast, it tasted amazing, and it's always like that."*
-
-This is what sets us apart from every other coffee shop.
-
-═══════════════════════════════════════
-
-**THREE STEPS OF SERVICE**
-
-Adapted from the Ritz Carlton philosophy, here's how we deliver world-class service:
-
-**STEP 1: WARM, SINCERE GREETING**
-Use the guest's name when possible. A genuine smile and friendly tone set the stage for the entire interaction.
-
-**STEP 2: ANTICIPATE AND FULFILL NEEDS**
-Listen actively, ask clarifying questions, and offer thoughtful recommendations. Make their experience effortless.
-
-**STEP 3: FOND FAREWELL**
-Thank them by name, wish them well, and leave them with a positive final impression. The last 10 seconds matter.
-
-═══════════════════════════════════════
-
-**EVERY INTERACTION COUNTS**
-
-You might serve 100+ customers in a shift. For you, it's one of many interactions. For them, it might be the highlight of their morning—or the moment that turns a bad day around.
-
-**Treat every guest like they're the only one that matters.**`
+        content: `<h3>THE BOUNDARIES VALUE PROPOSITION</h3>
+<p>We promise three things to every guest:</p>
+<h3>1. SPEED</h3>
+<p>We respect your time. From order to hand-off, we're fast—without cutting corners.</p>
+<h3>2. QUALITY</h3>
+<p>We use specialty-grade coffee, real ingredients, and never compromise on taste.</p>
+<h3>3. CONSISTENCY</h3>
+<p>Every visit should feel the same: fast, delicious, and welcoming.</p>
+<hr>
+<h3>THE BOUNDARIES EXPERIENCE:</h3>
+<p>When a guest leaves Boundaries, they should think:</p>
+<blockquote>"That was fast, it tasted amazing, and it's always like that."</blockquote>
+<p>This is what sets us apart from every other coffee shop.</p>
+<hr>
+<h3>THREE STEPS OF SERVICE</h3>
+<p>Adapted from the Ritz Carlton philosophy, here's how we deliver world-class service:</p>
+<h3>STEP 1: WARM, SINCERE GREETING</h3>
+<p>Use the guest's name when possible. A genuine smile and friendly tone set the stage for the entire interaction.</p>
+<h3>STEP 2: ANTICIPATE AND FULFILL NEEDS</h3>
+<p>Listen actively, ask clarifying questions, and offer thoughtful recommendations. Make their experience effortless.</p>
+<h3>STEP 3: FOND FAREWELL</h3>
+<p>Thank them by name, wish them well, and leave them with a positive final impression. The last 10 seconds matter.</p>
+<hr>
+<h3>EVERY INTERACTION COUNTS</h3>
+<p>You might serve 100+ customers in a shift. For you, it's one of many interactions. For them, it might be the highlight of their morning—or the moment that turns a bad day around.</p>
+<p>Treat every guest like they're the only one that matters.</p>`
       },
       {
         id: 'l-hospitality-ritz-skills',
         moduleId: 'm-hospitality-ritz',
         title: 'Key Hospitality Skills',
         type: 'CONTENT',
-        content: `**KEY HOSPITALITY SKILLS**
-
-Master these four skills to deliver exceptional service every time:
-
-═══════════════════════════════════════
-
-**1. WARM WELCOME**
-
-**What It Looks Like:**
-✓ Greet guests within 3 seconds of eye contact
-✓ Smile genuinely (it shows in your voice, even on the phone)
-✓ Use their name when you know it
-✓ Make them feel like you're happy they're here
-
-**Avoid:**
-✗ Looking at your phone or away when a guest approaches
-✗ Monotone, scripted greetings
-✗ Ignoring guests while finishing another task
-
-═══════════════════════════════════════
-
-**2. ATTENTIVE LISTENING**
-
-**What It Looks Like:**
-✓ Maintain eye contact while they order
-✓ Nod and acknowledge as they speak
-✓ Repeat the order back for confirmation
-✓ Ask clarifying questions if needed
-
-**Avoid:**
-✗ Interrupting or finishing their sentences
-✗ Rushing them through their order
-✗ Typing while they're talking without acknowledgment
-
-═══════════════════════════════════════
-
-**3. PERSONALIZATION**
-
-**What It Looks Like:**
-✓ Remember regulars' names and favorite orders
-✓ Make recommendations based on their preferences
-✓ Adjust your approach (fast for rushed guests, thorough for first-timers)
-✓ Add thoughtful touches (extra napkins for kids, a kind note on the cup)
-
-**Avoid:**
-✗ Treating every guest the same without reading the room
-✗ Generic, robotic interactions
-✗ Forgetting details about regulars
-
-═══════════════════════════════════════
-
-**4. POSITIVE, SOLUTION-FOCUSED COMMUNICATION**
-
-**What It Looks Like:**
-✓ Say "I can" instead of "I can't"
-✓ Offer alternatives when something isn't available
-✓ Stay calm and professional, even under pressure
-✓ Turn problems into opportunities to exceed expectations
-
-**Avoid:**
-✗ Saying "We're out of that" without offering an alternative
-✗ Using negative language or making excuses
-✗ Blaming others for mistakes
-
-═══════════════════════════════════════
-
-**PRACTICE DAILY:**
-
-Hospitality is a skill, not a talent. The more you practice these behaviors, the more natural they become. Challenge yourself to improve 1% every shift—over time, those small improvements create exceptional service.`
+        content: `<h3>KEY HOSPITALITY SKILLS</h3>
+<p>Master these four skills to deliver exceptional service every time:</p>
+<hr>
+<h3>1. WARM WELCOME</h3>
+<h3>What It Looks Like:</h3>
+<ul>
+<li>✓ Greet guests within 3 seconds of eye contact</li>
+<li>✓ Smile genuinely (it shows in your voice, even on the phone)</li>
+<li>✓ Use their name when you know it</li>
+<li>✓ Make them feel like you're happy they're here</li>
+</ul>
+<h3>Avoid:</h3>
+<ul>
+<li>✗ Looking at your phone or away when a guest approaches</li>
+<li>✗ Monotone, scripted greetings</li>
+<li>✗ Ignoring guests while finishing another task</li>
+</ul>
+<hr>
+<h3>2. ATTENTIVE LISTENING</h3>
+<h3>What It Looks Like:</h3>
+<ul>
+<li>✓ Maintain eye contact while they order</li>
+<li>✓ Nod and acknowledge as they speak</li>
+<li>✓ Repeat the order back for confirmation</li>
+<li>✓ Ask clarifying questions if needed</li>
+</ul>
+<h3>Avoid:</h3>
+<ul>
+<li>✗ Interrupting or finishing their sentences</li>
+<li>✗ Rushing them through their order</li>
+<li>✗ Typing while they're talking without acknowledgment</li>
+</ul>
+<hr>
+<h3>3. PERSONALIZATION</h3>
+<h3>What It Looks Like:</h3>
+<ul>
+<li>✓ Remember regulars' names and favorite orders</li>
+<li>✓ Make recommendations based on their preferences</li>
+<li>✓ Adjust your approach (fast for rushed guests, thorough for first-timers)</li>
+<li>✓ Add thoughtful touches (extra napkins for kids, a kind note on the cup)</li>
+</ul>
+<h3>Avoid:</h3>
+<ul>
+<li>✗ Treating every guest the same without reading the room</li>
+<li>✗ Generic, robotic interactions</li>
+<li>✗ Forgetting details about regulars</li>
+</ul>
+<hr>
+<h3>4. POSITIVE, SOLUTION-FOCUSED COMMUNICATION</h3>
+<h3>What It Looks Like:</h3>
+<ul>
+<li>✓ Say "I can" instead of "I can't"</li>
+<li>✓ Offer alternatives when something isn't available</li>
+<li>✓ Stay calm and professional, even under pressure</li>
+<li>✓ Turn problems into opportunities to exceed expectations</li>
+</ul>
+<h3>Avoid:</h3>
+<ul>
+<li>✗ Saying "We're out of that" without offering an alternative</li>
+<li>✗ Using negative language or making excuses</li>
+<li>✗ Blaming others for mistakes</li>
+</ul>
+<hr>
+<h3>PRACTICE DAILY:</h3>
+<p>Hospitality is a skill, not a talent. The more you practice these behaviors, the more natural they become. Challenge yourself to improve 1% every shift—over time, those small improvements create exceptional service.</p>`
       },
       {
         id: 'l-hospitality-ritz-quiz',
@@ -1503,187 +1839,149 @@ Hospitality is a skill, not a talent. The more you practice these behaviors, the
         moduleId: 'm-order-taking',
         title: 'Order Taking Position Overview',
         type: 'CONTENT',
-        content: `**THE ORDER TAKER'S ROLE**
-
-The Order Taker is the first point of contact for many guests—you set the tone for both speed and hospitality.
-
-**WHEN IS AN ORDER TAKER DEPLOYED?**
-
-When 3 or more people are clocked in, the Order Taker stands outside by the menu board with:
-• Boundaries satchel (with Toast Go 2 handheld POS inside)
-• Professional, welcoming presence
-• High energy and readiness to engage
-
-**YOUR IMPACT:**
-
-✓ Reduce window wait times dramatically
-✓ Create personal connections before guests reach the window
-✓ Increase accuracy by taking orders without distractions
-✓ Set the tone for exceptional hospitality
-
-**POSITION PRIORITIES:**
-
-1. **SPEED** - Keep the line moving efficiently
-2. **ACCURACY** - Get every order right the first time
-3. **HOSPITALITY** - Make every guest feel welcomed and valued
-
-The Order Taker role is about balancing efficiency with genuine connection—smile, be present, and keep things moving!`
+        content: `<h3>THE ORDER TAKER'S ROLE</h3>
+<p>The Order Taker is the first point of contact for many guests—you set the tone for both speed and hospitality.</p>
+<h3>WHEN IS AN ORDER TAKER DEPLOYED?</h3>
+<p>When 3 or more people are clocked in, the Order Taker stands outside by the menu board with:</p>
+<ul>
+<li>Boundaries satchel (with Toast Go 2 handheld POS inside)</li>
+<li>Professional, welcoming presence</li>
+<li>High energy and readiness to engage</li>
+</ul>
+<h3>YOUR IMPACT:</h3>
+<ul>
+<li>✓ Reduce window wait times dramatically</li>
+<li>✓ Create personal connections before guests reach the window</li>
+<li>✓ Increase accuracy by taking orders without distractions</li>
+<li>✓ Set the tone for exceptional hospitality</li>
+</ul>
+<h3>POSITION PRIORITIES:</h3>
+<ol>
+<li>SPEED - Keep the line moving efficiently</li>
+<li>ACCURACY - Get every order right the first time</li>
+<li>HOSPITALITY - Make every guest feel welcomed and valued</li>
+</ol>
+<p>The Order Taker role is about balancing efficiency with genuine connection—smile, be present, and keep things moving!</p>`
       },
       {
         id: 'l-order-taking-script',
         moduleId: 'm-order-taking',
         title: '8-Step Greeting Script',
         type: 'CONTENT',
-        content: `**THE 8-STEP GREETING SCRIPT**
-
-Memorize this script—it's the foundation of excellent order-taking:
-
-**STEP 1: Warm Greeting**
-"Good [morning/afternoon/evening]! Welcome to Boundaries!"
-
-**STEP 2: Acknowledge Wait (if applicable)**
-"Thank you for your patience!"
-
-**STEP 3: Ask for Name**
-"Can I get a name for your order?"
-
-**STEP 4: Take Order**
-"What can I get started for you today?"
-
-**STEP 5: Confirm & Upsell**
-"Did you want to add [pastry/food item] to your order?"
-
-**STEP 6: Repeat Order**
-"So I have [repeat full order]. Does that sound correct?"
-
-**STEP 7: Total & Payment Prompt**
-"Your total is $X.XX. How would you like to pay today?"
-
-**STEP 8: Thank You & Instructions**
-"Thank you! Pull forward to the window, and we'll have that ready for you!"
-
-═══════════════════════════════════════
-
-**IMPORTANT NOTES:**
-
-• Use the guest's name when possible ("Thanks, Sarah!")
-• Maintain eye contact and smile genuinely
-• Speak clearly and at a moderate pace
-• Be flexible—adapt the script to the situation, but hit all 8 steps
-
-**PRACTICE TIP:** Repeat this script 10 times out loud until it feels natural.`
+        content: `<h3>THE 8-STEP GREETING SCRIPT</h3>
+<p>Memorize this script—it's the foundation of excellent order-taking:</p>
+<h3>STEP 1: Warm Greeting</h3>
+<p>"Good [morning/afternoon/evening]! Welcome to Boundaries!"</p>
+<h3>STEP 2: Acknowledge Wait (if applicable)</h3>
+<p>"Thank you for your patience!"</p>
+<h3>STEP 3: Ask for Name</h3>
+<p>"Can I get a name for your order?"</p>
+<h3>STEP 4: Take Order</h3>
+<p>"What can I get started for you today?"</p>
+<h3>STEP 5: Confirm & Upsell</h3>
+<p>"Did you want to add [pastry/food item] to your order?"</p>
+<h3>STEP 6: Repeat Order</h3>
+<p>"So I have [repeat full order]. Does that sound correct?"</p>
+<h3>STEP 7: Total & Payment Prompt</h3>
+<p>"Your total is $X.XX. How would you like to pay today?"</p>
+<h3>STEP 8: Thank You & Instructions</h3>
+<p>"Thank you! Pull forward to the window, and we'll have that ready for you!"</p>
+<hr>
+<h3>IMPORTANT NOTES:</h3>
+<ul>
+<li>Use the guest's name when possible ("Thanks, Sarah!")</li>
+<li>Maintain eye contact and smile genuinely</li>
+<li>Speak clearly and at a moderate pace</li>
+<li>Be flexible—adapt the script to the situation, but hit all 8 steps</li>
+</ul>
+<p>PRACTICE TIP: Repeat this script 10 times out loud until it feels natural.</p>`
       },
       {
         id: 'l-order-taking-flow',
         moduleId: 'm-order-taking',
         title: 'Flow Management & Time Goals',
         type: 'CONTENT',
-        content: `**FLOW MANAGEMENT**
-
-Keeping the line moving efficiently without sacrificing hospitality is an art. Here's how to master it:
-
-**TIME GOALS:**
-
-• **Total Visit Time:** <3.5 minutes (from arrival to departure)
-• **Window Time:** ≤60 seconds (at the pickup window)
-• **Order-Taking Time:** ~60-90 seconds per car
-
-**EFFICIENCY TECHNIQUES:**
-
-**1. MULTI-TASKING**
-While greeting one car, glance at the next to gauge their readiness.
-
-**2. PRE-QUALIFYING QUESTIONS**
-"Are we doing hot, iced, or frozen today?" narrows down options quickly.
-
-**3. QUICK CLARIFICATIONS**
-"Did you want that with our house 2% milk or an alt milk?"
-
-**4. READING THE SITUATION**
-• Rushed customer? Skip the upsell, get them through fast.
-• Relaxed regular? Engage, build rapport, suggest new items.
-
-**5. COMMUNICATING WITH THE TEAM**
-Use the Toast POS notes field to add special instructions: "Extra hot," "No ice," "Light sweet cream."
-
-**WHEN THE LINE GETS LONG:**
-
-• Stay calm and confident
-• Acknowledge waiting guests: "We'll be with you shortly!"
-• Focus on accuracy over speed—mistakes slow everyone down
-• Call for backup if needed
-
-═══════════════════════════════════════
-
-**THE BALANCE:**
-
-Fast service doesn't mean rushed service. Efficiency comes from:
-✓ Knowing the menu inside and out
-✓ Using the POS confidently
-✓ Communicating clearly
-✓ Staying organized and focused
-
-**REMEMBER:** Every second saved adds up—but never at the cost of making a guest feel rushed or undervalued.`
+        content: `<h3>FLOW MANAGEMENT</h3>
+<p>Keeping the line moving efficiently without sacrificing hospitality is an art. Here's how to master it:</p>
+<h3>TIME GOALS:</h3>
+<ul>
+<li>Total Visit Time: &lt;3.5 minutes (from arrival to departure)</li>
+<li>Window Time: ≤60 seconds (at the pickup window)</li>
+<li>Order-Taking Time: ~60-90 seconds per car</li>
+</ul>
+<h3>EFFICIENCY TECHNIQUES:</h3>
+<h3>1. MULTI-TASKING</h3>
+<p>While greeting one car, glance at the next to gauge their readiness.</p>
+<h3>2. PRE-QUALIFYING QUESTIONS</h3>
+<p>"Are we doing hot, iced, or frozen today?" narrows down options quickly.</p>
+<h3>3. QUICK CLARIFICATIONS</h3>
+<p>"Did you want that with our house 2% milk or an alt milk?"</p>
+<h3>4. READING THE SITUATION</h3>
+<ul>
+<li>Rushed customer? Skip the upsell, get them through fast.</li>
+<li>Relaxed regular? Engage, build rapport, suggest new items.</li>
+</ul>
+<h3>5. COMMUNICATING WITH THE TEAM</h3>
+<p>Use the Toast POS notes field to add special instructions: "Extra hot," "No ice," "Light sweet cream."</p>
+<h3>WHEN THE LINE GETS LONG:</h3>
+<ul>
+<li>Stay calm and confident</li>
+<li>Acknowledge waiting guests: "We'll be with you shortly!"</li>
+<li>Focus on accuracy over speed—mistakes slow everyone down</li>
+<li>Call for backup if needed</li>
+</ul>
+<hr>
+<h3>THE BALANCE:</h3>
+<p>Fast service doesn't mean rushed service. Efficiency comes from:</p>
+<ul>
+<li>✓ Knowing the menu inside and out</li>
+<li>✓ Using the POS confidently</li>
+<li>✓ Communicating clearly</li>
+<li>✓ Staying organized and focused</li>
+</ul>
+<p>REMEMBER: Every second saved adds up—but never at the cost of making a guest feel rushed or undervalued.</p>`
       },
       {
         id: 'l-order-taking-practice',
         moduleId: 'm-order-taking',
         title: 'Hands-On Practice Scenarios',
         type: 'CONTENT',
-        content: `**PRACTICE ORDER SCENARIOS**
-
-Work with your trainer to practice these real-world orders. Focus on speed, accuracy, and using the full 8-step script.
-
-**SCENARIO 1: Simple Single Order**
-Guest: "I'll take a large iced Texas Delight with oat milk and half sweet."
-
-*Practice: Enter the order, confirm, and suggest a pastry pairing.*
-
-**SCENARIO 2: Hot Drink with Add-On**
-Guest: "Medium hot Hill Country, and can you add an extra shot?"
-
-*Practice: Navigate to the correct drink, add the size, add the $1 upcharge for the extra shot.*
-
-**SCENARIO 3: Frozen Specialty**
-Guest: "I want a large frozen Salted Sweetheart with sweet cream on top."
-
-*Practice: Enter frozen modifier, size, and sweet cream (+$0.75).*
-
-**SCENARIO 4: Multiple Drinks**
-Guest: "I need an Electric B energy drink and a Unicorn Latte."
-
-*Practice: Add both items to the same order, confirm each.*
-
-**SCENARIO 5: Food + Drink**
-Guest: "Cookie Butter Nitro and a bacon breakfast taco."
-
-*Practice: Navigate between drink and food menus efficiently.*
-
-**SCENARIO 6: Complex Modifications**
-Guest: "Strawberry Dream Matcha, iced, almond milk, extra sweet."
-
-*Practice: Apply all modifiers correctly in order.*
-
-**SCENARIO 7: Tea + Food**
-Guest: "Hot Honey Bee tea and a chocolate croissant."
-
-*Practice: Find tea category, add food item, upsell gently.*
-
-**SCENARIO 8: Large Multi-Item Order**
-Guest: "Two large iced drinks—one Lavender Sunrise and one Harvest Moon."
-
-*Practice: Manage multiple items, confirm each, ensure accuracy.*
-
-═══════════════════════════════════════
-
-**TRAINER NOTES:**
-
-Work through each scenario until the trainee can:
-✓ Navigate the POS confidently
-✓ Apply modifiers correctly
-✓ Complete orders in under 90 seconds
-✓ Use the 8-step script naturally
-✓ Maintain friendly, professional energy throughout`
+        content: `<h3>PRACTICE ORDER SCENARIOS</h3>
+<p>Work with your trainer to practice these real-world orders. Focus on speed, accuracy, and using the full 8-step script.</p>
+<h3>SCENARIO 1: Simple Single Order</h3>
+<p>Guest: "I'll take a large iced Texas Delight with oat milk and half sweet."</p>
+<p>Practice: Enter the order, confirm, and suggest a pastry pairing.</p>
+<h3>SCENARIO 2: Hot Drink with Add-On</h3>
+<p>Guest: "Medium hot Hill Country, and can you add an extra shot?"</p>
+<p>Practice: Navigate to the correct drink, add the size, add the $1 upcharge for the extra shot.</p>
+<h3>SCENARIO 3: Frozen Specialty</h3>
+<p>Guest: "I want a large frozen Salted Sweetheart with sweet cream on top."</p>
+<p>Practice: Enter frozen modifier, size, and sweet cream (+$0.75).</p>
+<h3>SCENARIO 4: Multiple Drinks</h3>
+<p>Guest: "I need an Electric B energy drink and a Unicorn Latte."</p>
+<p>Practice: Add both items to the same order, confirm each.</p>
+<h3>SCENARIO 5: Food + Drink</h3>
+<p>Guest: "Cookie Butter Nitro and a bacon breakfast taco."</p>
+<p>Practice: Navigate between drink and food menus efficiently.</p>
+<h3>SCENARIO 6: Complex Modifications</h3>
+<p>Guest: "Strawberry Dream Matcha, iced, almond milk, extra sweet."</p>
+<p>Practice: Apply all modifiers correctly in order.</p>
+<h3>SCENARIO 7: Tea + Food</h3>
+<p>Guest: "Hot Honey Bee tea and a chocolate croissant."</p>
+<p>Practice: Find tea category, add food item, upsell gently.</p>
+<h3>SCENARIO 8: Large Multi-Item Order</h3>
+<p>Guest: "Two large iced drinks—one Lavender Sunrise and one Harvest Moon."</p>
+<p>Practice: Manage multiple items, confirm each, ensure accuracy.</p>
+<hr>
+<h3>TRAINER NOTES:</h3>
+<p>Work through each scenario until the trainee can:</p>
+<ul>
+<li>✓ Navigate the POS confidently</li>
+<li>✓ Apply modifiers correctly</li>
+<li>✓ Complete orders in under 90 seconds</li>
+<li>✓ Use the 8-step script naturally</li>
+<li>✓ Maintain friendly, professional energy throughout</li>
+</ul>`
       },
       {
         id: 'l-order-taking-quiz',
@@ -1726,387 +2024,347 @@ Work through each scenario until the trainee can:
         moduleId: 'm-toast-pos',
         title: 'Toast POS System Overview',
         type: 'CONTENT',
-        content: `**TOAST POS SYSTEM OVERVIEW**
-
-Boundaries Coffee uses the **Toast Point of Sale (POS)** system to take orders, process payments, and manage customer transactions.
-
-═══════════════════════════════════════
-
-**TRAINING VIDEOS**
-
-Before hands-on practice, complete these Toast Central training modules:
-
-**1. Toast Classroom – Front of House**
-🔗 [central.toasttab.com/s/toast-classroom](https://central.toasttab.com/s/toast-classroom)
-
-**2. Front of House Skills 101**
-🔗 [central.toasttab.com/s/front-of-house-skills-101](https://central.toasttab.com/s/front-of-house-skills-101)
-
-**3. POS Practice Sandbox**
-Navigate to: Toast Classroom → Getting Started with POS Functionality
-
-*Note: Toast Central requires login. Ask your manager for access credentials.*
-
-═══════════════════════════════════════
-
-**HARDWARE OVERVIEW**
-
-**Toast Go 2 Handheld Device:**
-• Touchscreen interface for order entry
-• Built-in card reader (swipe, chip, contactless tap)
-• Portable and wireless
-• Stored in the **Boundaries satchel** when taking orders outside
-
-**Key Features:**
-✓ Fast, intuitive menu navigation
-✓ Integrated payment processing
-✓ Real-time order transmission to kitchen
-✓ Customer-facing display for order confirmation
-
-═══════════════════════════════════════
-
-**WHY TOAST MATTERS**
-
-Mastering the Toast POS allows you to:
-• Take orders quickly and accurately
-• Process payments efficiently
-• Minimize errors and remakes
-• Provide a seamless customer experience
-• Focus on hospitality instead of struggling with technology
-
-**Next lessons will cover order entry, payment processing, and troubleshooting common scenarios.**`
+        content: `<h3>TOAST POS SYSTEM OVERVIEW</h3>
+<p>Boundaries Coffee uses the Toast Point of Sale (POS) system to take orders, process payments, and manage customer transactions.</p>
+<hr>
+<h3>TRAINING VIDEOS</h3>
+<p>Before hands-on practice, complete these Toast Central training modules:</p>
+<h3>1. Toast Classroom – Front of House</h3>
+<p>🔗 <a href="https://central.toasttab.com/s/toast-classroom">central.toasttab.com/s/toast-classroom</a></p>
+<h3>2. Front of House Skills 101</h3>
+<p>🔗 <a href="https://central.toasttab.com/s/front-of-house-skills-101">central.toasttab.com/s/front-of-house-skills-101</a></p>
+<h3>3. POS Practice Sandbox</h3>
+<p>Navigate to: Toast Classroom → Getting Started with POS Functionality</p>
+<p>Note: Toast Central requires login. Ask your manager for access credentials.</p>
+<hr>
+<h3>HARDWARE OVERVIEW</h3>
+<h3>Toast Go 2 Handheld Device:</h3>
+<ul>
+<li>Touchscreen interface for order entry</li>
+<li>Built-in card reader (swipe, chip, contactless tap)</li>
+<li>Portable and wireless</li>
+<li>Stored in the Boundaries satchel when taking orders outside</li>
+</ul>
+<h3>Key Features:</h3>
+<ul>
+<li>✓ Fast, intuitive menu navigation</li>
+<li>✓ Integrated payment processing</li>
+<li>✓ Real-time order transmission to kitchen</li>
+<li>✓ Customer-facing display for order confirmation</li>
+</ul>
+<hr>
+<h3>WHY TOAST MATTERS</h3>
+<p>Mastering the Toast POS allows you to:</p>
+<ul>
+<li>Take orders quickly and accurately</li>
+<li>Process payments efficiently</li>
+<li>Minimize errors and remakes</li>
+<li>Provide a seamless customer experience</li>
+<li>Focus on hospitality instead of struggling with technology</li>
+</ul>
+<p>Next lessons will cover order entry, payment processing, and troubleshooting common scenarios.</p>`
       },
       {
         id: 'l-toast-order-flow',
         moduleId: 'm-toast-pos',
         title: 'Order Entry Flow',
         type: 'CONTENT',
-        content: `**ORDER ENTRY FLOW**
-
-Follow these 6 steps every time you take an order:
-
-═══════════════════════════════════════
-
-**STEP 1: TAB NAME**
-Enter the guest's name to identify the order.
-
-**STEP 2: ADD ITEM**
-Select the drink or food category, then tap the specific item.
-
-**STEP 3: SELECT SIZE**
-Choose the size: Small, Medium, Large (varies by drink type).
-
-**STEP 4: SELECT MODIFIERS**
-Add customizations:
-• Milk type
-• Sweetness level
-• Extras (shots, cream, drizzle)
-• Temperature (Hot, Iced, Frozen)
-
-**STEP 5: DONE**
-Confirm the item to add it to the order.
-
-**STEP 6: SEND TO KITCHEN**
-Fire the order to transmit it to the bar for preparation.
-
-═══════════════════════════════════════
-
-**COMMON MODIFIERS**
-
-**Milk Options:**
-• Whole
-• 2%
-• Oat
-• Almond
-• Coconut
-• Fairlife
-
-**Sweetness Options:**
-• Regular (standard)
-• Half Sweet
-• Extra Sweet
-
-**Extras (with upcharges):**
-• Extra Shot: **+$1.00**
-• Sweet Cream: **+$0.75**
-• Drizzle: **+$0.25**
-
-**Temperature Options:**
-• Hot
-• Iced
-• Frozen
-
-═══════════════════════════════════════
-
-**PRO TIPS:**
-
-✓ **Navigate efficiently** - Know where each drink category is located
-✓ **Confirm modifiers** - Repeat customizations back to the guest
-✓ **Use the Done button** - Don't skip this step or the item won't save
-✓ **Send orders promptly** - Don't wait too long or drinks will be delayed
-
-**REMEMBER:** Accuracy is more important than speed. A correct order the first time is always faster than remaking a mistake.`
+        content: `<h3>ORDER ENTRY FLOW</h3>
+<p>Follow these 6 steps every time you take an order:</p>
+<hr>
+<h3>STEP 1: TAB NAME</h3>
+<p>Enter the guest's name to identify the order.</p>
+<h3>STEP 2: ADD ITEM</h3>
+<p>Select the drink or food category, then tap the specific item.</p>
+<h3>STEP 3: SELECT SIZE</h3>
+<p>Choose the size: Small, Medium, Large (varies by drink type).</p>
+<h3>STEP 4: SELECT MODIFIERS</h3>
+<p>Add customizations:</p>
+<ul>
+<li>Milk type</li>
+<li>Sweetness level</li>
+<li>Extras (shots, cream, drizzle)</li>
+<li>Temperature (Hot, Iced, Frozen)</li>
+</ul>
+<h3>STEP 5: DONE</h3>
+<p>Confirm the item to add it to the order.</p>
+<h3>STEP 6: SEND TO KITCHEN</h3>
+<p>Fire the order to transmit it to the bar for preparation.</p>
+<hr>
+<h3>COMMON MODIFIERS</h3>
+<h3>Milk Options:</h3>
+<ul>
+<li>Whole</li>
+<li>2%</li>
+<li>Oat</li>
+<li>Almond</li>
+<li>Coconut</li>
+<li>Fairlife</li>
+</ul>
+<h3>Sweetness Options:</h3>
+<ul>
+<li>Regular (standard)</li>
+<li>Half Sweet</li>
+<li>Extra Sweet</li>
+</ul>
+<h3>Extras (with upcharges):</h3>
+<ul>
+<li>Extra Shot: +$1.00</li>
+<li>Sweet Cream: +$0.75</li>
+<li>Drizzle: +$0.25</li>
+</ul>
+<h3>Temperature Options:</h3>
+<ul>
+<li>Hot</li>
+<li>Iced</li>
+<li>Frozen</li>
+</ul>
+<hr>
+<h3>PRO TIPS:</h3>
+<ul>
+<li>✓ Navigate efficiently - Know where each drink category is located</li>
+<li>✓ Confirm modifiers - Repeat customizations back to the guest</li>
+<li>✓ Use the Done button - Don't skip this step or the item won't save</li>
+<li>✓ Send orders promptly - Don't wait too long or drinks will be delayed</li>
+</ul>
+<p>REMEMBER: Accuracy is more important than speed. A correct order the first time is always faster than remaking a mistake.</p>`
       },
       {
         id: 'l-toast-payment',
         moduleId: 'm-toast-pos',
         title: 'Payment Processing',
         type: 'CONTENT',
-        content: `**PAYMENT PROCESSING**
-
-Once the order is complete, process payment using one of these methods:
-
-═══════════════════════════════════════
-
-**CREDIT / DEBIT CARD**
-
-1. Tap **Pay**
-2. Select **Lane** (credit/debit)
-3. Guest can:
-   - **Tap** (contactless/NFC)
-   - **Insert** (chip card)
-   - **Swipe** (magnetic stripe)
-4. Wait for approval confirmation
-
-═══════════════════════════════════════
-
-**CASH**
-
-1. Tap **Pay**
-2. Select **Cash**
-3. Enter the **amount tendered** by the guest (e.g., if total is $8.50 and they give you $10, enter $10)
-4. The system will calculate and display the change due
-5. Give change to the guest
-
-═══════════════════════════════════════
-
-**GIFT CARD**
-
-1. Tap **Pay**
-2. Select **Gift Card**
-3. **Scan** the gift card barcode or **manually enter** the card number
-4. System will deduct from the card balance
-
-═══════════════════════════════════════
-
-**BOUNDARIES APP (DIGITAL GIFT CARD)**
-
-⚠️ **IMPORTANT:** When a guest pays with the Boundaries App, select **Gift Card** as the payment method.
-
-**Why?**
-The Boundaries App generates a **digital gift card QR code** for payment. This is NOT the same as a credit card payment.
-
-**Process:**
-1. Tap **Pay**
-2. Select **Gift Card**
-3. Scan the QR code from the guest's phone
-4. Payment complete
-
-**DO NOT select "Credit Card" for Boundaries App payments.**
-
-═══════════════════════════════════════
-
-**MOBILE WALLET (Apple Pay / Google Pay)**
-
-1. Tap **Pay**
-2. Select **Lane**
-3. Guest taps their phone or watch on the card reader
-4. Wait for approval confirmation
-
-═══════════════════════════════════════
-
-**APPLYING REWARDS**
-
-To apply rewards to an order:
-1. Before payment, tap **Rewards** or **Phone Number**
-2. Enter the guest's phone number
-3. Available rewards will automatically apply to the order
-4. Proceed with payment
-
-═══════════════════════════════════════
-
-**COMMON PAYMENT ISSUES**
-
-**Card Declined:**
-• Politely inform the guest
-• Offer alternative payment method
-
-**Gift Card Insufficient Balance:**
-• System will show remaining balance
-• Offer to split payment (use gift card first, then another payment method for the remainder)
-
-**App Not Scanning:**
-• Increase screen brightness
-• Try manual gift card entry if QR won't scan`
+        content: `<h3>PAYMENT PROCESSING</h3>
+<p>Once the order is complete, process payment using one of these methods:</p>
+<hr>
+<h3>CREDIT / DEBIT CARD</h3>
+<ol>
+<li>Tap Pay</li>
+<li>Select Lane (credit/debit)</li>
+<li>Guest can:
+<ul>
+<li>Tap (contactless/NFC)</li>
+<li>Insert (chip card)</li>
+<li>Swipe (magnetic stripe)</li>
+</ul>
+</li>
+<li>Wait for approval confirmation</li>
+</ol>
+<hr>
+<h3>CASH</h3>
+<ol>
+<li>Tap Pay</li>
+<li>Select Cash</li>
+<li>Enter the amount tendered by the guest (e.g., if total is $8.50 and they give you $10, enter $10)</li>
+<li>The system will calculate and display the change due</li>
+<li>Give change to the guest</li>
+</ol>
+<hr>
+<h3>GIFT CARD</h3>
+<ol>
+<li>Tap Pay</li>
+<li>Select Gift Card</li>
+<li>Scan the gift card barcode or manually enter the card number</li>
+<li>System will deduct from the card balance</li>
+</ol>
+<hr>
+<h3>BOUNDARIES APP (DIGITAL GIFT CARD)</h3>
+<p>⚠️ IMPORTANT: When a guest pays with the Boundaries App, select Gift Card as the payment method.</p>
+<h3>Why?</h3>
+<p>The Boundaries App generates a digital gift card QR code for payment. This is NOT the same as a credit card payment.</p>
+<h3>Process:</h3>
+<ol>
+<li>Tap Pay</li>
+<li>Select Gift Card</li>
+<li>Scan the QR code from the guest's phone</li>
+<li>Payment complete</li>
+</ol>
+<p>DO NOT select "Credit Card" for Boundaries App payments.</p>
+<hr>
+<h3>MOBILE WALLET (Apple Pay / Google Pay)</h3>
+<ol>
+<li>Tap Pay</li>
+<li>Select Lane</li>
+<li>Guest taps their phone or watch on the card reader</li>
+<li>Wait for approval confirmation</li>
+</ol>
+<hr>
+<h3>APPLYING REWARDS</h3>
+<p>To apply rewards to an order:</p>
+<ol>
+<li>Before payment, tap Rewards or Phone Number</li>
+<li>Enter the guest's phone number</li>
+<li>Available rewards will automatically apply to the order</li>
+<li>Proceed with payment</li>
+</ol>
+<hr>
+<h3>COMMON PAYMENT ISSUES</h3>
+<h3>Card Declined:</h3>
+<ul>
+<li>Politely inform the guest</li>
+<li>Offer alternative payment method</li>
+</ul>
+<h3>Gift Card Insufficient Balance:</h3>
+<ul>
+<li>System will show remaining balance</li>
+<li>Offer to split payment (use gift card first, then another payment method for the remainder)</li>
+</ul>
+<h3>App Not Scanning:</h3>
+<ul>
+<li>Increase screen brightness</li>
+<li>Try manual gift card entry if QR won't scan</li>
+</ul>`
       },
       {
         id: 'l-toast-editing',
         moduleId: 'm-toast-pos',
         title: 'Editing Orders & Troubleshooting',
         type: 'CONTENT',
-        content: `**EDITING ORDERS**
-
-Mistakes happen. Here's how to fix them:
-
-═══════════════════════════════════════
-
-**MODIFY AN ITEM**
-
-If you need to change a modifier (milk, size, etc.):
-1. **Tap the item** on the order screen
-2. Make the needed changes
-3. Tap **Done** to save changes
-
-═══════════════════════════════════════
-
-**REMOVE AN ITEM**
-
-If you need to delete an item from the order:
-1. **Swipe left** on the item
-2. Tap **Delete** to confirm removal
-
-═══════════════════════════════════════
-
-**VOID vs. REFUND**
-
-**VOID (Before Payment):**
-Use this to remove an item or cancel an order **before** payment is processed.
-
-• Tap the item
-• Swipe left and delete
-• No manager approval needed (usually)
-
-**REFUND (After Payment):**
-Use this if the guest has already paid and needs money back.
-
-• Requires **manager approval** (depending on settings)
-• Process through the Toast refund menu
-• Document the reason for the refund
-
-⚠️ **Important:** Void before payment whenever possible. Refunds create more paperwork and require manager sign-off.
-
-═══════════════════════════════════════
-
-**COMMON SCENARIOS**
-
-**Guest Changes Their Mind Mid-Order:**
-• Tap the item to modify or swipe left to delete
-• Add the new item
-• Confirm with the guest before proceeding
-
-**Wrong Size Selected:**
-• Tap the item
-• Change the size modifier
-• Tap Done
-
-**Forgot to Add Extra Shot:**
-• Tap the item
-• Add the extra shot modifier (+$1)
-• Tap Done
-
-**Guest Paid But Wants a Refund:**
-• Call your manager or shift lead
-• Explain the situation
-• Manager will process the refund through the POS
-
-═══════════════════════════════════════
-
-**TROUBLESHOOTING TIPS**
-
-**POS is Frozen or Slow:**
-• Restart the Toast device
-• Check Wi-Fi connection
-• Alert your manager if the issue persists
-
-**Payment Won't Process:**
-• Check card reader connection
-• Try a different payment method
-• Use backup payment terminal if available
-
-**Order Didn't Fire to Kitchen:**
-• Check if "Send to Kitchen" was pressed
-• Manually communicate the order to the bar
-• Resend if needed
-
-═══════════════════════════════════════
-
-**BEST PRACTICES:**
-
-✓ Always double-check orders before sending
-✓ Confirm payment method with the guest
-✓ Keep the POS screen clean and responsive
-✓ Communicate with your team if issues arise
-✓ Ask for help—don't guess if you're unsure`
+        content: `<h3>EDITING ORDERS</h3>
+<p>Mistakes happen. Here's how to fix them:</p>
+<hr>
+<h3>MODIFY AN ITEM</h3>
+<p>If you need to change a modifier (milk, size, etc.):</p>
+<ol>
+<li>Tap the item on the order screen</li>
+<li>Make the needed changes</li>
+<li>Tap Done to save changes</li>
+</ol>
+<hr>
+<h3>REMOVE AN ITEM</h3>
+<p>If you need to delete an item from the order:</p>
+<ol>
+<li>Swipe left on the item</li>
+<li>Tap Delete to confirm removal</li>
+</ol>
+<hr>
+<h3>VOID vs. REFUND</h3>
+<h3>VOID (Before Payment):</h3>
+<p>Use this to remove an item or cancel an order before payment is processed.</p>
+<ul>
+<li>Tap the item</li>
+<li>Swipe left and delete</li>
+<li>No manager approval needed (usually)</li>
+</ul>
+<h3>REFUND (After Payment):</h3>
+<p>Use this if the guest has already paid and needs money back.</p>
+<ul>
+<li>Requires manager approval (depending on settings)</li>
+<li>Process through the Toast refund menu</li>
+<li>Document the reason for the refund</li>
+</ul>
+<p>⚠️ Important: Void before payment whenever possible. Refunds create more paperwork and require manager sign-off.</p>
+<hr>
+<h3>COMMON SCENARIOS</h3>
+<h3>Guest Changes Their Mind Mid-Order:</h3>
+<ul>
+<li>Tap the item to modify or swipe left to delete</li>
+<li>Add the new item</li>
+<li>Confirm with the guest before proceeding</li>
+</ul>
+<h3>Wrong Size Selected:</h3>
+<ul>
+<li>Tap the item</li>
+<li>Change the size modifier</li>
+<li>Tap Done</li>
+</ul>
+<h3>Forgot to Add Extra Shot:</h3>
+<ul>
+<li>Tap the item</li>
+<li>Add the extra shot modifier (+$1)</li>
+<li>Tap Done</li>
+</ul>
+<h3>Guest Paid But Wants a Refund:</h3>
+<ul>
+<li>Call your manager or shift lead</li>
+<li>Explain the situation</li>
+<li>Manager will process the refund through the POS</li>
+</ul>
+<hr>
+<h3>TROUBLESHOOTING TIPS</h3>
+<h3>POS is Frozen or Slow:</h3>
+<ul>
+<li>Restart the Toast device</li>
+<li>Check Wi-Fi connection</li>
+<li>Alert your manager if the issue persists</li>
+</ul>
+<h3>Payment Won't Process:</h3>
+<ul>
+<li>Check card reader connection</li>
+<li>Try a different payment method</li>
+<li>Use backup payment terminal if available</li>
+</ul>
+<h3>Order Didn't Fire to Kitchen:</h3>
+<ul>
+<li>Check if "Send to Kitchen" was pressed</li>
+<li>Manually communicate the order to the bar</li>
+<li>Resend if needed</li>
+</ul>
+<hr>
+<h3>BEST PRACTICES:</h3>
+<ul>
+<li>✓ Always double-check orders before sending</li>
+<li>✓ Confirm payment method with the guest</li>
+<li>✓ Keep the POS screen clean and responsive</li>
+<li>✓ Communicate with your team if issues arise</li>
+<li>✓ Ask for help—don't guess if you're unsure</li>
+</ul>`
       },
       {
         id: 'l-toast-practice',
         moduleId: 'm-toast-pos',
         title: 'Hands-On Practice Checklist',
         type: 'CONTENT',
-        content: `**HANDS-ON PRACTICE CHECKLIST**
-
-Work with your trainer to complete these practice tasks. Initial each task once you've successfully completed it.
-
-═══════════════════════════════════════
-
-**PART A: TOAST NAVIGATION**
-
-Complete each task multiple times until you feel confident:
-
-☐ Enter a tab name (3 times)
-☐ Navigate to Originals category (3 times)
-☐ Navigate to Energy/Bubbly category (3 times)
-☐ Navigate to Kids Drinks category (3 times)
-☐ Add size modifier (5 times)
-☐ Add each milk type - all 6 options (Whole, 2%, Oat, Almond, Coconut, Fairlife)
-☐ Add sweetness modifier (Half Sweet, Extra Sweet) (3 times)
-☐ Remove an item using swipe left (3 times)
-☐ Edit item modifiers after adding (3 times)
-
-═══════════════════════════════════════
-
-**PART B: ORDER SCENARIOS**
-
-Practice entering these real-world orders:
-
-☐ Large Iced Texas Delight, oat milk, half sweet
-☐ Medium Hot Hill Country with extra shot (+$1)
-☐ Frozen Salted Sweetheart, large, sweet cream (+$0.75)
-☐ Electric B Energy + Unicorn Latte (two items)
-☐ Cookie Butter Nitro + Bacon Taco (drink + food)
-☐ Strawberry Dream Matcha, iced, almond milk, extra sweet
-☐ Hot Honey Bee Tea + Chocolate Croissant
-☐ 2 Large Iced: Lavender Sunrise + Harvest Moon
-
-═══════════════════════════════════════
-
-**PART C: PAYMENT PROCESSING**
-
-Complete each payment type multiple times:
-
-☐ Card payment using **tap** (contactless) (3 times)
-☐ Card payment using **chip** insert (2 times)
-☐ Cash payment with change calculation (3 times)
-☐ Apply rewards using phone number (3 times)
-☐ Gift card payment - scan or enter (2 times)
-☐ **Boundaries App payment** (use Gift Card method!) (2 times)
-☐ Sell a new gift card (1 time)
-☐ Void an item before payment (2 times)
-☐ Process a refund with trainer supervision (1 time)
-
-═══════════════════════════════════════
-
-**TRAINER SIGN-OFF**
-
-Once the trainee has completed all tasks and demonstrated proficiency, the trainer should sign and date below:
-
-**Trainer Name:** _________________________
-
-**Signature:** _________________________
-
-**Date:** _________________________
-
-**Notes:**`
+        content: `<h3>HANDS-ON PRACTICE CHECKLIST</h3>
+<p>Work with your trainer to complete these practice tasks. Initial each task once you've successfully completed it.</p>
+<hr>
+<h3>PART A: TOAST NAVIGATION</h3>
+<p>Complete each task multiple times until you feel confident:</p>
+<ul>
+<li>☐ Enter a tab name (3 times)</li>
+<li>☐ Navigate to Originals category (3 times)</li>
+<li>☐ Navigate to Energy/Bubbly category (3 times)</li>
+<li>☐ Navigate to Kids Drinks category (3 times)</li>
+<li>☐ Add size modifier (5 times)</li>
+<li>☐ Add each milk type - all 6 options (Whole, 2%, Oat, Almond, Coconut, Fairlife)</li>
+<li>☐ Add sweetness modifier (Half Sweet, Extra Sweet) (3 times)</li>
+<li>☐ Remove an item using swipe left (3 times)</li>
+<li>☐ Edit item modifiers after adding (3 times)</li>
+</ul>
+<hr>
+<h3>PART B: ORDER SCENARIOS</h3>
+<p>Practice entering these real-world orders:</p>
+<ul>
+<li>☐ Large Iced Texas Delight, oat milk, half sweet</li>
+<li>☐ Medium Hot Hill Country with extra shot (+$1)</li>
+<li>☐ Frozen Salted Sweetheart, large, sweet cream (+$0.75)</li>
+<li>☐ Electric B Energy + Unicorn Latte (two items)</li>
+<li>☐ Cookie Butter Nitro + Bacon Taco (drink + food)</li>
+<li>☐ Strawberry Dream Matcha, iced, almond milk, extra sweet</li>
+<li>☐ Hot Honey Bee Tea + Chocolate Croissant</li>
+<li>☐ 2 Large Iced: Lavender Sunrise + Harvest Moon</li>
+</ul>
+<hr>
+<h3>PART C: PAYMENT PROCESSING</h3>
+<p>Complete each payment type multiple times:</p>
+<ul>
+<li>☐ Card payment using tap (contactless) (3 times)</li>
+<li>☐ Card payment using chip insert (2 times)</li>
+<li>☐ Cash payment with change calculation (3 times)</li>
+<li>☐ Apply rewards using phone number (3 times)</li>
+<li>☐ Gift card payment - scan or enter (2 times)</li>
+<li>☐ Boundaries App payment (use Gift Card method!) (2 times)</li>
+<li>☐ Sell a new gift card (1 time)</li>
+<li>☐ Void an item before payment (2 times)</li>
+<li>☐ Process a refund with trainer supervision (1 time)</li>
+</ul>
+<hr>
+<h3>TRAINER SIGN-OFF</h3>
+<p>Once the trainee has completed all tasks and demonstrated proficiency, the trainer should sign and date below:</p>
+<p>Trainer Name: _________________________</p>
+<p>Signature: _________________________</p>
+<p>Date: _________________________</p>
+<p>Notes:</p>`
       },
       {
         id: 'l-toast-quiz',

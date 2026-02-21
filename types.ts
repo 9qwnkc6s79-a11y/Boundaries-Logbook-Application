@@ -196,6 +196,15 @@ export interface ChecklistSubmission {
   };
 }
 
+export interface AuditFeedback {
+  id: string;
+  taskTitle: string;
+  aiReason: string;
+  managerFeedback: string;
+  createdAt: string;
+  createdBy: string;
+}
+
 export interface Recipe {
   id: string;
   title: string;
@@ -481,6 +490,30 @@ export interface TrackedGoogleReview {
 export interface GoogleReviewsData {
   trackedReviews: TrackedGoogleReview[];
   lastPolled: Record<string, string>;
+}
+
+// Inventory Management
+export interface InventoryItem {
+  id: string;
+  name: string;
+  brand?: string;
+  category: string;
+  storageLocation: string;
+  vendor: string;
+  par: number;
+  unit?: string;
+  active: boolean;
+  sortOrder?: number;
+}
+
+export interface InventoryCount {
+  id: string;
+  storeId: string;
+  date: string;
+  submittedBy: string;
+  submittedByName: string;
+  submittedAt: string;
+  counts: Record<string, number>;
 }
 
 // Archived monthly leaderboard results
