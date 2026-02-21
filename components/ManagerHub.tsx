@@ -950,18 +950,18 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
   // Google Reviews polling — load on mount, then poll every 3 minutes
   useEffect(() => {
     db.fetchGoogleReviews().then(async (data) => {
-      // One-time migration v2: fix reviews stored with swapped storeIds AND re-attribute
-      // (API had env var names swapped — reviews were fetched for wrong store, attributed to wrong staff)
-      const alreadyMigrated = (data as any)._reviewStoreIdFixedV2;
-      if (data.trackedReviews.length > 0 && !alreadyMigrated) {
-        console.log('[Reviews] Migration v2: swapping storeIds + location + clearing attribution for re-processing');
+      // One-time migration v3: fix double-swap from v1+v2, correct location field, re-attribute staff
+      // v1 swapped storeIds (correct), v2 swapped again (wrong — double-swap). v3 fixes it for good.
+      const needsV3 = !(data as any)._reviewMigrationV3;
+      if (data.trackedReviews.length > 0 && needsV3) {
+        console.log('[Reviews] Migration v3: fixing storeId/location and re-attributing to correct staff');
         data.trackedReviews.forEach((r: TrackedGoogleReview) => {
-          // Swap storeId
+          // After v1+v2 double-swap, storeIds are back to original (wrong) state.
+          // Swap once more to make them correct.
           if (r.storeId === 'store-elm') r.storeId = 'store-prosper';
           else if (r.storeId === 'store-prosper') r.storeId = 'store-elm';
-          // Swap location
-          if (r.location === 'littleelm') r.location = 'prosper';
-          else if (r.location === 'prosper') r.location = 'littleelm';
+          // Fix location field to match corrected storeId
+          r.location = r.storeId === 'store-prosper' ? 'prosper' : 'littleelm';
           // Clear attribution (was based on wrong store's labor data)
           r.attributedToUserId = null;
           r.attributedToName = null;
@@ -971,7 +971,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
           r.mentionedEmployeeNames = undefined;
           r.mentionBonusPoints = undefined;
         });
-        (data as any)._reviewStoreIdFixedV2 = true;
+        (data as any)._reviewMigrationV3 = true;
 
         // Re-attribute each review using the correct store's labor data
         for (const review of data.trackedReviews) {
@@ -1030,7 +1030,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
         }
 
         await db.pushGoogleReviews(data);
-        console.log('[Reviews] Migration v2 complete');
+        console.log('[Reviews] Migration v3 complete');
       }
       setGoogleReviewsData(data);
     });
