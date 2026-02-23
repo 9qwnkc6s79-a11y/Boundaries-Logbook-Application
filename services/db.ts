@@ -264,16 +264,17 @@ class CloudAPI {
     console.log(`[Firestore] migrateToOrg(${orgId}): Starting migration from appData...`);
 
     try {
-      // Copy each document from appData to organizations/{orgId}/
+      // Copy each document from appData to organizations/{orgId}/data/{docKey}
+      // Uses the correct 4-segment path (collection/doc/collection/doc)
       const docKeys = Object.values(DOC_KEYS);
       for (const docKey of docKeys) {
         const sourceRef = firestore.collection('appData').doc(docKey);
         const snap = await sourceRef.get();
         if (snap.exists) {
           const data = snap.data();
-          const targetRef = firestore.doc(`organizations/${orgId}/${docKey}`);
+          const targetRef = firestore.doc(`organizations/${orgId}/data/${docKey}`);
           await targetRef.set(data);
-          console.log(`[Firestore] migrateToOrg: Copied appData/${docKey} → organizations/${orgId}/${docKey}`);
+          console.log(`[Firestore] migrateToOrg: Copied appData/${docKey} → organizations/${orgId}/data/${docKey}`);
         }
       }
 
@@ -284,11 +285,12 @@ class CloudAPI {
         const usersData = usersSnap.data();
         if (usersData?.data && Array.isArray(usersData.data)) {
           const updatedUsers = usersData.data.map((u: User) => ({ ...u, orgId }));
-          // Save to both locations
-          await firestore.doc(`organizations/${orgId}/users`).set({
+          // Save to org data path
+          await firestore.doc(`organizations/${orgId}/data/users`).set({
             data: updatedUsers,
             lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
           });
+          // Also update appData
           await usersRef.set({
             data: updatedUsers,
             lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
@@ -362,6 +364,38 @@ class CloudAPI {
     // Cloud users are the source of truth — start with them.
     const userMap = new Map<string, User>();
     persistedUsers.forEach(u => userMap.set(u.email.toLowerCase(), u));
+
+    // When running under an org, also check appData for users that weren't
+    // migrated (migrateToOrg wrote to the wrong Firestore path historically).
+    // AppData users are added only if they don't already exist in the org.
+    if (this.currentOrgId && firestore) {
+      try {
+        const fallbackRef = firestore.collection('appData').doc(DOC_KEYS.USERS);
+        const fallbackSnap = await fallbackRef.get();
+        if (fallbackSnap.exists) {
+          const fallbackData = fallbackSnap.data();
+          const appDataUsers: User[] = fallbackData?.data || [];
+          let merged = 0;
+          appDataUsers.forEach(u => {
+            const email = u.email.toLowerCase();
+            if (!userMap.has(email)) {
+              userMap.set(email, u);
+              merged++;
+            }
+          });
+          if (merged > 0) {
+            console.log(`[Firestore] fetchUsers: Merged ${merged} users from appData fallback`);
+            // Persist the merged list to org path so future reads are complete
+            const mergedList = Array.from(userMap.values());
+            this.remoteSet(DOC_KEYS.USERS, mergedList).then(ok => {
+              if (ok) console.log(`[Firestore] fetchUsers: Persisted ${mergedList.length} merged users to org path`);
+            });
+          }
+        }
+      } catch (e) {
+        console.warn('[Firestore] fetchUsers: appData user merge failed:', e);
+      }
+    }
 
     // Add any missing default users IN MEMORY ONLY — never write defaults back
     // to Firestore. Writing defaults back can destroy hashed passwords and
