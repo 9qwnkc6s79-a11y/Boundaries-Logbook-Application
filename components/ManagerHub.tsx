@@ -138,6 +138,8 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
   const [savingStatus, setSavingStatus] = useState<Record<string, 'IDLE' | 'SAVING' | 'SAVED'>>({});
   const [isDirty, setIsDirty] = useState(false);
   const [expandedStaffId, setExpandedStaffId] = useState<string | null>(null);
+  const [trainingExpandedId, setTrainingExpandedId] = useState<string | null>(null);
+  const [expandedModuleId, setExpandedModuleId] = useState<string | null>(null);
   const [expandedProtocolId, setExpandedProtocolId] = useState<string | null>(null);
 
   // Toast POS Integration State
@@ -2464,6 +2466,92 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                          <p className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest">No recent submissions</p>
                        </div>
                      )}
+
+                     <button
+                       onClick={() => setTrainingExpandedId(trainingExpandedId === member.id ? null : member.id)}
+                       className="w-full py-3 bg-white text-[#0F2B3C] border-2 border-[#0F2B3C] rounded-xl font-black uppercase text-[9px] tracking-widest hover:bg-neutral-50 transition-all flex items-center justify-center gap-2"
+                     >
+                       <GraduationCap size={14} />
+                       {trainingExpandedId === member.id ? 'Hide Training Progress' : 'View Training Progress'}
+                     </button>
+
+                     {trainingExpandedId === member.id && (() => {
+                       const memberProgress = allProgress.filter(p => p.userId === member.id);
+                       const moduleData = curriculum.map(mod => {
+                         const lessonStatuses = mod.lessons.map(lesson => {
+                           const progress = memberProgress.find(p => p.lessonId === lesson.id);
+                           return {
+                             lessonId: lesson.id,
+                             title: lesson.title,
+                             type: lesson.type,
+                             status: progress?.status || 'NOT_STARTED' as const,
+                             score: progress?.score,
+                             completedAt: progress?.completedAt,
+                           };
+                         });
+                         const completed = lessonStatuses.filter(l => l.status === 'COMPLETED').length;
+                         return { module: mod, lessonStatuses, completed, total: mod.lessons.length };
+                       });
+
+                       return (
+                         <div className="space-y-1.5 max-h-[400px] overflow-y-auto animate-in slide-in-from-top-2">
+                           {moduleData.map(({ module: mod, lessonStatuses, completed, total }) => {
+                             const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
+                             const isModExpanded = expandedModuleId === `${member.id}-${mod.id}`;
+                             const statusColor = pct === 100 ? 'bg-green-500' : pct > 0 ? 'bg-blue-500' : 'bg-neutral-300';
+                             const statusIcon = pct === 100 ? <Check size={12} className="text-green-600" /> : pct > 0 ? <Clock size={12} className="text-blue-500" /> : <div className="w-3 h-3 rounded-full border-2 border-neutral-300" />;
+
+                             return (
+                               <div key={mod.id} className="bg-neutral-50 rounded-xl border border-neutral-100 overflow-hidden">
+                                 <button
+                                   onClick={() => setExpandedModuleId(isModExpanded ? null : `${member.id}-${mod.id}`)}
+                                   className="w-full p-3 flex items-center gap-2.5 text-left hover:bg-neutral-100 transition-colors"
+                                 >
+                                   {statusIcon}
+                                   <div className="flex-1 min-w-0">
+                                     <p className="text-[9px] font-black text-[#0F2B3C] uppercase tracking-tight truncate">{mod.title}</p>
+                                     <div className="flex items-center gap-2 mt-1">
+                                       <div className="flex-1 h-1.5 bg-neutral-200 rounded-full overflow-hidden">
+                                         <div className={`h-full ${statusColor} transition-all duration-500`} style={{ width: `${pct}%` }} />
+                                       </div>
+                                       <span className="text-[8px] font-black text-neutral-400 whitespace-nowrap">{completed}/{total}</span>
+                                     </div>
+                                   </div>
+                                   <ChevronDown size={12} className={`text-neutral-400 transition-transform ${isModExpanded ? 'rotate-180' : ''}`} />
+                                 </button>
+
+                                 {isModExpanded && (
+                                   <div className="px-3 pb-3 space-y-1 border-t border-neutral-200">
+                                     {lessonStatuses.map(lesson => (
+                                       <div key={lesson.lessonId} className="flex items-center gap-2 py-1.5 px-2">
+                                         {lesson.status === 'COMPLETED' ? (
+                                           <CheckCircle2 size={12} className="text-green-500 shrink-0" />
+                                         ) : lesson.status === 'IN_PROGRESS' ? (
+                                           <Clock size={12} className="text-blue-500 shrink-0" />
+                                         ) : (
+                                           <div className="w-3 h-3 rounded-full border-2 border-neutral-300 shrink-0" />
+                                         )}
+                                         <span className={`text-[8px] font-bold uppercase tracking-widest flex-1 truncate ${lesson.status === 'COMPLETED' ? 'text-green-700' : lesson.status === 'IN_PROGRESS' ? 'text-blue-600' : 'text-neutral-400'}`}>
+                                           {lesson.title}
+                                         </span>
+                                         <span className="text-[7px] font-bold text-neutral-300 uppercase tracking-widest shrink-0">
+                                           {lesson.type === 'QUIZ' ? 'Quiz' : lesson.type === 'PRACTICE' ? 'Practice' : lesson.type === 'FILE_UPLOAD' ? 'Upload' : lesson.type === 'VIDEO' ? 'Video' : lesson.type === 'SIGN_OFF' ? 'Sign-off' : 'Lesson'}
+                                         </span>
+                                         {lesson.type === 'QUIZ' && lesson.status === 'COMPLETED' && lesson.score != null && (
+                                           <span className={`text-[8px] font-black shrink-0 ${lesson.score >= 90 ? 'text-green-600' : lesson.score >= 70 ? 'text-yellow-600' : 'text-red-500'}`}>
+                                             {lesson.score}%
+                                           </span>
+                                         )}
+                                       </div>
+                                     ))}
+                                   </div>
+                                 )}
+                               </div>
+                             );
+                           })}
+                         </div>
+                       );
+                     })()}
                    </div>
                 </div>
               );
