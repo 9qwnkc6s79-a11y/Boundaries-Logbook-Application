@@ -307,610 +307,7 @@ All signature mixes are batched in 1-gallon increments and stored in three-gallo
   }
 ];
 
-export const BOUNDARIES_RECIPES: Recipe[] = [
-  // ── 1. ESPRESSO STANDARDS ──
-  {
-    id: 'r-monarch',
-    title: 'Monarch Espresso',
-    category: 'Espresso Standards',
-    type: 'ESPRESSO',
-    dose: '19g',
-    yield: '2 oz',
-    time: '24s',
-    notes: 'Machine: La Marzocco PB3. Grinder: Mahlkönig E80 GBW (grind-by-weight). Tamper: PuqPress Automatic. Shot window: ±2 seconds.'
-  },
-  {
-    id: 'r-shot-standards',
-    title: 'Shot Standards by Drink Type',
-    category: 'Espresso Standards',
-    type: 'GRID',
-    gridColumns: ['Drink Type', 'Espresso'],
-    gridRows: [
-      { label: 'Hot Lattes (all sizes)', values: ['2 oz'] },
-      { label: 'Iced Lattes (all sizes)', values: ['2 oz'] },
-      { label: 'Hot Americano', values: ['2 oz'] },
-      { label: 'Iced Americano', values: ['3 oz'] },
-      { label: 'Cortado', values: ['2 oz'] },
-      { label: 'Cappuccino', values: ['2 oz'] },
-      { label: 'Macchiato', values: ['2 oz'] },
-      { label: 'Flat White', values: ['2 oz'] }
-    ]
-  },
-
-  // ── 2. LATTES (ORIGINALS) ──
-  {
-    id: 'r-latte-build',
-    title: 'Standard Latte Build',
-    category: 'Lattes',
-    type: 'STANDARD',
-    steps: [
-      '1 oz total syrup/sauce (ALL sizes, ALL temperatures)',
-      '2 oz espresso (ALL sizes)',
-      'Fill with milk to appropriate line'
-    ],
-    notes: 'Sizes — Hot: 12oz, 16oz | Iced: 16oz, 20oz'
-  },
-  {
-    id: 'r-latte-milk',
-    title: 'Latte Milk Amounts',
-    category: 'Lattes',
-    type: 'GRID',
-    gridColumns: ['Size / Temp', 'Milk Amount'],
-    gridRows: [
-      { label: 'Hot 12oz', values: ['8 oz (steamed)'] },
-      { label: 'Hot 16oz', values: ['10 oz (steamed)'] },
-      { label: 'Iced 16oz', values: ['Fill to 11 oz line'] },
-      { label: 'Iced 20oz', values: ['Fill to 14 oz line'] }
-    ]
-  },
-  {
-    id: 'r-sig-lattes',
-    title: 'Signature Lattes',
-    category: 'Lattes',
-    type: 'GRID',
-    gridColumns: ['Drink', 'Syrup Build', 'Notes'],
-    gridRows: [
-      { label: 'Texas Delight', values: ['1 oz Texas Delight syrup (pre-made)', 'Honey, Vanilla, Cinnamon'] },
-      { label: 'Hill Country', values: ['1 oz Hill Country mix', 'Alt: 20g Caramel + 0.5 oz Butter Pecan'] },
-      { label: 'Cinnamon Dulce', values: ['1 oz Cinnamon Dulce syrup', ''] },
-      { label: 'Lavender Sunrise', values: ['1 oz Lavender Sunrise mix', 'Honey & Lavender'] },
-      { label: 'Harvest Moon', values: ['1 oz Harvest Moon mix', 'Alt: 20g White Choc + 0.5 oz Maple + dash Cinnamon'] },
-      { label: 'Golden Cream', values: ['1 oz Golden Cream mix', 'Alt: 20g Caramel + 0.5 oz Vanilla'] },
-      { label: 'Salted Sweetheart', values: ['1 oz Salted Sweetheart mix', 'Alt: 0.5 oz Salted Caramel + 20g White Choc'] }
-    ]
-  },
-
-  // ── 3. MATCHAS ──
-  {
-    id: 'r-matcha-base',
-    title: 'Matcha Base Batch Recipe',
-    category: 'Matchas',
-    type: 'BATCH',
-    ingredients: [
-      { name: 'Matcha Powder', quantity: '30 grams' },
-      { name: 'Water', quantity: '300 ml' }
-    ],
-    notes: 'Sizes — Hot: 12oz, 16oz | Iced: 16oz, 20oz. All matchas: 1 oz total syrup (all sizes, all temps).'
-  },
-  {
-    id: 'r-matcha-concentrate',
-    title: 'Matcha Concentrate Amounts',
-    category: 'Matchas',
-    type: 'GRID',
-    gridColumns: ['Size', 'Concentrate'],
-    gridRows: [
-      { label: 'Small (12oz hot / 16oz iced)', values: ['1 oz'] },
-      { label: 'Large (16oz hot / 20oz iced)', values: ['1.5 oz'] },
-      { label: 'Extra Matcha', values: ['+0.5 oz additional'] }
-    ]
-  },
-  {
-    id: 'r-matcha-milk',
-    title: 'Matcha Milk Amounts',
-    category: 'Matchas',
-    type: 'GRID',
-    gridColumns: ['Size / Temp', 'Milk Amount'],
-    gridRows: [
-      { label: 'Hot 12oz', values: ['8 oz (steamed)'] },
-      { label: 'Hot 16oz', values: ['10 oz (steamed)'] },
-      { label: 'Iced 16oz', values: ['Fill to 11 oz line'] },
-      { label: 'Iced 20oz', values: ['Fill to 14 oz line'] }
-    ]
-  },
-  {
-    id: 'r-matcha-flavors',
-    title: 'Matcha Flavor Builds',
-    category: 'Matchas',
-    type: 'GRID',
-    gridColumns: ['Flavor', 'Syrup Build (1 oz total)'],
-    gridRows: [
-      { label: 'Plain Matcha', values: ['1 oz Vanilla'] },
-      { label: 'Blue Coconut', values: ['1 oz Coconut'] },
-      { label: 'Strawberry Dream', values: ['0.5 oz Strawberry + 0.5 oz Vanilla'] },
-      { label: 'Banana Baby', values: ['0.33 oz Banana + 0.33 oz Maple + 0.33 oz Vanilla'] }
-    ]
-  },
-
-  // ── 4. NITRO COLD BREW ──
-  {
-    id: 'r-nitro-build',
-    title: 'Standard Nitro Build',
-    category: 'Nitro Cold Brew',
-    type: 'STANDARD',
-    steps: [
-      'Cup size with 1 scoop ice',
-      'Fill nitro to 2nd-to-last line',
-      'Add 3 oz sweet cream',
-      'Add 0.5 oz flavor syrup'
-    ]
-  },
-  {
-    id: 'r-nitro-flavors',
-    title: 'Nitro Flavors',
-    category: 'Nitro Cold Brew',
-    type: 'GRID',
-    gridColumns: ['Flavor', 'Build'],
-    gridRows: [
-      { label: 'Vanilla Cream', values: ['0.5 oz Vanilla'] },
-      { label: 'Salted Caramel', values: ['0.5 oz Salted Caramel'] },
-      { label: 'Cookie Butter', values: ['0.5 oz Biscoff syrup + 10g White Choc sauce'] }
-    ]
-  },
-
-  // ── 5. SWEET CREAM STANDARDS ──
-  {
-    id: 'r-sweet-cream',
-    title: 'Sweet Cream Standards',
-    category: 'Sweet Cream',
-    type: 'GRID',
-    gridColumns: ['Type', 'Cream', 'Syrup'],
-    gridRows: [
-      { label: 'Standard Sweet Cream', values: ['3 oz', '0.5 oz'] },
-      { label: 'Extra Sweet Cream', values: ['4 oz total', '—'] },
-      { label: 'Extra Sweet', values: ['—', '1 oz'] }
-    ],
-    notes: 'Prepared in tumblers, labeled and dated, stored cold. 24 hours max.'
-  },
-
-  // ── 6. ENERGY DRINKS (LOTUS) ──
-  {
-    id: 'r-energy-syrup',
-    title: 'Energy Drink Syrup Amounts',
-    category: 'Energy Drinks',
-    type: 'GRID',
-    gridColumns: ['Size', 'Syrup', 'Fill Line'],
-    gridRows: [
-      { label: '12oz', values: ['1 oz', '9 oz'] },
-      { label: '16oz', values: ['1.5 oz', '11 oz'] },
-      { label: '20oz', values: ['2 oz', '14 oz'] },
-      { label: '24oz', values: ['2 oz', '16 oz'] }
-    ],
-    notes: 'Multi-flavor: divide syrup equally (e.g. 2 flavors in 16oz = 0.75 oz each).'
-  },
-  {
-    id: 'r-energy-flavors',
-    title: 'Energy Drink Menu Flavors',
-    category: 'Energy Drinks',
-    type: 'GRID',
-    gridColumns: ['Drink', 'Flavors'],
-    gridRows: [
-      { label: 'The Drift', values: ['Strawberry & Pineapple'] },
-      { label: 'Electric B', values: ['Blue Raspberry & Lime'] },
-      { label: 'Mystic Cherry', values: ['Cherry & Coconut'] },
-      { label: 'Golden Wave', values: ['Orange & Lime'] },
-      { label: 'Blue Haze', values: ['Lavender, Blue Razz, Pomegranate'] },
-      { label: 'Dreamwave', values: ['Passionfruit, Strawberry, Kiwi'] },
-      { label: 'Strawberry Storm', values: ['Strawberry & Lavender'] },
-      { label: 'Voltage', values: ['Blackberry & Lemon Concentrate'] }
-    ]
-  },
-
-  // ── 7. BUBBLY / SODA DRINKS ──
-  {
-    id: 'r-bubbly-build',
-    title: 'Bubbly / Soda Build',
-    category: 'Bubbly & Soda',
-    type: 'GRID',
-    gridColumns: ['Size', 'Syrup'],
-    gridRows: [
-      { label: '12oz', values: ['1 oz'] },
-      { label: '16oz', values: ['1.5 oz'] },
-      { label: '20oz', values: ['2 oz'] },
-      { label: '24oz', values: ['2 oz'] }
-    ],
-    notes: 'Syrup + bubbly/soda water to fill line. Multi-flavor: divide syrup equally.'
-  },
-
-  // ── 8. FROZEN COFFEE ──
-  {
-    id: 'r-frozen-coffee-syrup',
-    title: 'Frozen Coffee Syrup / Sauce',
-    category: 'Frozen Coffee',
-    type: 'GRID',
-    gridColumns: ['Size', 'Syrup', 'Sauce'],
-    gridRows: [
-      { label: '16oz', values: ['1 oz', '40g'] },
-      { label: '20oz', values: ['1.5 oz', '60g'] }
-    ],
-    notes: '16oz and 20oz ONLY (no 12oz or 24oz).'
-  },
-  {
-    id: 'r-frozen-coffee-full',
-    title: 'Frozen Coffee Base — Full Batch (10L)',
-    category: 'Frozen Coffee',
-    type: 'BATCH',
-    ingredients: [
-      { name: 'Espresso (hot)', quantity: '2.0 L' },
-      { name: 'Raw Sugar', quantity: '770 g' },
-      { name: 'Whole Milk', quantity: '4.6 L' },
-      { name: '2% Milk', quantity: '2.7 L' }
-    ],
-    steps: [
-      'Dissolve sugar in HOT espresso',
-      'Chill espresso before adding milk',
-      'SLUSH mode only',
-      'Target temperature: 30-32°F'
-    ]
-  },
-  {
-    id: 'r-frozen-coffee-refill',
-    title: 'Frozen Coffee Base — Refill (5L)',
-    category: 'Frozen Coffee',
-    type: 'BATCH',
-    ingredients: [
-      { name: 'Espresso', quantity: '1.0 L' },
-      { name: 'Raw Sugar', quantity: '385 g' },
-      { name: 'Whole Milk', quantity: '2.3 L' },
-      { name: '2% Milk', quantity: '1.35 L' }
-    ]
-  },
-
-  // ── 9. FROZEN ENERGY ──
-  {
-    id: 'r-frozen-energy-syrup',
-    title: 'Frozen Energy Syrup Amounts',
-    category: 'Frozen Energy',
-    type: 'GRID',
-    gridColumns: ['Size', 'Syrup'],
-    gridRows: [
-      { label: '12oz', values: ['0.5 oz'] },
-      { label: '16oz', values: ['1 oz'] },
-      { label: '20oz', values: ['1.5 oz'] },
-      { label: '24oz', values: ['2 oz'] }
-    ],
-    notes: 'Multi-flavor: divide syrup equally.'
-  },
-  {
-    id: 'r-frozen-energy-full',
-    title: 'Frozen Energy Base — Full Batch (10L)',
-    category: 'Frozen Energy',
-    type: 'BATCH',
-    ingredients: [
-      { name: 'Lotus Concentrate', quantity: '1.0 L' },
-      { name: 'Water', quantity: '8.0 L' },
-      { name: 'Sugar', quantity: '350 g' }
-    ],
-    steps: [
-      'No dairy',
-      'No flavors in hopper',
-      'SLUSH mode only',
-      'Chill before loading'
-    ]
-  },
-  {
-    id: 'r-frozen-energy-refill',
-    title: 'Frozen Energy Base — Refill (5L)',
-    category: 'Frozen Energy',
-    type: 'BATCH',
-    ingredients: [
-      { name: 'Lotus', quantity: '0.5 L' },
-      { name: 'Water', quantity: '4.0 L' },
-      { name: 'Sugar', quantity: '175 g' }
-    ]
-  },
-
-  // ── 10. FROZEN LEMONADE ──
-  {
-    id: 'r-frozen-lemonade',
-    title: 'Frozen Lemonade Build',
-    category: 'Frozen Lemonade',
-    type: 'GRID',
-    gridColumns: ['Size', 'Concentrate', 'Water', 'Syrup', 'Ice'],
-    gridRows: [
-      { label: '12oz', values: ['1.5 oz', '2.5 oz', '1 oz', '12oz scoop'] },
-      { label: '16oz', values: ['3 oz', '4 oz', '1.5 oz', '24oz scoop'] },
-      { label: '20oz', values: ['4.5 oz', '6 oz', '2 oz', '24oz + 10oz scoop'] },
-      { label: '24oz', values: ['6 oz', '8 oz', '2.5 oz', '24oz + 12oz scoop'] }
-    ],
-    notes: 'Level scoops only. Liquids first, ice second. No extra water. Do not top with ice after blending.'
-  },
-
-  // ── 11. REGULAR LEMONADES ──
-  {
-    id: 'r-lemonade-build',
-    title: 'Regular Lemonade Build',
-    category: 'Lemonades',
-    type: 'GRID',
-    gridColumns: ['Size', 'Concentrate', 'Syrup (if flavored)', 'Water Fill Line'],
-    gridRows: [
-      { label: '12oz', values: ['1 oz', '1 oz', '9 oz'] },
-      { label: '16oz', values: ['1.5 oz', '1.5 oz', '11 oz'] },
-      { label: '20oz', values: ['2 oz', '2 oz', '14 oz'] },
-      { label: '24oz', values: ['2.5 oz', '2.5 oz', '17 oz'] }
-    ],
-    notes: 'Equal parts concentrate and syrup (if flavored), then water to fill line.'
-  },
-  {
-    id: 'r-lemonade-flavors',
-    title: 'Lemonade Menu Flavors',
-    category: 'Lemonades',
-    type: 'GRID',
-    gridColumns: ['Flavor', 'Description'],
-    gridRows: [
-      { label: 'Boundaries Lagoon', values: ['Blue Raspberry, Coconut, Lime'] },
-      { label: 'Cherry Limeade', values: ['Cherry, Lime, Lemon'] },
-      { label: 'Pink Paradise', values: ['Strawberry & Vanilla'] },
-      { label: 'Sunset', values: ['Pineapple, Mango, Strawberry'] }
-    ]
-  },
-
-  // ── 12. SMOOTHIES ──
-  {
-    id: 'r-smoothie-build',
-    title: 'Smoothie Build',
-    category: 'Smoothies',
-    type: 'GRID',
-    gridColumns: ['Size', 'Puree', 'Water', 'Ice'],
-    gridRows: [
-      { label: '12oz', values: ['3 oz', '2 oz', 'Heaping scoop (overflowing)'] },
-      { label: '16oz', values: ['4 oz', '3 oz', 'Heaping scoop (overflowing)'] },
-      { label: '20oz', values: ['5 oz', '4 oz', 'Heaping scoop (overflowing)'] },
-      { label: '24oz', values: ['6 oz', '5 oz', 'Heaping scoop (overflowing)'] }
-    ],
-    notes: 'Puree + Water + Heaping scoop of ice (fill cup overflowing) → Blend.'
-  },
-  {
-    id: 'r-smoothie-flavors',
-    title: 'Smoothie Flavors',
-    category: 'Smoothies',
-    type: 'GRID',
-    gridColumns: ['Flavor', 'Puree Type'],
-    gridRows: [
-      { label: 'Strawberry Splash', values: ['100% Strawberry Puree'] },
-      { label: 'Piña Colada', values: ['Coconut & Pineapple Puree'] },
-      { label: 'Perfect Peach', values: ['100% Peach Puree'] },
-      { label: 'Mellow Mango', values: ['100% Mango Puree'] }
-    ]
-  },
-
-  // ── 13. TEAS ──
-  {
-    id: 'r-tea-concentrates',
-    title: 'Iced Tea Concentrate Recipes',
-    category: 'Teas',
-    type: 'GRID',
-    gridColumns: ['Tea', 'Grams', 'Steep Time'],
-    gridRows: [
-      { label: 'Citrus Oolong', values: ['40.8g', '5 minutes'] },
-      { label: 'Lavender Coconut Rooibos', values: ['40.8g', '10 minutes'] },
-      { label: 'Pomberry Punch', values: ['40.8g', '11 minutes'] },
-      { label: 'Honey Ginger Peach', values: ['40.8g', '6 minutes'] },
-      { label: 'Magical Unicorn', values: ['30g', '5 min (⅛ qt water → fill ½ qt)'] }
-    ],
-    notes: 'General rule: Weigh tea, steep in ½ quart hot water, strain, fill to 1 quart with cold water. Hot teas: 3.5g per sachet.'
-  },
-  {
-    id: 'r-tea-sweetening',
-    title: 'Iced Tea Sweetening Rule',
-    category: 'Teas',
-    type: 'GRID',
-    gridColumns: ['Size', 'Simple Syrup'],
-    gridRows: [
-      { label: '12oz', values: ['0.5 oz'] },
-      { label: '16oz', values: ['1 oz'] },
-      { label: '20oz', values: ['1.5 oz'] },
-      { label: '24oz', values: ['1.5 oz'] }
-    ],
-    notes: 'Only when ordered sweet.'
-  },
-
-  // ── 14. KIDS DRINKS ──
-  {
-    id: 'r-kids-unicorn',
-    title: 'Unicorn Latte',
-    category: 'Kids Drinks',
-    type: 'STANDARD',
-    ingredients: [
-      { name: 'Magical Unicorn tea concentrate', quantity: 'Equal parts' },
-      { name: 'Whole Milk', quantity: 'Equal parts' }
-    ],
-    notes: '12oz, Iced, Caffeine-free. Sweeten with simple syrup using tea sweetening rule.'
-  },
-  {
-    id: 'r-kids-dino',
-    title: 'Dino Juice',
-    category: 'Kids Drinks',
-    type: 'GRID',
-    gridColumns: ['Size', 'Lemonade Conc', 'Blue Raspberry', 'Pineapple', 'Water'],
-    gridRows: [
-      { label: '12oz', values: ['1 oz', '0.5 oz', '0.5 oz', 'To fill line'] },
-      { label: '16oz', values: ['1.5 oz', '0.75 oz', '0.75 oz', 'To fill line'] },
-      { label: '20oz', values: ['2 oz', '1 oz', '1 oz', 'To fill line'] },
-      { label: '24oz', values: ['2.5 oz', '1.25 oz', '1.25 oz', 'To fill line'] }
-    ],
-    notes: 'Blue Raspberry Pineapple Lemonade. Serve over ice.'
-  },
-  {
-    id: 'r-kids-zebra',
-    title: 'Zebra Milk',
-    category: 'Kids Drinks',
-    type: 'STANDARD',
-    ingredients: [
-      { name: 'Dark Chocolate sauce', quantity: '10 grams' },
-      { name: 'White Chocolate sauce', quantity: '10 grams' },
-      { name: 'Milk', quantity: 'Fill with cold milk' }
-    ],
-    notes: '12oz, Iced. Serve over ice.'
-  },
-  {
-    id: 'r-kids-kiddos',
-    title: 'Kiddos Coffee',
-    category: 'Kids Drinks',
-    type: 'STANDARD',
-    ingredients: [
-      { name: 'Syrup (any flavor)', quantity: '0.5 oz' },
-      { name: 'Milk', quantity: 'Steamed milk (kids temp)' }
-    ],
-    notes: '8oz, Hot, Caffeine-free.'
-  },
-
-  // ── 15. BATCH BREW & COLD BREW ──
-  {
-    id: 'r-batch-brew',
-    title: 'Batch Brew (Fetco)',
-    category: 'Batch Brew',
-    type: 'STANDARD',
-    ingredients: [
-      { name: 'Coffee Weight', quantity: '240 grams' },
-      { name: 'Grinder', quantity: 'EK-43, Grind Size 9' },
-      { name: 'Batch Size', quantity: '1 Gallon' }
-    ],
-    steps: [
-      'Grind beans on EK-43 (grind 9)',
-      'Form filter correctly to avoid collapse',
-      'Place filter in basket, ensure lid open and pour stop closed',
-      'Press 1-Gallon Batch',
-      'Label dispenser with brew time and initials'
-    ]
-  },
-  {
-    id: 'r-cold-brew',
-    title: 'Cold Brew (Toddy Method)',
-    category: 'Batch Brew',
-    type: 'STANDARD',
-    ingredients: [
-      { name: 'Cold Brew Roast Coffee', quantity: 'Entire 5 lb bag' },
-      { name: 'Water (initial)', quantity: '7 quarts' },
-      { name: 'Water (second pour)', quantity: '7 quarts' },
-      { name: 'Fresh Water (dilution)', quantity: '7 quarts' }
-    ],
-    steps: [
-      'Grind entire 5 lb bag of Cold Brew Roast coffee',
-      'Insert paper filter and mesh filter in Toddy bucket',
-      'Add grounds to filter bag',
-      'Pour 7 quarts water over grounds',
-      'Tie bag and pour another 7 quarts over top',
-      'Steep 10 hours',
-      'Label with name and time brewed',
-      'Strain, discard grounds carefully',
-      'Add 7 quarts fresh water to Toddy',
-      'Fill and crimp Nitro bag, label, store FIFO in walk-in'
-    ]
-  },
-
-  // ── 16. CLASSIC ESPRESSO DRINKS ──
-  {
-    id: 'r-classic-espresso',
-    title: 'Classic Espresso Drinks',
-    category: 'Classic Espresso',
-    type: 'GRID',
-    gridColumns: ['Drink', 'Temp', 'Size', 'Espresso', 'Notes'],
-    gridRows: [
-      { label: 'Americano', values: ['Hot', 'Standard', '2 oz', '+ hot water'] },
-      { label: 'Americano', values: ['Iced', 'Standard', '3 oz', '+ cold water over ice'] },
-      { label: 'Cortado', values: ['Hot', '4 oz', '2 oz', 'Equal milk & espresso'] },
-      { label: 'Cappuccino', values: ['Hot', '6 oz', '2 oz', 'Dry foam'] },
-      { label: 'Macchiato', values: ['Hot', '3 oz', '2 oz', 'Marked with foam'] },
-      { label: 'Flat White', values: ['Hot', '8 oz', '2 oz', 'Thin microfoam, no dry foam'] }
-    ]
-  },
-
-  // ── 17. PRE-BATCH RECIPES ──
-  {
-    id: 'r-prebatch-mixes',
-    title: 'Signature Mix Recipes',
-    category: 'Pre-Batch',
-    type: 'GRID',
-    gridColumns: ['Mix', 'Ingredient 1', 'Ingredient 2', 'Notes'],
-    gridRows: [
-      { label: 'Hill Country', values: ['64 oz Butter Pecan', '64 oz Caramel', ''] },
-      { label: 'Lavender Sunrise', values: ['64 oz Honey', '64 oz Lavender', ''] },
-      { label: 'Harvest Moon', values: ['64 oz White Chocolate', '64 oz Maple', 'Cinnamon at build'] },
-      { label: 'Golden Cream', values: ['64 oz Caramel', '64 oz Vanilla', ''] },
-      { label: 'Salted Sweetheart', values: ['64 oz Salted Caramel', '64 oz White Chocolate', ''] },
-      { label: 'Sweet Trio', values: ['42.67 oz Dark Chocolate', '42.67 oz Caramel', '+ 42.67 oz Hazelnut'] }
-    ],
-    notes: 'All batches: 1-gallon increments (128 oz). Warm all sauces in hot water bath before mixing. Label with product name, date, and initials.'
-  },
-
-  // ── 18. QUICK REFERENCE TABLES ──
-  {
-    id: 'r-qr-syrup',
-    title: 'Syrup Amounts by Size (All Categories)',
-    category: 'Quick Reference',
-    type: 'GRID',
-    gridColumns: ['Category', '12oz', '16oz', '20oz', '24oz'],
-    gridRows: [
-      { label: 'Lattes', values: ['1 oz', '1 oz', '1 oz', 'N/A'] },
-      { label: 'Matchas', values: ['1 oz', '1 oz', '1 oz', 'N/A'] },
-      { label: 'Energy Drinks', values: ['1 oz', '1.5 oz', '2 oz', '2 oz'] },
-      { label: 'Frozen Energy', values: ['0.5 oz', '1 oz', '1.5 oz', '2 oz'] },
-      { label: 'Bubbly', values: ['1 oz', '1.5 oz', '2 oz', '2 oz'] },
-      { label: 'Frozen Coffee', values: ['N/A', '1 oz', '1.5 oz', 'N/A'] },
-      { label: 'Frozen Lemonade', values: ['1 oz', '1.5 oz', '2 oz', '2.5 oz'] },
-      { label: 'Regular Lemonade', values: ['1 oz', '1.5 oz', '2 oz', '2.5 oz'] },
-      { label: 'Tea Sweetening', values: ['0.5 oz', '1 oz', '1.5 oz', '1.5 oz'] }
-    ]
-  },
-  {
-    id: 'r-qr-fill',
-    title: 'Fill Lines by Size',
-    category: 'Quick Reference',
-    type: 'GRID',
-    gridColumns: ['Size', 'Fill Line'],
-    gridRows: [
-      { label: '12oz', values: ['9 oz'] },
-      { label: '16oz', values: ['11 oz'] },
-      { label: '20oz', values: ['14 oz'] },
-      { label: '24oz', values: ['17 oz'] }
-    ]
-  },
-  {
-    id: 'r-qr-flavors',
-    title: 'Available Flavors',
-    category: 'Quick Reference',
-    type: 'STANDARD',
-    ingredients: [
-      { name: 'TX Delight', quantity: '' },
-      { name: 'Vanilla (SF)', quantity: '' },
-      { name: 'Dark Choc (SF)', quantity: '' },
-      { name: 'Caramel (SF)', quantity: '' },
-      { name: 'White Choc', quantity: '' },
-      { name: 'Hazelnut', quantity: '' },
-      { name: 'Salted Caramel', quantity: '' },
-      { name: 'Lavender', quantity: '' },
-      { name: 'Honey', quantity: '' },
-      { name: 'Maple', quantity: '' },
-      { name: 'Coconut', quantity: '' },
-      { name: 'Cardamom', quantity: '' },
-      { name: 'Mango', quantity: '' },
-      { name: 'Peach', quantity: '' },
-      { name: 'Banana', quantity: '' },
-      { name: 'Blue Razz', quantity: '' },
-      { name: 'Pomegranate', quantity: '' },
-      { name: 'Kiwi', quantity: '' },
-      { name: 'Raspberry', quantity: '' },
-      { name: 'Strawberry', quantity: '' },
-      { name: 'Blueberry', quantity: '' },
-      { name: 'Cherry', quantity: '' },
-      { name: 'Lime', quantity: '' },
-      { name: 'Orange', quantity: '' },
-      { name: 'Pineapple', quantity: '' },
-      { name: 'Biscoff', quantity: '' }
-    ],
-    notes: '(SF) = Sugar-Free available. Seasonal offerings rotate.'
-  }
-];
+export { BOUNDARIES_RECIPES } from './recipes_new';
 
 export const TRAINING_CURRICULUM: TrainingModule[] = [
   {
@@ -1360,103 +757,6 @@ If you have any questions about which site to use or need help with the process,
           { id: 'mq18', type: 'MULTIPLE_CHOICE', question: 'For a longer steam tip, how much should you submerge?', options: ['The entire tip', 'About a third of it', 'None of it', 'The full length plus more'], correctAnswers: ['About a third of it'] },
           { id: 'mq19', type: 'MULTIPLE_CHOICE', question: 'What happens when the steam tip is above the surface vs. just below?', options: ['Above: no air injection / Below: air injection', 'Above: air injection (stretching) / Below: no air injection (whirling)', 'Both produce the same result', 'Above: faster heating / Below: slower heating'], correctAnswers: ['Above: air injection (stretching) / Below: no air injection (whirling)'] },
           { id: 'mq20', type: 'MULTIPLE_CHOICE', question: 'What is the end goal of proper milk steaming technique?', options: ['Very hot milk with large bubbles', 'Silky, smooth microfoam milk', 'Milk that separates into layers', 'Cold frothy milk'], correctAnswers: ['Silky, smooth microfoam milk'] }
-        ]
-      }
-    ]
-  },
-  {
-    id: 'm-drink-making-basics',
-    title: 'Module 12: Drink Making Basics - Day 1 Hot Drinks',
-    description: 'Learn espresso extraction, drink making process, milk steaming, dialing in, and cleaning procedures.',
-    category: 'ONBOARDING',
-    lessons: [
-      {
-        id: 'l-drink-basics-overview',
-        moduleId: 'm-drink-making-basics',
-        title: 'Module Overview',
-        type: 'CONTENT',
-        content: `This module teaches you to make espresso-based hot drinks at Boundaries Coffee. You'll learn espresso extraction, milk steaming, dialing in, and cleaning procedures.
-
-HOW TO COMPLETE THIS MODULE:
-
-1. Read this overview with your trainer
-2. Click "Required Practice Drinks" below to access the 21-item practice checklist
-3. Submit photos of each drink you make (18 photos required)
-4. Pass the Knowledge Quiz with 80% or higher
-
-Your trainer will work with you through each drink. You'll take photos of your work to track your progress and improvement over time.
-
-Once you're ready, complete the lesson below and move on to the practice checklist.`
-      },
-      {
-        id: 'l-drink-basics-practice',
-        moduleId: 'm-drink-making-basics',
-        title: 'Required Practice Drinks',
-        type: 'PRACTICE',
-        content: `Work through this checklist with your trainer. Make each drink, take a photo, and check it off when complete.
-
-WHAT YOU NEED TO DO:
-- Complete all 21 items with your trainer
-- Take photos of the 18 drinks that require them (camera icon shown)
-- Check off each item as you finish
-- Submit when all items are complete
-
-Your photos will be saved in your Progress Gallery so you can see your improvement over time. Let's get started!`,
-        checklistItems: [
-          // Espresso Shots (5)
-          { id: 'esp-1', title: 'Espresso Shot #1 (Dialed In)', description: 'Pull a properly dialed-in shot. Target: 19g dose, 24s brew time.', requiresPhoto: true },
-          { id: 'esp-2', title: 'Espresso Shot #2 (Dialed In)', description: 'Pull another dialed-in shot. Demonstrate consistency.', requiresPhoto: true },
-          { id: 'esp-3', title: 'Espresso Shot #3 (Dialed In)', description: 'Pull a third shot with minimal guidance.', requiresPhoto: true },
-          { id: 'esp-under', title: 'Espresso Shot (Under-extracted)', description: 'Pull an under-extracted shot. Identify the sour, acidic taste.', requiresPhoto: true },
-          { id: 'esp-over', title: 'Espresso Shot (Over-extracted)', description: 'Pull an over-extracted shot. Identify the bitter, harsh taste.', requiresPhoto: true },
-          // Lattes (5)
-          { id: 'latte-12-1', title: 'Latte 12oz #1', description: 'Make a 12oz latte from start to finish.', requiresPhoto: true },
-          { id: 'latte-12-2', title: 'Latte 12oz #2', description: 'Focus on workflow efficiency and timing.', requiresPhoto: true },
-          { id: 'latte-12-3', title: 'Latte 12oz #3', description: 'Make independently with minimal guidance.', requiresPhoto: true },
-          { id: 'latte-16-1', title: 'Latte 16oz #1', description: 'Note the different milk quantity for larger size.', requiresPhoto: true },
-          { id: 'latte-16-2', title: 'Latte 16oz #2', description: 'Demonstrate consistent technique across sizes.', requiresPhoto: true },
-          // Flavored Drinks (4)
-          { id: 'vanilla-1', title: 'Vanilla Latte #1', description: 'Add vanilla sauce and ensure proper stirring.', requiresPhoto: true },
-          { id: 'vanilla-2', title: 'Vanilla Latte #2', description: 'Focus on consistent sauce portions.', requiresPhoto: true },
-          { id: 'mocha-1', title: 'Mocha #1', description: 'Integrate chocolate sauce properly with espresso.', requiresPhoto: true },
-          { id: 'mocha-2', title: 'Mocha #2', description: 'Demonstrate consistent chocolate portioning.', requiresPhoto: true },
-          // Other Drinks (4)
-          { id: 'capp-1', title: 'Cappuccino #1', description: 'Steam milk with more foam than a latte.', requiresPhoto: true },
-          { id: 'capp-2', title: 'Cappuccino #2', description: 'Demonstrate consistent foam texture.', requiresPhoto: true },
-          { id: 'amer-1', title: 'Americano #1', description: 'Hot water first, then espresso shots.', requiresPhoto: true },
-          { id: 'amer-2', title: 'Americano #2', description: 'Demonstrate consistent water-to-espresso ratio.', requiresPhoto: true },
-          // Dial-In & Cleaning (3) - no photos required
-          { id: 'dialin', title: 'Dial-In Exercise', description: 'Adjust grinder using 2-5-10 rule to hit target.' },
-          { id: 'backflush-water', title: 'Backflush (Water Only)', description: 'Afternoon cleaning procedure.' },
-          { id: 'backflush-cleaner', title: 'Backflush (With Cleaner)', description: 'Closing procedure with Cafiza.' }
-        ]
-      },
-      {
-        id: 'l-drink-basics-quiz',
-        moduleId: 'm-drink-making-basics',
-        title: 'Drink Making Basics Quiz',
-        type: 'QUIZ',
-        quizQuestions: [
-          { id: 'db1', type: 'MULTIPLE_CHOICE', question: 'What is espresso?', options: ['A type of coffee bean', 'A brew method requiring ground coffee, water, heat, pressure, filter, and time', 'A dark roast coffee', 'Coffee with milk added'], correctAnswers: ['A brew method requiring ground coffee, water, heat, pressure, filter, and time'] },
-          { id: 'db2', type: 'MULTIPLE_CHOICE', question: 'What are the 6 things required for espresso?', options: ['Beans, grinder, machine, cup, water, milk', 'Ground coffee, water, heat, pressure (9 bar), filter, time', 'Steam, pressure, heat, beans, filter, cup', 'Coffee, cream, sugar, water, heat, time'], correctAnswers: ['Ground coffee, water, heat, pressure (9 bar), filter, time'] },
-          { id: 'db3', type: 'MULTIPLE_CHOICE', question: 'What is the standard espresso yield and shot time range?', options: ['1oz, 10-15 seconds', '2oz, 20-30 seconds', '3oz, 40-50 seconds', '4oz, 60-90 seconds'], correctAnswers: ['2oz, 20-30 seconds'] },
-          { id: 'db4', type: 'MULTIPLE_CHOICE', question: 'What is the Monarch espresso recipe at Boundaries Coffee?', options: ['18g dose at 20s brew time', '19g dose at 24s brew time', '21g dose at 30s brew time', '17g dose at 22s brew time'], correctAnswers: ['19g dose at 24s brew time'] },
-          { id: 'db5', type: 'MULTIPLE_CHOICE', question: 'What is the acceptable range for dose and brew time variation?', options: ['+/- 1g, +/- 5s', '+/- 0.2g, +/- 2s', '+/- 0.5g, +/- 3s', '+/- 2g, +/- 10s'], correctAnswers: ['+/- 0.2g, +/- 2s'] },
-          { id: 'db6', type: 'MULTIPLE_CHOICE', question: 'What does an under-extracted shot taste like?', options: ['Bitter and harsh', 'Sour and acidic', 'Sweet and balanced', 'Burnt and smoky'], correctAnswers: ['Sour and acidic'] },
-          { id: 'db7', type: 'MULTIPLE_CHOICE', question: 'What does an over-extracted shot taste like?', options: ['Sour and bright', 'Bitter and harsh', 'Fruity and light', 'Watery and thin'], correctAnswers: ['Bitter and harsh'] },
-          { id: 'db8', type: 'MULTIPLE_CHOICE', question: 'What is the correct order for the drink making process?', options: ['Pull shot, steam milk, prepare cup, pour', 'Prepare cup, portion milk, pull shot, steam milk, add shots, stir, pour, serve', 'Steam milk, pull shot, add sauce, serve', 'Portion milk, prepare cup, steam, pull shot, serve'], correctAnswers: ['Prepare cup, portion milk, pull shot, steam milk, add shots, stir, pour, serve'] },
-          { id: 'db9', type: 'MULTIPLE_CHOICE', question: 'What are the steps for pulling a shot? (In order)', options: ['Dose, tamp, insert, brew', 'Remove portafilter, rinse group, wipe dry, dose, settle, distribute, tamp, wipe, insert, brew', 'Grind, tamp, insert, wait, brew', 'Wipe, dose, distribute, insert, brew'], correctAnswers: ['Remove portafilter, rinse group, wipe dry, dose, settle, distribute, tamp, wipe, insert, brew'] },
-          { id: 'db10', type: 'MULTIPLE_CHOICE', question: 'After inserting the portafilter, what should you do?', options: ['Wait 30 seconds then brew', 'Brew immediately and set cup underneath', 'Check the pressure gauge first', 'Wipe the group head again'], correctAnswers: ['Brew immediately and set cup underneath'] },
-          { id: 'db11', type: 'MULTIPLE_CHOICE', question: 'What do you do after adding shots to the cup?', options: ['Immediately pour milk', 'Rinse shot catchers and set back on machine, then stir sauce/espresso', 'Let it cool for 30 seconds', 'Add more espresso'], correctAnswers: ['Rinse shot catchers and set back on machine, then stir sauce/espresso'] },
-          { id: 'db12', type: 'MULTIPLE_CHOICE', question: 'What is the correct pitcher position for steaming milk?', options: ['Center and center', 'Halfway (front to back) and a quarter (side to side)', 'All the way to one side', 'At the very front of the pitcher'], correctAnswers: ['Halfway (front to back) and a quarter (side to side)'] },
-          { id: 'db13', type: 'MULTIPLE_CHOICE', question: 'What does "stretching" mean in milk steaming?', options: ['Making the pitcher taller', 'Injecting air into the milk', 'Heating the milk faster', 'Pouring the milk slowly'], correctAnswers: ['Injecting air into the milk'] },
-          { id: 'db14', type: 'MULTIPLE_CHOICE', question: 'When should you stop stretching and resubmerge the steam tip?', options: ['After 10 seconds', 'When the pitcher matches your hand temperature (90-100°F)', 'When you see large bubbles', 'When the milk starts boiling'], correctAnswers: ['When the pitcher matches your hand temperature (90-100°F)'] },
-          { id: 'db15', type: 'MULTIPLE_CHOICE', question: 'What is the fundamental rule for grind adjustment?', options: ['Finer grind = shorter shot time', 'Finer grind = longer shot time; Coarser grind = shorter shot time', 'Grind doesn\'t affect shot time', 'Coarser grind = longer shot time'], correctAnswers: ['Finer grind = longer shot time; Coarser grind = shorter shot time'] },
-          { id: 'db16', type: 'MULTIPLE_CHOICE', question: 'According to the 2-5-10 rule, what does 1 tic on the grind collar equal?', options: ['1 second change', '2 seconds change', '5 seconds change', '10 seconds change'], correctAnswers: ['2 seconds change'] },
-          { id: 'db17', type: 'MULTIPLE_CHOICE', question: 'What defines consistent shots when dialing in?', options: ['Shots within 5 seconds of each other', 'Shots within 2 seconds of each other', 'Shots that look the same', 'Shots that taste identical'], correctAnswers: ['Shots within 2 seconds of each other'] },
-          { id: 'db18', type: 'MULTIPLE_CHOICE', question: 'When do you backflush with just water (no cleaner)?', options: ['At closing only', 'In the afternoon', 'Every hour', 'Only on Mondays'], correctAnswers: ['In the afternoon'] },
-          { id: 'db19', type: 'MULTIPLE_CHOICE', question: 'When do you backflush with cleaning powder?', options: ['In the morning', 'At closing', 'Every other day', 'Weekly only'], correctAnswers: ['At closing'] },
-          { id: 'db20', type: 'MULTIPLE_CHOICE', question: 'What items go in the weekly Puro soak?', options: ['Steam wand tips and milk pitchers', 'Portafilter baskets, shot catchers, screens/screws, and portafilters', 'Only the portafilters', 'Cups and saucers'], correctAnswers: ['Portafilter baskets, shot catchers, screens/screws, and portafilters'] }
         ]
       }
     ]
@@ -2397,6 +1697,103 @@ Great hospitality is about anticipating needs, clear communication, and making g
     ]
   },
   ...NEW_TRAINING_MODULES,
+  {
+    id: 'm-drink-making-basics',
+    title: 'Module 12: Drink Making Basics - Day 1 Hot Drinks',
+    description: 'Learn espresso extraction, drink making process, milk steaming, dialing in, and cleaning procedures.',
+    category: 'ONBOARDING',
+    lessons: [
+      {
+        id: 'l-drink-basics-overview',
+        moduleId: 'm-drink-making-basics',
+        title: 'Module Overview',
+        type: 'CONTENT',
+        content: `This module teaches you to make espresso-based hot drinks at Boundaries Coffee. You'll learn espresso extraction, milk steaming, dialing in, and cleaning procedures.
+
+HOW TO COMPLETE THIS MODULE:
+
+1. Read this overview with your trainer
+2. Click "Required Practice Drinks" below to access the 21-item practice checklist
+3. Submit photos of each drink you make (18 photos required)
+4. Pass the Knowledge Quiz with 80% or higher
+
+Your trainer will work with you through each drink. You'll take photos of your work to track your progress and improvement over time.
+
+Once you're ready, complete the lesson below and move on to the practice checklist.`
+      },
+      {
+        id: 'l-drink-basics-practice',
+        moduleId: 'm-drink-making-basics',
+        title: 'Required Practice Drinks',
+        type: 'PRACTICE',
+        content: `Work through this checklist with your trainer. Make each drink, take a photo, and check it off when complete.
+
+WHAT YOU NEED TO DO:
+- Complete all 21 items with your trainer
+- Take photos of the 18 drinks that require them (camera icon shown)
+- Check off each item as you finish
+- Submit when all items are complete
+
+Your photos will be saved in your Progress Gallery so you can see your improvement over time. Let's get started!`,
+        checklistItems: [
+          // Espresso Shots (5)
+          { id: 'esp-1', title: 'Espresso Shot #1 (Dialed In)', description: 'Pull a properly dialed-in shot. Target: 19g dose, 24s brew time.', requiresPhoto: true },
+          { id: 'esp-2', title: 'Espresso Shot #2 (Dialed In)', description: 'Pull another dialed-in shot. Demonstrate consistency.', requiresPhoto: true },
+          { id: 'esp-3', title: 'Espresso Shot #3 (Dialed In)', description: 'Pull a third shot with minimal guidance.', requiresPhoto: true },
+          { id: 'esp-under', title: 'Espresso Shot (Under-extracted)', description: 'Pull an under-extracted shot. Identify the sour, acidic taste.', requiresPhoto: true },
+          { id: 'esp-over', title: 'Espresso Shot (Over-extracted)', description: 'Pull an over-extracted shot. Identify the bitter, harsh taste.', requiresPhoto: true },
+          // Lattes (5)
+          { id: 'latte-12-1', title: 'Latte 12oz #1', description: 'Make a 12oz latte from start to finish.', requiresPhoto: true },
+          { id: 'latte-12-2', title: 'Latte 12oz #2', description: 'Focus on workflow efficiency and timing.', requiresPhoto: true },
+          { id: 'latte-12-3', title: 'Latte 12oz #3', description: 'Make independently with minimal guidance.', requiresPhoto: true },
+          { id: 'latte-16-1', title: 'Latte 16oz #1', description: 'Note the different milk quantity for larger size.', requiresPhoto: true },
+          { id: 'latte-16-2', title: 'Latte 16oz #2', description: 'Demonstrate consistent technique across sizes.', requiresPhoto: true },
+          // Flavored Drinks (4)
+          { id: 'vanilla-1', title: 'Vanilla Latte #1', description: 'Add vanilla sauce and ensure proper stirring.', requiresPhoto: true },
+          { id: 'vanilla-2', title: 'Vanilla Latte #2', description: 'Focus on consistent sauce portions.', requiresPhoto: true },
+          { id: 'mocha-1', title: 'Mocha #1', description: 'Integrate chocolate sauce properly with espresso.', requiresPhoto: true },
+          { id: 'mocha-2', title: 'Mocha #2', description: 'Demonstrate consistent chocolate portioning.', requiresPhoto: true },
+          // Other Drinks (4)
+          { id: 'capp-1', title: 'Cappuccino #1', description: 'Steam milk with more foam than a latte.', requiresPhoto: true },
+          { id: 'capp-2', title: 'Cappuccino #2', description: 'Demonstrate consistent foam texture.', requiresPhoto: true },
+          { id: 'amer-1', title: 'Americano #1', description: 'Hot water first, then espresso shots.', requiresPhoto: true },
+          { id: 'amer-2', title: 'Americano #2', description: 'Demonstrate consistent water-to-espresso ratio.', requiresPhoto: true },
+          // Dial-In & Cleaning (3) - no photos required
+          { id: 'dialin', title: 'Dial-In Exercise', description: 'Adjust grinder using 2-5-10 rule to hit target.' },
+          { id: 'backflush-water', title: 'Backflush (Water Only)', description: 'Afternoon cleaning procedure.' },
+          { id: 'backflush-cleaner', title: 'Backflush (With Cleaner)', description: 'Closing procedure with Cafiza.' }
+        ]
+      },
+      {
+        id: 'l-drink-basics-quiz',
+        moduleId: 'm-drink-making-basics',
+        title: 'Drink Making Basics Quiz',
+        type: 'QUIZ',
+        quizQuestions: [
+          { id: 'db1', type: 'MULTIPLE_CHOICE', question: 'What is espresso?', options: ['A type of coffee bean', 'A brew method requiring ground coffee, water, heat, pressure, filter, and time', 'A dark roast coffee', 'Coffee with milk added'], correctAnswers: ['A brew method requiring ground coffee, water, heat, pressure, filter, and time'] },
+          { id: 'db2', type: 'MULTIPLE_CHOICE', question: 'What are the 6 things required for espresso?', options: ['Beans, grinder, machine, cup, water, milk', 'Ground coffee, water, heat, pressure (9 bar), filter, time', 'Steam, pressure, heat, beans, filter, cup', 'Coffee, cream, sugar, water, heat, time'], correctAnswers: ['Ground coffee, water, heat, pressure (9 bar), filter, time'] },
+          { id: 'db3', type: 'MULTIPLE_CHOICE', question: 'What is the standard espresso yield and shot time range?', options: ['1oz, 10-15 seconds', '2oz, 20-30 seconds', '3oz, 40-50 seconds', '4oz, 60-90 seconds'], correctAnswers: ['2oz, 20-30 seconds'] },
+          { id: 'db4', type: 'MULTIPLE_CHOICE', question: 'What is the Monarch espresso recipe at Boundaries Coffee?', options: ['18g dose at 20s brew time', '19g dose at 24s brew time', '21g dose at 30s brew time', '17g dose at 22s brew time'], correctAnswers: ['19g dose at 24s brew time'] },
+          { id: 'db5', type: 'MULTIPLE_CHOICE', question: 'What is the acceptable range for dose and brew time variation?', options: ['+/- 1g, +/- 5s', '+/- 0.2g, +/- 2s', '+/- 0.5g, +/- 3s', '+/- 2g, +/- 10s'], correctAnswers: ['+/- 0.2g, +/- 2s'] },
+          { id: 'db6', type: 'MULTIPLE_CHOICE', question: 'What does an under-extracted shot taste like?', options: ['Bitter and harsh', 'Sour and acidic', 'Sweet and balanced', 'Burnt and smoky'], correctAnswers: ['Sour and acidic'] },
+          { id: 'db7', type: 'MULTIPLE_CHOICE', question: 'What does an over-extracted shot taste like?', options: ['Sour and bright', 'Bitter and harsh', 'Fruity and light', 'Watery and thin'], correctAnswers: ['Bitter and harsh'] },
+          { id: 'db8', type: 'MULTIPLE_CHOICE', question: 'What is the correct order for the drink making process?', options: ['Pull shot, steam milk, prepare cup, pour', 'Prepare cup, portion milk, pull shot, steam milk, add shots, stir, pour, serve', 'Steam milk, pull shot, add sauce, serve', 'Portion milk, prepare cup, steam, pull shot, serve'], correctAnswers: ['Prepare cup, portion milk, pull shot, steam milk, add shots, stir, pour, serve'] },
+          { id: 'db9', type: 'MULTIPLE_CHOICE', question: 'What are the steps for pulling a shot? (In order)', options: ['Dose, tamp, insert, brew', 'Remove portafilter, rinse group, wipe dry, dose, settle, distribute, tamp, wipe, insert, brew', 'Grind, tamp, insert, wait, brew', 'Wipe, dose, distribute, insert, brew'], correctAnswers: ['Remove portafilter, rinse group, wipe dry, dose, settle, distribute, tamp, wipe, insert, brew'] },
+          { id: 'db10', type: 'MULTIPLE_CHOICE', question: 'After inserting the portafilter, what should you do?', options: ['Wait 30 seconds then brew', 'Brew immediately and set cup underneath', 'Check the pressure gauge first', 'Wipe the group head again'], correctAnswers: ['Brew immediately and set cup underneath'] },
+          { id: 'db11', type: 'MULTIPLE_CHOICE', question: 'What do you do after adding shots to the cup?', options: ['Immediately pour milk', 'Rinse shot catchers and set back on machine, then stir sauce/espresso', 'Let it cool for 30 seconds', 'Add more espresso'], correctAnswers: ['Rinse shot catchers and set back on machine, then stir sauce/espresso'] },
+          { id: 'db12', type: 'MULTIPLE_CHOICE', question: 'What is the correct pitcher position for steaming milk?', options: ['Center and center', 'Halfway (front to back) and a quarter (side to side)', 'All the way to one side', 'At the very front of the pitcher'], correctAnswers: ['Halfway (front to back) and a quarter (side to side)'] },
+          { id: 'db13', type: 'MULTIPLE_CHOICE', question: 'What does "stretching" mean in milk steaming?', options: ['Making the pitcher taller', 'Injecting air into the milk', 'Heating the milk faster', 'Pouring the milk slowly'], correctAnswers: ['Injecting air into the milk'] },
+          { id: 'db14', type: 'MULTIPLE_CHOICE', question: 'When should you stop stretching and resubmerge the steam tip?', options: ['After 10 seconds', 'When the pitcher matches your hand temperature (90-100°F)', 'When you see large bubbles', 'When the milk starts boiling'], correctAnswers: ['When the pitcher matches your hand temperature (90-100°F)'] },
+          { id: 'db15', type: 'MULTIPLE_CHOICE', question: 'What is the fundamental rule for grind adjustment?', options: ['Finer grind = shorter shot time', 'Finer grind = longer shot time; Coarser grind = shorter shot time', 'Grind doesn\'t affect shot time', 'Coarser grind = longer shot time'], correctAnswers: ['Finer grind = longer shot time; Coarser grind = shorter shot time'] },
+          { id: 'db16', type: 'MULTIPLE_CHOICE', question: 'According to the 2-5-10 rule, what does 1 tic on the grind collar equal?', options: ['1 second change', '2 seconds change', '5 seconds change', '10 seconds change'], correctAnswers: ['2 seconds change'] },
+          { id: 'db17', type: 'MULTIPLE_CHOICE', question: 'What defines consistent shots when dialing in?', options: ['Shots within 5 seconds of each other', 'Shots within 2 seconds of each other', 'Shots that look the same', 'Shots that taste identical'], correctAnswers: ['Shots within 2 seconds of each other'] },
+          { id: 'db18', type: 'MULTIPLE_CHOICE', question: 'When do you backflush with just water (no cleaner)?', options: ['At closing only', 'In the afternoon', 'Every hour', 'Only on Mondays'], correctAnswers: ['In the afternoon'] },
+          { id: 'db19', type: 'MULTIPLE_CHOICE', question: 'When do you backflush with cleaning powder?', options: ['In the morning', 'At closing', 'Every other day', 'Weekly only'], correctAnswers: ['At closing'] },
+          { id: 'db20', type: 'MULTIPLE_CHOICE', question: 'What items go in the weekly Puro soak?', options: ['Steam wand tips and milk pitchers', 'Portafilter baskets, shot catchers, screens/screws, and portafilters', 'Only the portafilters', 'Cups and saucers'], correctAnswers: ['Portafilter baskets, shot catchers, screens/screws, and portafilters'] }
+        ]
+      }
+    ]
+  },
 ];
 
 const baseTemplates = [

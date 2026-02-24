@@ -95,7 +95,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
   org, onSaveOrg, onSyncToastEmployees
 }) => {
   const [activeSubTab, setActiveSubTab] = useState<'dashboard' | 'operations' | 'settings'>('dashboard');
-  const [operationsSubTab, setOperationsSubTab] = useState<'compliance' | 'gallery' | 'cash-audit'>('compliance');
+  const [operationsSubTab, setOperationsSubTab] = useState<'compliance' | 'gallery' | 'cash-audit' | 'training'>('compliance');
   const [settingsSubTab, setSettingsSubTab] = useState<'editor' | 'team' | 'staff' | 'manual' | 'branding' | 'stores'>('editor');
   const [auditFilter, setAuditFilter] = useState<'pending' | 'approved' | 'all'>('pending');
   const [overrideFeedback, setOverrideFeedback] = useState<Record<string, string>>({});
@@ -1981,6 +1981,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                   { id: 'compliance', label: 'Compliance', icon: Timer },
                   { id: 'gallery', label: 'Photo Audit', icon: ImageIcon },
                   { id: 'cash-audit', label: 'Cash Audit', icon: DollarSign },
+                  { id: 'training', label: 'Training Export', icon: GraduationCap },
                 ].map(tab => (
                   <button
                     key={tab.id}
@@ -3025,6 +3026,128 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
             </section>
           );
         })()}
+
+        {activeSubTab === 'operations' && operationsSubTab === 'training' && (
+          <section className="animate-in fade-in space-y-6">
+            <div className="bg-white p-6 rounded-xl border border-neutral-100 shadow-sm">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-2 bg-blue-50 text-blue-600 rounded-xl"><GraduationCap size={20} /></div>
+                <div>
+                  <h2 className="text-xl font-black text-[#0F2B3C] uppercase tracking-tight">Export Training Modules</h2>
+                  <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">Download all training content, questions & answers</p>
+                </div>
+              </div>
+
+              <div className="bg-neutral-50 p-6 rounded-xl border border-neutral-100 mb-6">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
+                  <div>
+                    <p className="text-2xl font-black text-[#0F2B3C]">{curriculum.length}</p>
+                    <p className="text-[9px] font-black text-neutral-400 uppercase tracking-widest">Modules</p>
+                  </div>
+                  <div>
+                    <p className="text-2xl font-black text-[#0F2B3C]">{curriculum.flatMap(m => m.lessons).length}</p>
+                    <p className="text-[9px] font-black text-neutral-400 uppercase tracking-widest">Lessons</p>
+                  </div>
+                  <div>
+                    <p className="text-2xl font-black text-[#0F2B3C]">{curriculum.flatMap(m => m.lessons).filter(l => l.type === 'QUIZ').length}</p>
+                    <p className="text-[9px] font-black text-neutral-400 uppercase tracking-widest">Quizzes</p>
+                  </div>
+                  <div>
+                    <p className="text-2xl font-black text-[#0F2B3C]">{curriculum.flatMap(m => m.lessons).filter(l => l.type === 'QUIZ').reduce((sum, l) => sum + (l.quizQuestions?.length || 0), 0)}</p>
+                    <p className="text-[9px] font-black text-neutral-400 uppercase tracking-widest">Questions</p>
+                  </div>
+                </div>
+              </div>
+
+              <button
+                onClick={() => {
+                  const html = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Boundaries Coffee - Training Modules Export</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 800px; margin: 0 auto; padding: 40px 20px; color: #1a1a1a; line-height: 1.6; }
+  h1 { text-align: center; font-size: 28px; border-bottom: 3px solid #0F2B3C; padding-bottom: 16px; color: #0F2B3C; }
+  h2 { font-size: 20px; color: #0F2B3C; margin-top: 40px; border-bottom: 2px solid #e5e5e5; padding-bottom: 8px; page-break-before: auto; }
+  h3 { font-size: 16px; color: #333; margin-top: 20px; }
+  .module { page-break-inside: avoid; margin-bottom: 30px; }
+  .lesson { margin-left: 20px; margin-bottom: 20px; }
+  .quiz-q { background: #f5f5f5; padding: 12px 16px; border-radius: 8px; margin-bottom: 12px; page-break-inside: avoid; }
+  .quiz-q p { margin: 4px 0; }
+  .correct { color: #16a34a; font-weight: bold; }
+  .explanation { color: #666; font-style: italic; font-size: 13px; }
+  .option { margin-left: 16px; }
+  .option.is-correct { font-weight: bold; color: #16a34a; }
+  table { border-collapse: collapse; width: 100%; margin: 10px 0; }
+  th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 13px; }
+  th { background: #f0f0f0; font-weight: bold; }
+  .date { text-align: center; color: #888; font-size: 12px; margin-top: 8px; }
+  @media print { body { padding: 0; } h2 { page-break-before: auto; } .quiz-q { break-inside: avoid; } }
+</style>
+</head>
+<body>
+<h1>Boundaries Coffee Training Modules</h1>
+<p class="date">Exported on ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+${curriculum.map((mod, mi) => {
+  let moduleHtml = `<div class="module"><h2>Module ${mi + 1}: ${mod.title.replace(/^Module \d+:\s*/, '')}</h2>`;
+  moduleHtml += `<p><em>${mod.description}</em></p>`;
+
+  mod.lessons.forEach(lesson => {
+    if (lesson.type === 'CONTENT' && lesson.content) {
+      moduleHtml += `<div class="lesson"><h3>${lesson.title}</h3>${lesson.content}</div>`;
+    } else if (lesson.type === 'QUIZ' && lesson.quizQuestions) {
+      moduleHtml += `<div class="lesson"><h3>${lesson.title} (${lesson.quizQuestions.length} Questions)</h3>`;
+      lesson.quizQuestions.forEach((q, qi) => {
+        moduleHtml += `<div class="quiz-q"><p><strong>Q${qi + 1}. ${q.question}</strong></p>`;
+        if (q.options) {
+          q.options.forEach(opt => {
+            const isCorrect = q.correctAnswers?.includes(opt);
+            moduleHtml += `<p class="option${isCorrect ? ' is-correct' : ''}">${isCorrect ? '&#10003; ' : '&nbsp;&nbsp;&nbsp;'}${opt}</p>`;
+          });
+        }
+        if (q.correctAnswers) {
+          moduleHtml += `<p class="correct">Answer: ${q.correctAnswers.join(', ')}</p>`;
+        }
+        if (q.explanation) {
+          moduleHtml += `<p class="explanation">${q.explanation}</p>`;
+        }
+        moduleHtml += `</div>`;
+      });
+      moduleHtml += `</div>`;
+    } else if (lesson.type === 'PRACTICE' && lesson.checklistItems) {
+      moduleHtml += `<div class="lesson"><h3>${lesson.title}</h3><ul>`;
+      lesson.checklistItems.forEach(item => {
+        moduleHtml += `<li><strong>${item.title}</strong>${item.description ? ': ' + item.description : ''}${item.requiresPhoto ? ' (Photo Required)' : ''}</li>`;
+      });
+      moduleHtml += `</ul></div>`;
+    }
+  });
+  moduleHtml += `</div>`;
+  return moduleHtml;
+}).join('')}
+</body>
+</html>`;
+
+                  const win = window.open('', '_blank');
+                  if (win) {
+                    win.document.write(html);
+                    win.document.close();
+                    setTimeout(() => win.print(), 500);
+                  }
+                }}
+                className="w-full py-4 bg-[#0F2B3C] text-white rounded-xl font-black uppercase text-xs tracking-widest hover:bg-blue-900 transition-all flex items-center justify-center gap-3 shadow-lg"
+              >
+                <FileText size={18} />
+                Export All Training Modules (Print / Save as PDF)
+              </button>
+
+              <p className="text-center text-[10px] text-neutral-400 font-medium mt-3">
+                Opens in a new window. Use your browser's print dialog to save as PDF or print a hard copy.
+              </p>
+            </div>
+          </section>
+        )}
 
         {activeSubTab === 'settings' && settingsSubTab === 'team' && currentUser?.role === UserRole.ADMIN && (
           <TeamManagement

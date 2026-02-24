@@ -33,8 +33,7 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
 
 <h3>Syrup</h3>
 <ul>
-  <li>ALL matchas get 1 oz total syrup regardless of size</li>
-  <li>Multi-flavor matchas still total 1 oz (e.g., Strawberry Dream = 0.5 oz strawberry + 0.5 oz vanilla = 1 oz total)</li>
+  <li>ALL matchas get 1 oz total syrup regardless of size or temperature</li>
 </ul>
 
 <h3>Milk Amounts</h3>
@@ -52,7 +51,14 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
 <ul>
   <li>30g matcha powder + 300ml water</li>
   <li>Mix thoroughly before use</li>
-</ul>`
+</ul>
+
+<h3>Key Points to Memorize</h3>
+<ol>
+  <li>Small = 1 oz concentrate, Large = 1.5 oz concentrate</li>
+  <li>Syrup is ALWAYS 1 oz total (all sizes)</li>
+  <li>Extra matcha = +0.5 oz</li>
+</ol>`
       },
       {
         id: 'l-matchas-quiz',
@@ -87,8 +93,8 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
           {
             id: 'ma4',
             type: 'MULTIPLE_CHOICE' as const,
-            question: 'A 12oz hot matcha with extra matcha — how much concentrate total?',
-            options: ['1 oz', '1.5 oz', '2 oz', '0.5 oz'],
+            question: 'A customer orders a 12oz hot matcha with extra matcha. How much concentrate total?',
+            options: ['1 oz', '1.5 oz', '2 oz', '2.5 oz'],
             correctAnswers: ['1.5 oz'],
             explanation: '12oz hot is small (1 oz base) + 0.5 oz extra matcha = 1.5 oz total.'
           },
@@ -96,14 +102,14 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
             id: 'ma5',
             type: 'MULTIPLE_CHOICE' as const,
             question: 'What is the milk fill line for a 20oz iced matcha?',
-            options: ['11 oz', '12 oz', '14 oz', '16 oz'],
+            options: ['9 oz', '11 oz', '14 oz', '17 oz'],
             correctAnswers: ['14 oz'],
             explanation: 'Iced 20oz matchas get milk filled to the 14 oz line.'
           },
           {
             id: 'ma6',
             type: 'MULTIPLE_CHOICE' as const,
-            question: 'How much steamed milk goes in a 12oz hot matcha?',
+            question: 'How much steamed milk goes in a 12oz hot matcha pitcher?',
             options: ['6 oz', '8 oz', '10 oz', '12 oz'],
             correctAnswers: ['8 oz'],
             explanation: 'A 12oz hot matcha gets 8 oz of steamed milk.'
@@ -119,9 +125,9 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
           {
             id: 'ma8',
             type: 'MULTIPLE_CHOICE' as const,
-            question: 'A Strawberry Dream matcha has 0.5 oz strawberry + 0.5 oz vanilla. Does the syrup amount change by size?',
-            options: ['Yes, larger sizes get more syrup', 'Yes, smaller sizes get less syrup', 'No, always 1 oz total syrup', 'It depends on the flavor combination'],
-            correctAnswers: ['No, always 1 oz total syrup'],
+            question: 'A Strawberry Dream matcha has 0.5 oz strawberry + 0.5 oz vanilla. Does this change based on size?',
+            options: ['Yes, double it for large sizes', 'Yes, add 0.5 oz more for large', 'No, it\'s always 1 oz total syrup', 'No, but add extra for iced'],
+            correctAnswers: ['No, it\'s always 1 oz total syrup'],
             explanation: 'All matchas get 1 oz total syrup regardless of size. Multi-flavor matchas divide that 1 oz among flavors.'
           }
         ]
@@ -141,17 +147,17 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
         moduleId: 'm-nitro',
         title: 'Nitro Cold Brew Standards',
         type: 'CONTENT' as const,
-        content: `<p>Nitro cold brew has a standard build that stays the same across all sizes. The only thing that changes is the cup size.</p>
+        content: `<p>Nitro cold brew has a simple, consistent build that stays the same across all sizes.</p>
 
 <h3>Standard Build (All Sizes)</h3>
 <ol>
-  <li>1 scoop ice</li>
+  <li>Cup size with 1 scoop ice</li>
   <li>Fill nitro from tap to the 2nd-to-last line</li>
   <li>3 oz sweet cream</li>
   <li>0.5 oz flavor syrup</li>
 </ol>
 
-<h3>Flavor Variations</h3>
+<h3>Flavor Options</h3>
 <table>
   <thead><tr><th>Flavor</th><th>Syrup / Sauce</th></tr></thead>
   <tbody>
@@ -161,11 +167,12 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
   </tbody>
 </table>
 
-<h3>Key Points</h3>
+<h3>Key Points to Memorize</h3>
 <ul>
-  <li>Build does NOT change between sizes — only the cup changes</li>
-  <li>Cookie Butter is unique because it uses both a syrup (Biscoff) and a sauce (White Chocolate)</li>
-  <li>Always fill nitro to the 2nd-to-last line, not the top</li>
+  <li>Always 1 scoop ice</li>
+  <li>Fill nitro to 2nd-to-last line</li>
+  <li>Always 3 oz sweet cream</li>
+  <li>Always 0.5 oz flavor (except Cookie Butter which adds 10g white choc)</li>
 </ul>`
       },
       {
@@ -177,23 +184,23 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
           {
             id: 'ni1',
             type: 'MULTIPLE_CHOICE' as const,
-            question: 'How much ice goes in a nitro cold brew?',
-            options: ['No ice', 'Half scoop', '1 scoop', '2 scoops'],
+            question: 'How much ice goes in a nitro?',
+            options: ['Fill cup with ice', '2 scoops', '1 scoop', 'No ice'],
             correctAnswers: ['1 scoop'],
             explanation: 'All nitro cold brews get exactly 1 scoop of ice.'
           },
           {
             id: 'ni2',
             type: 'MULTIPLE_CHOICE' as const,
-            question: 'Where do you fill the nitro from the tap to?',
-            options: ['The top line', '2nd-to-last line', 'Halfway', 'The bottom line'],
+            question: 'Where do you fill the nitro to?',
+            options: ['Top line', '2nd-to-last line', 'Halfway', '3rd line from bottom'],
             correctAnswers: ['2nd-to-last line'],
             explanation: 'Fill nitro from the tap to the 2nd-to-last line on the cup.'
           },
           {
             id: 'ni3',
             type: 'MULTIPLE_CHOICE' as const,
-            question: 'How much sweet cream goes in a nitro cold brew?',
+            question: 'How much sweet cream goes in a nitro?',
             options: ['1 oz', '2 oz', '3 oz', '4 oz'],
             correctAnswers: ['3 oz'],
             explanation: 'All nitro cold brews get 3 oz of sweet cream.'
@@ -209,17 +216,17 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
           {
             id: 'ni5',
             type: 'MULTIPLE_CHOICE' as const,
-            question: 'What makes the Cookie Butter nitro different from other flavors?',
-            options: ['It uses more sweet cream', 'It uses Biscoff syrup + 10g White Chocolate sauce', 'It has no ice', 'It uses double syrup'],
+            question: 'What makes Cookie Butter different from other nitro flavors?',
+            options: ['It uses 1 oz syrup instead of 0.5 oz', 'It uses Biscoff syrup + 10g White Chocolate sauce', 'It doesn\'t get sweet cream', 'It gets 2 scoops of ice'],
             correctAnswers: ['It uses Biscoff syrup + 10g White Chocolate sauce'],
             explanation: 'Cookie Butter is unique — it combines 0.5 oz Biscoff syrup with 10g White Chocolate sauce.'
           },
           {
             id: 'ni6',
             type: 'MULTIPLE_CHOICE' as const,
-            question: 'What changes between a large and small nitro cold brew?',
-            options: ['Ice amount changes', 'Sweet cream amount changes', 'Syrup amount changes', 'Cup size changes, build stays the same'],
-            correctAnswers: ['Cup size changes, build stays the same'],
+            question: 'A customer orders a large nitro vs a small nitro. What changes?',
+            options: ['More sweet cream for large', 'More syrup for large', 'More ice for large', 'Cup size changes, but build stays the same'],
+            correctAnswers: ['Cup size changes, but build stays the same'],
             explanation: 'The build is identical across all sizes. Only the cup size changes.'
           }
         ]
@@ -239,24 +246,27 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
         moduleId: 'm-energy',
         title: 'Energy Drink Standards',
         type: 'CONTENT' as const,
-        content: `<h3>Sizes, Syrup &amp; Fill Lines</h3>
+        content: `<p>Energy drinks come in 4 sizes: 12oz, 16oz, 20oz, 24oz.</p>
+
+<h3>Syrup Amounts by Size</h3>
 <table>
   <thead><tr><th>Size</th><th>Syrup</th><th>Fill Line</th></tr></thead>
   <tbody>
-    <tr><td>12 oz</td><td>1 oz</td><td>9 oz</td></tr>
-    <tr><td>16 oz</td><td>1.5 oz</td><td>11 oz</td></tr>
-    <tr><td>20 oz</td><td>2 oz</td><td>14 oz</td></tr>
+    <tr><td>12 oz</td><td>0.5 oz</td><td>9 oz</td></tr>
+    <tr><td>16 oz</td><td>1 oz</td><td>11 oz</td></tr>
+    <tr><td>20 oz</td><td>1.5 oz</td><td>14 oz</td></tr>
     <tr><td>24 oz</td><td>2 oz</td><td>16 oz</td></tr>
   </tbody>
 </table>
-<p>Note: 20 oz and 24 oz use the same syrup amount (2 oz).</p>
 
 <h3>Multi-Flavor Drinks</h3>
 <p>When a drink has multiple flavors, divide the total syrup equally among them.</p>
 <ul>
-  <li>The Drift (Strawberry &amp; Pineapple) in 20 oz = 2 oz total ÷ 2 flavors = 1 oz each</li>
-  <li>Electric B (Blue Rasp &amp; Lime) in 12 oz = 1 oz total ÷ 2 flavors = 0.5 oz each</li>
-</ul>`
+  <li>The Drift (Strawberry &amp; Pineapple) in 16 oz = 1 oz total ÷ 2 flavors = 0.5 oz each</li>
+</ul>
+
+<h3>Pattern to Memorize</h3>
+<p>12oz = 0.5 oz, 16oz = 1 oz, 20oz = 1.5 oz, 24oz = 2 oz</p>`
       },
       {
         id: 'l-energy-quiz',
@@ -267,66 +277,66 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
           {
             id: 'en1',
             type: 'MULTIPLE_CHOICE' as const,
-            question: 'How much syrup goes in a 12oz energy drink?',
-            options: ['0.5 oz', '1 oz', '1.5 oz', '2 oz'],
-            correctAnswers: ['1 oz'],
-            explanation: '12oz energy drinks get 1 oz of syrup.'
+            question: 'How much total syrup goes in a 12oz energy drink?',
+            options: ['0.25 oz', '0.5 oz', '1 oz', '1.5 oz'],
+            correctAnswers: ['0.5 oz'],
+            explanation: '12oz energy drinks get 0.5 oz of syrup.'
           },
           {
             id: 'en2',
             type: 'MULTIPLE_CHOICE' as const,
-            question: 'How much syrup goes in a 16oz energy drink?',
-            options: ['1 oz', '1.25 oz', '1.5 oz', '2 oz'],
-            correctAnswers: ['1.5 oz'],
-            explanation: '16oz energy drinks get 1.5 oz of syrup.'
+            question: 'How much total syrup goes in a 16oz energy drink?',
+            options: ['0.5 oz', '1 oz', '1.5 oz', '2 oz'],
+            correctAnswers: ['1 oz'],
+            explanation: '16oz energy drinks get 1 oz of syrup.'
           },
           {
             id: 'en3',
             type: 'MULTIPLE_CHOICE' as const,
-            question: 'How much syrup goes in a 24oz energy drink?',
+            question: 'How much total syrup goes in a 24oz energy drink?',
             options: ['1.5 oz', '2 oz', '2.5 oz', '3 oz'],
             correctAnswers: ['2 oz'],
-            explanation: '24oz energy drinks get 2 oz of syrup — the same as 20oz.'
+            explanation: '24oz energy drinks get 2 oz of syrup.'
           },
           {
             id: 'en4',
             type: 'MULTIPLE_CHOICE' as const,
             question: 'What is the fill line for a 20oz energy drink?',
-            options: ['11 oz', '14 oz', '16 oz', '18 oz'],
+            options: ['11 oz', '14 oz', '16 oz', '17 oz'],
             correctAnswers: ['14 oz'],
             explanation: 'The 20oz energy drink fill line is 14 oz.'
           },
           {
             id: 'en5',
             type: 'MULTIPLE_CHOICE' as const,
-            question: 'The Drift (Strawberry & Pineapple) in 20oz — how much of each syrup?',
-            options: ['0.5 oz each', '0.75 oz each', '1 oz each', '2 oz each'],
-            correctAnswers: ['1 oz each'],
-            explanation: '20oz = 2 oz total syrup ÷ 2 flavors = 1 oz each.'
+            question: 'The Drift has Strawberry & Pineapple. In a 20oz, how much of EACH syrup?',
+            options: ['0.5 oz each', '0.75 oz each', '1 oz each', '1.5 oz each'],
+            correctAnswers: ['0.75 oz each'],
+            explanation: '20oz = 1.5 oz total syrup ÷ 2 flavors = 0.75 oz each.'
           },
           {
             id: 'en6',
             type: 'MULTIPLE_CHOICE' as const,
-            question: 'Electric B (Blue Rasp & Lime) in 12oz — how much of each syrup?',
+            question: 'Electric B has Blue Raspberry & Lime. In a 12oz, how much of EACH syrup?',
             options: ['0.25 oz each', '0.5 oz each', '0.75 oz each', '1 oz each'],
-            correctAnswers: ['0.5 oz each'],
-            explanation: '12oz = 1 oz total syrup ÷ 2 flavors = 0.5 oz each.'
+            correctAnswers: ['0.25 oz each'],
+            explanation: '12oz = 0.5 oz total syrup ÷ 2 flavors = 0.25 oz each.'
           },
           {
             id: 'en7',
             type: 'MULTIPLE_CHOICE' as const,
             question: 'What is the fill line for a 12oz energy drink?',
-            options: ['7 oz', '9 oz', '11 oz', '12 oz'],
+            options: ['7 oz', '9 oz', '11 oz', '14 oz'],
             correctAnswers: ['9 oz'],
             explanation: 'The 12oz energy drink fill line is 9 oz.'
           },
           {
             id: 'en8',
             type: 'MULTIPLE_CHOICE' as const,
-            question: 'Do 20oz and 24oz energy drinks use the same amount of syrup?',
-            options: ['True', 'False', 'Only for single flavors', 'Only for multi-flavors'],
-            correctAnswers: ['True'],
-            explanation: 'Both 20oz and 24oz energy drinks use 2 oz of syrup.'
+            question: 'What is the syrup pattern for energy drinks (12/16/20/24)?',
+            options: ['0.5 / 1 / 1.5 / 2', '1 / 1.5 / 2 / 2', '1 / 1 / 1.5 / 1.5', '0.5 / 0.5 / 1 / 1'],
+            correctAnswers: ['0.5 / 1 / 1.5 / 2'],
+            explanation: 'The energy drink syrup pattern is 0.5 / 1 / 1.5 / 2, increasing by 0.5 oz per size.'
           }
         ]
       }
@@ -345,7 +355,7 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
         moduleId: 'm-bubbly',
         title: 'Bubbly / Soda Drink Standards',
         type: 'CONTENT' as const,
-        content: `<p>Bubbly drinks follow the same syrup rules as energy drinks.</p>
+        content: `<p>Bubbly drinks follow the SAME syrup rules as regular energy drinks.</p>
 
 <h3>Sizes &amp; Syrup Amounts</h3>
 <table>
@@ -366,9 +376,9 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
 
 <h3>Multi-Flavor Bubbly Drinks</h3>
 <p>Same rule as energy — divide total syrup equally among flavors.</p>
-<p>Example: A 2-flavor bubbly in 12oz = 1 oz total ÷ 2 = 0.5 oz each</p>
 
-<p>Key Point: If you know the energy drink syrup chart, you already know the bubbly chart — they are identical.</p>`
+<h3>Key Point</h3>
+<p>Bubbly syrup amounts = Energy drink syrup amounts</p>`
       },
       {
         id: 'l-bubbly-quiz',
@@ -379,7 +389,7 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
           {
             id: 'bu1',
             type: 'MULTIPLE_CHOICE' as const,
-            question: 'How much syrup goes in a 16oz bubbly drink?',
+            question: 'How much syrup goes in a 16oz Bubbly?',
             options: ['1 oz', '1.5 oz', '2 oz', '2.5 oz'],
             correctAnswers: ['1.5 oz'],
             explanation: '16oz bubbly drinks get 1.5 oz of syrup — same as energy drinks.'
@@ -387,15 +397,15 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
           {
             id: 'bu2',
             type: 'MULTIPLE_CHOICE' as const,
-            question: 'Bubbly syrup amounts are the same as which other drink category?',
-            options: ['Matchas', 'Frozen coffee', 'Energy drinks', 'Lemonades'],
+            question: 'Bubbly syrup amounts are the same as which other category?',
+            options: ['Lattes', 'Matchas', 'Energy drinks', 'Smoothies'],
             correctAnswers: ['Energy drinks'],
             explanation: 'Bubbly drinks use the exact same syrup chart as energy drinks.'
           },
           {
             id: 'bu3',
             type: 'MULTIPLE_CHOICE' as const,
-            question: 'How much syrup goes in a 24oz bubbly drink?',
+            question: 'How much syrup goes in a 24oz Bubbly?',
             options: ['1.5 oz', '2 oz', '2.5 oz', '3 oz'],
             correctAnswers: ['2 oz'],
             explanation: '24oz bubbly drinks get 2 oz of syrup.'
@@ -403,7 +413,7 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
           {
             id: 'bu4',
             type: 'MULTIPLE_CHOICE' as const,
-            question: 'A 2-flavor bubbly drink in 12oz — how much of each syrup?',
+            question: 'A 2-flavor Bubbly in 12oz would have how much of each syrup?',
             options: ['0.25 oz each', '0.5 oz each', '0.75 oz each', '1 oz each'],
             correctAnswers: ['0.5 oz each'],
             explanation: '12oz = 1 oz total ÷ 2 flavors = 0.5 oz each.'
@@ -425,26 +435,36 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
         moduleId: 'm-frozen-energy',
         title: 'Frozen Energy Standards',
         type: 'CONTENT' as const,
-        content: `<p>Frozen energy drinks use DIFFERENT (less) syrup than regular energy drinks.</p>
+        content: `<p>Frozen energy has DIFFERENT syrup amounts than regular energy drinks.</p>
 
-<h3>Syrup Comparison</h3>
+<h3>Syrup Amounts by Size</h3>
 <table>
-  <thead><tr><th>Size</th><th>Regular Energy</th><th>Frozen Energy</th></tr></thead>
+  <thead><tr><th>Size</th><th>Frozen Energy Syrup</th></tr></thead>
   <tbody>
-    <tr><td>12 oz</td><td>1 oz</td><td>0.5 oz</td></tr>
-    <tr><td>16 oz</td><td>1.5 oz</td><td>1 oz</td></tr>
-    <tr><td>20 oz</td><td>2 oz</td><td>1.5 oz</td></tr>
-    <tr><td>24 oz</td><td>2 oz</td><td>2 oz</td></tr>
+    <tr><td>12 oz</td><td>1 oz</td></tr>
+    <tr><td>16 oz</td><td>1.5 oz</td></tr>
+    <tr><td>20 oz</td><td>2 oz</td></tr>
+    <tr><td>24 oz</td><td>2.5 oz</td></tr>
   </tbody>
 </table>
 
-<p>The Pattern: 0.5 → 1 → 1.5 → 2 (increases by 0.5 oz per size)</p>
+<h3>Comparison: Regular vs. Frozen Energy</h3>
+<table>
+  <thead><tr><th>Size</th><th>Regular Energy</th><th>Frozen Energy</th></tr></thead>
+  <tbody>
+    <tr><td>12 oz</td><td>0.5 oz</td><td>1 oz</td></tr>
+    <tr><td>16 oz</td><td>1 oz</td><td>1.5 oz</td></tr>
+    <tr><td>20 oz</td><td>1.5 oz</td><td>2 oz</td></tr>
+    <tr><td>24 oz</td><td>2 oz</td><td>2.5 oz</td></tr>
+  </tbody>
+</table>
+
+<p>The Pattern: 1 → 1.5 → 2 → 2.5 (starts at 1 oz and increases by 0.5 oz per size)</p>
 
 <h3>Key Points</h3>
 <ul>
-  <li>Frozen energy uses less syrup than regular energy at every size except 24 oz</li>
-  <li>At 24 oz, both regular and frozen use 2 oz — the only size where they match</li>
-  <li>Remember the pattern: starts at 0.5 and goes up by 0.5 each size</li>
+  <li>Frozen energy uses MORE syrup than regular energy (0.5 oz more at each size)</li>
+  <li>Remember the pattern: starts at 1 and goes up by 0.5 each size</li>
 </ul>`
       },
       {
@@ -458,48 +478,48 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
             type: 'MULTIPLE_CHOICE' as const,
             question: 'How much syrup goes in a 12oz frozen energy?',
             options: ['0.5 oz', '1 oz', '1.5 oz', '2 oz'],
-            correctAnswers: ['0.5 oz'],
-            explanation: '12oz frozen energy gets only 0.5 oz of syrup.'
+            correctAnswers: ['1 oz'],
+            explanation: '12oz frozen energy gets 1 oz of syrup.'
           },
           {
             id: 'fe2',
             type: 'MULTIPLE_CHOICE' as const,
             question: 'How much syrup goes in a 16oz frozen energy?',
-            options: ['0.5 oz', '1 oz', '1.5 oz', '2 oz'],
-            correctAnswers: ['1 oz'],
-            explanation: '16oz frozen energy gets 1 oz of syrup.'
+            options: ['1 oz', '1.5 oz', '2 oz', '2.5 oz'],
+            correctAnswers: ['1.5 oz'],
+            explanation: '16oz frozen energy gets 1.5 oz of syrup.'
           },
           {
             id: 'fe3',
             type: 'MULTIPLE_CHOICE' as const,
             question: 'How much syrup goes in a 20oz frozen energy?',
-            options: ['1 oz', '1.25 oz', '1.5 oz', '2 oz'],
-            correctAnswers: ['1.5 oz'],
-            explanation: '20oz frozen energy gets 1.5 oz of syrup.'
+            options: ['1.5 oz', '2 oz', '2.5 oz', '3 oz'],
+            correctAnswers: ['2 oz'],
+            explanation: '20oz frozen energy gets 2 oz of syrup.'
           },
           {
             id: 'fe4',
             type: 'MULTIPLE_CHOICE' as const,
-            question: 'A 12oz regular energy has 1 oz syrup. A 12oz frozen energy has?',
-            options: ['0.5 oz (less)', '1 oz (same)', '1.5 oz (more)', '2 oz (more)'],
-            correctAnswers: ['0.5 oz (less)'],
-            explanation: 'Frozen energy uses less syrup than regular — 12oz frozen gets 0.5 oz vs. 1 oz regular.'
+            question: 'A 12oz regular energy has 0.5 oz syrup. A 12oz frozen energy has:',
+            options: ['0.5 oz (same)', '1 oz (more)', '1.5 oz (more)', '0.25 oz (less)'],
+            correctAnswers: ['1 oz (more)'],
+            explanation: 'Frozen energy uses more syrup than regular — 12oz frozen gets 1 oz vs. 0.5 oz regular.'
           },
           {
             id: 'fe5',
             type: 'MULTIPLE_CHOICE' as const,
-            question: 'What is the syrup pattern for frozen energy (12/16/20/24)?',
-            options: ['1 / 1.5 / 2 / 2', '0.5 / 1 / 1.5 / 2', '0.5 / 1 / 2 / 2.5', '1 / 1 / 1.5 / 1.5'],
-            correctAnswers: ['0.5 / 1 / 1.5 / 2'],
-            explanation: 'The frozen energy pattern is 0.5 / 1 / 1.5 / 2 — increasing by 0.5 oz per size.'
+            question: 'What is the pattern for frozen energy syrup amounts?',
+            options: ['0.5 / 1 / 1.5 / 2', '1 / 1.5 / 2 / 2.5', '1 / 1 / 1.5 / 1.5', '0.5 / 0.5 / 1 / 1'],
+            correctAnswers: ['1 / 1.5 / 2 / 2.5'],
+            explanation: 'The frozen energy pattern is 1 / 1.5 / 2 / 2.5 — starting at 1 oz and increasing by 0.5 oz per size.'
           },
           {
             id: 'fe6',
             type: 'MULTIPLE_CHOICE' as const,
-            question: 'At which size are regular and frozen energy syrup amounts the same?',
-            options: ['12 oz', '16 oz', '20 oz', '24 oz'],
-            correctAnswers: ['24 oz'],
-            explanation: 'At 24 oz both regular and frozen energy use 2 oz of syrup.'
+            question: 'How much syrup goes in a 24oz frozen energy?',
+            options: ['2 oz', '2.5 oz', '3 oz', '1.5 oz'],
+            correctAnswers: ['2.5 oz'],
+            explanation: '24oz frozen energy gets 2.5 oz of syrup.'
           }
         ]
       }
@@ -518,7 +538,7 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
         moduleId: 'm-frozen-coffee',
         title: 'Frozen Coffee Standards',
         type: 'CONTENT' as const,
-        content: `<p>Frozen coffee is available in ONLY 2 sizes: 16 oz and 20 oz.</p>
+        content: `<p>Frozen coffee ONLY comes in 2 sizes: 16 oz and 20 oz. (No 12 oz or 24 oz!)</p>
 
 <h3>Syrup &amp; Sauce Amounts</h3>
 <table>
@@ -529,11 +549,11 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
   </tbody>
 </table>
 
-<h3>Key Points</h3>
+<h3>Key Points to Memorize</h3>
 <ul>
-  <li>No 12 oz or 24 oz frozen coffee — only 16 and 20</li>
-  <li>Sauce-based flavors use grams (40g or 60g), not ounces</li>
-  <li>Syrup-based flavors use ounces (1 oz or 1.5 oz)</li>
+  <li>Only 2 sizes: 16 oz and 20 oz</li>
+  <li>16 oz = 1 oz syrup or 40g sauce</li>
+  <li>20 oz = 1.5 oz syrup or 60g sauce</li>
 </ul>`
       },
       {
@@ -545,8 +565,8 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
           {
             id: 'fc1',
             type: 'MULTIPLE_CHOICE' as const,
-            question: 'What sizes are available for frozen coffee?',
-            options: ['12oz and 16oz', '16oz and 20oz', '12oz, 16oz, and 20oz', '16oz, 20oz, and 24oz'],
+            question: 'What sizes does frozen coffee come in?',
+            options: ['12oz and 16oz', '16oz and 20oz', '12oz, 16oz, 20oz', '16oz, 20oz, 24oz'],
             correctAnswers: ['16oz and 20oz'],
             explanation: 'Frozen coffee only comes in 16oz and 20oz.'
           },
@@ -570,8 +590,8 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
             id: 'fc4',
             type: 'MULTIPLE_CHOICE' as const,
             question: 'Can you make a 12oz frozen coffee?',
-            options: ['Yes, with 0.5 oz syrup', 'Yes, with 1 oz syrup', 'No', 'Only as a special order'],
-            correctAnswers: ['No'],
+            options: ['Yes, use 0.5 oz syrup', 'Yes, use 1 oz syrup', 'No, we don\'t offer 12oz frozen coffee', 'No, we don\'t offer any frozen coffee'],
+            correctAnswers: ['No, we don\'t offer 12oz frozen coffee'],
             explanation: 'Frozen coffee is only available in 16oz and 20oz. There is no 12oz option.'
           },
           {
@@ -585,7 +605,7 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
           {
             id: 'fc6',
             type: 'MULTIPLE_CHOICE' as const,
-            question: 'How much sauce goes in a 16oz frozen coffee?',
+            question: 'If using sauce in a 16oz frozen coffee, how many grams?',
             options: ['20g', '40g', '60g', '80g'],
             correctAnswers: ['40g'],
             explanation: '16oz frozen coffee gets 40g of sauce.'
@@ -607,10 +627,10 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
         moduleId: 'm-lemonades',
         title: 'Lemonade Standards',
         type: 'CONTENT' as const,
-        content: `<h3>Regular Iced Lemonades</h3>
-<p>Key rule: Concentrate = Syrup (always equal parts).</p>
+        content: `<h3>Regular (Iced) Lemonades</h3>
+<p>Key rule: Concentrate = Syrup (always equal parts, if flavored), then water to fill line.</p>
 <table>
-  <thead><tr><th>Size</th><th>Concentrate</th><th>Syrup</th><th>Water Fill Line</th></tr></thead>
+  <thead><tr><th>Size</th><th>Concentrate</th><th>Syrup (if flavored)</th><th>Water Fill Line</th></tr></thead>
   <tbody>
     <tr><td>12 oz</td><td>1 oz</td><td>1 oz</td><td>9 oz</td></tr>
     <tr><td>16 oz</td><td>1.5 oz</td><td>1.5 oz</td><td>11 oz</td></tr>
@@ -620,9 +640,9 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
 </table>
 
 <h3>Frozen Lemonades</h3>
-<p>Frozen lemonades have a more complex build. Liquids go in first, ice second.</p>
+<p>Frozen lemonades have a more complex build.</p>
 <table>
-  <thead><tr><th>Size</th><th>Concentrate</th><th>Water</th><th>Syrup</th><th>Ice Scoop</th></tr></thead>
+  <thead><tr><th>Size</th><th>Concentrate</th><th>Water</th><th>Syrup</th><th>Ice</th></tr></thead>
   <tbody>
     <tr><td>12 oz</td><td>1.5 oz</td><td>2.5 oz</td><td>1 oz</td><td>12 oz scoop</td></tr>
     <tr><td>16 oz</td><td>3 oz</td><td>4 oz</td><td>1.5 oz</td><td>24 oz scoop</td></tr>
@@ -631,11 +651,12 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
   </tbody>
 </table>
 
-<h3>Key Points</h3>
+<h3>Frozen Lemonade Build Rules</h3>
 <ul>
-  <li>Regular: concentrate always equals syrup</li>
-  <li>Frozen: liquids first, then ice</li>
-  <li>Larger frozen sizes use multiple ice scoops (e.g., 20oz = 24oz scoop + 10oz scoop)</li>
+  <li>Level scoops only</li>
+  <li>Liquids first, ice second</li>
+  <li>No extra water</li>
+  <li>Do not top with ice after blending</li>
 </ul>`
       },
       {
@@ -647,7 +668,7 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
           {
             id: 'le1',
             type: 'MULTIPLE_CHOICE' as const,
-            question: 'How much concentrate goes in a regular 16oz lemonade?',
+            question: 'In a regular 16oz lemonade, how much concentrate?',
             options: ['1 oz', '1.5 oz', '2 oz', '2.5 oz'],
             correctAnswers: ['1.5 oz'],
             explanation: '16oz regular lemonade gets 1.5 oz of concentrate.'
@@ -655,9 +676,9 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
           {
             id: 'le2',
             type: 'MULTIPLE_CHOICE' as const,
-            question: 'In a regular lemonade, the syrup amount equals what?',
-            options: ['Half the concentrate', 'The concentrate amount', 'Double the concentrate', 'A fixed 1 oz'],
-            correctAnswers: ['The concentrate amount'],
+            question: 'In a regular lemonade, the syrup amount equals the:',
+            options: ['Water amount', 'Concentrate amount', 'Ice amount', 'Cup size'],
+            correctAnswers: ['Concentrate amount'],
             explanation: 'In regular lemonades, syrup always equals the concentrate amount (equal parts).'
           },
           {
@@ -671,15 +692,15 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
           {
             id: 'le4',
             type: 'MULTIPLE_CHOICE' as const,
-            question: 'How much concentrate AND syrup go in a 24oz regular lemonade?',
-            options: ['2 oz each', '2.5 oz each', '3 oz each', '1.5 oz each'],
+            question: 'In a regular 24oz lemonade, how much concentrate AND syrup each?',
+            options: ['2 oz each', '2.5 oz each', '3 oz each', '3.5 oz each'],
             correctAnswers: ['2.5 oz each'],
             explanation: '24oz regular lemonade gets 2.5 oz concentrate and 2.5 oz syrup (equal parts).'
           },
           {
             id: 'le5',
             type: 'MULTIPLE_CHOICE' as const,
-            question: 'When making a frozen lemonade, what goes in first?',
+            question: 'For frozen lemonades, what goes in FIRST?',
             options: ['Ice', 'Liquids', 'Syrup only', 'Concentrate only'],
             correctAnswers: ['Liquids'],
             explanation: 'For frozen lemonades, liquids go in first, then ice.'
@@ -687,7 +708,7 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
           {
             id: 'le6',
             type: 'MULTIPLE_CHOICE' as const,
-            question: 'How much syrup goes in a 12oz frozen lemonade?',
+            question: 'How much syrup goes in a 12oz FROZEN lemonade?',
             options: ['0.5 oz', '1 oz', '1.5 oz', '2 oz'],
             correctAnswers: ['1 oz'],
             explanation: '12oz frozen lemonade gets 1 oz of syrup.'
@@ -695,7 +716,7 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
           {
             id: 'le7',
             type: 'MULTIPLE_CHOICE' as const,
-            question: 'How much concentrate goes in a 16oz frozen lemonade?',
+            question: 'How much concentrate goes in a 16oz FROZEN lemonade?',
             options: ['1.5 oz', '2 oz', '3 oz', '4 oz'],
             correctAnswers: ['3 oz'],
             explanation: '16oz frozen lemonade gets 3 oz of concentrate.'
@@ -703,7 +724,7 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
           {
             id: 'le8',
             type: 'MULTIPLE_CHOICE' as const,
-            question: 'What ice scoop(s) for a 20oz frozen lemonade?',
+            question: 'What ice scoop do you use for a 20oz frozen lemonade?',
             options: ['12 oz scoop', '24 oz scoop', '24 oz + 10 oz scoop', '24 oz + 12 oz scoop'],
             correctAnswers: ['24 oz + 10 oz scoop'],
             explanation: '20oz frozen lemonade uses a 24 oz scoop plus a 10 oz scoop of ice.'
@@ -729,25 +750,25 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
 <table>
   <thead><tr><th>Size</th><th>Puree</th><th>Water</th><th>Ice</th></tr></thead>
   <tbody>
-    <tr><td>12 oz</td><td>3 oz</td><td>2 oz</td><td>Heaping scoop</td></tr>
-    <tr><td>16 oz</td><td>4 oz</td><td>3 oz</td><td>Heaping scoop</td></tr>
-    <tr><td>20 oz</td><td>5 oz</td><td>4 oz</td><td>Heaping scoop</td></tr>
-    <tr><td>24 oz</td><td>6 oz</td><td>5 oz</td><td>Heaping scoop</td></tr>
+    <tr><td>12 oz</td><td>3 oz</td><td>2 oz</td><td>Heaping scoop (cup overflowing)</td></tr>
+    <tr><td>16 oz</td><td>4 oz</td><td>3 oz</td><td>Heaping scoop (cup overflowing)</td></tr>
+    <tr><td>20 oz</td><td>5 oz</td><td>4 oz</td><td>Heaping scoop (cup overflowing)</td></tr>
+    <tr><td>24 oz</td><td>6 oz</td><td>5 oz</td><td>Heaping scoop (cup overflowing)</td></tr>
   </tbody>
 </table>
 
-<h3>Key Rules</h3>
+<h3>Patterns to Memorize</h3>
 <ul>
-  <li>Water is always 1 oz less than puree</li>
-  <li>Puree pattern: 3 / 4 / 5 / 6 (increases by 1 oz per size)</li>
-  <li>Water pattern: 2 / 3 / 4 / 5 (increases by 1 oz per size)</li>
+  <li>Puree: 3 / 4 / 5 / 6 oz (goes up by 1 oz each size)</li>
+  <li>Water: 2 / 3 / 4 / 5 oz (goes up by 1 oz each size)</li>
+  <li>Water is always 1 oz LESS than puree</li>
   <li>Ice: Always a heaping scoop (cup overflowing) — same for all sizes</li>
 </ul>
 
 <h3>Build Order</h3>
 <ol>
   <li>Puree + water into the blender</li>
-  <li>Add heaping scoop of ice</li>
+  <li>Add heaping scoop of ice (fill cup overflowing)</li>
   <li>Blend</li>
 </ol>`
       },
@@ -784,8 +805,8 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
           {
             id: 'sm4',
             type: 'MULTIPLE_CHOICE' as const,
-            question: 'Water is how much less than puree in a smoothie?',
-            options: ['0.5 oz less', '1 oz less', '2 oz less', 'They are equal'],
+            question: 'Water is always how much less than puree?',
+            options: ['0.5 oz less', '1 oz less', '1.5 oz less', 'Same amount'],
             correctAnswers: ['1 oz less'],
             explanation: 'Water is always exactly 1 oz less than puree in smoothies.'
           },
@@ -793,14 +814,14 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
             id: 'sm5',
             type: 'MULTIPLE_CHOICE' as const,
             question: 'How much ice goes in a smoothie?',
-            options: ['1 scoop', '2 scoops', 'Heaping scoop (cup overflowing)', 'Fill to the line'],
+            options: ['1 scoop level', '2 scoops level', 'Heaping scoop (cup overflowing)', 'Fill to the line'],
             correctAnswers: ['Heaping scoop (cup overflowing)'],
             explanation: 'All smoothies get a heaping scoop of ice (cup overflowing), regardless of size.'
           },
           {
             id: 'sm6',
             type: 'MULTIPLE_CHOICE' as const,
-            question: 'A 20oz smoothie — how much puree and water?',
+            question: 'A 20oz smoothie has how much puree and water?',
             options: ['4 oz puree, 3 oz water', '5 oz puree, 4 oz water', '6 oz puree, 5 oz water', '5 oz puree, 5 oz water'],
             correctAnswers: ['5 oz puree, 4 oz water'],
             explanation: '20oz smoothie = 5 oz puree and 4 oz water.'
@@ -808,15 +829,15 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
           {
             id: 'sm7',
             type: 'MULTIPLE_CHOICE' as const,
-            question: 'What is the puree pattern for smoothies (12/16/20/24)?',
-            options: ['2 / 3 / 4 / 5', '3 / 4 / 5 / 6', '4 / 5 / 6 / 7', '3 / 4.5 / 6 / 7.5'],
+            question: 'What is the pattern for puree amounts (12/16/20/24)?',
+            options: ['2 / 3 / 4 / 5', '3 / 4 / 5 / 6', '4 / 5 / 6 / 7', '3 / 3.5 / 4 / 4.5'],
             correctAnswers: ['3 / 4 / 5 / 6'],
             explanation: 'Puree increases by 1 oz per size: 3 / 4 / 5 / 6.'
           },
           {
             id: 'sm8',
             type: 'MULTIPLE_CHOICE' as const,
-            question: 'What goes into the blender first?',
+            question: 'What goes in the blender first?',
             options: ['Ice', 'Puree and water', 'Just puree', 'Just water'],
             correctAnswers: ['Puree and water'],
             explanation: 'Puree and water go into the blender first, then ice is added on top.'
@@ -838,32 +859,24 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
         moduleId: 'm-teas',
         title: 'Tea Standards',
         type: 'CONTENT' as const,
-        content: `<h3>Iced Tea Concentrate Preparation</h3>
-<p>All iced tea concentrates use the same base recipe:</p>
-<ul>
-  <li>40.8g tea</li>
-  <li>Half quart hot water</li>
-  <li>Steep for the required time</li>
-  <li>Fill to 1 quart after steeping</li>
-</ul>
-
-<h3>Steep Times</h3>
+        content: `<h3>Iced Tea Concentrates (Batch Recipes)</h3>
 <table>
-  <thead><tr><th>Tea</th><th>Steep Time</th></tr></thead>
+  <thead><tr><th>Tea</th><th>Grams</th><th>Hot Water</th><th>Steep Time</th><th>Fill To</th></tr></thead>
   <tbody>
-    <tr><td>Citrus Oolong</td><td>5 minutes</td></tr>
-    <tr><td>Honey Ginger Peach</td><td>6 minutes</td></tr>
-    <tr><td>Lavender Coconut Rooibos</td><td>10 minutes</td></tr>
-    <tr><td>Pomberry Punch</td><td>11 minutes</td></tr>
+    <tr><td>Citrus Oolong</td><td>40.8g</td><td>&frac12; quart</td><td>5 minutes</td><td>1 quart</td></tr>
+    <tr><td>Lavender Coconut Rooibos</td><td>40.8g</td><td>&frac12; quart</td><td>10 minutes</td><td>1 quart</td></tr>
+    <tr><td>Pomberry Punch</td><td>40.8g</td><td>&frac12; quart</td><td>11 minutes</td><td>1 quart</td></tr>
+    <tr><td>Honey Ginger Peach</td><td>40.8g</td><td>&frac12; quart</td><td>6 minutes</td><td>1 quart</td></tr>
   </tbody>
 </table>
 
 <h3>Hot Teas</h3>
 <ul>
-  <li>Use empty sachets filled with 3.5g loose tea</li>
+  <li>Use empty sachets filled with loose tea</li>
+  <li>Each sachet: 3.5 grams</li>
 </ul>
 
-<h3>Sweetening (Simple Syrup)</h3>
+<h3>Iced Tea Sweetening (Simple Syrup)</h3>
 <table>
   <thead><tr><th>Size</th><th>Simple Syrup</th></tr></thead>
   <tbody>
@@ -874,7 +887,13 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
   </tbody>
 </table>
 <p>Note: 20 oz and 24 oz use the same amount of simple syrup (1.5 oz).</p>
-<p>Pattern: 0.5 / 1 / 1.5 / 1.5</p>`
+
+<h3>Key Points</h3>
+<ul>
+  <li>Most teas use 40.8 grams</li>
+  <li>Hot tea sachets = 3.5 grams</li>
+  <li>Sweetening pattern: 0.5 / 1 / 1.5 / 1.5 (20oz and 24oz are the same)</li>
+</ul>`
       },
       {
         id: 'l-teas-quiz',
@@ -885,7 +904,7 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
           {
             id: 'te1',
             type: 'MULTIPLE_CHOICE' as const,
-            question: 'How many grams of loose tea go in a hot tea sachet?',
+            question: 'How many grams of tea go in a hot tea sachet?',
             options: ['2.5 grams', '3.5 grams', '4.5 grams', '5 grams'],
             correctAnswers: ['3.5 grams'],
             explanation: 'Hot tea sachets get 3.5 grams of loose tea.'
@@ -893,7 +912,7 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
           {
             id: 'te2',
             type: 'MULTIPLE_CHOICE' as const,
-            question: 'How much simple syrup for a 16oz sweet tea?',
+            question: 'How much simple syrup goes in a sweetened 16oz iced tea?',
             options: ['0.5 oz', '1 oz', '1.5 oz', '2 oz'],
             correctAnswers: ['1 oz'],
             explanation: '16oz sweet tea gets 1 oz of simple syrup.'
@@ -901,7 +920,7 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
           {
             id: 'te3',
             type: 'MULTIPLE_CHOICE' as const,
-            question: 'How much simple syrup for a 24oz sweet tea?',
+            question: 'How much simple syrup goes in a sweetened 24oz iced tea?',
             options: ['1 oz', '1.5 oz', '2 oz', '2.5 oz'],
             correctAnswers: ['1.5 oz'],
             explanation: '24oz sweet tea gets 1.5 oz of simple syrup.'
@@ -909,15 +928,15 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
           {
             id: 'te4',
             type: 'MULTIPLE_CHOICE' as const,
-            question: 'Do 20oz and 24oz sweet teas use the same amount of simple syrup?',
-            options: ['True', 'False', 'Only for certain teas', 'Only if sweetened'],
+            question: 'A 20oz and 24oz sweetened iced tea have the same syrup amount. True or False?',
+            options: ['True', 'False'],
             correctAnswers: ['True'],
             explanation: 'Both 20oz and 24oz sweet teas use 1.5 oz of simple syrup.'
           },
           {
             id: 'te5',
             type: 'MULTIPLE_CHOICE' as const,
-            question: 'What is the steep time for Pomberry Punch?',
+            question: 'How long do you steep Pomberry Punch?',
             options: ['5 minutes', '6 minutes', '10 minutes', '11 minutes'],
             correctAnswers: ['11 minutes'],
             explanation: 'Pomberry Punch steeps for 11 minutes — the longest of all teas.'
@@ -925,7 +944,7 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
           {
             id: 'te6',
             type: 'MULTIPLE_CHOICE' as const,
-            question: 'What is the steep time for Lavender Coconut Rooibos?',
+            question: 'How long do you steep Lavender Coconut Rooibos?',
             options: ['5 minutes', '6 minutes', '10 minutes', '11 minutes'],
             correctAnswers: ['10 minutes'],
             explanation: 'Lavender Coconut Rooibos steeps for 10 minutes.'
@@ -934,15 +953,15 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
             id: 'te7',
             type: 'MULTIPLE_CHOICE' as const,
             question: 'What is the tea sweetening pattern (12/16/20/24)?',
-            options: ['0.5 / 1 / 1 / 1.5', '0.5 / 1 / 1.5 / 1.5', '1 / 1 / 1.5 / 2', '0.5 / 0.5 / 1 / 1.5'],
+            options: ['0.5 / 1 / 1.5 / 2', '0.5 / 1 / 1.5 / 1.5', '1 / 1.5 / 2 / 2', '0.5 / 0.5 / 1 / 1'],
             correctAnswers: ['0.5 / 1 / 1.5 / 1.5'],
             explanation: 'The sweetening pattern is 0.5 / 1 / 1.5 / 1.5 — note 20oz and 24oz are the same.'
           },
           {
             id: 'te8',
             type: 'MULTIPLE_CHOICE' as const,
-            question: 'How much simple syrup for a 12oz sweet tea?',
-            options: ['0.25 oz', '0.5 oz', '0.75 oz', '1 oz'],
+            question: 'How much simple syrup goes in a sweetened 12oz iced tea?',
+            options: ['0.25 oz', '0.5 oz', '1 oz', '1.5 oz'],
             correctAnswers: ['0.5 oz'],
             explanation: '12oz sweet tea gets 0.5 oz of simple syrup.'
           }
@@ -965,15 +984,15 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
         type: 'CONTENT' as const,
         content: `<h3>Unicorn Latte</h3>
 <ul>
-  <li>12 oz iced, caffeine-free</li>
+  <li>12 oz, Iced, Caffeine-free</li>
   <li>Equal parts Magical Unicorn tea concentrate + whole milk</li>
   <li>Sweeten with simple syrup using the tea sweetening rule</li>
 </ul>
 
 <h3>Dino Juice</h3>
-<p>Blue Raspberry Pineapple Lemonade — follows regular lemonade rules with syrup split between Blue Rasp &amp; Pineapple.</p>
+<p>Blue Raspberry Pineapple Lemonade — follows regular lemonade rules with syrup split between Blue Raspberry &amp; Pineapple.</p>
 <table>
-  <thead><tr><th>Size</th><th>Concentrate</th><th>Blue Rasp</th><th>Pineapple</th></tr></thead>
+  <thead><tr><th>Size</th><th>Lemonade Conc</th><th>Blue Raspberry</th><th>Pineapple</th></tr></thead>
   <tbody>
     <tr><td>12 oz</td><td>1 oz</td><td>0.5 oz</td><td>0.5 oz</td></tr>
     <tr><td>16 oz</td><td>1.5 oz</td><td>0.75 oz</td><td>0.75 oz</td></tr>
@@ -981,19 +1000,21 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
     <tr><td>24 oz</td><td>2.5 oz</td><td>1.25 oz</td><td>1.25 oz</td></tr>
   </tbody>
 </table>
-<p>Total syrup always equals the concentrate amount (lemonade rule).</p>
+<p>Key: Lemonade concentrate follows regular lemonade rules. Syrup is split equally between Blue Raspberry and Pineapple (and equals the concentrate amount). Fill with water to line, serve over ice.</p>
 
 <h3>Zebra Milk</h3>
 <ul>
-  <li>12 oz iced</li>
-  <li>10g dark chocolate sauce + 10g white chocolate sauce + cold milk</li>
+  <li>12 oz, Iced</li>
+  <li>10g Dark Chocolate sauce + 10g White Chocolate sauce</li>
+  <li>Fill with cold milk, serve over ice</li>
   <li>Total sauce: 20g</li>
 </ul>
 
 <h3>Kiddos Coffee</h3>
 <ul>
-  <li>8 oz hot</li>
-  <li>0.5 oz syrup + steamed milk at kids temp</li>
+  <li>8 oz, Hot, Caffeine-free</li>
+  <li>0.5 oz syrup (any flavor)</li>
+  <li>Steamed milk at kids temp</li>
 </ul>`
       },
       {
@@ -1013,16 +1034,16 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
           {
             id: 'kd2',
             type: 'MULTIPLE_CHOICE' as const,
-            question: 'How much dark chocolate sauce goes in a Zebra Milk?',
+            question: 'How much Dark Chocolate sauce goes in a Zebra Milk?',
             options: ['5 grams', '10 grams', '15 grams', '20 grams'],
             correctAnswers: ['10 grams'],
-            explanation: 'Zebra Milk gets 10g of dark chocolate sauce (plus 10g white chocolate).'
+            explanation: 'Zebra Milk gets 10g of Dark Chocolate sauce (plus 10g White Chocolate).'
           },
           {
             id: 'kd3',
             type: 'MULTIPLE_CHOICE' as const,
             question: 'How much syrup goes in a Kiddos Coffee?',
-            options: ['0.25 oz', '0.5 oz', '0.75 oz', '1 oz'],
+            options: ['0.25 oz', '0.5 oz', '1 oz', '1.5 oz'],
             correctAnswers: ['0.5 oz'],
             explanation: 'Kiddos Coffee gets 0.5 oz of syrup.'
           },
@@ -1037,7 +1058,7 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
           {
             id: 'kd5',
             type: 'MULTIPLE_CHOICE' as const,
-            question: 'How much Blue Raspberry syrup goes in a 16oz Dino Juice?',
+            question: 'In a 16oz Dino Juice, how much Blue Raspberry syrup?',
             options: ['0.5 oz', '0.75 oz', '1 oz', '1.5 oz'],
             correctAnswers: ['0.75 oz'],
             explanation: '16oz Dino Juice has 1.5 oz total syrup split into 0.75 oz Blue Rasp + 0.75 oz Pineapple.'
@@ -1045,25 +1066,25 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
           {
             id: 'kd6',
             type: 'MULTIPLE_CHOICE' as const,
-            question: 'In Dino Juice, the total syrup equals what?',
-            options: ['A fixed 1 oz', 'The concentrate amount', 'Double the concentrate', 'Half the concentrate'],
+            question: 'In a Dino Juice, the total syrup (Blue Rasp + Pineapple) equals what?',
+            options: ['Half the concentrate amount', 'The concentrate amount', 'Double the concentrate amount', 'Always 1 oz'],
             correctAnswers: ['The concentrate amount'],
             explanation: 'Dino Juice follows lemonade rules — total syrup equals the concentrate amount.'
           },
           {
             id: 'kd7',
             type: 'MULTIPLE_CHOICE' as const,
-            question: 'Unicorn Latte is made with concentrate and what?',
-            options: ['Oat milk', 'Whole milk', '2% milk', 'Almond milk'],
+            question: 'A Unicorn Latte is made with equal parts concentrate and:',
+            options: ['Water', 'Whole milk', '2% milk', 'Oat milk'],
             correctAnswers: ['Whole milk'],
             explanation: 'Unicorn Latte is made with equal parts Magical Unicorn tea concentrate and whole milk.'
           },
           {
             id: 'kd8',
             type: 'MULTIPLE_CHOICE' as const,
-            question: 'What is the total sauce in a Zebra Milk?',
-            options: ['10 grams', '15 grams', '20 grams (10+10)', '25 grams'],
-            correctAnswers: ['20 grams (10+10)'],
+            question: 'How much total sauce (dark + white choc) goes in a Zebra Milk?',
+            options: ['10 grams', '15 grams', '20 grams', '25 grams'],
+            correctAnswers: ['20 grams'],
             explanation: 'Zebra Milk has 10g dark chocolate + 10g white chocolate = 20g total sauce.'
           }
         ]
@@ -1096,18 +1117,18 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
 
 <h3>Process</h3>
 <ol>
-  <li>Grind 240g of coffee on the EK-43 at grind size 9</li>
-  <li>Form the filter correctly</li>
-  <li>Place filter in basket with the lid OPEN and pour stop CLOSED</li>
-  <li>Press the 1-gallon batch button</li>
-  <li>Label with brew time and your initials</li>
+  <li>Grind beans on EK-43 (grind 9)</li>
+  <li>Form filter correctly to avoid collapse</li>
+  <li>Place filter in basket, ensure lid open and pour stop closed</li>
+  <li>Press 1-Gallon Batch</li>
+  <li>Label dispenser with brew time and initials</li>
 </ol>
 
-<h3>Key Points</h3>
+<h3>Key Points to Memorize</h3>
 <ul>
-  <li>Always keep the lid OPEN before placing the filter</li>
-  <li>Always keep the pour stop CLOSED during brewing</li>
-  <li>Every batch must be labeled with the time it was brewed and the barista's initials</li>
+  <li>Grind size: 9</li>
+  <li>Coffee weight: 240 grams</li>
+  <li>Always label with time and initials</li>
 </ul>`
       },
       {
@@ -1119,7 +1140,7 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
           {
             id: 'bb1',
             type: 'MULTIPLE_CHOICE' as const,
-            question: 'What grind size is used for batch brew?',
+            question: 'What grind size do you use for batch brew?',
             options: ['7', '8', '9', '10'],
             correctAnswers: ['9'],
             explanation: 'Batch brew uses grind size 9 on the EK-43.'
@@ -1127,7 +1148,7 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
           {
             id: 'bb2',
             type: 'MULTIPLE_CHOICE' as const,
-            question: 'How many grams of coffee are used for batch brew?',
+            question: 'How many grams of coffee for a batch brew?',
             options: ['200 grams', '220 grams', '240 grams', '260 grams'],
             correctAnswers: ['240 grams'],
             explanation: 'Batch brew uses 240 grams of coffee.'
@@ -1135,32 +1156,32 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
           {
             id: 'bb3',
             type: 'MULTIPLE_CHOICE' as const,
-            question: 'What is the batch size?',
-            options: ['Half gallon', '1 gallon', '1.5 gallons', '2 gallons'],
+            question: 'What size batch does the Fetco make?',
+            options: ['Half gallon', '1 gallon', '2 gallons', '3 gallons'],
             correctAnswers: ['1 gallon'],
             explanation: 'Each batch brew makes 1 gallon.'
           },
           {
             id: 'bb4',
             type: 'MULTIPLE_CHOICE' as const,
-            question: 'What grinder is used for batch brew?',
-            options: ['Mahlkonig E80', 'EK-43', 'Baratza Encore', 'Mazzer Luigi'],
+            question: 'What grinder do you use for batch brew?',
+            options: ['Mahlk\u00F6nig E80', 'EK-43', 'PuqPress', 'Fetco grinder'],
             correctAnswers: ['EK-43'],
             explanation: 'The EK-43 grinder is used for batch brew.'
           },
           {
             id: 'bb5',
             type: 'MULTIPLE_CHOICE' as const,
-            question: 'What do you label the batch with?',
-            options: ['Coffee type and date', 'Brew time and initials', 'Date and grind size', 'Coffee weight and water temp'],
+            question: 'After brewing, what do you label on the dispenser?',
+            options: ['Coffee type only', 'Brew time and initials', 'Date only', 'Nothing'],
             correctAnswers: ['Brew time and initials'],
             explanation: 'Every batch must be labeled with the brew time and the barista\'s initials.'
           },
           {
             id: 'bb6',
             type: 'MULTIPLE_CHOICE' as const,
-            question: 'Before placing the filter in the basket, the lid should be?',
-            options: ['Closed', 'Open', 'Removed', 'Half-open'],
+            question: 'Before placing the filter, you should ensure the lid is:',
+            options: ['Closed', 'Open', 'Removed', 'Locked'],
             correctAnswers: ['Open'],
             explanation: 'The lid should be open when placing the filter in the basket.'
           }
@@ -1173,7 +1194,7 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
   {
     id: 'm-final-exam',
     title: 'Final Exam: All Drink Categories',
-    description: 'Comprehensive exam covering all drink categories and preparation standards.',
+    description: 'Comprehensive exam covering all drink categories and preparation standards. Score 90% or higher to pass.',
     category: 'ONBOARDING' as const,
     lessons: [
       {
@@ -1200,7 +1221,7 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
 <h3>What to Expect</h3>
 <ul>
   <li>20 questions drawn from all modules</li>
-  <li>You must demonstrate mastery of measurements, patterns, and builds</li>
+  <li>You must score 90% or higher to pass</li>
   <li>Review your notes from each module before attempting</li>
 </ul>
 
@@ -1223,7 +1244,7 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
           {
             id: 'fx2',
             type: 'MULTIPLE_CHOICE' as const,
-            question: 'How much sweet cream goes in a nitro cold brew?',
+            question: 'How much sweet cream goes in a nitro?',
             options: ['1 oz', '2 oz', '3 oz', '4 oz'],
             correctAnswers: ['3 oz'],
             explanation: 'All nitro cold brews get 3 oz of sweet cream.'
@@ -1231,32 +1252,32 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
           {
             id: 'fx3',
             type: 'MULTIPLE_CHOICE' as const,
-            question: 'How much syrup in a 16oz regular energy drink?',
-            options: ['1 oz', '1.5 oz', '2 oz', '2.5 oz'],
-            correctAnswers: ['1.5 oz'],
-            explanation: '16oz regular energy drinks get 1.5 oz of syrup.'
+            question: 'How much syrup goes in a 16oz regular energy drink?',
+            options: ['0.5 oz', '1 oz', '1.5 oz', '2 oz'],
+            correctAnswers: ['1 oz'],
+            explanation: '16oz regular energy drinks get 1 oz of syrup.'
           },
           {
             id: 'fx4',
             type: 'MULTIPLE_CHOICE' as const,
-            question: 'How much syrup in a 16oz FROZEN energy drink?',
-            options: ['0.5 oz', '1 oz', '1.5 oz', '2 oz'],
-            correctAnswers: ['1 oz'],
-            explanation: '16oz frozen energy gets 1 oz — less than the 1.5 oz in a regular 16oz energy.'
+            question: 'How much syrup goes in a 16oz FROZEN energy drink?',
+            options: ['1 oz', '1.5 oz', '2 oz', '2.5 oz'],
+            correctAnswers: ['1.5 oz'],
+            explanation: '16oz frozen energy gets 1.5 oz — more than the 1 oz in a regular 16oz energy.'
           },
           {
             id: 'fx5',
             type: 'MULTIPLE_CHOICE' as const,
-            question: 'What sizes are available for frozen coffee?',
-            options: ['12oz and 16oz', '16oz and 20oz', '12oz, 16oz, and 20oz', '16oz, 20oz, and 24oz'],
+            question: 'Frozen coffee comes in which sizes?',
+            options: ['12oz and 16oz', '16oz and 20oz', '12oz, 16oz, 20oz', '16oz, 20oz, 24oz'],
             correctAnswers: ['16oz and 20oz'],
             explanation: 'Frozen coffee only comes in 16oz and 20oz.'
           },
           {
             id: 'fx6',
             type: 'MULTIPLE_CHOICE' as const,
-            question: 'In a regular lemonade, concentrate equals what?',
-            options: ['Half the syrup', 'Syrup amount', 'Double the syrup', 'A fixed 1 oz'],
+            question: 'In a regular lemonade, concentrate equals:',
+            options: ['Water amount', 'Syrup amount', 'Ice amount', 'Half the cup size'],
             correctAnswers: ['Syrup amount'],
             explanation: 'In regular lemonades, concentrate always equals the syrup amount (equal parts).'
           },
@@ -1271,18 +1292,18 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
           {
             id: 'fx8',
             type: 'MULTIPLE_CHOICE' as const,
-            question: 'How much simple syrup for a 20oz sweet tea?',
-            options: ['1 oz', '1.5 oz', '2 oz', '0.5 oz'],
+            question: 'How much simple syrup goes in a sweetened 20oz iced tea?',
+            options: ['1 oz', '1.5 oz', '2 oz', '2.5 oz'],
             correctAnswers: ['1.5 oz'],
             explanation: '20oz sweet tea gets 1.5 oz of simple syrup.'
           },
           {
             id: 'fx9',
             type: 'MULTIPLE_CHOICE' as const,
-            question: 'How much of each chocolate sauce goes in a Zebra Milk?',
+            question: 'How many grams of chocolate sauce (each type) go in a Zebra Milk?',
             options: ['5 grams', '10 grams', '15 grams', '20 grams'],
             correctAnswers: ['10 grams'],
-            explanation: 'Zebra Milk gets 10g dark chocolate sauce and 10g white chocolate sauce.'
+            explanation: 'Zebra Milk gets 10g Dark Chocolate sauce and 10g White Chocolate sauce.'
           },
           {
             id: 'fx10',
@@ -1295,23 +1316,23 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
           {
             id: 'fx11',
             type: 'MULTIPLE_CHOICE' as const,
-            question: 'Bubbly drink syrup amounts are the same as which category?',
-            options: ['Matchas', 'Energy drinks', 'Frozen coffee', 'Lemonades'],
+            question: 'Bubbly syrup amounts are the same as:',
+            options: ['Lattes', 'Energy drinks', 'Frozen energy', 'Smoothies'],
             correctAnswers: ['Energy drinks'],
             explanation: 'Bubbly drinks use the exact same syrup chart as energy drinks.'
           },
           {
             id: 'fx12',
             type: 'MULTIPLE_CHOICE' as const,
-            question: 'How much syrup in an 8oz Kiddos Coffee?',
-            options: ['0.25 oz', '0.5 oz', '0.75 oz', '1 oz'],
+            question: 'How much syrup goes in an 8oz Kiddos Coffee?',
+            options: ['0.25 oz', '0.5 oz', '1 oz', '1.5 oz'],
             correctAnswers: ['0.5 oz'],
             explanation: 'Kiddos Coffee gets 0.5 oz of syrup.'
           },
           {
             id: 'fx13',
             type: 'MULTIPLE_CHOICE' as const,
-            question: 'What is the water fill line for a 24oz regular lemonade?',
+            question: 'What is the fill line for a 24oz lemonade?',
             options: ['14 oz', '16 oz', '17 oz', '18 oz'],
             correctAnswers: ['17 oz'],
             explanation: 'The fill line for 24oz regular lemonade is 17 oz.'
@@ -1327,8 +1348,8 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
           {
             id: 'fx15',
             type: 'MULTIPLE_CHOICE' as const,
-            question: 'When making a frozen lemonade, what goes in first?',
-            options: ['Ice', 'Liquids', 'Syrup only', 'Concentrate only'],
+            question: 'For frozen lemonade, what goes in first?',
+            options: ['Ice', 'Liquids', 'Blend everything together', 'Syrup only'],
             correctAnswers: ['Liquids'],
             explanation: 'For frozen lemonades, liquids go in first, then ice.'
           },
@@ -1343,7 +1364,7 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
           {
             id: 'fx17',
             type: 'MULTIPLE_CHOICE' as const,
-            question: 'How much loose tea goes in a hot tea sachet?',
+            question: 'Hot tea sachets should weigh:',
             options: ['2.5 grams', '3.5 grams', '4.5 grams', '5 grams'],
             correctAnswers: ['3.5 grams'],
             explanation: 'Hot tea sachets get 3.5 grams of loose tea.'
@@ -1359,7 +1380,7 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
           {
             id: 'fx19',
             type: 'MULTIPLE_CHOICE' as const,
-            question: 'How much flavor syrup goes in a nitro cold brew?',
+            question: 'How much flavor syrup goes in a nitro?',
             options: ['0.25 oz', '0.5 oz', '1 oz', '1.5 oz'],
             correctAnswers: ['0.5 oz'],
             explanation: 'All nitro cold brews get 0.5 oz of flavor syrup.'
@@ -1367,7 +1388,7 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
           {
             id: 'fx20',
             type: 'MULTIPLE_CHOICE' as const,
-            question: 'How much extra matcha adds to the base concentrate?',
+            question: 'Extra matcha adds how much more concentrate?',
             options: ['0.25 oz', '0.5 oz', '1 oz', '1.5 oz'],
             correctAnswers: ['0.5 oz'],
             explanation: 'Extra matcha adds +0.5 oz to the base matcha concentrate amount.'

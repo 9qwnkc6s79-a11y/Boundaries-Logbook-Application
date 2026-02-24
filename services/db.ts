@@ -39,7 +39,7 @@ if (typeof firebase !== 'undefined') {
 
 // Increment this version whenever curriculum structure or lesson properties change
 // This forces Firebase to update cached curriculum data
-const CURRICULUM_VERSION = 8;
+const CURRICULUM_VERSION = 9;
 
 const DOC_KEYS = {
   USERS: 'users',
@@ -1026,7 +1026,33 @@ class CloudAPI {
   }
 
   async fetchInventoryCounts(storeId: string): Promise<InventoryCount[]> {
-    return this.remoteGet<InventoryCount[]>(this.inventoryCountsKey(storeId), []);
+    const counts = await this.remoteGet<InventoryCount[]>(this.inventoryCountsKey(storeId), []);
+
+    // One-time migration: check the legacy non-suffixed key for counts
+    // that were saved before per-store documents were introduced
+    try {
+      const legacy = await this.remoteGet<InventoryCount[]>(DOC_KEYS.INVENTORY_COUNTS, []);
+      if (legacy.length > 0) {
+        const forThisStore = legacy.filter(c => c.storeId === storeId);
+        if (forThisStore.length > 0) {
+          const existingIds = new Set(counts.map(c => c.id));
+          const newFromLegacy = forThisStore.filter(c => !existingIds.has(c.id));
+          if (newFromLegacy.length > 0) {
+            console.log(`[DB] fetchInventoryCounts: Migrating ${newFromLegacy.length} legacy count(s) for ${storeId}`);
+            const merged = [...counts, ...newFromLegacy];
+            await this.remoteSet(this.inventoryCountsKey(storeId), merged);
+            // Remove migrated counts from legacy doc
+            const remaining = legacy.filter(c => c.storeId !== storeId);
+            await this.remoteSet(DOC_KEYS.INVENTORY_COUNTS, remaining.length > 0 ? remaining : []);
+            return merged;
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('[DB] fetchInventoryCounts: Legacy migration check failed:', e);
+    }
+
+    return counts;
   }
 
   async pushInventoryCount(count: InventoryCount): Promise<boolean> {
