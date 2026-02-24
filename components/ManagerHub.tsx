@@ -307,11 +307,15 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
     loadAndArchiveLeaderboard();
   }, [currentStoreId, submissions, templates, allUsers, attributedOrders, toastTeamLeaders, googleReviewsData.trackedReviews]);
 
-  const trainingStats = useMemo(() => {
-    const onboardingLessons = curriculum.filter(m => m.category === 'ONBOARDING').flatMap(m => m.lessons);
-    const continuedLessons = curriculum.filter(m => m.category === 'CONTINUED').flatMap(m => m.lessons);
+  // Exclude CONTENT lessons from progress calculations — only actionable items
+  // (QUIZ, PRACTICE, FILE_UPLOAD, SIGN_OFF, VIDEO) represent measurable training
+  const isActionableLesson = (type: string) => type !== 'CONTENT';
 
-    return staff.map(member => {
+  const trainingStats = useMemo(() => {
+    const onboardingLessons = curriculum.filter(m => m.category === 'ONBOARDING').flatMap(m => m.lessons).filter(l => isActionableLesson(l.type));
+    const continuedLessons = curriculum.filter(m => m.category === 'CONTINUED').flatMap(m => m.lessons).filter(l => isActionableLesson(l.type));
+
+    return allUsers.map(member => {
       const memberProgress = allProgress.filter(p => p.userId === member.id && p.status === 'COMPLETED');
       const onboardingCompleted = memberProgress.filter(p => onboardingLessons.some(l => l.id === p.lessonId)).length;
       const onboardingPercent = onboardingLessons.length > 0 ? Math.round((onboardingCompleted / onboardingLessons.length) * 100) : 0;
@@ -321,7 +325,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
 
       return { userId: member.id, onboardingPercent, continuedPercent, isUpToDate, totalCompleted: memberProgress.length };
     });
-  }, [staff, allProgress, curriculum]);
+  }, [allUsers, allProgress, curriculum]);
 
   const complianceMatrix = useMemo(() => {
     const last7Days = Array.from({ length: 7 }, (_, i) => {
@@ -2374,9 +2378,14 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
               </div>
             </div>
 
-        {settingsSubTab === 'staff' && (
+        {settingsSubTab === 'staff' && (() => {
+          // Admins see all users; managers see their store's staff
+          const visibleStaff = currentUser?.role === UserRole.ADMIN
+            ? allUsers.filter(u => u.id !== currentUser?.id)
+            : staff;
+          return (
           <section className="animate-in fade-in">
-            {staff.length === 0 ? (
+            {visibleStaff.length === 0 ? (
               <div className="bg-white p-16 rounded-xl border border-neutral-100 shadow-sm text-center">
                 <div className="max-w-md mx-auto space-y-6">
                   <div className="w-20 h-20 bg-neutral-100 text-neutral-300 rounded-full flex items-center justify-center mx-auto">
@@ -2397,7 +2406,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {staff.map(member => {
+                {visibleStaff.map(member => {
               const stats = trainingStats.find(s => s.userId === member.id);
               const perf = performanceData.find(p => p.id === member.id);
               const isExpanded = expandedStaffId === member.id;
@@ -2409,9 +2418,14 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                 <div key={member.id} className="bg-white p-6 rounded-xl border border-neutral-100 shadow-sm space-y-6">
                    <div className="flex items-center gap-4">
                       <div className="w-16 h-16 bg-[#0F2B3C] text-white rounded-[1.5rem] flex items-center justify-center font-black text-2xl">{member.name.charAt(0)}</div>
-                      <div>
-                        <h3 className="font-black text-xl text-[#0F2B3C] uppercase tracking-tight leading-none">{member.name}</h3>
-                        <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mt-2">{member.role}</p>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-black text-xl text-[#0F2B3C] uppercase tracking-tight leading-none truncate">{member.name}</h3>
+                        <div className="flex items-center gap-2 mt-2">
+                          <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">{member.role}</p>
+                          {member.storeId && member.storeId !== currentStoreId && (
+                            <span className="text-[8px] font-bold text-blue-500 uppercase tracking-widest">{stores.find(s => s.id === member.storeId)?.name?.replace('Boundaries ', '') || ''}</span>
+                          )}
+                        </div>
                       </div>
                    </div>
                    <div className="space-y-4">
@@ -2489,8 +2503,9 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                              completedAt: progress?.completedAt,
                            };
                          });
-                         const completed = lessonStatuses.filter(l => l.status === 'COMPLETED').length;
-                         return { module: mod, lessonStatuses, completed, total: mod.lessons.length };
+                         const actionable = lessonStatuses.filter(l => isActionableLesson(l.type));
+                         const completed = actionable.filter(l => l.status === 'COMPLETED').length;
+                         return { module: mod, lessonStatuses, completed, total: actionable.length };
                        });
 
                        return (
@@ -2559,7 +2574,8 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
               </div>
             )}
           </section>
-        )}
+          );
+        })()}
 
         {settingsSubTab === 'manual' && (
           <section className="animate-in fade-in space-y-6">
