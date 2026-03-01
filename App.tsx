@@ -142,6 +142,8 @@ const App: React.FC = () => {
 
   // Track the last time we updated a submission locally to avoid the "sync overwrite flicker"
   const lastSubmissionUpdateRef = useRef<number>(0);
+  // Same protection for progress — prevent heartbeat sync from overwriting freshly-saved progress
+  const lastProgressUpdateRef = useRef<number>(0);
 
   // Initialize org on first load
   const initOrg = useCallback(async () => {
@@ -176,14 +178,19 @@ const App: React.FC = () => {
       
       setAllUsers(data.users);
       
-      // OPTIMISTIC UI PROTECTION: 
-      // If we recently updated a submission, don't overwrite the state with 
+      // OPTIMISTIC UI PROTECTION:
+      // If we recently updated a submission, don't overwrite the state with
       // potentially stale data from the server for 7 seconds.
       if (Date.now() - lastSubmissionUpdateRef.current > 7000) {
         setSubmissions(data.submissions || []);
       }
-      
-      setProgress(data.progress || []);
+
+      // Same protection for progress — a heartbeat sync that runs while
+      // pushProgress is still in-flight would fetch stale data and wipe
+      // the optimistic local update the user just saw.
+      if (Date.now() - lastProgressUpdateRef.current > 7000) {
+        setProgress(data.progress || []);
+      }
       setTemplates(data.templates || []);
       setCurriculum(data.curriculum || []);
       setManual(data.manual || []);
@@ -498,9 +505,48 @@ const App: React.FC = () => {
       checklistPhotos
     };
 
-    setProgress(prev => [...prev, entry]);
-    await db.pushProgress([entry]);
-    performCloudSync(true);
+    // Mark the timestamp so the heartbeat sync won't overwrite with stale data
+    lastProgressUpdateRef.current = Date.now();
+
+    // Deduplicate: replace any existing entry for this user+lesson, or append
+    setProgress(prev => {
+      const idx = prev.findIndex(p => p.userId === entry.userId && p.lessonId === entry.lessonId);
+      if (idx > -1) {
+        const next = [...prev];
+        next[idx] = entry;
+        return next;
+      }
+      return [...prev, entry];
+    });
+
+    // Persist to Firebase with retry
+    let saved = false;
+    for (let attempt = 0; attempt < 3 && !saved; attempt++) {
+      try {
+        await db.pushProgress([entry]);
+        saved = true;
+        console.log(`[App] Progress saved for lesson ${lessonId} (attempt ${attempt + 1})`);
+      } catch (err) {
+        console.error(`[App] pushProgress attempt ${attempt + 1} failed:`, err);
+        if (attempt < 2) await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+      }
+    }
+
+    if (!saved) {
+      console.error(`[App] CRITICAL: Failed to save progress for lesson ${lessonId} after 3 attempts`);
+      setSaveError('Progress save failed — please check your connection and try again.');
+      // Revert optimistic update so UI doesn't lie
+      setProgress(prev => prev.filter(p => !(p.userId === entry.userId && p.lessonId === entry.lessonId && p.completedAt === entry.completedAt)));
+      return;
+    }
+
+    // Clear the guard a bit early since we know Firebase has the data now
+    // (the next heartbeat will fetch the saved data correctly)
+    setTimeout(() => {
+      if (lastProgressUpdateRef.current <= Date.now()) {
+        lastProgressUpdateRef.current = 0;
+      }
+    }, 5000);
   };
 
   const auditPhotoWithAI = async (photoUrl: string, taskTitle: string): Promise<{ flagged: boolean; reason: string }> => {
@@ -922,10 +968,10 @@ const App: React.FC = () => {
             }}
             onResetLessonProgress={async (lessonId) => {
               console.log(`[App] Resetting progress for lesson ${lessonId} for user ${currentUser.id}`);
-              await db.deleteProgress(currentUser.id, lessonId);
+              lastProgressUpdateRef.current = Date.now();
               const updatedProgress = progress.filter(p => !(p.userId === currentUser.id && p.lessonId === lessonId));
               setProgress(updatedProgress);
-              performCloudSync(true);
+              await db.deleteProgress(currentUser.id, lessonId);
               console.log(`[App] Progress reset complete - lesson should now show interactive elements`);
             }}
             teamProgress={storeProgress}

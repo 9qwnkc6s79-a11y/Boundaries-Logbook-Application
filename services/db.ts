@@ -76,6 +76,8 @@ function removeUndefined(obj: any): any {
 
 class CloudAPI {
   private currentOrgId: string | null = null;
+  // Mutex to prevent concurrent read-merge-write races on the progress document
+  private progressWriteLock: Promise<void> = Promise.resolve();
 
   setOrg(orgId: string) {
     this.currentOrgId = orgId;
@@ -653,20 +655,36 @@ class CloudAPI {
   }
 
   async pushProgress(progress: UserProgress[]): Promise<void> {
-    const existing = await this.fetchProgress();
-    const merged = [...existing];
-    progress.forEach(p => {
-      const idx = merged.findIndex(m => m.userId === p.userId && m.lessonId === p.lessonId);
-      if (idx > -1) merged[idx] = p;
-      else merged.push(p);
-    });
-    await this.remoteSet(DOC_KEYS.PROGRESS, merged);
+    // Serialize writes so concurrent calls (heartbeat vs. user save) don't
+    // race on the read-merge-write cycle and silently drop entries.
+    const doWrite = async () => {
+      const existing = await this.fetchProgress();
+      const merged = [...existing];
+      progress.forEach(p => {
+        const idx = merged.findIndex(m => m.userId === p.userId && m.lessonId === p.lessonId);
+        if (idx > -1) merged[idx] = p;
+        else merged.push(p);
+      });
+      const ok = await this.remoteSet(DOC_KEYS.PROGRESS, merged);
+      if (!ok) {
+        throw new Error('remoteSet returned false – progress write failed');
+      }
+    };
+
+    // Chain onto any in-flight progress write
+    this.progressWriteLock = this.progressWriteLock.then(doWrite, doWrite);
+    return this.progressWriteLock;
   }
 
   async deleteProgress(userId: string, lessonId: string): Promise<void> {
-    const existing = await this.fetchProgress();
-    const filtered = existing.filter(p => !(p.userId === userId && p.lessonId === lessonId));
-    await this.remoteSet(DOC_KEYS.PROGRESS, filtered);
+    const doDelete = async () => {
+      const existing = await this.fetchProgress();
+      const filtered = existing.filter(p => !(p.userId === userId && p.lessonId === lessonId));
+      await this.remoteSet(DOC_KEYS.PROGRESS, filtered);
+    };
+
+    this.progressWriteLock = this.progressWriteLock.then(doDelete, doDelete);
+    return this.progressWriteLock;
   }
 
   // ── Templates (with fetch-merge-save to prevent overwrites) ──
