@@ -140,8 +140,13 @@ const App: React.FC = () => {
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
   const [inventoryCounts, setInventoryCounts] = useState<InventoryCount[]>([]);
 
-  // Track the last time we updated a submission locally to avoid the "sync overwrite flicker"
+  // Track the last time we updated data locally to avoid heartbeat overwriting with stale data.
+  // The protection window prevents performCloudSync from replacing optimistic UI updates
+  // until the async save completes and a fresh sync confirms the data.
   const lastSubmissionUpdateRef = useRef<number>(0);
+  const lastProgressUpdateRef = useRef<number>(0);
+  const lastTemplateUpdateRef = useRef<number>(0);
+  const lastRecipeUpdateRef = useRef<number>(0);
 
   // Initialize org on first load
   const initOrg = useCallback(async () => {
@@ -176,18 +181,31 @@ const App: React.FC = () => {
       
       setAllUsers(data.users);
       
-      // OPTIMISTIC UI PROTECTION: 
-      // If we recently updated a submission, don't overwrite the state with 
-      // potentially stale data from the server for 7 seconds.
-      if (Date.now() - lastSubmissionUpdateRef.current > 7000) {
+      // OPTIMISTIC UI PROTECTION:
+      // If we recently updated data locally, don't overwrite the state with
+      // potentially stale data from the server. The window must be long enough
+      // to cover the full async operation (e.g. AI photo audit can take 30+ seconds).
+      const now = Date.now();
+      const PROTECTION_WINDOW = 45000; // 45 seconds — covers AI audit + network save
+
+      if (now - lastSubmissionUpdateRef.current > PROTECTION_WINDOW) {
         setSubmissions(data.submissions || []);
       }
-      
-      setProgress(data.progress || []);
-      setTemplates(data.templates || []);
+
+      if (now - lastProgressUpdateRef.current > PROTECTION_WINDOW) {
+        setProgress(data.progress || []);
+      }
+
+      if (now - lastTemplateUpdateRef.current > PROTECTION_WINDOW) {
+        setTemplates(data.templates || []);
+      }
+
       setCurriculum(data.curriculum || []);
       setManual(data.manual || []);
-      setRecipes(data.recipes || []);
+
+      if (now - lastRecipeUpdateRef.current > PROTECTION_WINDOW) {
+        setRecipes(data.recipes || []);
+      }
 
       return data;
     } catch (err) {
@@ -211,8 +229,15 @@ const App: React.FC = () => {
           (u: User) => u.email.toLowerCase() === savedEmail.toLowerCase()
         );
         if (savedUser && savedUser.active !== false) {
-          console.log('[Auth] Restored session for:', savedUser.email);
-          setCurrentUser(savedUser);
+          // If user still needs to change their password, send them through
+          // the password change flow instead of auto-restoring the session
+          if (savedUser.mustChangePassword) {
+            console.log('[Auth] Restored user requires password change:', savedUser.email);
+            setForcePasswordChangeUser(savedUser);
+          } else {
+            console.log('[Auth] Restored session for:', savedUser.email);
+            setCurrentUser(savedUser);
+          }
         } else {
           // User not found or deactivated - clear invalid session
           localStorage.removeItem(SESSION_STORAGE_KEY);
@@ -348,12 +373,14 @@ const App: React.FC = () => {
         await db.syncUser(migratedUser);
         console.log(`[Auth] Migrated user ${found.email} (hash=${!isHashed(found.password)}, orgId=${!found.orgId})`);
       } catch (e) {
-        console.warn('[Auth] User migration failed:', e);
+        console.warn('[Auth] User migration failed — will retry on next login:', e);
+        // Revert to original user so we don't persist a partially-migrated state
+        migratedUser = { ...found };
       }
     }
 
     // Load org config for user
-    const orgId = found.orgId || DEFAULT_ORG_ID;
+    const orgId = migratedUser.orgId || DEFAULT_ORG_ID;
     if (!currentOrg || currentOrg.id !== orgId) {
       const org = await db.fetchOrg(orgId);
       if (org) {
@@ -369,8 +396,8 @@ const App: React.FC = () => {
       return migratedUser;
     }
 
-    // Persist session to localStorage
-    localStorage.setItem(SESSION_STORAGE_KEY, found.email);
+    // Persist session to localStorage AFTER all migrations/checks succeed
+    localStorage.setItem(SESSION_STORAGE_KEY, migratedUser.email);
 
     setCurrentUser(migratedUser);
     return migratedUser;
@@ -486,6 +513,10 @@ const App: React.FC = () => {
 
   const handleLessonComplete = async (lessonId: string, score?: number, fileData?: { url: string, name: string }, checklistCompleted?: string[], checklistPhotos?: Record<string, string>) => {
     if (!currentUser) return;
+
+    // Protect progress from heartbeat overwrite during async save
+    lastProgressUpdateRef.current = Date.now();
+
     const entry: UserProgress = {
       userId: currentUser.id,
       lessonId,
@@ -500,6 +531,9 @@ const App: React.FC = () => {
 
     setProgress(prev => [...prev, entry]);
     await db.pushProgress([entry]);
+
+    // Reset protection — the push is done, so the next sync will read correct data
+    lastProgressUpdateRef.current = 0;
     performCloudSync(true);
   };
 
@@ -554,7 +588,7 @@ const App: React.FC = () => {
   };
 
   const handleChecklistUpdate = async (data: { id?: string, templateId: string, responses: any, isFinal: boolean, targetDate: string }) => {
-    // Mark the timestamp to protect against stale sync heartbeat
+    // Mark protection early so heartbeat doesn't overwrite during this operation
     lastSubmissionUpdateRef.current = Date.now();
 
     let taskResults = Object.entries(data.responses).map(([taskId, res]: any) => ({
@@ -599,6 +633,11 @@ const App: React.FC = () => {
         return res;
       });
       taskResults = await Promise.all(auditPromises);
+
+      // Refresh protection timestamp — AI audit may have taken 30+ seconds,
+      // so the original timestamp is long expired. Reset it so the heartbeat
+      // doesn't overwrite our optimistic update while the push is in flight.
+      lastSubmissionUpdateRef.current = Date.now();
     }
 
     const existing = data.id 
@@ -641,10 +680,12 @@ const App: React.FC = () => {
     if (!success) {
       setSaveError('Failed to save logbook entry. Please check your connection and try again.');
       console.error('[App] Failed to save submission:', submission.id);
-      // Don't trigger sync after failed save — it would overwrite the local
-      // optimistic update once the 7-second protection window expires.
+      // Keep protection active so heartbeat doesn't overwrite our optimistic
+      // update with stale server data. Protection will expire naturally.
     } else {
       setSaveError(null);
+      // Push succeeded — clear protection so the next sync reads the confirmed data
+      lastSubmissionUpdateRef.current = 0;
       performCloudSync(true);
     }
   };
@@ -652,6 +693,7 @@ const App: React.FC = () => {
   const handleReview = async (id: string, approved: boolean) => {
     const sub = submissions.find(s => s.id === id);
     if (sub) {
+      lastSubmissionUpdateRef.current = Date.now();
       const updated = { ...sub, status: approved ? 'APPROVED' : 'REJECTED' as any };
       setSubmissions(prev => prev.map(s => s.id === id ? updated : s));
       const success = await db.pushSubmission(updated);
@@ -659,6 +701,7 @@ const App: React.FC = () => {
         setSaveError('Failed to save review. Please check your connection and try again.');
       } else {
         setSaveError(null);
+        lastSubmissionUpdateRef.current = 0;
       }
       performCloudSync(true);
     }
@@ -669,6 +712,7 @@ const App: React.FC = () => {
     const sub = submissions.find(s => s.id === submissionId);
     if (!sub) return;
 
+    lastSubmissionUpdateRef.current = Date.now();
     const flaggedResult = sub.taskResults.find(tr => tr.taskId === taskId);
     const updatedTaskResults = sub.taskResults.map(tr => {
       if (tr.taskId === taskId) {
@@ -693,6 +737,7 @@ const App: React.FC = () => {
       setSaveError('Failed to save override. Please check your connection and try again.');
     } else {
       setSaveError(null);
+      lastSubmissionUpdateRef.current = 0;
       // Save feedback so AI learns from this correction
       if (approve && feedback?.trim() && flaggedResult) {
         const tpl = templates.find(t => t.id === sub.templateId);
@@ -714,37 +759,44 @@ const App: React.FC = () => {
   const handleResetSubmission = async (id: string) => {
     // Mark interaction to prevent sync overwrites
     lastSubmissionUpdateRef.current = Date.now();
-    
+
     // Wipe locally
     const nextSubmissions = submissions.filter(s => s.id !== id);
     setSubmissions(nextSubmissions);
-    
+
     // Wipe on cloud
     await db.pushFullSubmissionsRegistry(nextSubmissions);
+    lastSubmissionUpdateRef.current = 0;
     performCloudSync(true);
   };
 
   const handleUpdateTemplate = async (tpl: ChecklistTemplate) => {
+    lastTemplateUpdateRef.current = Date.now();
     // Optimistic UI update
     const updated = templates.map(t => t.id === tpl.id ? tpl : t);
     setTemplates(updated);
     // Use fetch-merge-save to prevent overwriting other users' changes
     await db.updateTemplate(tpl);
+    lastTemplateUpdateRef.current = 0;
     performCloudSync(true);
   };
 
   const handleUpdateRecipes = async (nextRecipes: Recipe[]) => {
+    lastRecipeUpdateRef.current = Date.now();
     setRecipes(nextRecipes);
     await db.pushRecipes(nextRecipes);
+    lastRecipeUpdateRef.current = 0;
     performCloudSync(true);
   };
 
   const handleUpdateSingleRecipe = async (recipe: Recipe) => {
+    lastRecipeUpdateRef.current = Date.now();
     // Optimistic UI update
     const updated = recipes.map(r => r.id === recipe.id ? recipe : r);
     setRecipes(updated);
     // Use fetch-merge-save to prevent overwriting other users' changes
     await db.updateRecipe(recipe);
+    lastRecipeUpdateRef.current = 0;
     performCloudSync(true);
   };
 

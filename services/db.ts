@@ -653,7 +653,20 @@ class CloudAPI {
   }
 
   async pushProgress(progress: UserProgress[]): Promise<void> {
-    const existing = await this.fetchProgress();
+    // Retry once if first read returns empty (transient failure protection,
+    // same pattern as syncUser) to avoid overwriting all progress.
+    let existing = await this.fetchProgress();
+    if (existing.length === 0) {
+      console.warn('[Firestore] pushProgress: First read returned 0 entries, retrying...');
+      await new Promise(r => setTimeout(r, 500));
+      existing = await this.fetchProgress();
+      if (existing.length === 0) {
+        console.warn('[Firestore] pushProgress: Retry also returned 0 — proceeding');
+      } else {
+        console.log(`[Firestore] pushProgress: Retry succeeded, got ${existing.length} entries`);
+      }
+    }
+
     const merged = [...existing];
     progress.forEach(p => {
       const idx = merged.findIndex(m => m.userId === p.userId && m.lessonId === p.lessonId);
