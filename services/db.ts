@@ -77,6 +77,11 @@ function removeUndefined(obj: any): any {
 class CloudAPI {
   private currentOrgId: string | null = null;
 
+  // High-water mark: the maximum number of users we've successfully read
+  // from Firestore in this session. Used to detect and prevent destructive
+  // writes when a transient read failure returns an empty or partial list.
+  private knownUserCount = 0;
+
   setOrg(orgId: string) {
     this.currentOrgId = orgId;
     console.log(`[Firestore] Organization context set to: ${orgId}`);
@@ -361,6 +366,13 @@ class CloudAPI {
     const persistedUsers = await this.remoteGet(DOC_KEYS.USERS, [] as User[]);
     console.log('[Firestore] fetchUsers: Persisted users from cloud:', persistedUsers.length);
 
+    // Detect likely transient failure: if we previously saw users but now see 0,
+    // the read probably failed silently (remoteGet returns [] on error).
+    const likelyTransientFailure = persistedUsers.length === 0 && this.knownUserCount > 0;
+    if (likelyTransientFailure) {
+      console.warn(`[Firestore] fetchUsers: Got 0 users but previously had ${this.knownUserCount} — likely transient failure`);
+    }
+
     // Cloud users are the source of truth — start with them.
     const userMap = new Map<string, User>();
     persistedUsers.forEach(u => userMap.set(u.email.toLowerCase(), u));
@@ -368,6 +380,11 @@ class CloudAPI {
     // When running under an org, also check appData for users that weren't
     // migrated (migrateToOrg wrote to the wrong Firestore path historically).
     // AppData users are added only if they don't already exist in the org.
+    //
+    // CRITICAL: Only write the merged list back to the org path when we got
+    // a genuine org read (persistedUsers > 0). If the org read returned empty
+    // due to a transient failure, writing appData back would replace the real
+    // user list with a stale/incomplete copy, permanently losing users.
     if (this.currentOrgId && firestore) {
       try {
         const fallbackRef = firestore.collection('appData').doc(DOC_KEYS.USERS);
@@ -385,11 +402,16 @@ class CloudAPI {
           });
           if (merged > 0) {
             console.log(`[Firestore] fetchUsers: Merged ${merged} users from appData fallback`);
-            // Persist the merged list to org path so future reads are complete
-            const mergedList = Array.from(userMap.values());
-            this.remoteSet(DOC_KEYS.USERS, mergedList).then(ok => {
-              if (ok) console.log(`[Firestore] fetchUsers: Persisted ${mergedList.length} merged users to org path`);
-            });
+            // Only persist the merge when the org read was healthy. Otherwise
+            // we'd be writing stale appData users over the real org user list.
+            if (!likelyTransientFailure) {
+              const mergedList = Array.from(userMap.values());
+              this.remoteSet(DOC_KEYS.USERS, mergedList).then(ok => {
+                if (ok) console.log(`[Firestore] fetchUsers: Persisted ${mergedList.length} merged users to org path`);
+              });
+            } else {
+              console.warn('[Firestore] fetchUsers: SKIPPED write-back — org read was empty (transient failure suspected)');
+            }
           }
         }
       } catch (e) {
@@ -414,23 +436,45 @@ class CloudAPI {
     });
 
     const result = Array.from(userMap.values());
-    console.log('[Firestore] fetchUsers: Final merged users:', result.length);
+
+    // Update the high-water mark from genuine cloud reads (not fallback-only).
+    // This ensures we can detect future transient failures.
+    if (persistedUsers.length > 0) {
+      this.knownUserCount = Math.max(this.knownUserCount, persistedUsers.length);
+    }
+
+    console.log('[Firestore] fetchUsers: Final merged users:', result.length, `(watermark: ${this.knownUserCount})`);
     return result;
   }
 
   async syncUser(user: User): Promise<User[]> {
     let currentUsers = await this.remoteGet(DOC_KEYS.USERS, [] as User[]);
 
-    // Safety: if read returned empty, retry once. A transient read failure
-    // returning [] would cause us to write ONLY this user, destroying everyone else.
+    // Safety: if read returned empty, retry with increasing backoff.
+    // A transient read failure returning [] would cause us to write ONLY
+    // this user, permanently destroying everyone else's account.
     if (currentUsers.length === 0) {
-      console.warn('[Firestore] syncUser: First read returned 0 users, retrying...');
-      await new Promise(r => setTimeout(r, 500));
-      currentUsers = await this.remoteGet(DOC_KEYS.USERS, [] as User[]);
-      if (currentUsers.length === 0) {
-        console.warn('[Firestore] syncUser: Retry also returned 0 users — proceeding (may be fresh deployment)');
-      } else {
-        console.log(`[Firestore] syncUser: Retry succeeded, got ${currentUsers.length} users`);
+      const retryDelays = [500, 1500, 3000]; // escalating backoff
+      for (const delay of retryDelays) {
+        console.warn(`[Firestore] syncUser: Read returned 0 users, retrying in ${delay}ms...`);
+        await new Promise(r => setTimeout(r, delay));
+        currentUsers = await this.remoteGet(DOC_KEYS.USERS, [] as User[]);
+        if (currentUsers.length > 0) {
+          console.log(`[Firestore] syncUser: Retry succeeded, got ${currentUsers.length} users`);
+          break;
+        }
+      }
+
+      // CRITICAL GUARD: If we KNOW there should be users (knownUserCount > 0)
+      // but every retry returned 0, this is almost certainly a transient failure.
+      // Refuse to write — writing [only this user] would destroy everyone else.
+      if (currentUsers.length === 0 && this.knownUserCount > 0) {
+        console.error(
+          `[Firestore] syncUser: ABORTED — all retries returned 0 users but watermark is ${this.knownUserCount}. ` +
+          `Refusing to write to prevent data loss for ${user.email}.`
+        );
+        // Return what we know locally so the caller isn't broken
+        return [user];
       }
     }
 
@@ -453,7 +497,22 @@ class CloudAPI {
 
     userMap.set(user.email.toLowerCase(), user);
     const next = Array.from(userMap.values());
+
+    // Final safety: never write fewer users than we've previously seen.
+    // This catches scenarios where the read succeeded but returned partial data.
+    if (next.length < this.knownUserCount && this.knownUserCount > 1) {
+      console.error(
+        `[Firestore] syncUser: ABORTED — would write ${next.length} users but watermark is ${this.knownUserCount}. ` +
+        `This would delete ${this.knownUserCount - next.length} user(s). Refusing to write for ${user.email}.`
+      );
+      return next;
+    }
+
     await this.remoteSet(DOC_KEYS.USERS, next);
+
+    // Update watermark after successful write
+    this.knownUserCount = Math.max(this.knownUserCount, next.length);
+
     return next;
   }
 
