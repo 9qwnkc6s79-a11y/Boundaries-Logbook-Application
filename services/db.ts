@@ -1,6 +1,6 @@
 
 // No imports needed - Firebase is loaded globally via CDN script tags in index.html
-import { User, UserProgress, ChecklistSubmission, ChecklistTemplate, TrainingModule, ManualSection, Recipe, CashDeposit, GoogleReviewsData, Organization, Store, AttributedOrder, ArchivedLeaderboard, AuditFeedback, InventoryItem, InventoryCount } from '../types';
+import { User, UserProgress, ChecklistSubmission, ChecklistTemplate, TrainingModule, ManualSection, Recipe, CashDeposit, GoogleReviewsData, Organization, Store, AttributedOrder, ArchivedLeaderboard, AuditFeedback, InventoryItem, InventoryCount, EmployeeFeedback } from '../types';
 import { isHashed } from '../utils/passwordUtils';
 
 declare const firebase: any;
@@ -58,6 +58,7 @@ const DOC_KEYS = {
   AI_AUDIT_FEEDBACK: 'aiAuditFeedback',
   INVENTORY_ITEMS: 'inventoryItems',
   INVENTORY_COUNTS: 'inventoryCounts',
+  EMPLOYEE_FEEDBACK: 'employeeFeedback',
 };
 
 function removeUndefined(obj: any): any {
@@ -1080,6 +1081,37 @@ class CloudAPI {
     }
 
     return this.remoteSet(this.inventoryCountsKey(storeId), next);
+  }
+
+  // ── Employee Feedback ──
+
+  async fetchEmployeeFeedback(): Promise<EmployeeFeedback[]> {
+    return this.remoteGet(DOC_KEYS.EMPLOYEE_FEEDBACK, []);
+  }
+
+  async pushEmployeeFeedback(feedback: EmployeeFeedback): Promise<boolean> {
+    console.log(`[DB] pushEmployeeFeedback: id=${feedback.id}, employee=${feedback.employeeName}`);
+    const all = await this.fetchEmployeeFeedback();
+    const existingIdx = all.findIndex(f => f.id === feedback.id);
+    let next: EmployeeFeedback[];
+
+    if (existingIdx > -1) {
+      next = all.map((f, i) => i === existingIdx ? feedback : f);
+    } else {
+      next = [feedback, ...all];
+    }
+
+    return this.remoteSet(DOC_KEYS.EMPLOYEE_FEEDBACK, next);
+  }
+
+  async acknowledgeEmployeeFeedback(feedbackId: string): Promise<boolean> {
+    const all = await this.fetchEmployeeFeedback();
+    const next = all.map(f =>
+      f.id === feedbackId
+        ? { ...f, acknowledged: true, acknowledgedAt: new Date().toISOString() }
+        : f
+    );
+    return this.remoteSet(DOC_KEYS.EMPLOYEE_FEEDBACK, next);
   }
 
   async globalSync(defaults: {

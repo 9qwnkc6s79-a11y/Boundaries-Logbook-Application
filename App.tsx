@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { User, UserRole, UserProgress, ChecklistSubmission, ChecklistTemplate, Store, TrainingModule, ManualSection, Recipe, ToastSalesData, ToastTimeEntry, Organization, ToastSyncEmployee, InventoryItem, InventoryCount } from './types';
+import { User, UserRole, UserProgress, ChecklistSubmission, ChecklistTemplate, Store, TrainingModule, ManualSection, Recipe, ToastSalesData, ToastTimeEntry, Organization, ToastSyncEmployee, InventoryItem, InventoryCount, EmployeeFeedback } from './types';
 import { TRAINING_CURRICULUM, CHECKLIST_TEMPLATES, MOCK_USERS, MOCK_STORES, BOUNDARIES_MANUAL, BOUNDARIES_RECIPES } from './data/mockData';
 import { SEED_INVENTORY } from './data/inventoryItems';
 import { db } from './services/db';
@@ -139,6 +139,7 @@ const App: React.FC = () => {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
   const [inventoryCounts, setInventoryCounts] = useState<InventoryCount[]>([]);
+  const [employeeFeedback, setEmployeeFeedback] = useState<EmployeeFeedback[]>([]);
 
   // Track the last time we updated a submission locally to avoid the "sync overwrite flicker"
   const lastSubmissionUpdateRef = useRef<number>(0);
@@ -275,6 +276,19 @@ const App: React.FC = () => {
     };
     if (currentUser) loadInventory();
   }, [currentStoreId, currentUser]);
+
+  // Fetch employee feedback
+  useEffect(() => {
+    const loadFeedback = async () => {
+      try {
+        const fb = await db.fetchEmployeeFeedback();
+        setEmployeeFeedback(fb);
+      } catch (e) {
+        console.warn('[App] Failed to load employee feedback:', e);
+      }
+    };
+    if (currentUser) loadFeedback();
+  }, [currentUser]);
 
   const effectiveUser = useMemo(() => {
     if (!currentUser) return null;
@@ -970,6 +984,16 @@ const App: React.FC = () => {
             curriculum={curriculum}
             toastSales={toastSales}
             toastClockedIn={toastClockedIn}
+            employeeFeedback={employeeFeedback}
+            onAcknowledgeFeedback={async (feedbackId) => {
+              setEmployeeFeedback(prev =>
+                prev.map(f => f.id === feedbackId
+                  ? { ...f, acknowledged: true, acknowledgedAt: new Date().toISOString() }
+                  : f
+                )
+              );
+              await db.acknowledgeEmployeeFeedback(feedbackId);
+            }}
           />
         )}
         {activeTab === 'ops' && (
@@ -1055,6 +1079,11 @@ const App: React.FC = () => {
             onToastClockedInUpdate={setToastClockedIn}
             onSalesComparisonUpdate={setSalesComparison}
             onSyncToastEmployees={handleSyncToastEmployees}
+            employeeFeedback={employeeFeedback}
+            onSubmitFeedback={async (fb) => {
+              setEmployeeFeedback(prev => [fb, ...prev]);
+              await db.pushEmployeeFeedback(fb);
+            }}
           />
         )}
       </div>

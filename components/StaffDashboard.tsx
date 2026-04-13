@@ -1,9 +1,10 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { User, ChecklistSubmission, ChecklistTemplate, UserProgress, TrainingModule, ToastTimeEntry, ToastSalesData, AttributedOrder, TrackedGoogleReview } from '../types';
+import { User, ChecklistSubmission, ChecklistTemplate, UserProgress, TrainingModule, ToastTimeEntry, ToastSalesData, AttributedOrder, TrackedGoogleReview, EmployeeFeedback, FeedbackCategory } from '../types';
 import {
   Trophy, TrendingUp, Target, Award, Zap, Users, Clock, CheckCircle,
   Star, Flame, Medal, Crown, Activity, BarChart3, Timer, Coffee,
-  GraduationCap, ClipboardCheck, AlertCircle, ChevronRight
+  GraduationCap, ClipboardCheck, AlertCircle, ChevronRight, ChevronDown,
+  MessageSquare, Eye, ArrowRight, Calendar
 } from 'lucide-react';
 import { detectLeaders, calculateLeaderboard, LeaderLeaderboardEntry } from '../utils/leadershipTracking';
 import { db } from '../services/db';
@@ -17,6 +18,8 @@ interface StaffDashboardProps {
   curriculum: TrainingModule[];
   toastSales?: ToastSalesData | null;
   toastClockedIn: ToastTimeEntry[];
+  employeeFeedback?: EmployeeFeedback[];
+  onAcknowledgeFeedback?: (feedbackId: string) => Promise<void>;
 }
 
 const StaffDashboard: React.FC<StaffDashboardProps> = ({
@@ -27,11 +30,15 @@ const StaffDashboard: React.FC<StaffDashboardProps> = ({
   progress,
   curriculum,
   toastSales,
-  toastClockedIn
+  toastClockedIn,
+  employeeFeedback = [],
+  onAcknowledgeFeedback
 }) => {
   // State for leaderboard data
   const [attributedOrders, setAttributedOrders] = useState<AttributedOrder[]>([]);
   const [trackedReviews, setTrackedReviews] = useState<TrackedGoogleReview[]>([]);
+  const [expandedFbId, setExpandedFbId] = useState<string | null>(null);
+  const [acknowledgingId, setAcknowledgingId] = useState<string | null>(null);
   const [toastTeamLeaders, setToastTeamLeaders] = useState<{ id: string; name: string; jobTitle: string; toastGuid: string }[]>([]);
 
   // Fetch leaderboard data on mount
@@ -149,6 +156,39 @@ const StaffDashboard: React.FC<StaffDashboardProps> = ({
   const currentLeaders = detectLeaders(toastClockedIn, allUsers);
   const highestPriority = currentLeaders.length > 0 ? Math.min(...currentLeaders.map(l => l.priority)) : 999;
   const activeLeaders = currentLeaders.filter(l => l.priority === highestPriority);
+
+  // My feedback from managers
+  const myFeedback = useMemo(() =>
+    employeeFeedback
+      .filter(f => f.employeeId === currentUser.id)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
+    [employeeFeedback, currentUser.id]
+  );
+
+  const unacknowledgedCount = myFeedback.filter(f => !f.acknowledged).length;
+
+  const CATEGORY_LABELS: Record<FeedbackCategory, string> = {
+    CLOSING: 'Closing Procedures',
+    SHIFT_CHAIN: 'Shift Chain',
+    VALUES: 'Company Values',
+    CUSTOMER_SERVICE: 'Customer Service',
+    QUALITY: 'Quality & Standards',
+    TEAMWORK: 'Teamwork',
+    OTHER: 'Other',
+  };
+
+  const RATING_LABELS: Record<number, { label: string; color: string }> = {
+    1: { label: 'Needs Immediate Improvement', color: 'text-red-600' },
+    2: { label: 'Needs Improvement', color: 'text-orange-600' },
+    3: { label: 'Meets Expectations', color: 'text-amber-600' },
+    4: { label: 'Above Expectations', color: 'text-green-600' },
+    5: { label: 'Exceeds Expectations', color: 'text-emerald-600' },
+  };
+
+  const formatFbDate = (iso: string) => {
+    const d = new Date(iso);
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  };
 
   // Achievements/Badges
   const badges = useMemo(() => {
@@ -462,6 +502,137 @@ const StaffDashboard: React.FC<StaffDashboardProps> = ({
           </div>
         </div>
       </section>
+
+      {/* Manager Feedback Section */}
+      {myFeedback.length > 0 && (
+        <section className="bg-white p-6 rounded-xl border border-neutral-100 shadow-sm">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-2">
+              <MessageSquare size={16} className="text-blue-500" />
+              <h2 className="text-sm font-black text-[#0F2B3C] uppercase tracking-tight">Manager Feedback</h2>
+            </div>
+            {unacknowledgedCount > 0 && (
+              <span className="bg-amber-100 text-amber-700 text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-widest">
+                {unacknowledgedCount} New
+              </span>
+            )}
+          </div>
+
+          <div className="space-y-3">
+            {myFeedback.map(fb => {
+              const ratingCfg = RATING_LABELS[fb.rating];
+              const isExpanded = expandedFbId === fb.id;
+
+              return (
+                <div
+                  key={fb.id}
+                  className={`rounded-xl border overflow-hidden transition-all ${
+                    !fb.acknowledged
+                      ? 'border-amber-200 bg-amber-50/30'
+                      : 'border-neutral-100'
+                  }`}
+                >
+                  <button
+                    onClick={() => setExpandedFbId(isExpanded ? null : fb.id)}
+                    className="w-full p-4 flex items-center gap-3 text-left hover:bg-neutral-50/50 transition-colors"
+                  >
+                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center font-black text-sm shrink-0 ${
+                      fb.rating >= 4 ? 'bg-green-100 text-green-700' :
+                      fb.rating === 3 ? 'bg-amber-100 text-amber-700' :
+                      'bg-red-100 text-red-700'
+                    }`}>
+                      {fb.rating}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">
+                          {CATEGORY_LABELS[fb.category]}
+                        </span>
+                        {!fb.acknowledged && (
+                          <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0" />
+                        )}
+                      </div>
+                      <div className="text-[10px] text-neutral-500 truncate">
+                        {fb.observation.substring(0, 60)}{fb.observation.length > 60 ? '...' : ''}
+                      </div>
+                    </div>
+                    <div className="text-[10px] font-bold text-neutral-400 shrink-0 hidden sm:block">
+                      {formatFbDate(fb.createdAt)}
+                    </div>
+                    {isExpanded ? <ChevronDown size={14} className="text-neutral-400 shrink-0 rotate-180" /> : <ChevronDown size={14} className="text-neutral-400 shrink-0" />}
+                  </button>
+
+                  {isExpanded && (
+                    <div className="px-4 pb-4 pt-0 border-t border-neutral-100 space-y-3">
+                      <div className="pt-3 grid grid-cols-2 gap-3">
+                        <div>
+                          <div className="text-[9px] font-black text-neutral-400 uppercase tracking-widest mb-1">From</div>
+                          <div className="text-xs font-bold text-[#0F2B3C]">{fb.managerName}</div>
+                        </div>
+                        <div>
+                          <div className="text-[9px] font-black text-neutral-400 uppercase tracking-widest mb-1">Rating</div>
+                          <div className="flex items-center gap-1.5">
+                            <div className="flex gap-0.5">
+                              {[1, 2, 3, 4, 5].map(r => (
+                                <Star key={r} size={12} className={fb.rating >= r ? 'text-amber-400 fill-amber-400' : 'text-neutral-300'} />
+                              ))}
+                            </div>
+                            <span className={`text-[10px] font-bold ${ratingCfg.color}`}>{ratingCfg.label}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-neutral-50 p-3 rounded-lg border border-neutral-100">
+                        <div className="text-[9px] font-black text-neutral-400 uppercase tracking-widest mb-1.5">
+                          <Eye size={10} className="inline mr-1" /> Observation
+                        </div>
+                        <p className="text-xs text-[#0F2B3C] font-medium leading-relaxed">{fb.observation}</p>
+                      </div>
+
+                      <div className="bg-blue-50 p-3 rounded-lg border border-blue-100">
+                        <div className="text-[9px] font-black text-blue-600 uppercase tracking-widest mb-1.5">
+                          <ArrowRight size={10} className="inline mr-1" /> How to Improve
+                        </div>
+                        <p className="text-xs text-[#0F2B3C] font-medium leading-relaxed">{fb.improvement}</p>
+                      </div>
+
+                      {fb.followUpDate && (
+                        <div className="flex items-center gap-1.5 text-[10px] font-bold text-neutral-500">
+                          <Calendar size={11} />
+                          <span>Follow-up: {formatFbDate(fb.followUpDate)}</span>
+                        </div>
+                      )}
+
+                      {!fb.acknowledged && onAcknowledgeFeedback && (
+                        <button
+                          onClick={async () => {
+                            setAcknowledgingId(fb.id);
+                            try {
+                              await onAcknowledgeFeedback(fb.id);
+                            } finally {
+                              setAcknowledgingId(null);
+                            }
+                          }}
+                          disabled={acknowledgingId === fb.id}
+                          className="w-full py-3 bg-[#0F2B3C] text-white rounded-lg font-black uppercase text-[10px] tracking-widest hover:bg-blue-900 transition-all flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
+                        >
+                          {acknowledgingId === fb.id ? 'Acknowledging...' : <><CheckCircle size={14} /> Acknowledge Feedback</>}
+                        </button>
+                      )}
+
+                      {fb.acknowledged && (
+                        <div className="text-[10px] font-bold text-green-600 flex items-center gap-1.5 justify-center py-2">
+                          <CheckCircle size={12} /> Acknowledged {fb.acknowledgedAt && `on ${formatFbDate(fb.acknowledgedAt)}`}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
     </div>
   );
 };

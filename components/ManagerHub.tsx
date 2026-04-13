@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { User, ChecklistSubmission, ChecklistTemplate, ChecklistTask, UserRole, TrainingModule, UserProgress, ManualSection, Recipe, Store, ToastSalesData, ToastLaborEntry, ToastTimeEntry, CashDeposit, GoogleReview, TrackedGoogleReview, GoogleReviewsData, Organization, AttributedOrder, ArchivedLeaderboard } from '../types';
+import { User, ChecklistSubmission, ChecklistTemplate, ChecklistTask, UserRole, TrainingModule, UserProgress, ManualSection, Recipe, Store, ToastSalesData, ToastLaborEntry, ToastTimeEntry, CashDeposit, GoogleReview, TrackedGoogleReview, GoogleReviewsData, Organization, AttributedOrder, ArchivedLeaderboard, EmployeeFeedback } from '../types';
 import {
   CheckCircle2, AlertCircle, Eye, User as UserIcon, Calendar, Check, X,
   Settings, Plus, Trash2, Edit3, BarChart3, ListTodo, BrainCircuit, Clock, TrendingDown, TrendingUp,
@@ -11,6 +11,7 @@ import { db } from '../services/db';
 import { detectLeaders, calculateTimelinessScore, calculateTurnTimeScore, calculateSalesScore, calculateAvgTicketScore, calculateLeaderboard, determineShiftOwnership } from '../utils/leadershipTracking';
 import { syncOrderAttributions } from '../utils/orderAttribution';
 import TeamManagement from './TeamManagement';
+import EmployeeFeedbackComponent from './EmployeeFeedback';
 import NotificationBanner from './NotificationBanner';
 import { checkLateSubmissions, checkHighTurnTime, getTodayDate } from '../services/notificationTriggers';
 import { showLocalNotification, isAnyStoreManager, getNotificationConfig } from '../services/notifications';
@@ -86,16 +87,19 @@ interface ManagerHubProps {
   org?: Organization | null;
   onSaveOrg?: (org: Organization) => Promise<boolean>;
   onSyncToastEmployees?: (employees: any[]) => Promise<number>;
+  employeeFeedback?: EmployeeFeedback[];
+  onSubmitFeedback?: (feedback: EmployeeFeedback) => Promise<void>;
 }
 
 const ManagerHub: React.FC<ManagerHubProps> = ({
   staff = [], allUsers = [], submissions = [], templates = [], curriculum = [], allProgress = [], manual = [], recipes = [], onReview, onOverrideAIFlag, onResetSubmission,
   onUpdateTemplate, onAddTemplate, onDeleteTemplate, onUpdateManual, onUpdateRecipes, onPhotoComment,
   currentStoreId, stores = [], currentUser, onUserUpdated, onToastSalesUpdate, onToastClockedInUpdate, onSalesComparisonUpdate,
-  org, onSaveOrg, onSyncToastEmployees
+  org, onSaveOrg, onSyncToastEmployees,
+  employeeFeedback = [], onSubmitFeedback
 }) => {
   const [activeSubTab, setActiveSubTab] = useState<'dashboard' | 'operations' | 'settings'>('dashboard');
-  const [operationsSubTab, setOperationsSubTab] = useState<'compliance' | 'gallery' | 'cash-audit' | 'training'>('compliance');
+  const [operationsSubTab, setOperationsSubTab] = useState<'compliance' | 'gallery' | 'cash-audit' | 'training' | 'feedback'>('compliance');
   const [settingsSubTab, setSettingsSubTab] = useState<'editor' | 'team' | 'staff' | 'manual' | 'branding' | 'stores'>('editor');
   const [auditFilter, setAuditFilter] = useState<'pending' | 'approved' | 'all'>('pending');
   const [overrideFeedback, setOverrideFeedback] = useState<Record<string, string>>({});
@@ -1987,6 +1991,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                   { id: 'compliance', label: 'Compliance', icon: Timer },
                   { id: 'gallery', label: 'Photo Audit', icon: ImageIcon },
                   { id: 'cash-audit', label: 'Cash Audit', icon: DollarSign },
+                  { id: 'feedback', label: 'Feedback', icon: MessageSquare },
                   { id: 'training', label: 'Training Export', icon: GraduationCap },
                 ].map(tab => (
                   <button
@@ -3250,6 +3255,18 @@ ${curriculum.map((mod, mi) => {
                 Opens in a new window. Use your browser's print dialog to save as PDF or print a hard copy.
               </p>
             </div>
+          </section>
+        )}
+
+        {activeSubTab === 'operations' && operationsSubTab === 'feedback' && currentUser && onSubmitFeedback && (
+          <section className="animate-in fade-in">
+            <EmployeeFeedbackComponent
+              currentUser={currentUser}
+              staff={allUsers}
+              feedback={employeeFeedback}
+              onSubmitFeedback={onSubmitFeedback}
+              currentStoreId={currentStoreId}
+            />
           </section>
         )}
 

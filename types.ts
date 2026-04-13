@@ -516,6 +516,26 @@ export interface InventoryCount {
   counts: Record<string, number>;
 }
 
+// Employee Feedback from Managers
+export type FeedbackCategory = 'CLOSING' | 'SHIFT_CHAIN' | 'VALUES' | 'CUSTOMER_SERVICE' | 'QUALITY' | 'TEAMWORK' | 'OTHER';
+
+export interface EmployeeFeedback {
+  id: string;
+  employeeId: string;      // User ID of employee receiving feedback
+  employeeName: string;     // For display
+  managerId: string;        // User ID of manager giving feedback
+  managerName: string;      // For display
+  storeId: string;
+  category: FeedbackCategory;
+  rating: 1 | 2 | 3 | 4 | 5;  // 1=Needs Immediate Improvement, 5=Exceeds Expectations
+  observation: string;      // What the manager observed
+  improvement: string;      // What the employee can do to improve
+  followUpDate?: string;    // Optional follow-up date (ISO string)
+  acknowledged: boolean;    // Whether employee has seen this feedback
+  acknowledgedAt?: string;  // When the employee acknowledged
+  createdAt: string;        // ISO timestamp
+}
+
 // Archived monthly leaderboard results
 export interface ArchivedLeaderboard {
   id: string; // Format: "YYYY-MM" (e.g., "2025-01")
