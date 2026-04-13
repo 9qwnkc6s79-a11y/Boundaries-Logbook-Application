@@ -764,8 +764,11 @@ const App: React.FC = () => {
 
   const handleUpdateUserHomeStore = async (storeId: string) => {
     if (!currentUser) return;
-    const updatedUser = { ...currentUser, storeId };
-    setCurrentUser(updatedUser);
+    // Strip password from the update — syncUser will preserve the cloud password.
+    // Passing a stale cached password could overwrite a recently-reset password.
+    const { password: _, ...userWithoutPassword } = currentUser;
+    const updatedUser = { ...userWithoutPassword, storeId } as User;
+    setCurrentUser({ ...currentUser, storeId });
     setCurrentStoreId(storeId);
     await db.syncUser(updatedUser);
     performCloudSync(true);

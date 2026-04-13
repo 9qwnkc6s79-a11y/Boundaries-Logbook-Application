@@ -291,8 +291,12 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
 
     setSaving(true);
     try {
+      // Strip password from the spread to prevent stale cached password from
+      // overwriting a recently-changed password in Firestore. syncUser will
+      // preserve the cloud password when the incoming user has no password.
+      const { password: _existingPw, ...editingUserWithoutPassword } = editingUser;
       const updatedUser: User = {
-        ...editingUser,
+        ...editingUserWithoutPassword,
         name: editForm.name.trim(),
         role: editForm.role,
         storeId: editForm.storeId,
@@ -322,7 +326,9 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
   const handleToggleActive = async (user: User) => {
     const isCurrentlyActive = user.active !== false;
     try {
-      const updatedUser: User = { ...user, active: !isCurrentlyActive };
+      // Strip password — syncUser will preserve the cloud password
+      const { password: _pw, ...userWithoutPassword } = user;
+      const updatedUser: User = { ...userWithoutPassword, active: !isCurrentlyActive } as User;
       await db.syncUser(updatedUser);
       onUserUpdated();
       setConfirmDeactivate(null);

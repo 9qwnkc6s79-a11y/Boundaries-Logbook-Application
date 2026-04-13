@@ -77,6 +77,8 @@ function removeUndefined(obj: any): any {
 
 class CloudAPI {
   private currentOrgId: string | null = null;
+  private userWriteLock: Promise<any> = Promise.resolve();
+  private appDataMerged = false; // Track if we already merged appData users
 
   setOrg(orgId: string) {
     this.currentOrgId = orgId;
@@ -366,10 +368,15 @@ class CloudAPI {
     const userMap = new Map<string, User>();
     persistedUsers.forEach(u => userMap.set(u.email.toLowerCase(), u));
 
-    // When running under an org, also check appData for users that weren't
+    // When running under an org, check appData for users that weren't
     // migrated (migrateToOrg wrote to the wrong Firestore path historically).
     // AppData users are added only if they don't already exist in the org.
-    if (this.currentOrgId && firestore) {
+    //
+    // IMPORTANT: Only do this ONCE per session. The old code ran this on every
+    // 4-second heartbeat and fired an unawaited remoteSet that raced with
+    // syncUser writes, causing password corruption.
+    if (this.currentOrgId && firestore && !this.appDataMerged) {
+      this.appDataMerged = true; // Mark as done regardless of outcome
       try {
         const fallbackRef = firestore.collection('appData').doc(DOC_KEYS.USERS);
         const fallbackSnap = await fallbackRef.get();
@@ -386,11 +393,10 @@ class CloudAPI {
           });
           if (merged > 0) {
             console.log(`[Firestore] fetchUsers: Merged ${merged} users from appData fallback`);
-            // Persist the merged list to org path so future reads are complete
+            // Persist via the write lock to prevent racing with syncUser
             const mergedList = Array.from(userMap.values());
-            this.remoteSet(DOC_KEYS.USERS, mergedList).then(ok => {
-              if (ok) console.log(`[Firestore] fetchUsers: Persisted ${mergedList.length} merged users to org path`);
-            });
+            await this.lockedUserWrite(mergedList);
+            console.log(`[Firestore] fetchUsers: Persisted ${mergedList.length} merged users to org path`);
           }
         }
       } catch (e) {
@@ -419,43 +425,64 @@ class CloudAPI {
     return result;
   }
 
+  /**
+   * Low-level locked write for the users document.
+   * All user writes MUST go through this or syncUser to prevent races.
+   */
+  private async lockedUserWrite(users: User[]): Promise<boolean> {
+    // Chain writes so they execute serially, never concurrently
+    const writeOp = this.userWriteLock.then(async () => {
+      return this.remoteSet(DOC_KEYS.USERS, users);
+    });
+    this.userWriteLock = writeOp.catch(() => {}); // prevent unhandled rejection from blocking chain
+    return writeOp;
+  }
+
   async syncUser(user: User): Promise<User[]> {
-    let currentUsers = await this.remoteGet(DOC_KEYS.USERS, [] as User[]);
+    // Chain this write behind any pending user write to prevent concurrent
+    // read-modify-write races (e.g., heartbeat vs. password reset).
+    const writeOp = this.userWriteLock.then(async () => {
+      // Read the LATEST users inside the lock so we never use stale data
+      let currentUsers = await this.remoteGet(DOC_KEYS.USERS, [] as User[]);
 
-    // Safety: if read returned empty, retry once. A transient read failure
-    // returning [] would cause us to write ONLY this user, destroying everyone else.
-    if (currentUsers.length === 0) {
-      console.warn('[Firestore] syncUser: First read returned 0 users, retrying...');
-      await new Promise(r => setTimeout(r, 500));
-      currentUsers = await this.remoteGet(DOC_KEYS.USERS, [] as User[]);
+      // Safety: if read returned empty, retry once. A transient read failure
+      // returning [] would cause us to write ONLY this user, destroying everyone else.
       if (currentUsers.length === 0) {
-        console.warn('[Firestore] syncUser: Retry also returned 0 users — proceeding (may be fresh deployment)');
-      } else {
-        console.log(`[Firestore] syncUser: Retry succeeded, got ${currentUsers.length} users`);
+        console.warn('[Firestore] syncUser: First read returned 0 users, retrying...');
+        await new Promise(r => setTimeout(r, 500));
+        currentUsers = await this.remoteGet(DOC_KEYS.USERS, [] as User[]);
+        if (currentUsers.length === 0) {
+          console.warn('[Firestore] syncUser: Retry also returned 0 users — proceeding (may be fresh deployment)');
+        } else {
+          console.log(`[Firestore] syncUser: Retry succeeded, got ${currentUsers.length} users`);
+        }
       }
-    }
 
-    const userMap = new Map<string, User>();
-    currentUsers.forEach(u => userMap.set(u.email.toLowerCase(), u));
+      const userMap = new Map<string, User>();
+      currentUsers.forEach(u => userMap.set(u.email.toLowerCase(), u));
 
-    // Guard: never downgrade a hashed password to plaintext.
-    // If the cloud user already has a hashed password and the incoming user
-    // has a plaintext (or missing) password, preserve the cloud password.
-    const existing = userMap.get(user.email.toLowerCase());
-    if (existing?.password && isHashed(existing.password)) {
-      if (user.password && !isHashed(user.password)) {
-        console.warn(`[Firestore] syncUser: BLOCKED plaintext password overwrite for ${user.email} — keeping hashed version`);
-        user = { ...user, password: existing.password };
-      } else if (!user.password) {
-        console.warn(`[Firestore] syncUser: Incoming user has no password for ${user.email} — keeping hashed version`);
-        user = { ...user, password: existing.password };
+      // Guard: never downgrade a hashed password to plaintext.
+      // If the cloud user already has a hashed password and the incoming user
+      // has a plaintext (or missing) password, preserve the cloud password.
+      const existing = userMap.get(user.email.toLowerCase());
+      if (existing?.password && isHashed(existing.password)) {
+        if (user.password && !isHashed(user.password)) {
+          console.warn(`[Firestore] syncUser: BLOCKED plaintext password overwrite for ${user.email} — keeping hashed version`);
+          user = { ...user, password: existing.password };
+        } else if (!user.password) {
+          console.warn(`[Firestore] syncUser: Incoming user has no password for ${user.email} — keeping hashed version`);
+          user = { ...user, password: existing.password };
+        }
       }
-    }
 
-    userMap.set(user.email.toLowerCase(), user);
-    const next = Array.from(userMap.values());
-    await this.remoteSet(DOC_KEYS.USERS, next);
-    return next;
+      userMap.set(user.email.toLowerCase(), user);
+      const next = Array.from(userMap.values());
+      await this.remoteSet(DOC_KEYS.USERS, next);
+      return next;
+    });
+
+    this.userWriteLock = writeOp.catch(() => {}); // prevent unhandled rejection from blocking chain
+    return writeOp;
   }
 
   async fetchSubmissions(): Promise<ChecklistSubmission[]> {
