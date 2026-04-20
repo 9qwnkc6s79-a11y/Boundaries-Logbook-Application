@@ -418,7 +418,7 @@ class CloudAPI {
     return result;
   }
 
-  async syncUser(user: User): Promise<User[]> {
+  async syncUser(user: User, opts: { allowPasswordChange?: boolean } = {}): Promise<User[]> {
     let currentUsers = await this.remoteGet(DOC_KEYS.USERS, [] as User[]);
 
     // Safety: if read returned empty, retry once. A transient read failure
@@ -437,16 +437,21 @@ class CloudAPI {
     const userMap = new Map<string, User>();
     currentUsers.forEach(u => userMap.set(u.email.toLowerCase(), u));
 
-    // Guard: never downgrade a hashed password to plaintext.
-    // If the cloud user already has a hashed password and the incoming user
-    // has a plaintext (or missing) password, preserve the cloud password.
+    // Guards against overwriting the cloud's password with a stale/weaker copy.
+    // A caller that only edits name/role/active can carry a stale password
+    // field from an older in-memory snapshot; if the user has since reset
+    // their password, blindly writing the stale hash locks them out.
     const existing = userMap.get(user.email.toLowerCase());
     if (existing?.password && isHashed(existing.password)) {
       if (user.password && !isHashed(user.password)) {
         console.warn(`[Firestore] syncUser: BLOCKED plaintext password overwrite for ${user.email} — keeping hashed version`);
         user = { ...user, password: existing.password };
       } else if (!user.password) {
-        console.warn(`[Firestore] syncUser: Incoming user has no password for ${user.email} — keeping hashed version`);
+        user = { ...user, password: existing.password };
+      } else if (!opts.allowPasswordChange && user.password !== existing.password) {
+        // Incoming hash differs from cloud but caller did not opt-in to a
+        // password change — treat as stale and preserve cloud hash.
+        console.warn(`[Firestore] syncUser: BLOCKED stale hash overwrite for ${user.email} — keeping cloud version`);
         user = { ...user, password: existing.password };
       }
     }

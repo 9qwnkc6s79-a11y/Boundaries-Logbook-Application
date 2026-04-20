@@ -264,7 +264,7 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
         ...(toastPrefill ? { toastEmployeeGuid: toastPrefill.guid } : {}),
       };
 
-      await db.syncUser(newUser);
+      await db.syncUser(newUser, { allowPasswordChange: true });
       onUserUpdated();
 
       // Show invite/credentials modal
@@ -291,19 +291,23 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
 
     setSaving(true);
     try {
+      // Drop the stale password carried by editingUser — syncUser will preserve
+      // whatever the cloud has unless we explicitly set a new one below.
+      const { password: _stale, ...editingUserWithoutPassword } = editingUser;
       const updatedUser: User = {
-        ...editingUser,
+        ...editingUserWithoutPassword,
         name: editForm.name.trim(),
         role: editForm.role,
         storeId: editForm.storeId,
         toastEmployeeGuid: editForm.toastEmployeeGuid || undefined,
       };
 
-      if (editForm.resetPassword && editForm.newPassword) {
+      const changingPassword = editForm.resetPassword && !!editForm.newPassword;
+      if (changingPassword) {
         updatedUser.password = await hashPassword(editForm.newPassword);
       }
 
-      await db.syncUser(updatedUser);
+      await db.syncUser(updatedUser, { allowPasswordChange: changingPassword });
       onUserUpdated();
 
       // If password was reset, show credentials
@@ -322,7 +326,9 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
   const handleToggleActive = async (user: User) => {
     const isCurrentlyActive = user.active !== false;
     try {
-      const updatedUser: User = { ...user, active: !isCurrentlyActive };
+      // Drop the stale password — syncUser will keep the cloud's current hash.
+      const { password: _stale, ...userWithoutPassword } = user;
+      const updatedUser: User = { ...userWithoutPassword, active: !isCurrentlyActive };
       await db.syncUser(updatedUser);
       onUserUpdated();
       setConfirmDeactivate(null);

@@ -345,7 +345,7 @@ const App: React.FC = () => {
     // Save all migrations in a single write to avoid overwriting the hash
     if (needsMigration) {
       try {
-        await db.syncUser(migratedUser);
+        await db.syncUser(migratedUser, { allowPasswordChange: !isHashed(found.password) });
         console.log(`[Auth] Migrated user ${found.email} (hash=${!isHashed(found.password)}, orgId=${!found.orgId})`);
       } catch (e) {
         console.warn('[Auth] User migration failed:', e);
@@ -380,7 +380,7 @@ const App: React.FC = () => {
     // Hash password before saving
     const hashed = await hashPassword(user.password || '');
     const secureUser = { ...user, password: hashed };
-    await db.syncUser(secureUser);
+    await db.syncUser(secureUser, { allowPasswordChange: true });
     const freshData = await performCloudSync();
     setAllUsers(freshData?.users || []);
 
@@ -401,7 +401,7 @@ const App: React.FC = () => {
 
     const hashed = await hashPassword(pass);
     const updated = { ...user, password: hashed };
-    await db.syncUser(updated);
+    await db.syncUser(updated, { allowPasswordChange: true });
     await performCloudSync(true);
   };
 
@@ -409,7 +409,7 @@ const App: React.FC = () => {
     if (!forcePasswordChangeUser) return;
     const hashed = await hashPassword(newPassword);
     const updated = { ...forcePasswordChangeUser, password: hashed, mustChangePassword: false };
-    await db.syncUser(updated);
+    await db.syncUser(updated, { allowPasswordChange: true });
     await performCloudSync(true);
 
     // Complete login
@@ -808,7 +808,7 @@ const App: React.FC = () => {
       };
 
       // Use syncUser (read-modify-write) to avoid overwriting other users' data
-      await db.syncUser(newUser);
+      await db.syncUser(newUser, { allowPasswordChange: true });
       newCount++;
       console.log(`[App] Created user account for ${emp.name} (${emp.email})`);
     }
