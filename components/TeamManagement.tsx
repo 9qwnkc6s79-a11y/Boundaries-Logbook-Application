@@ -264,7 +264,7 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
         ...(toastPrefill ? { toastEmployeeGuid: toastPrefill.guid } : {}),
       };
 
-      await db.syncUser(newUser);
+      await db.syncUser(newUser, { updatePassword: true });
       onUserUpdated();
 
       // Show invite/credentials modal
@@ -299,15 +299,20 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
         toastEmployeeGuid: editForm.toastEmployeeGuid || undefined,
       };
 
-      if (editForm.resetPassword && editForm.newPassword) {
+      const isResettingPassword = editForm.resetPassword && !!editForm.newPassword;
+      if (isResettingPassword) {
         updatedUser.password = await hashPassword(editForm.newPassword);
       }
 
-      await db.syncUser(updatedUser);
+      // Only opt in to password overwrite when the admin explicitly reset it.
+      // Spreading `editingUser` carries a cached hash that may be stale
+      // (the user may have rotated their own password in another session),
+      // and a hash-over-hash overwrite would silently lock them out.
+      await db.syncUser(updatedUser, { updatePassword: isResettingPassword });
       onUserUpdated();
 
       // If password was reset, show credentials
-      if (editForm.resetPassword && editForm.newPassword) {
+      if (isResettingPassword) {
         setShowInvite({ email: editingUser.email, password: editForm.newPassword, name: editForm.name.trim() });
       }
 
