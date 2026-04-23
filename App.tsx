@@ -753,7 +753,11 @@ const App: React.FC = () => {
     const updatedUser = { ...currentUser, storeId };
     setCurrentUser(updatedUser);
     setCurrentStoreId(storeId);
-    await db.syncUser(updatedUser);
+    // Omit password from the synced update — syncUser will preserve the cloud
+    // version. Spreading currentUser.password could revert a fresh hash if the
+    // user's password was rotated on another device.
+    const { password: _stale, ...userForSync } = updatedUser;
+    await db.syncUser(userForSync as User);
     performCloudSync(true);
   };
 

@@ -291,8 +291,12 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
 
     setSaving(true);
     try {
+      // Strip the password from the edit snapshot; syncUser preserves the
+      // cloud password when the field is omitted. Only set it when an
+      // explicit reset is requested, so we never write a stale hash.
+      const { password: _stale, ...editingWithoutPassword } = editingUser;
       const updatedUser: User = {
-        ...editingUser,
+        ...editingWithoutPassword,
         name: editForm.name.trim(),
         role: editForm.role,
         storeId: editForm.storeId,
@@ -322,7 +326,8 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
   const handleToggleActive = async (user: User) => {
     const isCurrentlyActive = user.active !== false;
     try {
-      const updatedUser: User = { ...user, active: !isCurrentlyActive };
+      const { password: _stale, ...userWithoutPassword } = user;
+      const updatedUser: User = { ...userWithoutPassword, active: !isCurrentlyActive };
       await db.syncUser(updatedUser);
       onUserUpdated();
       setConfirmDeactivate(null);

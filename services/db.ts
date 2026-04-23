@@ -437,16 +437,17 @@ class CloudAPI {
     const userMap = new Map<string, User>();
     currentUsers.forEach(u => userMap.set(u.email.toLowerCase(), u));
 
-    // Guard: never downgrade a hashed password to plaintext.
-    // If the cloud user already has a hashed password and the incoming user
-    // has a plaintext (or missing) password, preserve the cloud password.
+    // Guard: preserve the cloud password unless the caller explicitly set it.
+    // Callers that are not intentionally changing the password should omit the
+    // field — spreading a stale user object from React state would otherwise
+    // silently revert the password (locking the user out after they've logged
+    // in, reset their password, or had their hash rotated elsewhere).
     const existing = userMap.get(user.email.toLowerCase());
-    if (existing?.password && isHashed(existing.password)) {
-      if (user.password && !isHashed(user.password)) {
-        console.warn(`[Firestore] syncUser: BLOCKED plaintext password overwrite for ${user.email} — keeping hashed version`);
+    if (existing?.password) {
+      if (!user.password) {
         user = { ...user, password: existing.password };
-      } else if (!user.password) {
-        console.warn(`[Firestore] syncUser: Incoming user has no password for ${user.email} — keeping hashed version`);
+      } else if (isHashed(existing.password) && !isHashed(user.password)) {
+        console.warn(`[Firestore] syncUser: BLOCKED plaintext password overwrite for ${user.email} — keeping hashed version`);
         user = { ...user, password: existing.password };
       }
     }
