@@ -418,7 +418,7 @@ class CloudAPI {
     return result;
   }
 
-  async syncUser(user: User): Promise<User[]> {
+  async syncUser(user: User, opts: { updatePassword?: boolean } = {}): Promise<User[]> {
     let currentUsers = await this.remoteGet(DOC_KEYS.USERS, [] as User[]);
 
     // Safety: if read returned empty, retry once. A transient read failure
@@ -437,18 +437,29 @@ class CloudAPI {
     const userMap = new Map<string, User>();
     currentUsers.forEach(u => userMap.set(u.email.toLowerCase(), u));
 
-    // Guard: never downgrade a hashed password to plaintext.
-    // If the cloud user already has a hashed password and the incoming user
-    // has a plaintext (or missing) password, preserve the cloud password.
+    // Password preservation: the password field is only ever mutated when the
+    // caller explicitly opts in via `updatePassword`. Every other user update
+    // (role change, deactivate, home-store change, name edit, …) carries a
+    // potentially stale in-memory hash, and last-write-wins would clobber a
+    // fresher cloud password set by a password reset on another device.
     const existing = userMap.get(user.email.toLowerCase());
-    if (existing?.password && isHashed(existing.password)) {
-      if (user.password && !isHashed(user.password)) {
-        console.warn(`[Firestore] syncUser: BLOCKED plaintext password overwrite for ${user.email} — keeping hashed version`);
+    if (existing && existing.password) {
+      if (!opts.updatePassword) {
+        if (user.password !== existing.password) {
+          console.log(`[Firestore] syncUser: Preserving cloud password for ${user.email} (caller did not opt into updatePassword)`);
+        }
+        user = { ...user, password: existing.password };
+      } else if (user.password && !isHashed(user.password)) {
+        // Belt-and-suspenders: even when updating, never persist plaintext.
+        console.warn(`[Firestore] syncUser: BLOCKED plaintext password write for ${user.email} — keeping existing hash`);
         user = { ...user, password: existing.password };
       } else if (!user.password) {
-        console.warn(`[Firestore] syncUser: Incoming user has no password for ${user.email} — keeping hashed version`);
+        console.warn(`[Firestore] syncUser: updatePassword=true but incoming password is empty for ${user.email} — keeping existing hash`);
         user = { ...user, password: existing.password };
       }
+    } else if (user.password && !isHashed(user.password)) {
+      console.warn(`[Firestore] syncUser: Refusing to create ${user.email} with plaintext password`);
+      return currentUsers;
     }
 
     userMap.set(user.email.toLowerCase(), user);
