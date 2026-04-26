@@ -264,7 +264,7 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
         ...(toastPrefill ? { toastEmployeeGuid: toastPrefill.guid } : {}),
       };
 
-      await db.syncUser(newUser);
+      await db.syncUser(newUser, { passwordChange: true });
       onUserUpdated();
 
       // Show invite/credentials modal
@@ -299,11 +299,15 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
         toastEmployeeGuid: editForm.toastEmployeeGuid || undefined,
       };
 
-      if (editForm.resetPassword && editForm.newPassword) {
+      const isPasswordReset = !!(editForm.resetPassword && editForm.newPassword);
+      if (isPasswordReset) {
         updatedUser.password = await hashPassword(editForm.newPassword);
       }
 
-      await db.syncUser(updatedUser);
+      // Only mark this as a password change when the admin explicitly reset
+      // it. Without the flag, syncUser preserves the cloud-side password and
+      // the stale `editingUser.password` cannot clobber a fresher hash.
+      await db.syncUser(updatedUser, { passwordChange: isPasswordReset });
       onUserUpdated();
 
       // If password was reset, show credentials
