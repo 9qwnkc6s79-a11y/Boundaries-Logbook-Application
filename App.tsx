@@ -753,7 +753,11 @@ const App: React.FC = () => {
     const updatedUser = { ...currentUser, storeId };
     setCurrentUser(updatedUser);
     setCurrentStoreId(storeId);
-    await db.syncUser(updatedUser);
+    // Strip password before persisting: currentUser is React state and may
+    // hold a stale hash if the user changed their password from another tab.
+    // syncUser preserves the cloud password when none is supplied.
+    const { password: _omitPassword, ...payload } = updatedUser;
+    await db.syncUser(payload as User);
     performCloudSync(true);
   };
 

@@ -437,17 +437,27 @@ class CloudAPI {
     const userMap = new Map<string, User>();
     currentUsers.forEach(u => userMap.set(u.email.toLowerCase(), u));
 
-    // Guard: never downgrade a hashed password to plaintext.
-    // If the cloud user already has a hashed password and the incoming user
-    // has a plaintext (or missing) password, preserve the cloud password.
+    // Guard: never downgrade a hashed password to plaintext, and never
+    // silently overwrite a hashed password with a stale hash.
+    //
+    // Callers that aren't intentionally changing the password MUST omit the
+    // `password` field on the user they pass in. React state snapshots can
+    // carry a stale hash if the user reset their password from another tab,
+    // and writing that stale hash back would lock them out of the account.
     const existing = userMap.get(user.email.toLowerCase());
     if (existing?.password && isHashed(existing.password)) {
       if (user.password && !isHashed(user.password)) {
         console.warn(`[Firestore] syncUser: BLOCKED plaintext password overwrite for ${user.email} — keeping hashed version`);
         user = { ...user, password: existing.password };
       } else if (!user.password) {
-        console.warn(`[Firestore] syncUser: Incoming user has no password for ${user.email} — keeping hashed version`);
+        // Intentional partial update — preserve cloud password.
         user = { ...user, password: existing.password };
+      } else if (user.password !== existing.password) {
+        // Both are hashed but different. This is legitimate for
+        // forgot-password / change-password / admin-reset flows, but it's
+        // also the symptom of a bug where a caller spreads a stale user
+        // snapshot. Log enough context to audit if a lockout report comes in.
+        console.warn(`[Firestore] syncUser: Password hash changing for ${user.email}. If this was unintentional, the caller is overwriting with a stale snapshot — they should omit the password field.`);
       }
     }
 

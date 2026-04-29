@@ -291,8 +291,13 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
 
     setSaving(true);
     try {
+      // Build the update WITHOUT password by default. The stored snapshot in
+      // editingUser may carry a stale hash (the user could have reset their
+      // password since this modal opened), and writing it back would lock them
+      // out. db.syncUser preserves the cloud password when none is provided.
+      const { password: _omitPassword, ...editingUserSansPassword } = editingUser;
       const updatedUser: User = {
-        ...editingUser,
+        ...editingUserSansPassword,
         name: editForm.name.trim(),
         role: editForm.role,
         storeId: editForm.storeId,
@@ -322,7 +327,11 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
   const handleToggleActive = async (user: User) => {
     const isCurrentlyActive = user.active !== false;
     try {
-      const updatedUser: User = { ...user, active: !isCurrentlyActive };
+      // Drop the (possibly stale) password from the snapshot so we don't
+      // overwrite a password the user changed in the meantime. syncUser will
+      // preserve the cloud password when no password is provided.
+      const { password: _omitPassword, ...userSansPassword } = user;
+      const updatedUser: User = { ...userSansPassword, active: !isCurrentlyActive };
       await db.syncUser(updatedUser);
       onUserUpdated();
       setConfirmDeactivate(null);
