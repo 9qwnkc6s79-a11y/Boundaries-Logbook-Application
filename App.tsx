@@ -400,14 +400,19 @@ const App: React.FC = () => {
     }
 
     const hashed = await hashPassword(pass);
-    const updated = { ...user, password: hashed };
-    await db.syncUser(updated);
+    const ok = await db.setUserPassword(user.email, hashed);
+    if (!ok) throw new Error("Failed to reset password.");
     await performCloudSync(true);
   };
 
   const handleForcePasswordChange = async (newPassword: string) => {
     if (!forcePasswordChangeUser) return;
     const hashed = await hashPassword(newPassword);
+    const ok = await db.setUserPassword(forcePasswordChangeUser.email, hashed);
+    if (!ok) throw new Error("Failed to update password.");
+
+    // Clear the mustChangePassword flag via the general user-update path.
+    // syncUser will preserve the password we just wrote.
     const updated = { ...forcePasswordChangeUser, password: hashed, mustChangePassword: false };
     await db.syncUser(updated);
     await performCloudSync(true);

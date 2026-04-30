@@ -299,11 +299,19 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
         toastEmployeeGuid: editForm.toastEmployeeGuid || undefined,
       };
 
+      // syncUser ignores the incoming password for users with a hashed cloud
+      // value, so an admin's stale editingUser snapshot can't roll back a
+      // password the user (or another admin) changed in the meantime.
+      await db.syncUser(updatedUser);
+
+      // Password reset is an explicit admin action — route through the
+      // dedicated password endpoint.
       if (editForm.resetPassword && editForm.newPassword) {
-        updatedUser.password = await hashPassword(editForm.newPassword);
+        const hashed = await hashPassword(editForm.newPassword);
+        const ok = await db.setUserPassword(editingUser.email, hashed);
+        if (!ok) throw new Error('Failed to update password.');
       }
 
-      await db.syncUser(updatedUser);
       onUserUpdated();
 
       // If password was reset, show credentials
