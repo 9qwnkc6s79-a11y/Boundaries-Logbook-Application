@@ -418,7 +418,7 @@ class CloudAPI {
     return result;
   }
 
-  async syncUser(user: User): Promise<User[]> {
+  async syncUser(user: User, options?: { updatePassword?: boolean }): Promise<User[]> {
     let currentUsers = await this.remoteGet(DOC_KEYS.USERS, [] as User[]);
 
     // Safety: if read returned empty, retry once. A transient read failure
@@ -437,18 +437,29 @@ class CloudAPI {
     const userMap = new Map<string, User>();
     currentUsers.forEach(u => userMap.set(u.email.toLowerCase(), u));
 
-    // Guard: never downgrade a hashed password to plaintext.
-    // If the cloud user already has a hashed password and the incoming user
-    // has a plaintext (or missing) password, preserve the cloud password.
+    // Password write protection.
+    // Callers routinely build a user object by spreading a stale in-memory
+    // snapshot (e.g. the row in a list, the user behind a modal). That snapshot
+    // carries a `password` field. If the cloud password has since changed —
+    // because the user reset it from another device, or an admin reset it —
+    // writing the snapshot back would silently overwrite the new hash with
+    // the stale one, locking the user out.
+    //
+    // Default: preserve the existing cloud password.
+    // Opt-in: callers that intentionally update the password pass
+    // `{ updatePassword: true }`, and the incoming password must be hashed.
     const existing = userMap.get(user.email.toLowerCase());
-    if (existing?.password && isHashed(existing.password)) {
-      if (user.password && !isHashed(user.password)) {
-        console.warn(`[Firestore] syncUser: BLOCKED plaintext password overwrite for ${user.email} — keeping hashed version`);
+    if (existing) {
+      if (!options?.updatePassword) {
         user = { ...user, password: existing.password };
-      } else if (!user.password) {
-        console.warn(`[Firestore] syncUser: Incoming user has no password for ${user.email} — keeping hashed version`);
+      } else if (user.password && !isHashed(user.password)) {
+        console.warn(`[Firestore] syncUser: BLOCKED plaintext password write for ${user.email} — keeping cloud hash`);
         user = { ...user, password: existing.password };
       }
+    } else if (options?.updatePassword && user.password && !isHashed(user.password)) {
+      // New user creation path — refuse plaintext.
+      console.warn(`[Firestore] syncUser: Refusing to create ${user.email} with plaintext password`);
+      throw new Error('Plaintext password rejected');
     }
 
     userMap.set(user.email.toLowerCase(), user);

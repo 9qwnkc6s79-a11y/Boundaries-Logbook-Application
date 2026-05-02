@@ -324,12 +324,14 @@ const App: React.FC = () => {
     // Build a single updated user object for any needed migrations
     let migratedUser = { ...found };
     let needsMigration = false;
+    let migratedPassword = false;
 
     // Auto-migrate plaintext password to hashed on successful login
     if (!isHashed(found.password)) {
       try {
         migratedUser.password = await hashPassword(pass);
         needsMigration = true;
+        migratedPassword = true;
         console.log(`[Auth] Will migrate password hash for ${found.email}`);
       } catch (e) {
         console.warn('[Auth] Password hash failed:', e);
@@ -345,8 +347,8 @@ const App: React.FC = () => {
     // Save all migrations in a single write to avoid overwriting the hash
     if (needsMigration) {
       try {
-        await db.syncUser(migratedUser);
-        console.log(`[Auth] Migrated user ${found.email} (hash=${!isHashed(found.password)}, orgId=${!found.orgId})`);
+        await db.syncUser(migratedUser, { updatePassword: migratedPassword });
+        console.log(`[Auth] Migrated user ${found.email} (hash=${migratedPassword}, orgId=${!found.orgId})`);
       } catch (e) {
         console.warn('[Auth] User migration failed:', e);
       }
@@ -380,7 +382,7 @@ const App: React.FC = () => {
     // Hash password before saving
     const hashed = await hashPassword(user.password || '');
     const secureUser = { ...user, password: hashed };
-    await db.syncUser(secureUser);
+    await db.syncUser(secureUser, { updatePassword: true });
     const freshData = await performCloudSync();
     setAllUsers(freshData?.users || []);
 
@@ -401,7 +403,7 @@ const App: React.FC = () => {
 
     const hashed = await hashPassword(pass);
     const updated = { ...user, password: hashed };
-    await db.syncUser(updated);
+    await db.syncUser(updated, { updatePassword: true });
     await performCloudSync(true);
   };
 
@@ -409,7 +411,7 @@ const App: React.FC = () => {
     if (!forcePasswordChangeUser) return;
     const hashed = await hashPassword(newPassword);
     const updated = { ...forcePasswordChangeUser, password: hashed, mustChangePassword: false };
-    await db.syncUser(updated);
+    await db.syncUser(updated, { updatePassword: true });
     await performCloudSync(true);
 
     // Complete login
@@ -463,7 +465,7 @@ const App: React.FC = () => {
       orgId: orgId,
     };
 
-    await db.syncUser(adminUser);
+    await db.syncUser(adminUser, { updatePassword: true });
 
     // Set org state and auto-login
     setCurrentOrg(org);
@@ -808,7 +810,7 @@ const App: React.FC = () => {
       };
 
       // Use syncUser (read-modify-write) to avoid overwriting other users' data
-      await db.syncUser(newUser);
+      await db.syncUser(newUser, { updatePassword: true });
       newCount++;
       console.log(`[App] Created user account for ${emp.name} (${emp.email})`);
     }
