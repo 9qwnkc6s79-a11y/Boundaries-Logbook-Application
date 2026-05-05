@@ -321,34 +321,31 @@ const App: React.FC = () => {
       throw new Error("Your account has been deactivated. Contact your manager.");
     }
 
-    // Build a single updated user object for any needed migrations
+    // Build a migrated copy of the user for in-memory state. Persistence is
+    // split: password changes go through setUserPassword; everything else
+    // through syncUser (which preserves the cloud password).
     let migratedUser = { ...found };
-    let needsMigration = false;
 
-    // Auto-migrate plaintext password to hashed on successful login
+    // Auto-migrate plaintext password to hashed on successful login.
     if (!isHashed(found.password)) {
       try {
-        migratedUser.password = await hashPassword(pass);
-        needsMigration = true;
-        console.log(`[Auth] Will migrate password hash for ${found.email}`);
+        const newHash = await hashPassword(pass);
+        await db.setUserPassword(found.email, newHash);
+        migratedUser.password = newHash;
+        console.log(`[Auth] Migrated password hash for ${found.email}`);
       } catch (e) {
-        console.warn('[Auth] Password hash failed:', e);
+        console.warn('[Auth] Password hash migration failed:', e);
       }
     }
 
-    // Ensure user has orgId set (migrate legacy users)
+    // Ensure user has orgId set (migrate legacy users).
     if (!found.orgId) {
       migratedUser.orgId = DEFAULT_ORG_ID;
-      needsMigration = true;
-    }
-
-    // Save all migrations in a single write to avoid overwriting the hash
-    if (needsMigration) {
       try {
         await db.syncUser(migratedUser);
-        console.log(`[Auth] Migrated user ${found.email} (hash=${!isHashed(found.password)}, orgId=${!found.orgId})`);
+        console.log(`[Auth] Set orgId for ${found.email}`);
       } catch (e) {
-        console.warn('[Auth] User migration failed:', e);
+        console.warn('[Auth] orgId migration failed:', e);
       }
     }
 
@@ -400,14 +397,15 @@ const App: React.FC = () => {
     }
 
     const hashed = await hashPassword(pass);
-    const updated = { ...user, password: hashed };
-    await db.syncUser(updated);
+    await db.setUserPassword(user.email, hashed);
     await performCloudSync(true);
   };
 
   const handleForcePasswordChange = async (newPassword: string) => {
     if (!forcePasswordChangeUser) return;
     const hashed = await hashPassword(newPassword);
+    await db.setUserPassword(forcePasswordChangeUser.email, hashed);
+    // Clear the mustChangePassword flag separately; syncUser preserves the password.
     const updated = { ...forcePasswordChangeUser, password: hashed, mustChangePassword: false };
     await db.syncUser(updated);
     await performCloudSync(true);

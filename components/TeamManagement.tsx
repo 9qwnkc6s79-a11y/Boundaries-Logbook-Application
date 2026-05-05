@@ -299,11 +299,15 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
         toastEmployeeGuid: editForm.toastEmployeeGuid || undefined,
       };
 
+      // Profile fields first (syncUser preserves the cloud password).
+      await db.syncUser(updatedUser);
+
+      // Password reset is an explicit, separate write.
       if (editForm.resetPassword && editForm.newPassword) {
-        updatedUser.password = await hashPassword(editForm.newPassword);
+        const hashed = await hashPassword(editForm.newPassword);
+        await db.setUserPassword(editingUser.email, hashed);
       }
 
-      await db.syncUser(updatedUser);
       onUserUpdated();
 
       // If password was reset, show credentials

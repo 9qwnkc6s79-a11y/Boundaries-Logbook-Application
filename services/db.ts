@@ -437,24 +437,51 @@ class CloudAPI {
     const userMap = new Map<string, User>();
     currentUsers.forEach(u => userMap.set(u.email.toLowerCase(), u));
 
-    // Guard: never downgrade a hashed password to plaintext.
-    // If the cloud user already has a hashed password and the incoming user
-    // has a plaintext (or missing) password, preserve the cloud password.
+    // Password is sacred: syncUser must NEVER modify it. The incoming user
+    // object is often a spread of stale in-memory state, and naively writing
+    // its `password` field can clobber a newer hash that was written by a
+    // concurrent password reset (causing users to be locked out with a
+    // password that no longer works). All explicit password changes go
+    // through setUserPassword.
     const existing = userMap.get(user.email.toLowerCase());
-    if (existing?.password && isHashed(existing.password)) {
-      if (user.password && !isHashed(user.password)) {
-        console.warn(`[Firestore] syncUser: BLOCKED plaintext password overwrite for ${user.email} — keeping hashed version`);
-        user = { ...user, password: existing.password };
-      } else if (!user.password) {
-        console.warn(`[Firestore] syncUser: Incoming user has no password for ${user.email} — keeping hashed version`);
-        user = { ...user, password: existing.password };
-      }
+    if (existing?.password) {
+      user = { ...user, password: existing.password };
+    } else if (user.password && !isHashed(user.password)) {
+      // No existing password (new user). Refuse to persist plaintext —
+      // callers must hash before calling syncUser.
+      console.error(`[Firestore] syncUser: REFUSING to write plaintext password for ${user.email}`);
+      throw new Error('syncUser received a non-hashed password for a new user');
     }
 
     userMap.set(user.email.toLowerCase(), user);
     const next = Array.from(userMap.values());
     await this.remoteSet(DOC_KEYS.USERS, next);
     return next;
+  }
+
+  // Explicit password write. Use this — and only this — for password resets,
+  // forced changes, and plaintext-to-hash migrations. syncUser cannot change
+  // the password field, by design.
+  async setUserPassword(email: string, hashedPassword: string): Promise<void> {
+    if (!isHashed(hashedPassword)) {
+      throw new Error('setUserPassword: refusing to persist a non-hashed value');
+    }
+
+    let currentUsers = await this.remoteGet(DOC_KEYS.USERS, [] as User[]);
+    if (currentUsers.length === 0) {
+      console.warn('[Firestore] setUserPassword: First read returned 0 users, retrying...');
+      await new Promise(r => setTimeout(r, 500));
+      currentUsers = await this.remoteGet(DOC_KEYS.USERS, [] as User[]);
+    }
+
+    const idx = currentUsers.findIndex(u => u.email.toLowerCase() === email.toLowerCase());
+    if (idx === -1) {
+      throw new Error(`setUserPassword: user ${email} not found`);
+    }
+
+    const next = [...currentUsers];
+    next[idx] = { ...next[idx], password: hashedPassword };
+    await this.remoteSet(DOC_KEYS.USERS, next);
   }
 
   async fetchSubmissions(): Promise<ChecklistSubmission[]> {
