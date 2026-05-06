@@ -264,7 +264,7 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
         ...(toastPrefill ? { toastEmployeeGuid: toastPrefill.guid } : {}),
       };
 
-      await db.syncUser(newUser);
+      await db.syncUser(newUser, { writePassword: true });
       onUserUpdated();
 
       // Show invite/credentials modal
@@ -291,19 +291,24 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
 
     setSaving(true);
     try {
+      // Build the update without the password field — syncUser preserves the
+      // cloud's current password unless writePassword is set, so this prevents
+      // a stale in-memory hash from rolling back a user's real password.
+      const { password: _stalePassword, ...editingUserSansPassword } = editingUser;
       const updatedUser: User = {
-        ...editingUser,
+        ...editingUserSansPassword,
         name: editForm.name.trim(),
         role: editForm.role,
         storeId: editForm.storeId,
         toastEmployeeGuid: editForm.toastEmployeeGuid || undefined,
       };
 
-      if (editForm.resetPassword && editForm.newPassword) {
+      const isPasswordReset = editForm.resetPassword && !!editForm.newPassword;
+      if (isPasswordReset) {
         updatedUser.password = await hashPassword(editForm.newPassword);
       }
 
-      await db.syncUser(updatedUser);
+      await db.syncUser(updatedUser, { writePassword: isPasswordReset });
       onUserUpdated();
 
       // If password was reset, show credentials
@@ -322,7 +327,10 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
   const handleToggleActive = async (user: User) => {
     const isCurrentlyActive = user.active !== false;
     try {
-      const updatedUser: User = { ...user, active: !isCurrentlyActive };
+      // Strip the in-memory password so a stale hash can't overwrite the
+      // user's real (possibly newer) password in the cloud.
+      const { password: _stalePassword, ...userSansPassword } = user;
+      const updatedUser: User = { ...userSansPassword, active: !isCurrentlyActive };
       await db.syncUser(updatedUser);
       onUserUpdated();
       setConfirmDeactivate(null);

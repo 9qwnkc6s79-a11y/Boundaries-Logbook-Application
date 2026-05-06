@@ -342,11 +342,14 @@ const App: React.FC = () => {
       needsMigration = true;
     }
 
-    // Save all migrations in a single write to avoid overwriting the hash
+    // Save all migrations in a single write to avoid overwriting the hash.
+    // writePassword is only set when this login actually re-hashed a plaintext
+    // password — otherwise we must not touch the cloud's password field.
     if (needsMigration) {
       try {
-        await db.syncUser(migratedUser);
-        console.log(`[Auth] Migrated user ${found.email} (hash=${!isHashed(found.password)}, orgId=${!found.orgId})`);
+        const wroteNewHash = !isHashed(found.password);
+        await db.syncUser(migratedUser, { writePassword: wroteNewHash });
+        console.log(`[Auth] Migrated user ${found.email} (hash=${wroteNewHash}, orgId=${!found.orgId})`);
       } catch (e) {
         console.warn('[Auth] User migration failed:', e);
       }
@@ -380,7 +383,7 @@ const App: React.FC = () => {
     // Hash password before saving
     const hashed = await hashPassword(user.password || '');
     const secureUser = { ...user, password: hashed };
-    await db.syncUser(secureUser);
+    await db.syncUser(secureUser, { writePassword: true });
     const freshData = await performCloudSync();
     setAllUsers(freshData?.users || []);
 
@@ -401,7 +404,7 @@ const App: React.FC = () => {
 
     const hashed = await hashPassword(pass);
     const updated = { ...user, password: hashed };
-    await db.syncUser(updated);
+    await db.syncUser(updated, { writePassword: true });
     await performCloudSync(true);
   };
 
@@ -409,7 +412,7 @@ const App: React.FC = () => {
     if (!forcePasswordChangeUser) return;
     const hashed = await hashPassword(newPassword);
     const updated = { ...forcePasswordChangeUser, password: hashed, mustChangePassword: false };
-    await db.syncUser(updated);
+    await db.syncUser(updated, { writePassword: true });
     await performCloudSync(true);
 
     // Complete login
@@ -463,7 +466,7 @@ const App: React.FC = () => {
       orgId: orgId,
     };
 
-    await db.syncUser(adminUser);
+    await db.syncUser(adminUser, { writePassword: true });
 
     // Set org state and auto-login
     setCurrentOrg(org);
@@ -807,8 +810,9 @@ const App: React.FC = () => {
         orgId: currentOrg?.id
       };
 
-      // Use syncUser (read-modify-write) to avoid overwriting other users' data
-      await db.syncUser(newUser);
+      // Use syncUser (read-modify-write) to avoid overwriting other users' data.
+      // writePassword is required for the temp credential to land in the cloud.
+      await db.syncUser(newUser, { writePassword: true });
       newCount++;
       console.log(`[App] Created user account for ${emp.name} (${emp.email})`);
     }
