@@ -437,11 +437,19 @@ class CloudAPI {
     const userMap = new Map<string, User>();
     currentUsers.forEach(u => userMap.set(u.email.toLowerCase(), u));
 
-    // Guard: never downgrade a hashed password to plaintext.
-    // If the cloud user already has a hashed password and the incoming user
-    // has a plaintext (or missing) password, preserve the cloud password.
     const existing = userMap.get(user.email.toLowerCase());
-    if (existing?.password && isHashed(existing.password)) {
+
+    // Guard A: email collision with a different user id. This means a caller
+    // (signup, onboarding, Toast sync) is creating a "new" account whose email
+    // matches an existing user. Without this guard, the new user's hashed
+    // password (often a temp password like hash("temp123")) silently replaces
+    // the real user's password and locks them out. Preserve the existing
+    // user's id and password; let other fields merge.
+    if (existing && existing.id !== user.id) {
+      console.error(`[Firestore] syncUser: BLOCKED email collision for ${user.email} — incoming id=${user.id} differs from existing id=${existing.id}. Preserving existing id and password.`);
+      user = { ...user, id: existing.id, password: existing.password };
+    } else if (existing?.password && isHashed(existing.password)) {
+      // Guard B: never downgrade a hashed password to plaintext or empty.
       if (user.password && !isHashed(user.password)) {
         console.warn(`[Firestore] syncUser: BLOCKED plaintext password overwrite for ${user.email} — keeping hashed version`);
         user = { ...user, password: existing.password };
