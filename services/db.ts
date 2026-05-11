@@ -356,105 +356,175 @@ class CloudAPI {
     }
   }
 
+  // Refs for the canonical (org) and legacy (appData) user docs.
+  // Using a single canonical write target inside transactions eliminates the
+  // lost-update races that were locking dozens of users out at login.
+  private getUserDocRefs(): { canonical: any | null; legacy: any | null } {
+    if (!firestore) return { canonical: null, legacy: null };
+    const canonical = this.currentOrgId
+      ? firestore.doc(`organizations/${this.currentOrgId}/data/${DOC_KEYS.USERS}`)
+      : firestore.collection('appData').doc(DOC_KEYS.USERS);
+    const legacy = this.currentOrgId
+      ? firestore.collection('appData').doc(DOC_KEYS.USERS)
+      : null;
+    return { canonical, legacy };
+  }
+
   async fetchUsers(defaults: User[]): Promise<User[]> {
     console.log('[Firestore] fetchUsers: Loading users...');
-    const persistedUsers = await this.remoteGet(DOC_KEYS.USERS, [] as User[]);
-    console.log('[Firestore] fetchUsers: Persisted users from cloud:', persistedUsers.length);
+    const { canonical, legacy } = this.getUserDocRefs();
 
-    // Cloud users are the source of truth — start with them.
-    const userMap = new Map<string, User>();
-    persistedUsers.forEach(u => userMap.set(u.email.toLowerCase(), u));
+    if (!firestore || !canonical) {
+      // No backend — return defaults in-memory.
+      const fallbackMap = new Map<string, User>();
+      defaults.forEach(d => fallbackMap.set(d.email.toLowerCase(), d));
+      return Array.from(fallbackMap.values());
+    }
 
-    // When running under an org, also check appData for users that weren't
-    // migrated (migrateToOrg wrote to the wrong Firestore path historically).
-    // AppData users are added only if they don't already exist in the org.
-    if (this.currentOrgId && firestore) {
-      try {
-        const fallbackRef = firestore.collection('appData').doc(DOC_KEYS.USERS);
-        const fallbackSnap = await fallbackRef.get();
-        if (fallbackSnap.exists) {
-          const fallbackData = fallbackSnap.data();
-          const appDataUsers: User[] = fallbackData?.data || [];
-          let merged = 0;
-          appDataUsers.forEach(u => {
-            const email = u.email.toLowerCase();
-            if (!userMap.has(email)) {
-              userMap.set(email, u);
-              merged++;
-            }
+    let merged: User[] = [];
+
+    try {
+      // Atomic read of canonical + legacy. If they disagree (legacy has users
+      // missing from canonical), reconcile in the same transaction so concurrent
+      // syncUser calls cannot stomp on the appData-only users.
+      await firestore.runTransaction(async (txn: any) => {
+        const canonicalSnap = await txn.get(canonical);
+        const legacySnap = legacy ? await txn.get(legacy) : null;
+
+        const canonicalUsers: User[] = canonicalSnap.exists && canonicalSnap.data()?.data
+          ? canonicalSnap.data().data
+          : [];
+        const legacyUsers: User[] = legacySnap?.exists && legacySnap.data()?.data
+          ? legacySnap.data().data
+          : [];
+
+        // Canonical wins when a user appears in both — it has the latest hash/role/etc.
+        const userMap = new Map<string, User>();
+        legacyUsers.forEach(u => userMap.set(u.email.toLowerCase(), u));
+        canonicalUsers.forEach(u => userMap.set(u.email.toLowerCase(), u));
+
+        const missingFromCanonical = legacyUsers.filter(
+          u => !canonicalUsers.some(c => c.email.toLowerCase() === u.email.toLowerCase())
+        ).length;
+
+        merged = Array.from(userMap.values());
+
+        // Only write when canonical is actually missing users — avoid spurious writes.
+        if (missingFromCanonical > 0) {
+          console.log(`[Firestore] fetchUsers: Reconciling ${missingFromCanonical} appData user(s) into canonical org path`);
+          txn.set(canonical, {
+            data: removeUndefined(merged),
+            lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
           });
-          if (merged > 0) {
-            console.log(`[Firestore] fetchUsers: Merged ${merged} users from appData fallback`);
-            // Persist the merged list to org path so future reads are complete
-            const mergedList = Array.from(userMap.values());
-            this.remoteSet(DOC_KEYS.USERS, mergedList).then(ok => {
-              if (ok) console.log(`[Firestore] fetchUsers: Persisted ${mergedList.length} merged users to org path`);
-            });
-          }
         }
-      } catch (e) {
-        console.warn('[Firestore] fetchUsers: appData user merge failed:', e);
+      });
+    } catch (e) {
+      // Transaction failed — fall back to a plain read so login can proceed.
+      console.warn('[Firestore] fetchUsers: Reconciliation transaction failed, falling back to read-only merge:', e);
+      try {
+        const [canonicalSnap, legacySnap] = await Promise.all([
+          canonical.get(),
+          legacy ? legacy.get() : Promise.resolve(null),
+        ]);
+        const canonicalUsers: User[] = canonicalSnap?.exists && canonicalSnap.data()?.data ? canonicalSnap.data().data : [];
+        const legacyUsers: User[] = legacySnap?.exists && legacySnap.data()?.data ? legacySnap.data().data : [];
+        const userMap = new Map<string, User>();
+        legacyUsers.forEach(u => userMap.set(u.email.toLowerCase(), u));
+        canonicalUsers.forEach(u => userMap.set(u.email.toLowerCase(), u));
+        merged = Array.from(userMap.values());
+      } catch (readErr) {
+        console.error('[Firestore] fetchUsers: Read-only fallback also failed:', readErr);
       }
     }
 
-    // Add any missing default users IN MEMORY ONLY — never write defaults back
-    // to Firestore. Writing defaults back can destroy hashed passwords and
-    // non-default users when a transient read failure returns an empty list.
-    // Default users get persisted properly when they first log in (via syncUser).
-    //
-    // IMPORTANT: If a cloud user already exists for a given email, the cloud
-    // version is ALWAYS preferred. A default must never overwrite cloud data
-    // (especially passwords).
+    console.log(`[Firestore] fetchUsers: ${merged.length} users from cloud (canonical + legacy)`);
+
+    // Add any missing default users IN MEMORY ONLY — never write defaults to
+    // Firestore. They get persisted properly when they first log in.
+    const finalMap = new Map<string, User>();
+    merged.forEach(u => finalMap.set(u.email.toLowerCase(), u));
     defaults.forEach(def => {
       const email = def.email.toLowerCase();
-      if (!userMap.has(email)) {
+      if (!finalMap.has(email)) {
         console.log('[Firestore] fetchUsers: Adding missing default user (in-memory only):', def.email);
-        userMap.set(email, def);
+        finalMap.set(email, def);
       }
     });
 
-    const result = Array.from(userMap.values());
+    const result = Array.from(finalMap.values());
     console.log('[Firestore] fetchUsers: Final merged users:', result.length);
     return result;
   }
 
-  async syncUser(user: User): Promise<User[]> {
-    let currentUsers = await this.remoteGet(DOC_KEYS.USERS, [] as User[]);
+  async syncUser(user: User, options: { allowPasswordChange?: boolean } = {}): Promise<User[]> {
+    const { canonical, legacy } = this.getUserDocRefs();
 
-    // Safety: if read returned empty, retry once. A transient read failure
-    // returning [] would cause us to write ONLY this user, destroying everyone else.
-    if (currentUsers.length === 0) {
-      console.warn('[Firestore] syncUser: First read returned 0 users, retrying...');
-      await new Promise(r => setTimeout(r, 500));
-      currentUsers = await this.remoteGet(DOC_KEYS.USERS, [] as User[]);
-      if (currentUsers.length === 0) {
-        console.warn('[Firestore] syncUser: Retry also returned 0 users — proceeding (may be fresh deployment)');
-      } else {
-        console.log(`[Firestore] syncUser: Retry succeeded, got ${currentUsers.length} users`);
-      }
+    if (!firestore || !canonical) {
+      console.warn('[Firestore] syncUser: No backend, skipping write');
+      return [user];
     }
 
-    const userMap = new Map<string, User>();
-    currentUsers.forEach(u => userMap.set(u.email.toLowerCase(), u));
+    const incomingEmail = user.email.toLowerCase();
+    let next: User[] = [];
 
-    // Guard: never downgrade a hashed password to plaintext.
-    // If the cloud user already has a hashed password and the incoming user
-    // has a plaintext (or missing) password, preserve the cloud password.
-    const existing = userMap.get(user.email.toLowerCase());
-    if (existing?.password && isHashed(existing.password)) {
-      if (user.password && !isHashed(user.password)) {
-        console.warn(`[Firestore] syncUser: BLOCKED plaintext password overwrite for ${user.email} — keeping hashed version`);
-        user = { ...user, password: existing.password };
-      } else if (!user.password) {
-        console.warn(`[Firestore] syncUser: Incoming user has no password for ${user.email} — keeping hashed version`);
-        user = { ...user, password: existing.password };
-      }
+    try {
+      await firestore.runTransaction(async (txn: any) => {
+        // Read canonical + legacy atomically so we always see the full user
+        // population, even before the canonical doc has been reconciled.
+        const canonicalSnap = await txn.get(canonical);
+        const legacySnap = legacy ? await txn.get(legacy) : null;
+
+        const canonicalUsers: User[] = canonicalSnap.exists && canonicalSnap.data()?.data
+          ? canonicalSnap.data().data
+          : [];
+        const legacyUsers: User[] = legacySnap?.exists && legacySnap.data()?.data
+          ? legacySnap.data().data
+          : [];
+
+        const userMap = new Map<string, User>();
+        legacyUsers.forEach(u => userMap.set(u.email.toLowerCase(), u));
+        canonicalUsers.forEach(u => userMap.set(u.email.toLowerCase(), u));
+
+        const existing = userMap.get(incomingEmail);
+        let toWrite = user;
+
+        // Default-deny password writes. Callers updating non-password fields
+        // routinely spread a stale in-memory user object, which carries an
+        // out-of-date password hash. Without this guard, that stale hash silently
+        // reverts any password change that happened in the meantime — locking the
+        // user out. Only flows that explicitly change the password should pass
+        // { allowPasswordChange: true }.
+        if (existing?.password && !options.allowPasswordChange) {
+          if (toWrite.password !== existing.password) {
+            console.warn(`[Firestore] syncUser: preserving stored password for ${user.email} (caller did not opt in to password change)`);
+          }
+          toWrite = { ...toWrite, password: existing.password };
+        } else if (existing?.password && isHashed(existing.password)) {
+          // allowPasswordChange === true: still refuse to downgrade hashed → plaintext or empty.
+          if (toWrite.password && !isHashed(toWrite.password)) {
+            console.warn(`[Firestore] syncUser: BLOCKED plaintext password overwrite for ${user.email} — keeping hashed version`);
+            toWrite = { ...toWrite, password: existing.password };
+          } else if (!toWrite.password) {
+            console.warn(`[Firestore] syncUser: Incoming user has no password for ${user.email} — keeping hashed version`);
+            toWrite = { ...toWrite, password: existing.password };
+          }
+        }
+
+        userMap.set(incomingEmail, toWrite);
+        next = Array.from(userMap.values());
+
+        txn.set(canonical, {
+          data: removeUndefined(next),
+          lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+      });
+
+      console.log(`[Firestore] syncUser: Wrote ${next.length} users (transactional)`);
+      return next;
+    } catch (e) {
+      console.error('[Firestore] syncUser: Transaction failed:', e);
+      throw e;
     }
-
-    userMap.set(user.email.toLowerCase(), user);
-    const next = Array.from(userMap.values());
-    await this.remoteSet(DOC_KEYS.USERS, next);
-    return next;
   }
 
   async fetchSubmissions(): Promise<ChecklistSubmission[]> {
