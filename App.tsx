@@ -321,32 +321,40 @@ const App: React.FC = () => {
       throw new Error("Your account has been deactivated. Contact your manager.");
     }
 
-    // Build a single updated user object for any needed migrations
+    // Build a single updated user object for any needed migrations.
+    // db.syncUser now preserves the cloud password automatically, so password
+    // upgrades go through db.updateUserPassword. The exception is default
+    // (mock) users on their first login: they aren't in the cloud yet, so
+    // updateUserPassword can't find them — fall back to syncUser which
+    // will persist them as a new user (writing the freshly-hashed password).
     let migratedUser = { ...found };
-    let needsMigration = false;
+    let needsSync = false;
 
-    // Auto-migrate plaintext password to hashed on successful login
     if (!isHashed(found.password)) {
       try {
-        migratedUser.password = await hashPassword(pass);
-        needsMigration = true;
-        console.log(`[Auth] Will migrate password hash for ${found.email}`);
+        const newHash = await hashPassword(pass);
+        migratedUser.password = newHash;
+        const updated = await db.updateUserPassword(found.email, newHash);
+        if (updated) {
+          console.log(`[Auth] Migrated password hash for ${found.email}`);
+        } else {
+          // User not yet in cloud — let syncUser create them
+          needsSync = true;
+        }
       } catch (e) {
-        console.warn('[Auth] Password hash failed:', e);
+        console.warn('[Auth] Password hash migration failed:', e);
       }
     }
 
-    // Ensure user has orgId set (migrate legacy users)
     if (!found.orgId) {
       migratedUser.orgId = DEFAULT_ORG_ID;
-      needsMigration = true;
+      needsSync = true;
     }
 
-    // Save all migrations in a single write to avoid overwriting the hash
-    if (needsMigration) {
+    if (needsSync) {
       try {
         await db.syncUser(migratedUser);
-        console.log(`[Auth] Migrated user ${found.email} (hash=${!isHashed(found.password)}, orgId=${!found.orgId})`);
+        console.log(`[Auth] syncUser persisted migrations for ${found.email}`);
       } catch (e) {
         console.warn('[Auth] User migration failed:', e);
       }
@@ -400,14 +408,19 @@ const App: React.FC = () => {
     }
 
     const hashed = await hashPassword(pass);
-    const updated = { ...user, password: hashed };
-    await db.syncUser(updated);
+    const success = await db.updateUserPassword(user.email, hashed);
+    if (!success) {
+      throw new Error("Failed to update password.");
+    }
     await performCloudSync(true);
   };
 
   const handleForcePasswordChange = async (newPassword: string) => {
     if (!forcePasswordChangeUser) return;
     const hashed = await hashPassword(newPassword);
+    // Write password through the dedicated path so syncUser's preservation
+    // rule doesn't drop it.
+    await db.updateUserPassword(forcePasswordChangeUser.email, hashed);
     const updated = { ...forcePasswordChangeUser, password: hashed, mustChangePassword: false };
     await db.syncUser(updated);
     await performCloudSync(true);
@@ -783,9 +796,16 @@ const App: React.FC = () => {
       // Skip deleted employees
       if (emp.deleted) continue;
 
-      // Check if user already exists (by Toast GUID or email)
+      // Resolve the email we'd actually persist: prefer Toast's email,
+      // otherwise synthesize one. Dedup checks must use this resolved value —
+      // otherwise a real user at the synthetic address gets overwritten with
+      // a temp-password account on the next sync.
+      const resolvedEmail = (emp.email
+        || `${emp.firstName.toLowerCase()}.${emp.lastName.toLowerCase()}@boundariescoffee.com`
+      ).toLowerCase();
+
       const existingByGuid = allUsers.find(u => u.toastEmployeeGuid === emp.guid);
-      const existingByEmail = emp.email ? allUsers.find(u => u.email.toLowerCase() === emp.email.toLowerCase()) : null;
+      const existingByEmail = allUsers.find(u => u.email.toLowerCase() === resolvedEmail);
 
       if (existingByGuid || existingByEmail) {
         console.log(`[App] User already exists for ${emp.name} (${emp.guid})`);
@@ -798,7 +818,7 @@ const App: React.FC = () => {
       const newUser: User = {
         id: `toast-${emp.guid}`,
         name: emp.name,
-        email: emp.email || `${emp.firstName.toLowerCase()}.${emp.lastName.toLowerCase()}@boundariescoffee.com`,
+        email: resolvedEmail,
         password: hashedTempPw,
         role: UserRole.TRAINEE,
         storeId: emp.storeId,
@@ -810,7 +830,7 @@ const App: React.FC = () => {
       // Use syncUser (read-modify-write) to avoid overwriting other users' data
       await db.syncUser(newUser);
       newCount++;
-      console.log(`[App] Created user account for ${emp.name} (${emp.email})`);
+      console.log(`[App] Created user account for ${emp.name} (${resolvedEmail})`);
     }
 
     if (newCount > 0) {

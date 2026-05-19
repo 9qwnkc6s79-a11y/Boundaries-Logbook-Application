@@ -291,19 +291,27 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
 
     setSaving(true);
     try {
+      // Build the update from the editingUser snapshot but DROP the password
+      // field. db.syncUser preserves the cloud-side password for existing
+      // users, so we must not carry a stale snapshot value back to Firestore
+      // — that's what was clobbering users' real passwords after edits.
+      const { password: _stalePassword, ...editingWithoutPassword } = editingUser;
       const updatedUser: User = {
-        ...editingUser,
+        ...editingWithoutPassword,
         name: editForm.name.trim(),
         role: editForm.role,
         storeId: editForm.storeId,
         toastEmployeeGuid: editForm.toastEmployeeGuid || undefined,
       };
 
+      await db.syncUser(updatedUser);
+
+      // Password resets go through the dedicated path, never via syncUser
       if (editForm.resetPassword && editForm.newPassword) {
-        updatedUser.password = await hashPassword(editForm.newPassword);
+        const newHash = await hashPassword(editForm.newPassword);
+        await db.updateUserPassword(editingUser.email, newHash);
       }
 
-      await db.syncUser(updatedUser);
       onUserUpdated();
 
       // If password was reset, show credentials

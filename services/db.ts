@@ -437,24 +437,49 @@ class CloudAPI {
     const userMap = new Map<string, User>();
     currentUsers.forEach(u => userMap.set(u.email.toLowerCase(), u));
 
-    // Guard: never downgrade a hashed password to plaintext.
-    // If the cloud user already has a hashed password and the incoming user
-    // has a plaintext (or missing) password, preserve the cloud password.
+    // For existing users, always preserve the cloud password. Stale React
+    // state and modal snapshots routinely carry an old hashed password along
+    // for the ride via object spread; without this guard, an unrelated edit
+    // (toggle active, change home store, etc.) silently overwrites a freshly
+    // rotated password. Callers that intend to change a password must use
+    // updateUserPassword() instead.
     const existing = userMap.get(user.email.toLowerCase());
-    if (existing?.password && isHashed(existing.password)) {
-      if (user.password && !isHashed(user.password)) {
-        console.warn(`[Firestore] syncUser: BLOCKED plaintext password overwrite for ${user.email} — keeping hashed version`);
-        user = { ...user, password: existing.password };
-      } else if (!user.password) {
-        console.warn(`[Firestore] syncUser: Incoming user has no password for ${user.email} — keeping hashed version`);
-        user = { ...user, password: existing.password };
-      }
+    if (existing?.password) {
+      user = { ...user, password: existing.password };
     }
 
     userMap.set(user.email.toLowerCase(), user);
     const next = Array.from(userMap.values());
     await this.remoteSet(DOC_KEYS.USERS, next);
     return next;
+  }
+
+  async updateUserPassword(email: string, hashedPassword: string): Promise<boolean> {
+    if (!isHashed(hashedPassword)) {
+      console.error(`[Firestore] updateUserPassword: Refusing to write non-hashed password for ${email}`);
+      return false;
+    }
+
+    let currentUsers = await this.remoteGet(DOC_KEYS.USERS, [] as User[]);
+    if (currentUsers.length === 0) {
+      console.warn('[Firestore] updateUserPassword: First read returned 0 users, retrying...');
+      await new Promise(r => setTimeout(r, 500));
+      currentUsers = await this.remoteGet(DOC_KEYS.USERS, [] as User[]);
+      if (currentUsers.length === 0) {
+        console.error(`[Firestore] updateUserPassword: User list is empty — aborting to avoid wiping users`);
+        return false;
+      }
+    }
+
+    const emailLower = email.toLowerCase();
+    const idx = currentUsers.findIndex(u => u.email.toLowerCase() === emailLower);
+    if (idx === -1) {
+      console.error(`[Firestore] updateUserPassword: User ${email} not found`);
+      return false;
+    }
+
+    const updated = currentUsers.map((u, i) => i === idx ? { ...u, password: hashedPassword } : u);
+    return this.remoteSet(DOC_KEYS.USERS, updated);
   }
 
   async fetchSubmissions(): Promise<ChecklistSubmission[]> {
