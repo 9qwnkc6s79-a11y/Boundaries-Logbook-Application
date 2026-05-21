@@ -46,15 +46,20 @@ const DEFS: SeedDef[] = [
   // Sparkling Water
   { id: 'inv-sparkling-lacroix', name: 'La Croix', category: 'Sparkling Water', storageLocation: 'Back Stock', vendor: 'InstaCart', parProsper: 0, brand: 'La Croix', unit: 'cases' },
 
-  // Dairy - Oak Farms
-  { id: 'inv-dairy-whole', name: 'Whole Milk', category: 'Dairy', storageLocation: 'Walk-In Cooler', vendor: 'Oak Farms', parProsper: 0, brand: 'Oak Farms', unit: 'gallons' },
-  { id: 'inv-dairy-2pct', name: '2% Milk', category: 'Dairy', storageLocation: 'Walk-In Cooler', vendor: 'Oak Farms', parProsper: 0, brand: 'Oak Farms', unit: 'gallons' },
-  { id: 'inv-dairy-halfhalf', name: 'Half & Half', category: 'Dairy', storageLocation: 'Walk-In Cooler', vendor: 'Oak Farms', parProsper: 0, brand: 'Oak Farms', unit: 'gallons' },
-  { id: 'inv-dairy-heavy', name: 'Heavy Cream', category: 'Dairy', storageLocation: 'Walk-In Cooler', vendor: 'Oak Farms', parProsper: 0, brand: 'Oak Farms', unit: 'gallons' },
-  { id: 'inv-dairy-icecream', name: 'Ice Cream Base', category: 'Dairy', storageLocation: 'Walk-In Cooler', vendor: 'Oak Farms', parProsper: 0, brand: 'Oak Farms', unit: 'gallons' },
+  // Dairy - Costco
+  { id: 'inv-dairy-whole', name: 'Whole Milk', category: 'Dairy', storageLocation: 'Walk-In Cooler', vendor: 'Costco', parProsper: 0, unit: 'gallons' },
+  { id: 'inv-dairy-2pct', name: '2% Milk', category: 'Dairy', storageLocation: 'Walk-In Cooler', vendor: 'Costco', parProsper: 0, unit: 'gallons' },
+  { id: 'inv-dairy-halfhalf', name: 'Half & Half', category: 'Dairy', storageLocation: 'Walk-In Cooler', vendor: 'Costco', parProsper: 0, unit: 'gallons' },
+  { id: 'inv-dairy-heavy', name: 'Heavy Cream', category: 'Dairy', storageLocation: 'Walk-In Cooler', vendor: 'Costco', parProsper: 0, unit: 'gallons' },
+
+  // Dairy - Sysco
+  { id: 'inv-dairy-sweetcream', name: 'Sweet Cream', category: 'Dairy', storageLocation: 'Walk-In Cooler', vendor: 'Sysco', parProsper: 0, unit: 'gallons' },
 
   // Dairy - InstaCart
   { id: 'inv-dairy-fairlife', name: 'FairLife', category: 'Dairy', storageLocation: 'Walk-In Cooler', vendor: 'InstaCart', parProsper: 15, brand: 'FairLife' },
+
+  // Frappe Powder
+  { id: 'inv-frappe-powder', name: 'Cream Base Powder (Dr. Smoothie)', category: 'Frappe Powder', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 0, brand: 'Dr. Smoothie', unit: 'bags' },
 
   // Alt Milk
   { id: 'inv-altmilk-oat', name: 'Oat Milk', category: 'Alt Milk', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 8 },

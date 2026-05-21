@@ -1198,6 +1198,42 @@ class CloudAPI {
           if (existing.length === 0 && seedItems.length > 0) {
             console.log(`[Firestore] globalSync: Seeding ${seedItems.length} inventory items for ${storeId}`);
             await this.pushInventoryItems(storeId, seedItems);
+            return;
+          }
+
+          // Idempotent vendor migration: Oak Farms → Costco for milk/cream,
+          // deactivate Ice Cream Base, add Frappe Powder and Sweet Cream.
+          const oakFarmsToCostco = new Set([
+            'inv-dairy-whole', 'inv-dairy-2pct', 'inv-dairy-halfhalf', 'inv-dairy-heavy',
+          ]);
+          let mutated = false;
+          const migrated = existing.map(item => {
+            if (oakFarmsToCostco.has(item.id) && item.vendor === 'Oak Farms') {
+              mutated = true;
+              const { brand, ...rest } = item;
+              return { ...rest, vendor: 'Costco' };
+            }
+            if (item.id === 'inv-dairy-icecream' && item.active !== false) {
+              mutated = true;
+              return { ...item, active: false };
+            }
+            return item;
+          });
+
+          const seedById = new Map(seedItems.map(s => [s.id, s]));
+          for (const newId of ['inv-frappe-powder', 'inv-dairy-sweetcream']) {
+            if (!migrated.some(i => i.id === newId)) {
+              const fromSeed = seedById.get(newId);
+              if (fromSeed) {
+                mutated = true;
+                migrated.push({ ...fromSeed, sortOrder: migrated.length });
+              }
+            }
+          }
+
+          if (mutated) {
+            console.log(`[Firestore] globalSync: Applying inventory vendor migration for ${storeId}`);
+            await this.pushInventoryItems(storeId, migrated);
           }
         })());
       }
