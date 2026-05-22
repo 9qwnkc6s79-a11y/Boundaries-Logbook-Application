@@ -437,11 +437,23 @@ class CloudAPI {
     const userMap = new Map<string, User>();
     currentUsers.forEach(u => userMap.set(u.email.toLowerCase(), u));
 
+    const existing = userMap.get(user.email.toLowerCase());
+
+    // Backstop against silent identity collisions: if a different user record
+    // (different id) already occupies this email, refuse to overwrite. Callers
+    // that intend to update an existing user must pass that user's id; callers
+    // that intend to link external accounts (e.g. Toast sync) must look up the
+    // existing record by email first and update it, not create a new one.
+    if (existing && existing.id && user.id && existing.id !== user.id) {
+      const msg = `syncUser refused: incoming id ${user.id} would overwrite existing user ${existing.id} at ${user.email}`;
+      console.error(`[Firestore] ${msg}`);
+      throw new Error(`A different account already exists at ${user.email}. Update the existing record instead of creating a new one.`);
+    }
+
     // Password preservation: callers updating non-credential fields (home store,
     // active flag, name/role/storeId) carry a stale in-memory password hash that
     // can silently clobber a recently-reset password. Preserve the cloud password
     // by default; require explicit { changePassword: true } to write a new hash.
-    const existing = userMap.get(user.email.toLowerCase());
     if (existing?.password && isHashed(existing.password)) {
       const changePassword = options?.changePassword === true;
       const incomingIsHashed = !!user.password && isHashed(user.password);

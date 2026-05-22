@@ -783,12 +783,24 @@ const App: React.FC = () => {
       // Skip deleted employees
       if (emp.deleted) continue;
 
-      // Check if user already exists (by Toast GUID or email)
-      const existingByGuid = allUsers.find(u => u.toastEmployeeGuid === emp.guid);
-      const existingByEmail = emp.email ? allUsers.find(u => u.email.toLowerCase() === emp.email.toLowerCase()) : null;
+      // Compute the final email BEFORE the dedup check — when emp.email is
+      // missing we construct firstname.lastname@boundariescoffee.com, which
+      // collides with real staff accounts that follow the same convention.
+      const finalEmail = (emp.email || `${emp.firstName.toLowerCase()}.${emp.lastName.toLowerCase()}@boundariescoffee.com`).toLowerCase();
 
-      if (existingByGuid || existingByEmail) {
-        console.log(`[App] User already exists for ${emp.name} (${emp.guid})`);
+      const existingByGuid = allUsers.find(u => u.toastEmployeeGuid === emp.guid);
+      const existingByEmail = allUsers.find(u => u.email.toLowerCase() === finalEmail);
+      const existing = existingByGuid || existingByEmail;
+
+      if (existing) {
+        // Existing user found. If they don't yet have a Toast GUID linked,
+        // attach it without touching their role, password, or progress link.
+        if (!existing.toastEmployeeGuid) {
+          await db.syncUser({ ...existing, toastEmployeeGuid: emp.guid });
+          console.log(`[App] Linked existing user ${existing.email} to Toast guid ${emp.guid}`);
+        } else {
+          console.log(`[App] User already exists for ${emp.name} (${emp.guid})`);
+        }
         continue;
       }
 
@@ -798,7 +810,7 @@ const App: React.FC = () => {
       const newUser: User = {
         id: `toast-${emp.guid}`,
         name: emp.name,
-        email: emp.email || `${emp.firstName.toLowerCase()}.${emp.lastName.toLowerCase()}@boundariescoffee.com`,
+        email: finalEmail,
         password: hashedTempPw,
         role: UserRole.TRAINEE,
         storeId: emp.storeId,
@@ -810,7 +822,7 @@ const App: React.FC = () => {
       // Use syncUser (read-modify-write) to avoid overwriting other users' data
       await db.syncUser(newUser, { changePassword: true });
       newCount++;
-      console.log(`[App] Created user account for ${emp.name} (${emp.email})`);
+      console.log(`[App] Created user account for ${emp.name} (${finalEmail})`);
     }
 
     if (newCount > 0) {
