@@ -400,19 +400,24 @@ const App: React.FC = () => {
     }
 
     const hashed = await hashPassword(pass);
-    const updated = { ...user, password: hashed };
-    await db.syncUser(updated);
+    await db.updateUserPassword(user.email, hashed);
     await performCloudSync(true);
   };
 
   const handleForcePasswordChange = async (newPassword: string) => {
     if (!forcePasswordChangeUser) return;
     const hashed = await hashPassword(newPassword);
-    const updated = { ...forcePasswordChangeUser, password: hashed, mustChangePassword: false };
-    await db.syncUser(updated);
+
+    // Clear the mustChangePassword flag via the profile-update path first
+    // (syncUser preserves the existing hashed password), then write the new
+    // password through the dedicated method.
+    const profileUpdate = { ...forcePasswordChangeUser, mustChangePassword: false };
+    await db.syncUser(profileUpdate);
+    await db.updateUserPassword(forcePasswordChangeUser.email, hashed);
     await performCloudSync(true);
 
     // Complete login
+    const updated = { ...profileUpdate, password: hashed };
     localStorage.setItem(SESSION_STORAGE_KEY, updated.email);
     setCurrentUser(updated);
     setForcePasswordChangeUser(null);

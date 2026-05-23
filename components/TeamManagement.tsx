@@ -299,11 +299,17 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
         toastEmployeeGuid: editForm.toastEmployeeGuid || undefined,
       };
 
+      // Profile fields go through syncUser (which now refuses to touch a
+      // hashed password). A password reset, if requested, must use the
+      // dedicated updateUserPassword path so a stale snapshot can't revert
+      // a more recent password change for this user.
+      await db.syncUser(updatedUser);
+
       if (editForm.resetPassword && editForm.newPassword) {
-        updatedUser.password = await hashPassword(editForm.newPassword);
+        const hashedPw = await hashPassword(editForm.newPassword);
+        await db.updateUserPassword(editingUser.email, hashedPw);
       }
 
-      await db.syncUser(updatedUser);
       onUserUpdated();
 
       // If password was reset, show credentials

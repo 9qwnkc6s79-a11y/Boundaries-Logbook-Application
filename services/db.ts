@@ -437,16 +437,24 @@ class CloudAPI {
     const userMap = new Map<string, User>();
     currentUsers.forEach(u => userMap.set(u.email.toLowerCase(), u));
 
-    // Guard: never downgrade a hashed password to plaintext.
-    // If the cloud user already has a hashed password and the incoming user
-    // has a plaintext (or missing) password, preserve the cloud password.
+    // Password protection: once a user has a hashed password in the cloud,
+    // syncUser must NEVER replace it — even with another hashed value.
+    // Profile-update flows (home store, role, active toggle, orgId migration)
+    // routinely spread a long-lived snapshot of the user, which can carry a
+    // stale hashed password and silently revert a more recent password change.
+    // Callers that legitimately change the password must use updateUserPassword().
+    // The plaintext→hashed migration on login still works because existing is
+    // not yet hashed in that case.
     const existing = userMap.get(user.email.toLowerCase());
     if (existing?.password && isHashed(existing.password)) {
-      if (user.password && !isHashed(user.password)) {
-        console.warn(`[Firestore] syncUser: BLOCKED plaintext password overwrite for ${user.email} — keeping hashed version`);
+      const incoming = user.password;
+      if (!incoming) {
         user = { ...user, password: existing.password };
-      } else if (!user.password) {
-        console.warn(`[Firestore] syncUser: Incoming user has no password for ${user.email} — keeping hashed version`);
+      } else if (!isHashed(incoming)) {
+        console.warn(`[Firestore] syncUser: BLOCKED plaintext password overwrite for ${user.email}`);
+        user = { ...user, password: existing.password };
+      } else if (incoming !== existing.password) {
+        console.warn(`[Firestore] syncUser: Ignoring stale hashed password for ${user.email} — password changes must go through updateUserPassword()`);
         user = { ...user, password: existing.password };
       }
     }
@@ -454,6 +462,35 @@ class CloudAPI {
     userMap.set(user.email.toLowerCase(), user);
     const next = Array.from(userMap.values());
     await this.remoteSet(DOC_KEYS.USERS, next);
+    return next;
+  }
+
+  /**
+   * Explicit password change. Reads the latest user record from the cloud,
+   * updates only the password field, and writes back. This is the only path
+   * allowed to change a hashed password — syncUser intentionally refuses.
+   */
+  async updateUserPassword(email: string, hashedPassword: string): Promise<User[]> {
+    if (!isHashed(hashedPassword)) {
+      throw new Error('updateUserPassword: refusing to store a non-hashed password.');
+    }
+
+    let currentUsers = await this.remoteGet(DOC_KEYS.USERS, [] as User[]);
+    if (currentUsers.length === 0) {
+      console.warn('[Firestore] updateUserPassword: First read returned 0 users, retrying...');
+      await new Promise(r => setTimeout(r, 500));
+      currentUsers = await this.remoteGet(DOC_KEYS.USERS, [] as User[]);
+    }
+
+    const normalized = email.toLowerCase().trim();
+    const idx = currentUsers.findIndex(u => u.email.toLowerCase() === normalized);
+    if (idx === -1) {
+      throw new Error(`updateUserPassword: no user found for ${email}`);
+    }
+
+    const next = currentUsers.map((u, i) => i === idx ? { ...u, password: hashedPassword } : u);
+    await this.remoteSet(DOC_KEYS.USERS, next);
+    console.log(`[Firestore] updateUserPassword: Password updated for ${email}`);
     return next;
   }
 
