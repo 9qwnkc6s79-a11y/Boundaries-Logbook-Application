@@ -418,7 +418,7 @@ class CloudAPI {
     return result;
   }
 
-  async syncUser(user: User): Promise<User[]> {
+  async syncUser(user: User, { updatePassword = false } = {}): Promise<User[]> {
     let currentUsers = await this.remoteGet(DOC_KEYS.USERS, [] as User[]);
 
     // Safety: if read returned empty, retry once. A transient read failure
@@ -437,11 +437,16 @@ class CloudAPI {
     const userMap = new Map<string, User>();
     currentUsers.forEach(u => userMap.set(u.email.toLowerCase(), u));
 
-    // Guard: never downgrade a hashed password to plaintext.
-    // If the cloud user already has a hashed password and the incoming user
-    // has a plaintext (or missing) password, preserve the cloud password.
     const existing = userMap.get(user.email.toLowerCase());
-    if (existing?.password && isHashed(existing.password)) {
+
+    // Password protection: always preserve the existing Firestore password
+    // unless the caller explicitly opts in with updatePassword: true.
+    // This prevents stale in-memory state from silently overwriting a
+    // password that the user changed on another device or via admin reset.
+    if (existing?.password && !updatePassword) {
+      user = { ...user, password: existing.password };
+    } else if (existing?.password && isHashed(existing.password) && updatePassword) {
+      // Even when updatePassword is true, never downgrade hashed to plaintext.
       if (user.password && !isHashed(user.password)) {
         console.warn(`[Firestore] syncUser: BLOCKED plaintext password overwrite for ${user.email} — keeping hashed version`);
         user = { ...user, password: existing.password };
