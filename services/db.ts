@@ -1232,6 +1232,10 @@ class CloudAPI {
               mutated = true;
               return { ...item, active: false };
             }
+            if (item.id === 'inv-sparkling-lacroix' && item.active !== false) {
+              mutated = true;
+              return { ...item, active: false };
+            }
             return item;
           });
 
@@ -1254,23 +1258,75 @@ class CloudAPI {
       }
       await Promise.all(seedPromises);
 
+      // Re-sort items to match the canonical seed order (groups Monin / 1883).
+      // Fires once per store when any item's sortOrder doesn't match the seed.
+      const seedOrder = new Map(
+        Object.values(defaults.inventorySeed || {})[0]?.map((s: InventoryItem, idx: number) => [s.id, idx]) || []
+      );
+      if (seedOrder.size > 0) {
+        for (const [storeId] of Object.entries(defaults.inventorySeed || {})) {
+          try {
+            const items = await this.fetchInventoryItems(storeId);
+            const needsReorder = items.some(i => seedOrder.has(i.id) && i.sortOrder !== seedOrder.get(i.id));
+            if (needsReorder) {
+              const reordered = items.map(i => {
+                const newOrder = seedOrder.get(i.id);
+                return newOrder !== undefined ? { ...i, sortOrder: newOrder } : i;
+              });
+              await this.pushInventoryItems(storeId, reordered);
+              console.log(`[Firestore] globalSync: Re-sorted inventory for ${storeId}`);
+            }
+          } catch (e) {
+            console.warn(`[Firestore] globalSync: Inventory re-sort failed for ${storeId}:`, e);
+          }
+        }
+      }
+
       // One-time: copy Prosper's live par values to Little Elm if all Elm pars are 0.
       try {
-        const elmItems = await this.fetchInventoryItems('store-elm');
+        let elmItems = await this.fetchInventoryItems('store-elm');
         if (elmItems.length > 0 && elmItems.every(i => !i.par || i.par === 0)) {
           const prosperItems = await this.fetchInventoryItems('store-prosper');
           if (prosperItems.length > 0) {
             const prosperPars = new Map(prosperItems.map(i => [i.id, i.par]));
-            const updated = elmItems.map(item => {
+            elmItems = elmItems.map(item => {
               const prosperPar = prosperPars.get(item.id);
               return prosperPar ? { ...item, par: prosperPar } : item;
             });
-            await this.pushInventoryItems('store-elm', updated);
+            await this.pushInventoryItems('store-elm', elmItems);
             console.log(`[Firestore] globalSync: Copied Prosper par values to Little Elm (${prosperItems.length} items)`);
           }
         }
+
+        // One-time Little Elm par overrides. Each only fires when the current
+        // par matches the "from" value (Prosper default or 0), so manual
+        // in-app edits are never clobbered.
+        const elmOverrides = [
+          { id: 'inv-seasonal-coconut-shavings', from: 0, to: 1 },
+          { id: 'inv-coffee-southern', from: 5, to: 6 },
+          { id: 'inv-dairy-whole', from: 0, to: 32 },
+          { id: 'inv-dairy-2pct', from: 0, to: 14 },
+          { id: 'inv-dairy-halfhalf', from: 0, to: 14 },
+          { id: 'inv-dairy-heavy', from: 0, to: 4 },
+          { id: 'inv-tea-matcha', from: 2, to: 3 },
+          { id: 'inv-dairy-sweetcream', from: 0, to: 4 },
+        ];
+        const overrideMap = new Map(elmOverrides.map(o => [o.id, o]));
+        let elmMutated = false;
+        const elmUpdated = elmItems.map(item => {
+          const o = overrideMap.get(item.id);
+          if (o && (item.par === o.from || (!item.par && o.from === 0))) {
+            elmMutated = true;
+            return { ...item, par: o.to };
+          }
+          return item;
+        });
+        if (elmMutated) {
+          await this.pushInventoryItems('store-elm', elmUpdated);
+          console.log('[Firestore] globalSync: Applied Little Elm par overrides');
+        }
       } catch (e) {
-        console.warn('[Firestore] globalSync: Little Elm par copy failed:', e);
+        console.warn('[Firestore] globalSync: Little Elm par migration failed:', e);
       }
     }
 
