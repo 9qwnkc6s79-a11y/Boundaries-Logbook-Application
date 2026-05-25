@@ -1253,6 +1253,25 @@ class CloudAPI {
         })());
       }
       await Promise.all(seedPromises);
+
+      // One-time: copy Prosper's live par values to Little Elm if all Elm pars are 0.
+      try {
+        const elmItems = await this.fetchInventoryItems('store-elm');
+        if (elmItems.length > 0 && elmItems.every(i => !i.par || i.par === 0)) {
+          const prosperItems = await this.fetchInventoryItems('store-prosper');
+          if (prosperItems.length > 0) {
+            const prosperPars = new Map(prosperItems.map(i => [i.id, i.par]));
+            const updated = elmItems.map(item => {
+              const prosperPar = prosperPars.get(item.id);
+              return prosperPar ? { ...item, par: prosperPar } : item;
+            });
+            await this.pushInventoryItems('store-elm', updated);
+            console.log(`[Firestore] globalSync: Copied Prosper par values to Little Elm (${prosperItems.length} items)`);
+          }
+        }
+      } catch (e) {
+        console.warn('[Firestore] globalSync: Little Elm par copy failed:', e);
+      }
     }
 
     return { users, submissions, progress, templates, curriculum, manual, recipes: mergedRecipes };
