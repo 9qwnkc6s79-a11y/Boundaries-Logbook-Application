@@ -1236,7 +1236,7 @@ class CloudAPI {
           });
 
           const seedById = new Map(seedItems.map(s => [s.id, s]));
-          for (const newId of ['inv-frappe-powder', 'inv-dairy-sweetcream']) {
+          for (const newId of ['inv-frappe-powder', 'inv-dairy-sweetcream', 'inv-syrup-macadamia', 'inv-seasonal-coconut-shavings']) {
             if (!migrated.some(i => i.id === newId)) {
               const fromSeed = seedById.get(newId);
               if (fromSeed) {

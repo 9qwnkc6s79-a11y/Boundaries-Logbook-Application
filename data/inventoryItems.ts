@@ -99,11 +99,15 @@ const DEFS: SeedDef[] = [
   { id: 'inv-syrup-zero-caramel', name: 'Zero Caramel (Monin)', category: 'Syrups', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 4, brand: 'Monin', unit: 'bottles' },
   { id: 'inv-syrup-sf-chocolate', name: 'Sugar Free Chocolate (Monin)', category: 'Syrups', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 4, brand: 'Monin', unit: 'bottles' },
   { id: 'inv-syrup-zero-vanilla', name: 'Zero Vanilla (Monin)', category: 'Syrups', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 4, brand: 'Monin', unit: 'bottles' },
+  { id: 'inv-syrup-macadamia', name: 'Macadamia Nut (Monin)', category: 'Syrups', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 0, brand: 'Monin', unit: 'bottles' },
 
   // Seasonal Syrups
   { id: 'inv-seasonal-gingerbread', name: 'Gingerbread (Monin)', category: 'Seasonal Syrups', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 6, brand: 'Monin', unit: 'bottles' },
   { id: 'inv-seasonal-peanutbutter', name: 'Peanut Butter (Monin)', category: 'Seasonal Syrups', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 6, brand: 'Monin', unit: 'bottles' },
   { id: 'inv-seasonal-peppermint', name: 'Peppermint (1883)', category: 'Seasonal Syrups', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 6, brand: '1883', unit: 'bottles' },
+
+  // Seasonal Toppings
+  { id: 'inv-seasonal-coconut-shavings', name: 'Coconut Shavings', category: 'Seasonal Toppings', storageLocation: 'Dry Storage', vendor: 'Amazon', parProsper: 0 },
 
   // Sauces
   { id: 'inv-sauce-caramel', name: 'Caramel (Hollinder)', category: 'Sauces', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 8, brand: 'Hollinder', unit: 'bottles' },
