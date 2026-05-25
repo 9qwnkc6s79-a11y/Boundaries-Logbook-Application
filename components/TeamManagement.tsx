@@ -301,6 +301,11 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
 
       if (editForm.resetPassword && editForm.newPassword) {
         updatedUser.password = await hashPassword(editForm.newPassword);
+        updatedUser.mustChangePassword = true;
+      } else {
+        // When not resetting password, omit it so syncUser preserves the
+        // cloud value — prevents stale local state from overwriting.
+        delete updatedUser.password;
       }
 
       await db.syncUser(updatedUser);
@@ -322,7 +327,9 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
   const handleToggleActive = async (user: User) => {
     const isCurrentlyActive = user.active !== false;
     try {
-      const updatedUser: User = { ...user, active: !isCurrentlyActive };
+      // Omit password to prevent stale local state from overwriting cloud hash
+      const { password, ...rest } = user;
+      const updatedUser: User = { ...rest, active: !isCurrentlyActive } as User;
       await db.syncUser(updatedUser);
       onUserUpdated();
       setConfirmDeactivate(null);

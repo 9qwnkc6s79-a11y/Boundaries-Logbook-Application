@@ -76,6 +76,7 @@ function removeUndefined(obj: any): any {
 
 class CloudAPI {
   private currentOrgId: string | null = null;
+  private syncUserLock: Promise<any> = Promise.resolve();
 
   setOrg(orgId: string) {
     this.currentOrgId = orgId;
@@ -385,11 +386,16 @@ class CloudAPI {
           });
           if (merged > 0) {
             console.log(`[Firestore] fetchUsers: Merged ${merged} users from appData fallback`);
-            // Persist the merged list to org path so future reads are complete
+            // Persist the merged list to org path so future reads are complete.
+            // IMPORTANT: await this write to prevent it from racing with syncUser
+            // and overwriting freshly-updated passwords.
             const mergedList = Array.from(userMap.values());
-            this.remoteSet(DOC_KEYS.USERS, mergedList).then(ok => {
+            try {
+              const ok = await this.remoteSet(DOC_KEYS.USERS, mergedList);
               if (ok) console.log(`[Firestore] fetchUsers: Persisted ${mergedList.length} merged users to org path`);
-            });
+            } catch (e) {
+              console.warn('[Firestore] fetchUsers: Failed to persist merged users:', e);
+            }
           }
         }
       } catch (e) {
@@ -419,6 +425,15 @@ class CloudAPI {
   }
 
   async syncUser(user: User): Promise<User[]> {
+    // Serialize syncUser calls to prevent concurrent read-modify-write races
+    // that can overwrite another call's password update.
+    const result = this.syncUserLock = this.syncUserLock
+      .catch(() => {})
+      .then(() => this._syncUserInner(user));
+    return result;
+  }
+
+  private async _syncUserInner(user: User): Promise<User[]> {
     let currentUsers = await this.remoteGet(DOC_KEYS.USERS, [] as User[]);
 
     // Safety: if read returned empty, retry once. A transient read failure
@@ -449,6 +464,13 @@ class CloudAPI {
         console.warn(`[Firestore] syncUser: Incoming user has no password for ${user.email} — keeping hashed version`);
         user = { ...user, password: existing.password };
       }
+    }
+
+    // Guard: for non-password updates (name, role, store, etc.), always
+    // preserve the cloud password. Only allow password changes when the
+    // incoming user has a NEW hashed password that differs from cloud.
+    if (existing?.password && user.password !== existing.password && !isHashed(user.password || '')) {
+      user = { ...user, password: existing.password };
     }
 
     userMap.set(user.email.toLowerCase(), user);

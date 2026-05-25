@@ -750,8 +750,11 @@ const App: React.FC = () => {
 
   const handleUpdateUserHomeStore = async (storeId: string) => {
     if (!currentUser) return;
-    const updatedUser = { ...currentUser, storeId };
-    setCurrentUser(updatedUser);
+    // Omit password from the update to prevent stale local state from
+    // overwriting the canonical hashed password in Firestore.
+    const { password, ...userWithoutPassword } = currentUser;
+    const updatedUser = { ...userWithoutPassword, storeId } as User;
+    setCurrentUser({ ...currentUser, storeId });
     setCurrentStoreId(storeId);
     await db.syncUser(updatedUser);
     performCloudSync(true);
