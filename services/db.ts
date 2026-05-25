@@ -1232,6 +1232,10 @@ class CloudAPI {
               mutated = true;
               return { ...item, active: false };
             }
+            if (item.id === 'inv-syrup-macadamia' && item.brand !== '1883') {
+              mutated = true;
+              return { ...item, name: 'Macadamia Nut (1883)', brand: '1883' };
+            }
             if (item.id === 'inv-sparkling-lacroix' && item.active !== false) {
               mutated = true;
               return { ...item, active: false };
