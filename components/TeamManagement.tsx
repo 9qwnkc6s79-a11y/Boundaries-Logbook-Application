@@ -299,14 +299,15 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
         toastEmployeeGuid: editForm.toastEmployeeGuid || undefined,
       };
 
+      await db.syncUser(updatedUser);
+
       if (editForm.resetPassword && editForm.newPassword) {
-        updatedUser.password = await hashPassword(editForm.newPassword);
+        const hashedPw = await hashPassword(editForm.newPassword);
+        await db.updateUserPassword(editingUser.email, hashedPw);
       }
 
-      await db.syncUser(updatedUser);
       onUserUpdated();
 
-      // If password was reset, show credentials
       if (editForm.resetPassword && editForm.newPassword) {
         setShowInvite({ email: editingUser.email, password: editForm.newPassword, name: editForm.name.trim() });
       }
