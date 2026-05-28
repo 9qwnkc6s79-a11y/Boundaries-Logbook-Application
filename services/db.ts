@@ -1209,10 +1209,28 @@ class CloudAPI {
       const seedPromises: Promise<void>[] = [];
       for (const [storeId, seedItems] of Object.entries(defaults.inventorySeed)) {
         seedPromises.push((async () => {
+          const seedMarkerKey = `inventorySeeded-${storeId}`;
+          const seedMarker = await this.remoteGet<{ seeded: boolean }>(seedMarkerKey, { seeded: false });
           const existing = await this.fetchInventoryItems(storeId);
+
+          // If the store has any data, mark it as seeded so future transient
+          // empty reads can't trigger a re-seed.
+          if (existing.length > 0 && !seedMarker.seeded) {
+            await this.remoteSet(seedMarkerKey, { seeded: true, at: new Date().toISOString() });
+          }
+
+          // DATA LOSS PREVENTION: never re-seed a store that has previously
+          // been seeded, even if the current read returns empty. Empty reads
+          // are usually transient network/init failures, not real data loss.
+          if (existing.length === 0 && seedMarker.seeded) {
+            console.warn(`[Firestore] globalSync: ${storeId} inventory read empty but marker set — REFUSING to re-seed`);
+            return;
+          }
+
           if (existing.length === 0 && seedItems.length > 0) {
-            console.log(`[Firestore] globalSync: Seeding ${seedItems.length} inventory items for ${storeId}`);
+            console.log(`[Firestore] globalSync: Seeding ${seedItems.length} inventory items for ${storeId} (first time)`);
             await this.pushInventoryItems(storeId, seedItems);
+            await this.remoteSet(seedMarkerKey, { seeded: true, at: new Date().toISOString() });
             return;
           }
 
@@ -1286,7 +1304,46 @@ class CloudAPI {
         }
       }
 
-      // One-time: copy Prosper's live par values to Little Elm if all Elm pars are 0.
+      // EMERGENCY RESTORE v3: copy Prosper's live pars to Little Elm, then
+      // apply the Elm-specific overrides. Guarded by a Firestore marker so
+      // it runs exactly once per deploy of this bootstrap version.
+      const ELM_PAR_BOOTSTRAP_KEY = 'inventoryBootstrap-store-elm-v3';
+      try {
+        const bootstrap = await this.remoteGet<{ done: boolean }>(ELM_PAR_BOOTSTRAP_KEY, { done: false });
+        if (!bootstrap.done) {
+          const elmItems = await this.fetchInventoryItems('store-elm');
+          const prosperItems = await this.fetchInventoryItems('store-prosper');
+          if (elmItems.length > 0 && prosperItems.length > 0) {
+            const prosperPars = new Map(prosperItems.map(i => [i.id, i.par]));
+            const ELM_OVERRIDES: Record<string, number> = {
+              'inv-seasonal-coconut-shavings': 1,
+              'inv-coffee-southern': 6,
+              'inv-dairy-whole': 32,
+              'inv-dairy-2pct': 14,
+              'inv-dairy-halfhalf': 14,
+              'inv-dairy-heavy': 4,
+              'inv-tea-matcha': 3,
+              'inv-dairy-sweetcream': 4,
+            };
+            const updated = elmItems.map(item => {
+              const override = ELM_OVERRIDES[item.id];
+              if (override !== undefined) return { ...item, par: override };
+              const prosperPar = prosperPars.get(item.id);
+              if (prosperPar && prosperPar > 0) return { ...item, par: prosperPar };
+              return item;
+            });
+            const pushed = await this.pushInventoryItems('store-elm', updated);
+            if (pushed) {
+              await this.remoteSet(ELM_PAR_BOOTSTRAP_KEY, { done: true, at: new Date().toISOString() });
+              console.log('[Firestore] globalSync: Little Elm pars bootstrapped from Prosper + overrides');
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('[Firestore] globalSync: Elm par bootstrap v3 failed:', e);
+      }
+
+      // (Disabled — superseded by v3 bootstrap above.) Original par copy:
       try {
         let elmItems = await this.fetchInventoryItems('store-elm');
         if (elmItems.length > 0 && elmItems.every(i => !i.par || i.par === 0)) {
