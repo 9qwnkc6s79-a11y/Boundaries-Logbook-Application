@@ -264,7 +264,8 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
         ...(toastPrefill ? { toastEmployeeGuid: toastPrefill.guid } : {}),
       };
 
-      await db.syncUser(newUser);
+      // Brand-new user — must persist the initial password.
+      await db.syncUser(newUser, { updatePassword: true });
       onUserUpdated();
 
       // Show invite/credentials modal
@@ -299,11 +300,15 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
         toastEmployeeGuid: editForm.toastEmployeeGuid || undefined,
       };
 
-      if (editForm.resetPassword && editForm.newPassword) {
+      const changingPassword = editForm.resetPassword && !!editForm.newPassword;
+      if (changingPassword) {
         updatedUser.password = await hashPassword(editForm.newPassword);
       }
 
-      await db.syncUser(updatedUser);
+      // Only opt in to overwriting the password when the admin explicitly
+      // reset it. Otherwise the stale password carried over from editingUser
+      // could silently revert a more recent password change.
+      await db.syncUser(updatedUser, { updatePassword: changingPassword });
       onUserUpdated();
 
       // If password was reset, show credentials

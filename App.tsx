@@ -345,7 +345,9 @@ const App: React.FC = () => {
     // Save all migrations in a single write to avoid overwriting the hash
     if (needsMigration) {
       try {
-        await db.syncUser(migratedUser);
+        // updatePassword: true because plaintext→hash migration is an
+        // intentional password-field change.
+        await db.syncUser(migratedUser, { updatePassword: true });
         console.log(`[Auth] Migrated user ${found.email} (hash=${!isHashed(found.password)}, orgId=${!found.orgId})`);
       } catch (e) {
         console.warn('[Auth] User migration failed:', e);
@@ -380,7 +382,7 @@ const App: React.FC = () => {
     // Hash password before saving
     const hashed = await hashPassword(user.password || '');
     const secureUser = { ...user, password: hashed };
-    await db.syncUser(secureUser);
+    await db.syncUser(secureUser, { updatePassword: true });
     const freshData = await performCloudSync();
     setAllUsers(freshData?.users || []);
 
@@ -401,7 +403,7 @@ const App: React.FC = () => {
 
     const hashed = await hashPassword(pass);
     const updated = { ...user, password: hashed };
-    await db.syncUser(updated);
+    await db.syncUser(updated, { updatePassword: true });
     await performCloudSync(true);
   };
 
@@ -409,7 +411,7 @@ const App: React.FC = () => {
     if (!forcePasswordChangeUser) return;
     const hashed = await hashPassword(newPassword);
     const updated = { ...forcePasswordChangeUser, password: hashed, mustChangePassword: false };
-    await db.syncUser(updated);
+    await db.syncUser(updated, { updatePassword: true });
     await performCloudSync(true);
 
     // Complete login
@@ -463,7 +465,8 @@ const App: React.FC = () => {
       orgId: orgId,
     };
 
-    await db.syncUser(adminUser);
+    // Brand-new admin account — must write the initial password.
+    await db.syncUser(adminUser, { updatePassword: true });
 
     // Set org state and auto-login
     setCurrentOrg(org);
@@ -807,8 +810,9 @@ const App: React.FC = () => {
         orgId: currentOrg?.id
       };
 
-      // Use syncUser (read-modify-write) to avoid overwriting other users' data
-      await db.syncUser(newUser);
+      // Use syncUser (read-modify-write) to avoid overwriting other users' data.
+      // Brand-new user from Toast sync — must persist the initial temp password.
+      await db.syncUser(newUser, { updatePassword: true });
       newCount++;
       console.log(`[App] Created user account for ${emp.name} (${emp.email})`);
     }
