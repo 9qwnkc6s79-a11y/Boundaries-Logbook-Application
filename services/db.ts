@@ -1122,6 +1122,19 @@ class CloudAPI {
       console.log(`[Firestore] globalSync: Curriculum version updated (${cloudVersion} → ${CURRICULUM_VERSION}), forcing full refresh`);
     }
 
+    // DATA LOSS PREVENTION: if cloud curriculum is empty but the populated
+    // marker is set, assume it's a transient read failure and DO NOT push
+    // defaults back. Same pattern that was wiping inventory pars.
+    const CURRICULUM_POPULATED_KEY = 'curriculumPopulated';
+    const curriculumPopulated = await this.remoteGet<{ populated: boolean }>(CURRICULUM_POPULATED_KEY, { populated: false });
+    if (cloudCurriculum.length > 0 && !curriculumPopulated.populated) {
+      this.remoteSet(CURRICULUM_POPULATED_KEY, { populated: true, at: new Date().toISOString() });
+    }
+    if (cloudCurriculum.length === 0 && curriculumPopulated.populated) {
+      console.warn('[Firestore] globalSync: Curriculum read empty but marker set — REFUSING to write defaults');
+      return { users, submissions, progress, templates, curriculum: cloudCurriculum, manual, recipes };
+    }
+
     // Merge new modules from defaults that don't exist in cloud
     // This ensures new modules added to mockData.ts appear in the app
     const cloudModuleIds = new Set(cloudCurriculum.map((m: TrainingModule) => m.id));
@@ -1191,17 +1204,27 @@ class CloudAPI {
       ]);
     }
 
+    // DATA LOSS PREVENTION: if cloud recipes is empty but the populated
+    // marker is set, assume transient read failure — don't write defaults.
+    const RECIPES_POPULATED_KEY = 'recipesPopulated';
+    const recipesPopulated = await this.remoteGet<{ populated: boolean }>(RECIPES_POPULATED_KEY, { populated: false });
+    if (recipes.length > 0 && !recipesPopulated.populated) {
+      this.remoteSet(RECIPES_POPULATED_KEY, { populated: true, at: new Date().toISOString() });
+    }
+
     // Merge new recipes from defaults that don't exist in cloud
     // This ensures new recipes added to mockData.ts appear in the app
     const cloudRecipeIds = new Set(recipes.map((r: Recipe) => r.id));
     const newRecipes = defaults.recipes.filter(r => !cloudRecipeIds.has(r.id));
 
     let mergedRecipes = recipes;
-    if (newRecipes.length > 0) {
+    if (newRecipes.length > 0 && !(recipes.length === 0 && recipesPopulated.populated)) {
       console.log(`[Firestore] globalSync: Found ${newRecipes.length} new recipe(s), merging...`);
       mergedRecipes = [...recipes, ...newRecipes];
       // Push merged recipes back to cloud
       await this.remoteSet(DOC_KEYS.RECIPES, mergedRecipes);
+    } else if (recipes.length === 0 && recipesPopulated.populated) {
+      console.warn('[Firestore] globalSync: Recipes read empty but marker set — REFUSING to write defaults');
     }
 
     // Seed inventory items per store if cloud is empty
