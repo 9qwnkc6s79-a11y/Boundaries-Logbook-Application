@@ -418,7 +418,7 @@ class CloudAPI {
     return result;
   }
 
-  async syncUser(user: User): Promise<User[]> {
+  async syncUser(user: User, options?: { changePassword?: boolean }): Promise<User[]> {
     let currentUsers = await this.remoteGet(DOC_KEYS.USERS, [] as User[]);
 
     // Safety: if read returned empty, retry once. A transient read failure
@@ -437,16 +437,31 @@ class CloudAPI {
     const userMap = new Map<string, User>();
     currentUsers.forEach(u => userMap.set(u.email.toLowerCase(), u));
 
-    // Guard: never downgrade a hashed password to plaintext.
-    // If the cloud user already has a hashed password and the incoming user
-    // has a plaintext (or missing) password, preserve the cloud password.
     const existing = userMap.get(user.email.toLowerCase());
+
+    // Backstop against silent identity collisions: if a different user record
+    // (different id) already occupies this email, refuse to overwrite. Callers
+    // that intend to update an existing user must pass that user's id; callers
+    // that intend to link external accounts (e.g. Toast sync) must look up the
+    // existing record by email first and update it, not create a new one.
+    if (existing && existing.id && user.id && existing.id !== user.id) {
+      const msg = `syncUser refused: incoming id ${user.id} would overwrite existing user ${existing.id} at ${user.email}`;
+      console.error(`[Firestore] ${msg}`);
+      throw new Error(`A different account already exists at ${user.email}. Update the existing record instead of creating a new one.`);
+    }
+
+    // Password preservation: callers updating non-credential fields (home store,
+    // active flag, name/role/storeId) carry a stale in-memory password hash that
+    // can silently clobber a recently-reset password. Preserve the cloud password
+    // by default; require explicit { changePassword: true } to write a new hash.
     if (existing?.password && isHashed(existing.password)) {
-      if (user.password && !isHashed(user.password)) {
-        console.warn(`[Firestore] syncUser: BLOCKED plaintext password overwrite for ${user.email} — keeping hashed version`);
+      const changePassword = options?.changePassword === true;
+      const incomingIsHashed = !!user.password && isHashed(user.password);
+
+      if (!changePassword) {
         user = { ...user, password: existing.password };
-      } else if (!user.password) {
-        console.warn(`[Firestore] syncUser: Incoming user has no password for ${user.email} — keeping hashed version`);
+      } else if (!incomingIsHashed) {
+        console.warn(`[Firestore] syncUser: BLOCKED non-hashed password write for ${user.email} — keeping hashed version`);
         user = { ...user, password: existing.password };
       }
     }
@@ -1107,6 +1122,19 @@ class CloudAPI {
       console.log(`[Firestore] globalSync: Curriculum version updated (${cloudVersion} → ${CURRICULUM_VERSION}), forcing full refresh`);
     }
 
+    // DATA LOSS PREVENTION: if cloud curriculum is empty but the populated
+    // marker is set, assume it's a transient read failure and DO NOT push
+    // defaults back. Same pattern that was wiping inventory pars.
+    const CURRICULUM_POPULATED_KEY = 'curriculumPopulated';
+    const curriculumPopulated = await this.remoteGet<{ populated: boolean }>(CURRICULUM_POPULATED_KEY, { populated: false });
+    if (cloudCurriculum.length > 0 && !curriculumPopulated.populated) {
+      this.remoteSet(CURRICULUM_POPULATED_KEY, { populated: true, at: new Date().toISOString() });
+    }
+    if (cloudCurriculum.length === 0 && curriculumPopulated.populated) {
+      console.warn('[Firestore] globalSync: Curriculum read empty but marker set — REFUSING to write defaults');
+      return { users, submissions, progress, templates, curriculum: cloudCurriculum, manual, recipes };
+    }
+
     // Merge new modules from defaults that don't exist in cloud
     // This ensures new modules added to mockData.ts appear in the app
     const cloudModuleIds = new Set(cloudCurriculum.map((m: TrainingModule) => m.id));
@@ -1176,17 +1204,27 @@ class CloudAPI {
       ]);
     }
 
+    // DATA LOSS PREVENTION: if cloud recipes is empty but the populated
+    // marker is set, assume transient read failure — don't write defaults.
+    const RECIPES_POPULATED_KEY = 'recipesPopulated';
+    const recipesPopulated = await this.remoteGet<{ populated: boolean }>(RECIPES_POPULATED_KEY, { populated: false });
+    if (recipes.length > 0 && !recipesPopulated.populated) {
+      this.remoteSet(RECIPES_POPULATED_KEY, { populated: true, at: new Date().toISOString() });
+    }
+
     // Merge new recipes from defaults that don't exist in cloud
     // This ensures new recipes added to mockData.ts appear in the app
     const cloudRecipeIds = new Set(recipes.map((r: Recipe) => r.id));
     const newRecipes = defaults.recipes.filter(r => !cloudRecipeIds.has(r.id));
 
     let mergedRecipes = recipes;
-    if (newRecipes.length > 0) {
+    if (newRecipes.length > 0 && !(recipes.length === 0 && recipesPopulated.populated)) {
       console.log(`[Firestore] globalSync: Found ${newRecipes.length} new recipe(s), merging...`);
       mergedRecipes = [...recipes, ...newRecipes];
       // Push merged recipes back to cloud
       await this.remoteSet(DOC_KEYS.RECIPES, mergedRecipes);
+    } else if (recipes.length === 0 && recipesPopulated.populated) {
+      console.warn('[Firestore] globalSync: Recipes read empty but marker set — REFUSING to write defaults');
     }
 
     // Seed inventory items per store if cloud is empty
@@ -1194,14 +1232,186 @@ class CloudAPI {
       const seedPromises: Promise<void>[] = [];
       for (const [storeId, seedItems] of Object.entries(defaults.inventorySeed)) {
         seedPromises.push((async () => {
+          const seedMarkerKey = `inventorySeeded-${storeId}`;
+          const seedMarker = await this.remoteGet<{ seeded: boolean }>(seedMarkerKey, { seeded: false });
           const existing = await this.fetchInventoryItems(storeId);
+
+          // If the store has any data, mark it as seeded so future transient
+          // empty reads can't trigger a re-seed.
+          if (existing.length > 0 && !seedMarker.seeded) {
+            await this.remoteSet(seedMarkerKey, { seeded: true, at: new Date().toISOString() });
+          }
+
+          // DATA LOSS PREVENTION: never re-seed a store that has previously
+          // been seeded, even if the current read returns empty. Empty reads
+          // are usually transient network/init failures, not real data loss.
+          if (existing.length === 0 && seedMarker.seeded) {
+            console.warn(`[Firestore] globalSync: ${storeId} inventory read empty but marker set — REFUSING to re-seed`);
+            return;
+          }
+
           if (existing.length === 0 && seedItems.length > 0) {
-            console.log(`[Firestore] globalSync: Seeding ${seedItems.length} inventory items for ${storeId}`);
+            console.log(`[Firestore] globalSync: Seeding ${seedItems.length} inventory items for ${storeId} (first time)`);
             await this.pushInventoryItems(storeId, seedItems);
+            await this.remoteSet(seedMarkerKey, { seeded: true, at: new Date().toISOString() });
+            return;
+          }
+
+          // Idempotent vendor migration: Oak Farms → Costco for milk/cream,
+          // deactivate Ice Cream Base, add Frappe Powder and Sweet Cream.
+          const oakFarmsToCostco = new Set([
+            'inv-dairy-whole', 'inv-dairy-2pct', 'inv-dairy-halfhalf', 'inv-dairy-heavy',
+          ]);
+          let mutated = false;
+          const migrated = existing.map(item => {
+            if (oakFarmsToCostco.has(item.id) && item.vendor === 'Oak Farms') {
+              mutated = true;
+              const { brand, ...rest } = item;
+              return { ...rest, vendor: 'Costco' };
+            }
+            if (item.id === 'inv-dairy-icecream' && item.active !== false) {
+              mutated = true;
+              return { ...item, active: false };
+            }
+            if (item.id === 'inv-syrup-macadamia' && item.brand !== '1883') {
+              mutated = true;
+              return { ...item, name: 'Macadamia Nut (1883)', brand: '1883' };
+            }
+            if (item.id === 'inv-sparkling-lacroix' && item.active !== false) {
+              mutated = true;
+              return { ...item, active: false };
+            }
+            return item;
+          });
+
+          const seedById = new Map(seedItems.map(s => [s.id, s]));
+          for (const newId of ['inv-frappe-powder', 'inv-dairy-sweetcream', 'inv-syrup-macadamia', 'inv-seasonal-coconut-shavings']) {
+            if (!migrated.some(i => i.id === newId)) {
+              const fromSeed = seedById.get(newId);
+              if (fromSeed) {
+                mutated = true;
+                migrated.push({ ...fromSeed, sortOrder: migrated.length });
+              }
+            }
+          }
+
+          if (mutated) {
+            console.log(`[Firestore] globalSync: Applying inventory vendor migration for ${storeId}`);
+            await this.pushInventoryItems(storeId, migrated);
           }
         })());
       }
       await Promise.all(seedPromises);
+
+      // Re-sort items to match the canonical seed order (groups Monin / 1883).
+      // Fires once per store when any item's sortOrder doesn't match the seed.
+      const seedOrder = new Map(
+        Object.values(defaults.inventorySeed || {})[0]?.map((s: InventoryItem, idx: number) => [s.id, idx]) || []
+      );
+      if (seedOrder.size > 0) {
+        for (const [storeId] of Object.entries(defaults.inventorySeed || {})) {
+          try {
+            const items = await this.fetchInventoryItems(storeId);
+            const needsReorder = items.some(i => seedOrder.has(i.id) && i.sortOrder !== seedOrder.get(i.id));
+            if (needsReorder) {
+              const reordered = items.map(i => {
+                const newOrder = seedOrder.get(i.id);
+                return newOrder !== undefined ? { ...i, sortOrder: newOrder } : i;
+              });
+              await this.pushInventoryItems(storeId, reordered);
+              console.log(`[Firestore] globalSync: Re-sorted inventory for ${storeId}`);
+            }
+          } catch (e) {
+            console.warn(`[Firestore] globalSync: Inventory re-sort failed for ${storeId}:`, e);
+          }
+        }
+      }
+
+      // EMERGENCY RESTORE v3: copy Prosper's live pars to Little Elm, then
+      // apply the Elm-specific overrides. Guarded by a Firestore marker so
+      // it runs exactly once per deploy of this bootstrap version.
+      const ELM_PAR_BOOTSTRAP_KEY = 'inventoryBootstrap-store-elm-v3';
+      try {
+        const bootstrap = await this.remoteGet<{ done: boolean }>(ELM_PAR_BOOTSTRAP_KEY, { done: false });
+        if (!bootstrap.done) {
+          const elmItems = await this.fetchInventoryItems('store-elm');
+          const prosperItems = await this.fetchInventoryItems('store-prosper');
+          if (elmItems.length > 0 && prosperItems.length > 0) {
+            const prosperPars = new Map(prosperItems.map(i => [i.id, i.par]));
+            const ELM_OVERRIDES: Record<string, number> = {
+              'inv-seasonal-coconut-shavings': 1,
+              'inv-coffee-southern': 6,
+              'inv-dairy-whole': 32,
+              'inv-dairy-2pct': 14,
+              'inv-dairy-halfhalf': 14,
+              'inv-dairy-heavy': 4,
+              'inv-tea-matcha': 3,
+              'inv-dairy-sweetcream': 4,
+            };
+            const updated = elmItems.map(item => {
+              const override = ELM_OVERRIDES[item.id];
+              if (override !== undefined) return { ...item, par: override };
+              const prosperPar = prosperPars.get(item.id);
+              if (prosperPar && prosperPar > 0) return { ...item, par: prosperPar };
+              return item;
+            });
+            const pushed = await this.pushInventoryItems('store-elm', updated);
+            if (pushed) {
+              await this.remoteSet(ELM_PAR_BOOTSTRAP_KEY, { done: true, at: new Date().toISOString() });
+              console.log('[Firestore] globalSync: Little Elm pars bootstrapped from Prosper + overrides');
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('[Firestore] globalSync: Elm par bootstrap v3 failed:', e);
+      }
+
+      // (Disabled — superseded by v3 bootstrap above.) Original par copy:
+      try {
+        let elmItems = await this.fetchInventoryItems('store-elm');
+        if (elmItems.length > 0 && elmItems.every(i => !i.par || i.par === 0)) {
+          const prosperItems = await this.fetchInventoryItems('store-prosper');
+          if (prosperItems.length > 0) {
+            const prosperPars = new Map(prosperItems.map(i => [i.id, i.par]));
+            elmItems = elmItems.map(item => {
+              const prosperPar = prosperPars.get(item.id);
+              return prosperPar ? { ...item, par: prosperPar } : item;
+            });
+            await this.pushInventoryItems('store-elm', elmItems);
+            console.log(`[Firestore] globalSync: Copied Prosper par values to Little Elm (${prosperItems.length} items)`);
+          }
+        }
+
+        // One-time Little Elm par overrides. Each only fires when the current
+        // par matches the "from" value (Prosper default or 0), so manual
+        // in-app edits are never clobbered.
+        const elmOverrides = [
+          { id: 'inv-seasonal-coconut-shavings', from: 0, to: 1 },
+          { id: 'inv-coffee-southern', from: 5, to: 6 },
+          { id: 'inv-dairy-whole', from: 0, to: 32 },
+          { id: 'inv-dairy-2pct', from: 0, to: 14 },
+          { id: 'inv-dairy-halfhalf', from: 0, to: 14 },
+          { id: 'inv-dairy-heavy', from: 0, to: 4 },
+          { id: 'inv-tea-matcha', from: 2, to: 3 },
+          { id: 'inv-dairy-sweetcream', from: 0, to: 4 },
+        ];
+        const overrideMap = new Map(elmOverrides.map(o => [o.id, o]));
+        let elmMutated = false;
+        const elmUpdated = elmItems.map(item => {
+          const o = overrideMap.get(item.id);
+          if (o && (item.par === o.from || (!item.par && o.from === 0))) {
+            elmMutated = true;
+            return { ...item, par: o.to };
+          }
+          return item;
+        });
+        if (elmMutated) {
+          await this.pushInventoryItems('store-elm', elmUpdated);
+          console.log('[Firestore] globalSync: Applied Little Elm par overrides');
+        }
+      } catch (e) {
+        console.warn('[Firestore] globalSync: Little Elm par migration failed:', e);
+      }
     }
 
     return { users, submissions, progress, templates, curriculum, manual, recipes: mergedRecipes };

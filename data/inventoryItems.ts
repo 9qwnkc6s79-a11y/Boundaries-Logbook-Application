@@ -46,15 +46,20 @@ const DEFS: SeedDef[] = [
   // Sparkling Water
   { id: 'inv-sparkling-lacroix', name: 'La Croix', category: 'Sparkling Water', storageLocation: 'Back Stock', vendor: 'InstaCart', parProsper: 0, brand: 'La Croix', unit: 'cases' },
 
-  // Dairy - Oak Farms
-  { id: 'inv-dairy-whole', name: 'Whole Milk', category: 'Dairy', storageLocation: 'Walk-In Cooler', vendor: 'Oak Farms', parProsper: 0, brand: 'Oak Farms', unit: 'gallons' },
-  { id: 'inv-dairy-2pct', name: '2% Milk', category: 'Dairy', storageLocation: 'Walk-In Cooler', vendor: 'Oak Farms', parProsper: 0, brand: 'Oak Farms', unit: 'gallons' },
-  { id: 'inv-dairy-halfhalf', name: 'Half & Half', category: 'Dairy', storageLocation: 'Walk-In Cooler', vendor: 'Oak Farms', parProsper: 0, brand: 'Oak Farms', unit: 'gallons' },
-  { id: 'inv-dairy-heavy', name: 'Heavy Cream', category: 'Dairy', storageLocation: 'Walk-In Cooler', vendor: 'Oak Farms', parProsper: 0, brand: 'Oak Farms', unit: 'gallons' },
-  { id: 'inv-dairy-icecream', name: 'Ice Cream Base', category: 'Dairy', storageLocation: 'Walk-In Cooler', vendor: 'Oak Farms', parProsper: 0, brand: 'Oak Farms', unit: 'gallons' },
+  // Dairy - Costco
+  { id: 'inv-dairy-whole', name: 'Whole Milk', category: 'Dairy', storageLocation: 'Walk-In Cooler', vendor: 'Costco', parProsper: 0, unit: 'gallons' },
+  { id: 'inv-dairy-2pct', name: '2% Milk', category: 'Dairy', storageLocation: 'Walk-In Cooler', vendor: 'Costco', parProsper: 0, unit: 'gallons' },
+  { id: 'inv-dairy-halfhalf', name: 'Half & Half', category: 'Dairy', storageLocation: 'Walk-In Cooler', vendor: 'Costco', parProsper: 0, unit: 'gallons' },
+  { id: 'inv-dairy-heavy', name: 'Heavy Cream', category: 'Dairy', storageLocation: 'Walk-In Cooler', vendor: 'Costco', parProsper: 0, unit: 'gallons' },
+
+  // Dairy - Sysco
+  { id: 'inv-dairy-sweetcream', name: 'Sweet Cream', category: 'Dairy', storageLocation: 'Walk-In Cooler', vendor: 'Sysco', parProsper: 0, unit: 'gallons' },
 
   // Dairy - InstaCart
   { id: 'inv-dairy-fairlife', name: 'FairLife', category: 'Dairy', storageLocation: 'Walk-In Cooler', vendor: 'InstaCart', parProsper: 15, brand: 'FairLife' },
+
+  // Frappe Powder
+  { id: 'inv-frappe-powder', name: 'Cream Base Powder (Dr. Smoothie)', category: 'Frappe Powder', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 0, brand: 'Dr. Smoothie', unit: 'bags' },
 
   // Alt Milk
   { id: 'inv-altmilk-oat', name: 'Oat Milk', category: 'Alt Milk', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 8 },
@@ -64,41 +69,47 @@ const DEFS: SeedDef[] = [
   // Tea/Concentrate
   { id: 'inv-chai-concentrate', name: 'Chai Concentrate', category: 'Concentrate', storageLocation: 'Walk-In Cooler', vendor: 'TSB', parProsper: 2 },
 
-  // Syrups
+  // Syrups - Monin
   { id: 'inv-syrup-almond', name: 'Almond (Monin)', category: 'Syrups', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 2, brand: 'Monin', unit: 'bottles' },
   { id: 'inv-syrup-banana', name: 'Banana (Monin)', category: 'Syrups', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 3, brand: 'Monin', unit: 'bottles' },
-  { id: 'inv-syrup-speculoos', name: 'Speculoos (1883)', category: 'Syrups', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 3, brand: '1883', unit: 'bottles' },
   { id: 'inv-syrup-blackberry', name: 'Blackberry (Monin)', category: 'Syrups', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 4, brand: 'Monin', unit: 'bottles' },
   { id: 'inv-syrup-bluerasp', name: 'Blue Raspberry (Monin)', category: 'Syrups', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 6, brand: 'Monin', unit: 'bottles' },
-  { id: 'inv-syrup-saltcaramel', name: 'Salted Caramel (Monin)', category: 'Syrups', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 6, brand: 'Monin', unit: 'bottles' },
-  { id: 'inv-syrup-butterpecan', name: 'Butter Pecan (Monin)', category: 'Syrups', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 14, brand: 'Monin', unit: 'bottles' },
   { id: 'inv-syrup-blueberry', name: 'Blueberry (Monin)', category: 'Syrups', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 2, brand: 'Monin', unit: 'bottles' },
+  { id: 'inv-syrup-butterpecan', name: 'Butter Pecan (Monin)', category: 'Syrups', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 14, brand: 'Monin', unit: 'bottles' },
   { id: 'inv-syrup-cherry', name: 'Cherry (Monin)', category: 'Syrups', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 6, brand: 'Monin', unit: 'bottles' },
   { id: 'inv-syrup-coconut', name: 'Coconut Syrup (Monin)', category: 'Syrups', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 4, brand: 'Monin', unit: 'bottles' },
   { id: 'inv-syrup-kiwi', name: 'Kiwi (Monin)', category: 'Syrups', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 2, brand: 'Monin', unit: 'bottles' },
-  { id: 'inv-syrup-vanilla', name: 'Vanilla (1883)', category: 'Syrups', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 14, brand: '1883', unit: 'bottles' },
-  { id: 'inv-syrup-lavender', name: 'Lavender (1883)', category: 'Syrups', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 14, brand: '1883', unit: 'bottles' },
   { id: 'inv-syrup-lime', name: 'Lime (Monin)', category: 'Syrups', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 2, brand: 'Monin', unit: 'bottles' },
-  { id: 'inv-syrup-hazelnut', name: 'Hazelnut (1883)', category: 'Syrups', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 14, brand: '1883', unit: 'bottles' },
   { id: 'inv-syrup-mango', name: 'Mango (Monin)', category: 'Syrups', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 2, brand: 'Monin', unit: 'bottles' },
-  { id: 'inv-syrup-raspberry', name: 'Raspberry (Monin)', category: 'Syrups', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 4, brand: 'Monin', unit: 'bottles' },
-  { id: 'inv-syrup-orange', name: 'Orange (1883)', category: 'Syrups', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 2, brand: '1883', unit: 'bottles' },
   { id: 'inv-syrup-peach', name: 'Peach (Monin)', category: 'Syrups', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 2, brand: 'Monin', unit: 'bottles' },
-  { id: 'inv-syrup-passionfruit', name: 'Passionfruit (1883)', category: 'Syrups', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 4, brand: '1883', unit: 'bottles' },
   { id: 'inv-syrup-pineapple', name: 'Pineapple (Monin)', category: 'Syrups', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 4, brand: 'Monin', unit: 'bottles' },
   { id: 'inv-syrup-pomegranate', name: 'Pomegranate (Monin)', category: 'Syrups', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 4, brand: 'Monin', unit: 'bottles' },
+  { id: 'inv-syrup-raspberry', name: 'Raspberry (Monin)', category: 'Syrups', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 4, brand: 'Monin', unit: 'bottles' },
+  { id: 'inv-syrup-saltcaramel', name: 'Salted Caramel (Monin)', category: 'Syrups', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 6, brand: 'Monin', unit: 'bottles' },
   { id: 'inv-syrup-strawberry', name: 'Strawberry (Monin)', category: 'Syrups', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 4, brand: 'Monin', unit: 'bottles' },
-  { id: 'inv-syrup-maple', name: 'Maple (1883)', category: 'Syrups', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 8, brand: '1883', unit: 'bottles' },
-  { id: 'inv-syrup-cardamom', name: 'Cardamom (1883)', category: 'Syrups', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 3, brand: '1883', unit: 'bottles' },
+  { id: 'inv-syrup-sf-chocolate', name: 'Sugar Free Chocolate (Monin)', category: 'Syrups', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 4, brand: 'Monin', unit: 'bottles' },
   { id: 'inv-syrup-watermelon', name: 'Watermelon (Monin)', category: 'Syrups', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 4, brand: 'Monin', unit: 'bottles' },
   { id: 'inv-syrup-zero-caramel', name: 'Zero Caramel (Monin)', category: 'Syrups', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 4, brand: 'Monin', unit: 'bottles' },
-  { id: 'inv-syrup-sf-chocolate', name: 'Sugar Free Chocolate (Monin)', category: 'Syrups', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 4, brand: 'Monin', unit: 'bottles' },
   { id: 'inv-syrup-zero-vanilla', name: 'Zero Vanilla (Monin)', category: 'Syrups', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 4, brand: 'Monin', unit: 'bottles' },
+
+  // Syrups - 1883
+  { id: 'inv-syrup-cardamom', name: 'Cardamom (1883)', category: 'Syrups', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 3, brand: '1883', unit: 'bottles' },
+  { id: 'inv-syrup-hazelnut', name: 'Hazelnut (1883)', category: 'Syrups', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 14, brand: '1883', unit: 'bottles' },
+  { id: 'inv-syrup-lavender', name: 'Lavender (1883)', category: 'Syrups', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 14, brand: '1883', unit: 'bottles' },
+  { id: 'inv-syrup-macadamia', name: 'Macadamia Nut (1883)', category: 'Syrups', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 0, brand: '1883', unit: 'bottles' },
+  { id: 'inv-syrup-maple', name: 'Maple (1883)', category: 'Syrups', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 8, brand: '1883', unit: 'bottles' },
+  { id: 'inv-syrup-orange', name: 'Orange (1883)', category: 'Syrups', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 2, brand: '1883', unit: 'bottles' },
+  { id: 'inv-syrup-passionfruit', name: 'Passionfruit (1883)', category: 'Syrups', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 4, brand: '1883', unit: 'bottles' },
+  { id: 'inv-syrup-speculoos', name: 'Speculoos (1883)', category: 'Syrups', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 3, brand: '1883', unit: 'bottles' },
+  { id: 'inv-syrup-vanilla', name: 'Vanilla (1883)', category: 'Syrups', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 14, brand: '1883', unit: 'bottles' },
 
   // Seasonal Syrups
   { id: 'inv-seasonal-gingerbread', name: 'Gingerbread (Monin)', category: 'Seasonal Syrups', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 6, brand: 'Monin', unit: 'bottles' },
   { id: 'inv-seasonal-peanutbutter', name: 'Peanut Butter (Monin)', category: 'Seasonal Syrups', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 6, brand: 'Monin', unit: 'bottles' },
   { id: 'inv-seasonal-peppermint', name: 'Peppermint (1883)', category: 'Seasonal Syrups', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 6, brand: '1883', unit: 'bottles' },
+
+  // Seasonal Toppings
+  { id: 'inv-seasonal-coconut-shavings', name: 'Coconut Shavings', category: 'Seasonal Toppings', storageLocation: 'Dry Storage', vendor: 'Amazon', parProsper: 0 },
 
   // Sauces
   { id: 'inv-sauce-caramel', name: 'Caramel (Hollinder)', category: 'Sauces', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 8, brand: 'Hollinder', unit: 'bottles' },

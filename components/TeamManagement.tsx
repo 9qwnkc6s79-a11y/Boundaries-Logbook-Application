@@ -264,7 +264,7 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
         ...(toastPrefill ? { toastEmployeeGuid: toastPrefill.guid } : {}),
       };
 
-      await db.syncUser(newUser);
+      await db.syncUser(newUser, { changePassword: true });
       onUserUpdated();
 
       // Show invite/credentials modal
@@ -303,7 +303,7 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
         updatedUser.password = await hashPassword(editForm.newPassword);
       }
 
-      await db.syncUser(updatedUser);
+      await db.syncUser(updatedUser, { changePassword: editForm.resetPassword && !!editForm.newPassword });
       onUserUpdated();
 
       // If password was reset, show credentials
