@@ -1285,12 +1285,21 @@ class CloudAPI {
           });
 
           const seedById = new Map(seedItems.map(s => [s.id, s]));
-          for (const newId of ['inv-frappe-powder', 'inv-dairy-sweetcream', 'inv-syrup-macadamia', 'inv-seasonal-coconut-shavings']) {
+          // Items with explicit par overrides on creation (applies to both stores).
+          const newItemParOverrides: Record<string, number> = {
+            'inv-syrup-cupcake': 4,
+          };
+          for (const newId of ['inv-frappe-powder', 'inv-dairy-sweetcream', 'inv-syrup-macadamia', 'inv-seasonal-coconut-shavings', 'inv-syrup-cupcake']) {
             if (!migrated.some(i => i.id === newId)) {
               const fromSeed = seedById.get(newId);
               if (fromSeed) {
                 mutated = true;
-                migrated.push({ ...fromSeed, sortOrder: migrated.length });
+                const parOverride = newItemParOverrides[newId];
+                migrated.push({
+                  ...fromSeed,
+                  par: parOverride !== undefined ? parOverride : fromSeed.par,
+                  sortOrder: migrated.length,
+                });
               }
             }
           }

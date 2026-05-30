@@ -78,6 +78,7 @@ const DEFS: SeedDef[] = [
   { id: 'inv-syrup-butterpecan', name: 'Butter Pecan (Monin)', category: 'Syrups', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 14, brand: 'Monin', unit: 'bottles' },
   { id: 'inv-syrup-cherry', name: 'Cherry (Monin)', category: 'Syrups', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 6, brand: 'Monin', unit: 'bottles' },
   { id: 'inv-syrup-coconut', name: 'Coconut Syrup (Monin)', category: 'Syrups', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 4, brand: 'Monin', unit: 'bottles' },
+  { id: 'inv-syrup-cupcake', name: 'Cupcake (Monin)', category: 'Syrups', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 4, brand: 'Monin', unit: 'bottles' },
   { id: 'inv-syrup-kiwi', name: 'Kiwi (Monin)', category: 'Syrups', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 2, brand: 'Monin', unit: 'bottles' },
   { id: 'inv-syrup-lime', name: 'Lime (Monin)', category: 'Syrups', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 2, brand: 'Monin', unit: 'bottles' },
   { id: 'inv-syrup-mango', name: 'Mango (Monin)', category: 'Syrups', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 2, brand: 'Monin', unit: 'bottles' },
