@@ -41,6 +41,12 @@ if (typeof firebase !== 'undefined') {
 // This forces Firebase to update cached curriculum data
 const CURRICULUM_VERSION = 9;
 
+// Marker indicating the org has at least one persisted user. Once set, an
+// empty read of the user list is treated as a transient failure and writes
+// are refused — protecting existing accounts (and their hashed passwords)
+// from being wiped out by a stale single-user write.
+const USERS_POPULATED_KEY = 'usersPopulated';
+
 const DOC_KEYS = {
   USERS: 'users',
   PROGRESS: 'progress',
@@ -365,6 +371,16 @@ class CloudAPI {
     const userMap = new Map<string, User>();
     persistedUsers.forEach(u => userMap.set(u.email.toLowerCase(), u));
 
+    // Once the org path has any users, record a "populated" marker. Future
+    // reads that come back empty while the marker is set indicate a transient
+    // read failure (network, permissions) — never a real wipe.
+    if (persistedUsers.length > 0) {
+      const populated = await this.remoteGet<{ populated: boolean }>(USERS_POPULATED_KEY, { populated: false });
+      if (!populated.populated) {
+        this.remoteSet(USERS_POPULATED_KEY, { populated: true, at: new Date().toISOString() });
+      }
+    }
+
     // When running under an org, also check appData for users that weren't
     // migrated (migrateToOrg wrote to the wrong Firestore path historically).
     // AppData users are added only if they don't already exist in the org.
@@ -384,12 +400,20 @@ class CloudAPI {
             }
           });
           if (merged > 0) {
-            console.log(`[Firestore] fetchUsers: Merged ${merged} users from appData fallback`);
-            // Persist the merged list to org path so future reads are complete
-            const mergedList = Array.from(userMap.values());
-            this.remoteSet(DOC_KEYS.USERS, mergedList).then(ok => {
-              if (ok) console.log(`[Firestore] fetchUsers: Persisted ${mergedList.length} merged users to org path`);
-            });
+            console.log(`[Firestore] fetchUsers: Merged ${merged} users from appData fallback (in-memory)`);
+            // DATA LOSS PREVENTION: only write the merged list back to the org
+            // path when the org-path read returned actual data. If it returned
+            // empty (transient failure) and we wrote the appData merge back,
+            // stale appData passwords would silently overwrite the real org
+            // record — presenting to users as "my password changed."
+            if (persistedUsers.length > 0) {
+              const mergedList = Array.from(userMap.values());
+              this.remoteSet(DOC_KEYS.USERS, mergedList).then(ok => {
+                if (ok) console.log(`[Firestore] fetchUsers: Persisted ${mergedList.length} merged users to org path`);
+              });
+            } else {
+              console.warn('[Firestore] fetchUsers: Org-path read returned empty — REFUSING to persist appData merge (would risk overwriting current passwords)');
+            }
           }
         }
       } catch (e) {
@@ -427,11 +451,24 @@ class CloudAPI {
       console.warn('[Firestore] syncUser: First read returned 0 users, retrying...');
       await new Promise(r => setTimeout(r, 500));
       currentUsers = await this.remoteGet(DOC_KEYS.USERS, [] as User[]);
-      if (currentUsers.length === 0) {
-        console.warn('[Firestore] syncUser: Retry also returned 0 users — proceeding (may be fresh deployment)');
-      } else {
+      if (currentUsers.length > 0) {
         console.log(`[Firestore] syncUser: Retry succeeded, got ${currentUsers.length} users`);
       }
+    }
+
+    // DATA LOSS PREVENTION: if the user list reads empty but the populated
+    // marker is set, this is a transient read failure — refuse to write.
+    // Proceeding would persist a list containing only the incoming user,
+    // destroying every other account in the org and presenting to those
+    // users as a silent password change on their next login.
+    if (currentUsers.length === 0) {
+      const populated = await this.remoteGet<{ populated: boolean }>(USERS_POPULATED_KEY, { populated: false });
+      if (populated.populated) {
+        const msg = `syncUser refused: user list read empty but populated marker is set (transient read failure). Aborting to protect existing accounts.`;
+        console.error(`[Firestore] ${msg}`);
+        throw new Error('Cannot save user changes right now: cloud user data failed to load. Please retry in a moment.');
+      }
+      console.warn('[Firestore] syncUser: User list empty and no populated marker — treating as first-time write');
     }
 
     const userMap = new Map<string, User>();
@@ -468,7 +505,18 @@ class CloudAPI {
 
     userMap.set(user.email.toLowerCase(), user);
     const next = Array.from(userMap.values());
-    await this.remoteSet(DOC_KEYS.USERS, next);
+    const ok = await this.remoteSet(DOC_KEYS.USERS, next);
+
+    // After a successful first-time write, set the populated marker so any
+    // future empty read is correctly treated as a transient failure rather
+    // than a fresh deployment.
+    if (ok && next.length > 0) {
+      const populated = await this.remoteGet<{ populated: boolean }>(USERS_POPULATED_KEY, { populated: false });
+      if (!populated.populated) {
+        this.remoteSet(USERS_POPULATED_KEY, { populated: true, at: new Date().toISOString() });
+      }
+    }
+
     return next;
   }
 
