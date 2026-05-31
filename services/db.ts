@@ -450,19 +450,30 @@ class CloudAPI {
       throw new Error(`A different account already exists at ${user.email}. Update the existing record instead of creating a new one.`);
     }
 
-    // Password preservation: callers updating non-credential fields (home store,
-    // active flag, name/role/storeId) carry a stale in-memory password hash that
-    // can silently clobber a recently-reset password. Preserve the cloud password
-    // by default; require explicit { changePassword: true } to write a new hash.
-    if (existing?.password && isHashed(existing.password)) {
-      const changePassword = options?.changePassword === true;
-      const incomingIsHashed = !!user.password && isHashed(user.password);
+    // Password preservation: the password field is OPT-IN. Callers updating
+    // non-credential fields (home store, active flag, name/role/storeId) carry
+    // a stale in-memory password from whenever they last read the user, which
+    // can silently clobber a password that was reset on another device between
+    // that read and this write. The cloud copy is the only trustworthy source,
+    // so we always fall back to it unless the caller explicitly opts in with
+    // { changePassword: true } AND supplies a hashed value.
+    const changePassword = options?.changePassword === true;
+    const incomingIsHashed = !!user.password && isHashed(user.password);
 
-      if (!changePassword) {
+    if (!changePassword) {
+      if (existing?.password) {
         user = { ...user, password: existing.password };
-      } else if (!incomingIsHashed) {
-        console.warn(`[Firestore] syncUser: BLOCKED non-hashed password write for ${user.email} — keeping hashed version`);
+      } else if (user.password !== undefined) {
+        const { password: _stripped, ...rest } = user;
+        user = rest as User;
+      }
+    } else if (!incomingIsHashed) {
+      console.warn(`[Firestore] syncUser: BLOCKED non-hashed password write for ${user.email} — keeping existing version`);
+      if (existing?.password) {
         user = { ...user, password: existing.password };
+      } else {
+        const { password: _stripped, ...rest } = user;
+        user = rest as User;
       }
     }
 
