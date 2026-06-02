@@ -76,6 +76,7 @@ function removeUndefined(obj: any): any {
 
 class CloudAPI {
   private currentOrgId: string | null = null;
+  private appDataMergeInFlight = false;
 
   setOrg(orgId: string) {
     this.currentOrgId = orgId;
@@ -385,15 +386,41 @@ class CloudAPI {
           });
           if (merged > 0) {
             console.log(`[Firestore] fetchUsers: Merged ${merged} users from appData fallback`);
-            // Persist the merged list to org path so future reads are complete
-            const mergedList = Array.from(userMap.values());
-            this.remoteSet(DOC_KEYS.USERS, mergedList).then(ok => {
-              if (ok) console.log(`[Firestore] fetchUsers: Persisted ${mergedList.length} merged users to org path`);
-            });
+            // Persist the merged list to org path so future reads are complete.
+            // CRITICAL: this write must NOT clobber concurrent syncUser writes
+            // (e.g., password resets that landed between our initial read and
+            // this point). We re-fetch the latest cloud state and merge the
+            // missing appData users into THAT before writing. A session-level
+            // flag prevents parallel heartbeat calls from fanning out duplicate
+            // in-flight writes that would each carry a stale snapshot.
+            if (!this.appDataMergeInFlight) {
+              this.appDataMergeInFlight = true;
+              try {
+                const latestPersisted = await this.remoteGet(DOC_KEYS.USERS, [] as User[]);
+                const latestMap = new Map<string, User>();
+                latestPersisted.forEach(u => latestMap.set(u.email.toLowerCase(), u));
+                let stillMissing = 0;
+                appDataUsers.forEach(u => {
+                  const email = u.email.toLowerCase();
+                  if (!latestMap.has(email)) {
+                    latestMap.set(email, u);
+                    stillMissing++;
+                  }
+                });
+                if (stillMissing > 0) {
+                  const finalList = Array.from(latestMap.values());
+                  const ok = await this.remoteSet(DOC_KEYS.USERS, finalList);
+                  if (ok) console.log(`[Firestore] fetchUsers: Persisted ${finalList.length} merged users to org path`);
+                }
+              } finally {
+                this.appDataMergeInFlight = false;
+              }
+            }
           }
         }
       } catch (e) {
         console.warn('[Firestore] fetchUsers: appData user merge failed:', e);
+        this.appDataMergeInFlight = false;
       }
     }
 
