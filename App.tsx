@@ -308,7 +308,7 @@ const App: React.FC = () => {
       throw new Error("Invalid credentials or account not found.");
     }
 
-    console.log('[Auth] Found user:', found.email, '| Password is hashed:', isHashed(found.password), '| Password preview:', found.password.substring(0, 15) + '...');
+    console.log('[Auth] Found user:', found.email, '| Password is hashed:', isHashed(found.password));
 
     const passwordMatch = await verifyPassword(pass, found.password);
     if (!passwordMatch) {
