@@ -454,6 +454,9 @@ class CloudAPI {
     // active flag, name/role/storeId) carry a stale in-memory password hash that
     // can silently clobber a recently-reset password. Preserve the cloud password
     // by default; require explicit { changePassword: true } to write a new hash.
+    // Callers must only pass changePassword: true when they have just produced a
+    // fresh hash from a plaintext the user typed in this turn — otherwise the
+    // stale snapshot they carry will race a concurrent password change.
     if (existing?.password && isHashed(existing.password)) {
       const changePassword = options?.changePassword === true;
       const incomingIsHashed = !!user.password && isHashed(user.password);
