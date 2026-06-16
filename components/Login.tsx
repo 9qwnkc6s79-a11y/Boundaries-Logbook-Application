@@ -305,13 +305,12 @@ const Login: React.FC<LoginProps> = ({ onLogin, onSignup, onPasswordReset, users
                   <div className="flex justify-between items-center mb-2 px-1">
                     <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">Password</label>
                     {view === 'LOGIN' && (
-                      <button 
-                        type="button"
-                        onClick={() => { setView('FORGOT_PASSWORD'); setError(''); }}
-                        className="text-[10px] font-bold text-blue-600 hover:text-[#0F2B3C] transition-colors uppercase tracking-widest"
+                      <span
+                        title="Contact your manager to reset your password."
+                        className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest cursor-default select-none"
                       >
-                        Forgot?
-                      </button>
+                        Forgot? Ask a manager
+                      </span>
                     )}
                   </div>
                   <div className="relative group">

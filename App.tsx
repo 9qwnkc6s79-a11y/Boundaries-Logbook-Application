@@ -390,19 +390,13 @@ const App: React.FC = () => {
     setCurrentUser(secureUser);
   };
 
-  const handlePasswordResetAction = async (email: string, pass: string) => {
-    const freshData = await performCloudSync();
-    const userList = freshData?.users || allUsers;
-    const user = userList.find(u => u.email.toLowerCase() === email.toLowerCase().trim());
-
-    if (!user) {
-      throw new Error("Account not found.");
-    }
-
-    const hashed = await hashPassword(pass);
-    const updated = { ...user, password: hashed };
-    await db.syncUser(updated, { changePassword: true });
-    await performCloudSync(true);
+  const handlePasswordResetAction = async (_email: string, _pass: string) => {
+    // Unauthenticated self-serve password reset has been disabled because the
+    // previous flow had no identity verification — anyone who knew an email
+    // could overwrite that user's password. Password resets must now be
+    // performed by a manager/admin via Team Management (which requires the
+    // resetter to already be authenticated).
+    throw new Error("Password resets are handled by a manager. Please contact your manager.");
   };
 
   const handleForcePasswordChange = async (newPassword: string) => {
