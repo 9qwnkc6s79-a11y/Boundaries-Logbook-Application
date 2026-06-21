@@ -451,16 +451,20 @@ class CloudAPI {
     }
 
     // Password preservation: callers updating non-credential fields (home store,
-    // active flag, name/role/storeId) carry a stale in-memory password hash that
-    // can silently clobber a recently-reset password. Preserve the cloud password
-    // by default; require explicit { changePassword: true } to write a new hash.
-    if (existing?.password && isHashed(existing.password)) {
+    // active flag, name/role/storeId) carry a stale in-memory password that can
+    // silently clobber a recently-reset password. Preserve the cloud password by
+    // default — for ANY existing value, hashed or plaintext — and require an
+    // explicit { changePassword: true } to write a new value. Without this, a
+    // stale plaintext password in a caller's in-memory User object would
+    // overwrite the canonical cloud password.
+    if (existing?.password) {
       const changePassword = options?.changePassword === true;
+      const existingIsHashed = isHashed(existing.password);
       const incomingIsHashed = !!user.password && isHashed(user.password);
 
       if (!changePassword) {
         user = { ...user, password: existing.password };
-      } else if (!incomingIsHashed) {
+      } else if (existingIsHashed && !incomingIsHashed) {
         console.warn(`[Firestore] syncUser: BLOCKED non-hashed password write for ${user.email} — keeping hashed version`);
         user = { ...user, password: existing.password };
       }
