@@ -368,6 +368,14 @@ class CloudAPI {
     // When running under an org, also check appData for users that weren't
     // migrated (migrateToOrg wrote to the wrong Firestore path historically).
     // AppData users are added only if they don't already exist in the org.
+    //
+    // CRITICAL: The merge is IN-MEMORY ONLY. We do NOT persist the merged list
+    // back to the org path here. Doing so was a race: this fetch reads the org
+    // users at T0, builds a merged list, and writes it later. If a concurrent
+    // syncUser() (e.g., an admin password reset) wrote between T0 and the
+    // write here, our fire-and-forget write would clobber the new password
+    // with the stale snapshot. AppData users will be persisted to the org
+    // organically on their next syncUser write (login migration, edit, etc.).
     if (this.currentOrgId && firestore) {
       try {
         const fallbackRef = firestore.collection('appData').doc(DOC_KEYS.USERS);
@@ -384,12 +392,7 @@ class CloudAPI {
             }
           });
           if (merged > 0) {
-            console.log(`[Firestore] fetchUsers: Merged ${merged} users from appData fallback`);
-            // Persist the merged list to org path so future reads are complete
-            const mergedList = Array.from(userMap.values());
-            this.remoteSet(DOC_KEYS.USERS, mergedList).then(ok => {
-              if (ok) console.log(`[Firestore] fetchUsers: Persisted ${mergedList.length} merged users to org path`);
-            });
+            console.log(`[Firestore] fetchUsers: Merged ${merged} users from appData fallback (in-memory only)`);
           }
         }
       } catch (e) {
