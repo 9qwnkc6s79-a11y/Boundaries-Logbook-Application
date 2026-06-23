@@ -342,10 +342,16 @@ const App: React.FC = () => {
       needsMigration = true;
     }
 
-    // Save all migrations in a single write to avoid overwriting the hash
+    // Save all migrations in a single write to avoid overwriting the hash.
+    // changePassword stays false: this is an opportunistic upgrade, not a
+    // credential change. Passing true would disable syncUser's preservation
+    // guard and let a stale-session hash from this read clobber a concurrent
+    // password reset done from another device. With it false, syncUser writes
+    // the freshly-hashed password through only when the cloud is still
+    // plaintext, and otherwise preserves whatever the cloud currently holds.
     if (needsMigration) {
       try {
-        await db.syncUser(migratedUser, { changePassword: true });
+        await db.syncUser(migratedUser);
         console.log(`[Auth] Migrated user ${found.email} (hash=${!isHashed(found.password)}, orgId=${!found.orgId})`);
       } catch (e) {
         console.warn('[Auth] User migration failed:', e);
