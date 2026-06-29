@@ -60,6 +60,11 @@ const DOC_KEYS = {
   INVENTORY_COUNTS: 'inventoryCounts',
 };
 
+// Marker doc that records "the users list has been populated at least once".
+// Mirrors curriculumPopulated/recipesPopulated — guards against transient empty
+// reads silently clobbering everyone else's hashed password.
+const USERS_POPULATED_KEY = 'usersPopulated';
+
 function removeUndefined(obj: any): any {
   if (Array.isArray(obj)) {
     return obj.map(item => removeUndefined(item));
@@ -428,10 +433,30 @@ class CloudAPI {
       await new Promise(r => setTimeout(r, 500));
       currentUsers = await this.remoteGet(DOC_KEYS.USERS, [] as User[]);
       if (currentUsers.length === 0) {
-        console.warn('[Firestore] syncUser: Retry also returned 0 users — proceeding (may be fresh deployment)');
+        // DATA LOSS PREVENTION: if the cloud has ever been populated with users,
+        // a 0-user read after retry is a transient failure — not a fresh deployment.
+        // Writing here would clobber every other user's record (and their hashed
+        // password), causing them to be unable to log in on next fetch. Same pattern
+        // used for curriculum/recipes below.
+        const populated = await this.remoteGet<{ populated: boolean }>(USERS_POPULATED_KEY, { populated: false });
+        if (populated.populated) {
+          console.error('[Firestore] syncUser: Users read empty but populated marker set — REFUSING to write (would wipe other users)');
+          throw new Error('Cloud user list unavailable. Refusing to write to avoid clobbering other users — please retry.');
+        }
+        console.warn('[Firestore] syncUser: Retry also returned 0 users — proceeding (fresh deployment, no populated marker)');
       } else {
         console.log(`[Firestore] syncUser: Retry succeeded, got ${currentUsers.length} users`);
       }
+    }
+
+    // First successful read of a non-empty user list arms the populated marker
+    // so subsequent transient 0-reads refuse to write. Fire-and-forget.
+    if (currentUsers.length > 0) {
+      this.remoteGet<{ populated: boolean }>(USERS_POPULATED_KEY, { populated: false }).then(p => {
+        if (!p.populated) {
+          this.remoteSet(USERS_POPULATED_KEY, { populated: true, at: new Date().toISOString() });
+        }
+      });
     }
 
     const userMap = new Map<string, User>();
