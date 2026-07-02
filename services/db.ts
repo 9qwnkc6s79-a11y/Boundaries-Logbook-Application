@@ -356,6 +356,20 @@ class CloudAPI {
     }
   }
 
+  private async readAppDataUsers(): Promise<User[]> {
+    if (!this.currentOrgId || !firestore) return [];
+    try {
+      const fallbackRef = firestore.collection('appData').doc(DOC_KEYS.USERS);
+      const fallbackSnap = await fallbackRef.get();
+      if (!fallbackSnap.exists) return [];
+      const fallbackData = fallbackSnap.data();
+      return (fallbackData?.data as User[]) || [];
+    } catch (e) {
+      console.warn('[Firestore] readAppDataUsers: failed:', e);
+      return [];
+    }
+  }
+
   async fetchUsers(defaults: User[]): Promise<User[]> {
     console.log('[Firestore] fetchUsers: Loading users...');
     const persistedUsers = await this.remoteGet(DOC_KEYS.USERS, [] as User[]);
@@ -368,33 +382,23 @@ class CloudAPI {
     // When running under an org, also check appData for users that weren't
     // migrated (migrateToOrg wrote to the wrong Firestore path historically).
     // AppData users are added only if they don't already exist in the org.
-    if (this.currentOrgId && firestore) {
-      try {
-        const fallbackRef = firestore.collection('appData').doc(DOC_KEYS.USERS);
-        const fallbackSnap = await fallbackRef.get();
-        if (fallbackSnap.exists) {
-          const fallbackData = fallbackSnap.data();
-          const appDataUsers: User[] = fallbackData?.data || [];
-          let merged = 0;
-          appDataUsers.forEach(u => {
-            const email = u.email.toLowerCase();
-            if (!userMap.has(email)) {
-              userMap.set(email, u);
-              merged++;
-            }
-          });
-          if (merged > 0) {
-            console.log(`[Firestore] fetchUsers: Merged ${merged} users from appData fallback`);
-            // Persist the merged list to org path so future reads are complete
-            const mergedList = Array.from(userMap.values());
-            this.remoteSet(DOC_KEYS.USERS, mergedList).then(ok => {
-              if (ok) console.log(`[Firestore] fetchUsers: Persisted ${mergedList.length} merged users to org path`);
-            });
-          }
-        }
-      } catch (e) {
-        console.warn('[Firestore] fetchUsers: appData user merge failed:', e);
+    //
+    // We do NOT persist the merged list back here. A fire-and-forget write
+    // from fetchUsers races with concurrent syncUser writes: if the merge
+    // write is in flight when syncUser (e.g., a password reset) lands, the
+    // stale list captured before the reset can overwrite the new hash.
+    // syncUser handles the merge itself atomically with each write.
+    const appDataUsers = await this.readAppDataUsers();
+    let merged = 0;
+    appDataUsers.forEach(u => {
+      const email = u.email.toLowerCase();
+      if (!userMap.has(email)) {
+        userMap.set(email, u);
+        merged++;
       }
+    });
+    if (merged > 0) {
+      console.log(`[Firestore] fetchUsers: Merged ${merged} users from appData fallback (in-memory only)`);
     }
 
     // Add any missing default users IN MEMORY ONLY — never write defaults back
@@ -436,6 +440,22 @@ class CloudAPI {
 
     const userMap = new Map<string, User>();
     currentUsers.forEach(u => userMap.set(u.email.toLowerCase(), u));
+
+    // Merge in any appData-only users so the write we're about to do preserves
+    // them. Without this, syncUser only sees the org path and any user still
+    // living in appData would silently vanish from the persisted list.
+    const appDataUsers = await this.readAppDataUsers();
+    let appDataMerged = 0;
+    appDataUsers.forEach(u => {
+      const email = u.email.toLowerCase();
+      if (!userMap.has(email)) {
+        userMap.set(email, u);
+        appDataMerged++;
+      }
+    });
+    if (appDataMerged > 0) {
+      console.log(`[Firestore] syncUser: Merged ${appDataMerged} appData-only user(s) into write set`);
+    }
 
     const existing = userMap.get(user.email.toLowerCase());
 
