@@ -321,14 +321,22 @@ const App: React.FC = () => {
       throw new Error("Your account has been deactivated. Contact your manager.");
     }
 
-    // Build a single updated user object for any needed migrations
+    // Build a single updated user object for any needed migrations.
+    // Track password vs. non-password migration separately: passing
+    // { changePassword: true } tells syncUser it may overwrite the cloud
+    // password hash, so we must only set it when we actually re-hashed.
+    // Otherwise a login on a legacy account (e.g. missing orgId) would
+    // write the login-time hash back over a concurrent password reset,
+    // silently locking the user out.
     let migratedUser = { ...found };
+    let passwordRehashed = false;
     let needsMigration = false;
 
     // Auto-migrate plaintext password to hashed on successful login
     if (!isHashed(found.password)) {
       try {
         migratedUser.password = await hashPassword(pass);
+        passwordRehashed = true;
         needsMigration = true;
         console.log(`[Auth] Will migrate password hash for ${found.email}`);
       } catch (e) {
@@ -336,17 +344,17 @@ const App: React.FC = () => {
       }
     }
 
-    // Ensure user has orgId set (migrate legacy users)
+    // Ensure user has orgId set (migrate legacy users). This does NOT
+    // touch credentials, so we must NOT flip changePassword for it alone.
     if (!found.orgId) {
       migratedUser.orgId = DEFAULT_ORG_ID;
       needsMigration = true;
     }
 
-    // Save all migrations in a single write to avoid overwriting the hash
     if (needsMigration) {
       try {
-        await db.syncUser(migratedUser, { changePassword: true });
-        console.log(`[Auth] Migrated user ${found.email} (hash=${!isHashed(found.password)}, orgId=${!found.orgId})`);
+        await db.syncUser(migratedUser, { changePassword: passwordRehashed });
+        console.log(`[Auth] Migrated user ${found.email} (rehashed=${passwordRehashed}, orgIdSet=${!found.orgId})`);
       } catch (e) {
         console.warn('[Auth] User migration failed:', e);
       }
