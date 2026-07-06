@@ -375,20 +375,50 @@ class CloudAPI {
         if (fallbackSnap.exists) {
           const fallbackData = fallbackSnap.data();
           const appDataUsers: User[] = fallbackData?.data || [];
-          let merged = 0;
-          appDataUsers.forEach(u => {
-            const email = u.email.toLowerCase();
-            if (!userMap.has(email)) {
-              userMap.set(email, u);
-              merged++;
-            }
-          });
-          if (merged > 0) {
-            console.log(`[Firestore] fetchUsers: Merged ${merged} users from appData fallback`);
-            // Persist the merged list to org path so future reads are complete
-            const mergedList = Array.from(userMap.values());
-            this.remoteSet(DOC_KEYS.USERS, mergedList).then(ok => {
-              if (ok) console.log(`[Firestore] fetchUsers: Persisted ${mergedList.length} merged users to org path`);
+          const missingFromOrg = appDataUsers.filter(u => !userMap.has(u.email.toLowerCase()));
+
+          if (missingFromOrg.length > 0) {
+            console.log(`[Firestore] fetchUsers: Found ${missingFromOrg.length} appData users missing from org — backfilling atomically`);
+
+            // Update the in-memory map immediately so the caller sees the merged list.
+            missingFromOrg.forEach(u => userMap.set(u.email.toLowerCase(), u));
+
+            // Persist the backfill via a transaction. The previous fire-and-forget
+            // remoteSet here read cloud, then wrote seconds later — a syncUser
+            // password change committing between those two moments got clobbered
+            // when this write landed with the pre-change users array. The
+            // transaction re-reads the org doc atomically and only adds the
+            // missing appData users, so it can never overwrite a fresher password.
+            const collectionPath = this.getCollectionPath();
+            const orgDocRef = collectionPath.includes('/')
+              ? firestore.doc(`${collectionPath}/${DOC_KEYS.USERS}`)
+              : firestore.collection(collectionPath).doc(DOC_KEYS.USERS);
+
+            firestore.runTransaction(async (tx: any) => {
+              const snap = await tx.get(orgDocRef);
+              const freshOrgUsers: User[] = (snap.exists && Array.isArray(snap.data()?.data))
+                ? snap.data().data
+                : [];
+              const freshMap = new Map<string, User>();
+              freshOrgUsers.forEach(u => freshMap.set(u.email.toLowerCase(), u));
+
+              let added = 0;
+              missingFromOrg.forEach(u => {
+                if (!freshMap.has(u.email.toLowerCase())) {
+                  freshMap.set(u.email.toLowerCase(), u);
+                  added++;
+                }
+              });
+
+              if (added === 0) return;
+
+              const merged = removeUndefined(Array.from(freshMap.values()));
+              tx.set(orgDocRef, {
+                data: merged,
+                lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+              });
+            }).catch((e: any) => {
+              console.warn('[Firestore] fetchUsers: appData backfill transaction failed:', e);
             });
           }
         }
@@ -419,57 +449,80 @@ class CloudAPI {
   }
 
   async syncUser(user: User, options?: { changePassword?: boolean }): Promise<User[]> {
-    let currentUsers = await this.remoteGet(DOC_KEYS.USERS, [] as User[]);
+    if (!firestore) {
+      console.error('[Firestore] syncUser: Firestore not initialized — cannot save user');
+      throw new Error('Firestore unavailable — cannot save user');
+    }
 
-    // Safety: if read returned empty, retry once. A transient read failure
-    // returning [] would cause us to write ONLY this user, destroying everyone else.
-    if (currentUsers.length === 0) {
-      console.warn('[Firestore] syncUser: First read returned 0 users, retrying...');
-      await new Promise(r => setTimeout(r, 500));
-      currentUsers = await this.remoteGet(DOC_KEYS.USERS, [] as User[]);
-      if (currentUsers.length === 0) {
-        console.warn('[Firestore] syncUser: Retry also returned 0 users — proceeding (may be fresh deployment)');
-      } else {
-        console.log(`[Firestore] syncUser: Retry succeeded, got ${currentUsers.length} users`);
+    // Atomic read-modify-write. The users doc is a single Firestore document
+    // holding the entire user array, so any non-transactional syncUser was
+    // vulnerable to lost-update races: heartbeat sync, Toast employee sync,
+    // an admin toggling `active`, and a password reset can each read the doc,
+    // apply their local change, then race to write. Whoever writes last wins
+    // and silently reverts every intervening change — including passwords.
+    // runTransaction gives us a strongly-consistent read and Firestore
+    // auto-retries on concurrent writes, so a concurrent write can never
+    // overwrite ours (or vice versa) without one side re-reading.
+    const collectionPath = this.getCollectionPath();
+    const docRef = collectionPath.includes('/')
+      ? firestore.doc(`${collectionPath}/${DOC_KEYS.USERS}`)
+      : firestore.collection(collectionPath).doc(DOC_KEYS.USERS);
+
+    return firestore.runTransaction(async (tx: any) => {
+      const snap = await tx.get(docRef);
+      const currentUsers: User[] = (snap.exists && Array.isArray(snap.data()?.data))
+        ? snap.data().data
+        : [];
+
+      // Refuse to potentially wipe every account: if the doc EXISTS and we
+      // read it strongly-consistent as empty (or non-array), something is
+      // wrong — a fresh deployment would have snap.exists === false.
+      if (snap.exists && currentUsers.length === 0) {
+        throw new Error(`syncUser aborted: users doc read as empty; refusing to overwrite with a single record.`);
       }
-    }
 
-    const userMap = new Map<string, User>();
-    currentUsers.forEach(u => userMap.set(u.email.toLowerCase(), u));
+      const userMap = new Map<string, User>();
+      currentUsers.forEach(u => userMap.set(u.email.toLowerCase(), u));
 
-    const existing = userMap.get(user.email.toLowerCase());
+      const existing = userMap.get(user.email.toLowerCase());
 
-    // Backstop against silent identity collisions: if a different user record
-    // (different id) already occupies this email, refuse to overwrite. Callers
-    // that intend to update an existing user must pass that user's id; callers
-    // that intend to link external accounts (e.g. Toast sync) must look up the
-    // existing record by email first and update it, not create a new one.
-    if (existing && existing.id && user.id && existing.id !== user.id) {
-      const msg = `syncUser refused: incoming id ${user.id} would overwrite existing user ${existing.id} at ${user.email}`;
-      console.error(`[Firestore] ${msg}`);
-      throw new Error(`A different account already exists at ${user.email}. Update the existing record instead of creating a new one.`);
-    }
-
-    // Password preservation: callers updating non-credential fields (home store,
-    // active flag, name/role/storeId) carry a stale in-memory password hash that
-    // can silently clobber a recently-reset password. Preserve the cloud password
-    // by default; require explicit { changePassword: true } to write a new hash.
-    if (existing?.password && isHashed(existing.password)) {
-      const changePassword = options?.changePassword === true;
-      const incomingIsHashed = !!user.password && isHashed(user.password);
-
-      if (!changePassword) {
-        user = { ...user, password: existing.password };
-      } else if (!incomingIsHashed) {
-        console.warn(`[Firestore] syncUser: BLOCKED non-hashed password write for ${user.email} — keeping hashed version`);
-        user = { ...user, password: existing.password };
+      // Backstop against silent identity collisions: if a different user record
+      // (different id) already occupies this email, refuse to overwrite.
+      if (existing && existing.id && user.id && existing.id !== user.id) {
+        throw new Error(`A different account already exists at ${user.email}. Update the existing record instead of creating a new one.`);
       }
-    }
 
-    userMap.set(user.email.toLowerCase(), user);
-    const next = Array.from(userMap.values());
-    await this.remoteSet(DOC_KEYS.USERS, next);
-    return next;
+      // Password preservation. The freshly-read cloud value is authoritative:
+      // preserve it unless the caller explicitly passed { changePassword: true }
+      // AND the incoming password is already a hash. This closes two lockout
+      // paths: (a) callers touching non-credential fields (home store, active,
+      // name/role) carrying a stale in-memory password, and (b) the migration
+      // window where the cloud password is still plaintext — the previous
+      // guard skipped preservation in that case, letting a stale hash overwrite
+      // a real, in-flight password change.
+      if (existing?.password) {
+        const changePassword = options?.changePassword === true;
+        const incomingIsHashed = !!user.password && isHashed(user.password);
+
+        if (!changePassword) {
+          user = { ...user, password: existing.password };
+        } else if (!incomingIsHashed) {
+          console.warn(`[Firestore] syncUser: BLOCKED non-hashed password write for ${user.email} — keeping cloud version`);
+          user = { ...user, password: existing.password };
+        }
+      }
+
+      userMap.set(user.email.toLowerCase(), user);
+      const next = Array.from(userMap.values());
+      const cleaned = removeUndefined(next);
+
+      tx.set(docRef, {
+        data: cleaned,
+        lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+      });
+
+      return next;
+    });
   }
 
   async fetchSubmissions(): Promise<ChecklistSubmission[]> {
