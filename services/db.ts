@@ -463,6 +463,11 @@ class CloudAPI {
       } else if (!incomingIsHashed) {
         console.warn(`[Firestore] syncUser: BLOCKED non-hashed password write for ${user.email} — keeping hashed version`);
         user = { ...user, password: existing.password };
+      } else if (user.password !== existing.password) {
+        // Both hashes present but they differ. This is legitimate for a real
+        // password reset, but log it so a silent overwrite from a stale
+        // snapshot is traceable.
+        console.log(`[Firestore] syncUser: Overwriting cloud password hash for ${user.email} (changePassword=true, hash differs)`);
       }
     }
 
