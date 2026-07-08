@@ -428,10 +428,27 @@ class CloudAPI {
       await new Promise(r => setTimeout(r, 500));
       currentUsers = await this.remoteGet(DOC_KEYS.USERS, [] as User[]);
       if (currentUsers.length === 0) {
-        console.warn('[Firestore] syncUser: Retry also returned 0 users — proceeding (may be fresh deployment)');
+        console.warn('[Firestore] syncUser: Retry also returned 0 users');
       } else {
         console.log(`[Firestore] syncUser: Retry succeeded, got ${currentUsers.length} users`);
       }
+    }
+
+    // DATA LOSS PREVENTION: if reads keep returning empty but we have a marker
+    // saying users were previously populated, this is a transient read failure —
+    // NOT a fresh deployment. Refuse to write, or we'll wipe every user except
+    // this one. That's how Heath and others were disappearing.
+    const USERS_POPULATED_KEY = 'usersPopulated';
+    const usersPopulated = await this.remoteGet<{ populated: boolean }>(USERS_POPULATED_KEY, { populated: false });
+    if (currentUsers.length === 0 && usersPopulated.populated) {
+      const msg = `syncUser REFUSED: users read empty but marker set — refusing to write and wipe other users. Retry later.`;
+      console.error(`[Firestore] ${msg}`);
+      throw new Error('User database temporarily unavailable. Please try again in a moment.');
+    }
+
+    // First successful non-empty read seals the marker.
+    if (currentUsers.length > 0 && !usersPopulated.populated) {
+      this.remoteSet(USERS_POPULATED_KEY, { populated: true, at: new Date().toISOString() });
     }
 
     const userMap = new Map<string, User>();
