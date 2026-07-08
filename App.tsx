@@ -345,7 +345,7 @@ const App: React.FC = () => {
     // Save all migrations in a single write to avoid overwriting the hash
     if (needsMigration) {
       try {
-        await db.syncUser(migratedUser, { changePassword: true });
+        await db.syncUser(migratedUser, { changePassword: true, overwriteExistingPassword: true });
         console.log(`[Auth] Migrated user ${found.email} (hash=${!isHashed(found.password)}, orgId=${!found.orgId})`);
       } catch (e) {
         console.warn('[Auth] User migration failed:', e);
@@ -401,7 +401,7 @@ const App: React.FC = () => {
 
     const hashed = await hashPassword(pass);
     const updated = { ...user, password: hashed };
-    await db.syncUser(updated, { changePassword: true });
+    await db.syncUser(updated, { changePassword: true, overwriteExistingPassword: true });
     await performCloudSync(true);
   };
 
@@ -409,7 +409,7 @@ const App: React.FC = () => {
     if (!forcePasswordChangeUser) return;
     const hashed = await hashPassword(newPassword);
     const updated = { ...forcePasswordChangeUser, password: hashed, mustChangePassword: false };
-    await db.syncUser(updated, { changePassword: true });
+    await db.syncUser(updated, { changePassword: true, overwriteExistingPassword: true });
     await performCloudSync(true);
 
     // Complete login
@@ -777,6 +777,16 @@ const App: React.FC = () => {
   const handleSyncToastEmployees = useCallback(async (toastEmployees: ToastSyncEmployee[]) => {
     console.log('[App] Syncing Toast employees as users...', toastEmployees.length);
 
+    // Read the CANONICAL user list from Firestore. Using the in-memory
+    // `allUsers` snapshot here is unsafe: if it hasn't finished loading
+    // yet (initial page load, transient sync failure), a returning Toast
+    // employee gets misclassified as "new", we build a user with the
+    // deterministic id `toast-<guid>` and password hash('temp123'), and
+    // syncUser then overwrites their real password in Firestore because
+    // the ids match. Reading fresh users prevents that.
+    const canonicalUsers = await db.fetchUsers([]);
+    console.log('[App] Toast sync working from canonical user list:', canonicalUsers.length);
+
     let newCount = 0;
 
     for (const emp of toastEmployees) {
@@ -788,8 +798,8 @@ const App: React.FC = () => {
       // collides with real staff accounts that follow the same convention.
       const finalEmail = (emp.email || `${emp.firstName.toLowerCase()}.${emp.lastName.toLowerCase()}@boundariescoffee.com`).toLowerCase();
 
-      const existingByGuid = allUsers.find(u => u.toastEmployeeGuid === emp.guid);
-      const existingByEmail = allUsers.find(u => u.email.toLowerCase() === finalEmail);
+      const existingByGuid = canonicalUsers.find(u => u.toastEmployeeGuid === emp.guid);
+      const existingByEmail = canonicalUsers.find(u => u.email.toLowerCase() === finalEmail);
       const existing = existingByGuid || existingByEmail;
 
       if (existing) {

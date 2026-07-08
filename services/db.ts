@@ -418,7 +418,7 @@ class CloudAPI {
     return result;
   }
 
-  async syncUser(user: User, options?: { changePassword?: boolean }): Promise<User[]> {
+  async syncUser(user: User, options?: { changePassword?: boolean; overwriteExistingPassword?: boolean }): Promise<User[]> {
     let currentUsers = await this.remoteGet(DOC_KEYS.USERS, [] as User[]);
 
     // Safety: if read returned empty, retry once. A transient read failure
@@ -453,12 +453,20 @@ class CloudAPI {
     // Password preservation: callers updating non-credential fields (home store,
     // active flag, name/role/storeId) carry a stale in-memory password hash that
     // can silently clobber a recently-reset password. Preserve the cloud password
-    // by default; require explicit { changePassword: true } to write a new hash.
+    // by default; require explicit { changePassword: true } to write a new hash,
+    // AND require { overwriteExistingPassword: true } when a hashed password
+    // already exists — otherwise a "create-new-user" caller working from a stale
+    // user list would silently reset an existing user's password
+    // (this is how Toast re-sync could reset a user back to 'temp123').
     if (existing?.password && isHashed(existing.password)) {
       const changePassword = options?.changePassword === true;
+      const overwriteExistingPassword = options?.overwriteExistingPassword === true;
       const incomingIsHashed = !!user.password && isHashed(user.password);
 
       if (!changePassword) {
+        user = { ...user, password: existing.password };
+      } else if (!overwriteExistingPassword) {
+        console.warn(`[Firestore] syncUser: caller for ${user.email} passed changePassword without overwriteExistingPassword, but an existing hashed password was found. Preserving existing password to avoid silent overwrite.`);
         user = { ...user, password: existing.password };
       } else if (!incomingIsHashed) {
         console.warn(`[Firestore] syncUser: BLOCKED non-hashed password write for ${user.email} — keeping hashed version`);

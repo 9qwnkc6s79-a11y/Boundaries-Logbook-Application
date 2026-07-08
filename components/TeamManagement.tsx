@@ -303,7 +303,11 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
         updatedUser.password = await hashPassword(editForm.newPassword);
       }
 
-      await db.syncUser(updatedUser, { changePassword: editForm.resetPassword && !!editForm.newPassword });
+      const willResetPassword = editForm.resetPassword && !!editForm.newPassword;
+      await db.syncUser(updatedUser, {
+        changePassword: willResetPassword,
+        overwriteExistingPassword: willResetPassword,
+      });
       onUserUpdated();
 
       // If password was reset, show credentials
