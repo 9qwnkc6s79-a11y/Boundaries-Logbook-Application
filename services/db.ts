@@ -264,6 +264,48 @@ class CloudAPI {
     console.log(`[Firestore] migrateToOrg(${orgId}): Starting migration from appData...`);
 
     try {
+      // PASSWORD PRESERVATION: A one-shot migration marker prevents this
+      // routine from re-running on the next app load and clobbering the
+      // org path (which is the only place password changes get written)
+      // with the stale appData snapshot. Users were being reverted to
+      // their pre-reset passwords when a transient fetchOrg failure at
+      // startup made initOrg believe the org didn't exist.
+      const MIGRATION_MARKER_PATH = `organizations/${orgId}/config/migrationDone`;
+      const markerRef = firestore.doc(MIGRATION_MARKER_PATH);
+      try {
+        const markerSnap = await markerRef.get();
+        if (markerSnap.exists) {
+          console.warn(`[Firestore] migrateToOrg(${orgId}): SKIPPED — migration marker present. Refusing to overwrite org data (would clobber password changes).`);
+          return true;
+        }
+      } catch (e) {
+        console.error(`[Firestore] migrateToOrg(${orgId}): Marker read failed — refusing to migrate:`, e);
+        return false;
+      }
+
+      // Also refuse if the target org already has any users. If we can see
+      // users at the org path, migration is not needed and running it would
+      // just overwrite them.
+      try {
+        const targetUsersRef = firestore.doc(`organizations/${orgId}/data/users`);
+        const targetUsersSnap = await targetUsersRef.get();
+        if (targetUsersSnap.exists) {
+          const targetData = targetUsersSnap.data();
+          const targetUsers = targetData?.data;
+          if (Array.isArray(targetUsers) && targetUsers.length > 0) {
+            console.warn(`[Firestore] migrateToOrg(${orgId}): SKIPPED — target org already has ${targetUsers.length} user(s). Sealing marker.`);
+            await markerRef.set({
+              at: new Date().toISOString(),
+              reason: 'target-populated'
+            });
+            return true;
+          }
+        }
+      } catch (e) {
+        console.error(`[Firestore] migrateToOrg(${orgId}): Target users read failed — refusing to migrate:`, e);
+        return false;
+      }
+
       // Copy each document from appData to organizations/{orgId}/data/{docKey}
       // Uses the correct 4-segment path (collection/doc/collection/doc)
       const docKeys = Object.values(DOC_KEYS);
@@ -298,6 +340,12 @@ class CloudAPI {
           console.log(`[Firestore] migrateToOrg: Updated ${updatedUsers.length} users with orgId=${orgId}`);
         }
       }
+
+      // Seal the migration marker so this can never run again for this org.
+      await markerRef.set({
+        at: new Date().toISOString(),
+        reason: 'completed'
+      });
 
       console.log(`[Firestore] migrateToOrg(${orgId}): Migration complete`);
       return true;
@@ -471,13 +519,23 @@ class CloudAPI {
     // active flag, name/role/storeId) carry a stale in-memory password hash that
     // can silently clobber a recently-reset password. Preserve the cloud password
     // by default; require explicit { changePassword: true } to write a new hash.
-    if (existing?.password && isHashed(existing.password)) {
+    //
+    // This runs whenever `existing.password` is set at all — plaintext or hashed —
+    // so an in-flight migration doesn't leave passwords unprotected from stale
+    // writes. A hashed password may not be downgraded to plaintext even when
+    // changePassword is true (only the migration login path does that intentionally,
+    // and it hashes before calling us).
+    if (existing?.password) {
       const changePassword = options?.changePassword === true;
+      const existingIsHashed = isHashed(existing.password);
       const incomingIsHashed = !!user.password && isHashed(user.password);
 
       if (!changePassword) {
+        if (user.password !== existing.password) {
+          console.log(`[Firestore] syncUser: Preserving stored password for ${user.email} (no changePassword flag)`);
+        }
         user = { ...user, password: existing.password };
-      } else if (!incomingIsHashed) {
+      } else if (existingIsHashed && !incomingIsHashed) {
         console.warn(`[Firestore] syncUser: BLOCKED non-hashed password write for ${user.email} — keeping hashed version`);
         user = { ...user, password: existing.password };
       }
