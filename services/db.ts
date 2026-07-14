@@ -101,26 +101,13 @@ class CloudAPI {
     }
     const collectionPath = this.getCollectionPath();
 
-    // Helper to try appData fallback
-    const tryAppDataFallback = async (): Promise<T | null> => {
-      if (!this.currentOrgId) return null;
-      try {
-        console.log(`[Firestore] remoteGet(${docId}): Trying appData fallback`);
-        const fallbackRef = firestore.collection('appData').doc(docId);
-        const fallbackSnap = await fallbackRef.get();
-        if (fallbackSnap.exists) {
-          const fallbackData = fallbackSnap.data();
-          const result = fallbackData && fallbackData.data ? fallbackData.data : null;
-          if (result && (!Array.isArray(result) || result.length > 0)) {
-            console.log(`[Firestore] remoteGet(${docId}): Retrieved ${Array.isArray(result) ? result.length + ' items' : 'data'} from appData fallback`);
-            return result;
-          }
-        }
-      } catch (fallbackError) {
-        console.error(`[Firestore] remoteGet(${docId}): appData fallback failed:`, fallbackError);
-      }
-      return null;
-    };
+    // NOTE: The legacy appData fallback was removed deliberately. It served a
+    // months-stale pre-migration snapshot whenever the org-path read flaked,
+    // which then got written back by read-modify-write callers (syncUser,
+    // pushProgress, recipe merge) — resurrecting deleted users, reverting
+    // passwords/roles, and wiping progress. The org path is the sole source
+    // of truth; transient empty reads are handled by populated-markers at the
+    // call sites, which refuse destructive writes.
 
     try {
       const docRef = collectionPath.includes('/')
@@ -129,9 +116,6 @@ class CloudAPI {
       const snap = await docRef.get();
 
       if (!snap.exists) {
-        // Document doesn't exist in org path, try appData fallback
-        const fallbackResult = await tryAppDataFallback();
-        if (fallbackResult !== null) return fallbackResult;
         console.log(`[Firestore] remoteGet(${collectionPath}/${docId}): Document doesn't exist, returning default`);
         return defaultValue;
       }
@@ -139,11 +123,8 @@ class CloudAPI {
       const data = snap.data();
       const result = data && data.data ? data.data : null;
 
-      // If org path exists but has no data or empty array, try appData fallback
       if (result === null || (Array.isArray(result) && result.length === 0)) {
-        console.log(`[Firestore] remoteGet(${collectionPath}/${docId}): Org path empty, trying appData fallback`);
-        const fallbackResult = await tryAppDataFallback();
-        if (fallbackResult !== null) return fallbackResult;
+        console.log(`[Firestore] remoteGet(${collectionPath}/${docId}): Empty, returning default`);
         return defaultValue;
       }
 
@@ -151,9 +132,6 @@ class CloudAPI {
       return result;
     } catch (error) {
       console.error(`[Firestore] remoteGet(${collectionPath}/${docId}): Error:`, error);
-      // On error, also try appData fallback
-      const fallbackResult = await tryAppDataFallback();
-      if (fallbackResult !== null) return fallbackResult;
       return defaultValue;
     }
   }
@@ -365,35 +343,39 @@ class CloudAPI {
     const userMap = new Map<string, User>();
     persistedUsers.forEach(u => userMap.set(u.email.toLowerCase(), u));
 
-    // When running under an org, also check appData for users that weren't
-    // migrated (migrateToOrg wrote to the wrong Firestore path historically).
-    // AppData users are added only if they don't already exist in the org.
-    if (this.currentOrgId && firestore) {
+    // Legacy appData migration merge — runs EXACTLY ONCE (marker-guarded) and
+    // only against a non-empty org read. Re-running it on flaky reads kept
+    // resurrecting a months-stale user snapshot: deleted accounts reappeared,
+    // and users created after the snapshot (e.g. re-added staff) were dropped
+    // when the merged list was persisted back.
+    const APPDATA_MERGED_KEY = 'appDataUsersMerged';
+    if (this.currentOrgId && firestore && persistedUsers.length > 0) {
       try {
-        const fallbackRef = firestore.collection('appData').doc(DOC_KEYS.USERS);
-        const fallbackSnap = await fallbackRef.get();
-        if (fallbackSnap.exists) {
-          const fallbackData = fallbackSnap.data();
-          const appDataUsers: User[] = fallbackData?.data || [];
-          let merged = 0;
-          appDataUsers.forEach(u => {
-            const email = u.email.toLowerCase();
-            if (!userMap.has(email)) {
-              userMap.set(email, u);
-              merged++;
-            }
-          });
-          if (merged > 0) {
-            console.log(`[Firestore] fetchUsers: Merged ${merged} users from appData fallback`);
-            // Persist the merged list to org path so future reads are complete
-            const mergedList = Array.from(userMap.values());
-            this.remoteSet(DOC_KEYS.USERS, mergedList).then(ok => {
-              if (ok) console.log(`[Firestore] fetchUsers: Persisted ${mergedList.length} merged users to org path`);
+        const mergedMarker = await this.remoteGet<{ done: boolean }>(APPDATA_MERGED_KEY, { done: false });
+        if (!mergedMarker.done) {
+          const fallbackRef = firestore.collection('appData').doc(DOC_KEYS.USERS);
+          const fallbackSnap = await fallbackRef.get();
+          if (fallbackSnap.exists) {
+            const fallbackData = fallbackSnap.data();
+            const appDataUsers: User[] = fallbackData?.data || [];
+            let merged = 0;
+            appDataUsers.forEach(u => {
+              const email = u.email.toLowerCase();
+              if (!userMap.has(email)) {
+                userMap.set(email, u);
+                merged++;
+              }
             });
+            if (merged > 0) {
+              console.log(`[Firestore] fetchUsers: One-time merge of ${merged} legacy appData users`);
+              const mergedList = Array.from(userMap.values());
+              await this.remoteSet(DOC_KEYS.USERS, mergedList);
+            }
           }
+          await this.remoteSet(APPDATA_MERGED_KEY, { done: true, at: new Date().toISOString() });
         }
       } catch (e) {
-        console.warn('[Firestore] fetchUsers: appData user merge failed:', e);
+        console.warn('[Firestore] fetchUsers: legacy appData merge failed:', e);
       }
     }
 
@@ -684,8 +666,31 @@ class CloudAPI {
     return this.remoteGet(DOC_KEYS.PROGRESS, []);
   }
 
+  // DATA LOSS PREVENTION: pushProgress/deleteProgress are read-modify-write.
+  // A transient empty read would make the merged result contain only the
+  // incoming entries, wiping everyone else's training progress. Once progress
+  // has been seen non-empty (marker), an empty read refuses to write.
+  private async fetchProgressForWrite(): Promise<UserProgress[]> {
+    const PROGRESS_POPULATED_KEY = 'progressPopulated';
+    let existing = await this.fetchProgress();
+    const marker = await this.remoteGet<{ populated: boolean }>(PROGRESS_POPULATED_KEY, { populated: false });
+    if (existing.length === 0 && marker.populated) {
+      // Retry once, then refuse rather than wipe.
+      await new Promise(r => setTimeout(r, 500));
+      existing = await this.fetchProgress();
+      if (existing.length === 0) {
+        console.error('[Firestore] pushProgress REFUSED: progress read empty but marker set');
+        throw new Error('Training progress temporarily unavailable. Please try again in a moment.');
+      }
+    }
+    if (existing.length > 0 && !marker.populated) {
+      this.remoteSet(PROGRESS_POPULATED_KEY, { populated: true, at: new Date().toISOString() });
+    }
+    return existing;
+  }
+
   async pushProgress(progress: UserProgress[]): Promise<void> {
-    const existing = await this.fetchProgress();
+    const existing = await this.fetchProgressForWrite();
     const merged = [...existing];
     progress.forEach(p => {
       const idx = merged.findIndex(m => m.userId === p.userId && m.lessonId === p.lessonId);
@@ -696,7 +701,7 @@ class CloudAPI {
   }
 
   async deleteProgress(userId: string, lessonId: string): Promise<void> {
-    const existing = await this.fetchProgress();
+    const existing = await this.fetchProgressForWrite();
     const filtered = existing.filter(p => !(p.userId === userId && p.lessonId === lessonId));
     await this.remoteSet(DOC_KEYS.PROGRESS, filtered);
   }

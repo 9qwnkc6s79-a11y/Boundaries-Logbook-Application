@@ -213,9 +213,14 @@ const App: React.FC = () => {
         if (savedUser && savedUser.active !== false) {
           console.log('[Auth] Restored session for:', savedUser.email);
           setCurrentUser(savedUser);
-        } else {
-          // User not found or deactivated - clear invalid session
+        } else if (savedUser && savedUser.active === false) {
+          // Explicitly deactivated — clear the session
           localStorage.removeItem(SESSION_STORAGE_KEY);
+        } else {
+          // User not found in this sync. Do NOT clear the session — a flaky
+          // or partial users read used to log people out here. Keep the
+          // session; they'll be restored on the next successful sync.
+          console.warn('[Auth] Saved session user not in sync result; keeping session for retry:', savedEmail);
         }
       }
     };
