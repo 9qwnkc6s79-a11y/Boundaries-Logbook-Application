@@ -328,13 +328,14 @@ const App: React.FC = () => {
 
     // Build a single updated user object for any needed migrations
     let migratedUser = { ...found };
-    let needsMigration = false;
+    let passwordMigrated = false;
+    let orgIdMigrated = false;
 
     // Auto-migrate plaintext password to hashed on successful login
     if (!isHashed(found.password)) {
       try {
         migratedUser.password = await hashPassword(pass);
-        needsMigration = true;
+        passwordMigrated = true;
         console.log(`[Auth] Will migrate password hash for ${found.email}`);
       } catch (e) {
         console.warn('[Auth] Password hash failed:', e);
@@ -344,14 +345,20 @@ const App: React.FC = () => {
     // Ensure user has orgId set (migrate legacy users)
     if (!found.orgId) {
       migratedUser.orgId = DEFAULT_ORG_ID;
-      needsMigration = true;
+      orgIdMigrated = true;
     }
 
-    // Save all migrations in a single write to avoid overwriting the hash
-    if (needsMigration) {
+    // CRITICAL: only pass changePassword when the password actually changed.
+    // Passing it for an orgId-only migration carries the stale snapshot password
+    // in migratedUser.password. If an admin reset the password in the window
+    // between our freshData read and this write, syncUser would treat both the
+    // fresh existing.password and our stale incoming password as hashed, and
+    // write the stale one — silently reverting the reset and locking the user
+    // out. See prior fixes: 0084b5b, da35c35.
+    if (passwordMigrated || orgIdMigrated) {
       try {
-        await db.syncUser(migratedUser, { changePassword: true });
-        console.log(`[Auth] Migrated user ${found.email} (hash=${!isHashed(found.password)}, orgId=${!found.orgId})`);
+        await db.syncUser(migratedUser, { changePassword: passwordMigrated });
+        console.log(`[Auth] Migrated user ${found.email} (password=${passwordMigrated}, orgId=${orgIdMigrated})`);
       } catch (e) {
         console.warn('[Auth] User migration failed:', e);
       }
