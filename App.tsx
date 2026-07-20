@@ -824,8 +824,14 @@ const App: React.FC = () => {
         orgId: currentOrg?.id
       };
 
-      // Use syncUser (read-modify-write) to avoid overwriting other users' data
-      await db.syncUser(newUser, { changePassword: true });
+      // Use syncUser (read-modify-write) to avoid overwriting other users' data.
+      // Do NOT pass changePassword: true here — allUsers state can be stale, so a
+      // user we treat as "new" may already exist in cloud (same deterministic id
+      // `toast-<guid>`, same email). Without this guard, syncUser would overwrite
+      // that user's real hashed password with the temp default. For a genuinely
+      // new user, the password-preservation branch is skipped anyway (no
+      // existing.password) and the temp password is written as intended.
+      await db.syncUser(newUser);
       newCount++;
       console.log(`[App] Created user account for ${emp.name} (${finalEmail})`);
     }
