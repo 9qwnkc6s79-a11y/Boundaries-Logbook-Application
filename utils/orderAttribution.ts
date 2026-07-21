@@ -258,8 +258,10 @@ export function calculateShiftLeaderMetrics(
     const totalOrders = leaderOrders.length;
     const totalNetSales = leaderOrders.reduce((sum, o) => sum + o.netAmount, 0);
     const avgTicket = totalOrders > 0 ? totalNetSales / totalOrders : 0;
-    const avgTurnTime = totalOrders > 0
-      ? leaderOrders.reduce((sum, o) => sum + o.turnTimeMinutes, 0) / totalOrders
+    // Exclude flagged outliers (turnTimeMinutes === -1) from turn-time average
+    const turnTimeOrders = leaderOrders.filter(o => o.turnTimeMinutes >= 0);
+    const avgTurnTime = turnTimeOrders.length > 0
+      ? turnTimeOrders.reduce((sum, o) => sum + o.turnTimeMinutes, 0) / turnTimeOrders.length
       : 0;
     const totalGuests = leaderOrders.reduce((sum, o) => sum + o.guestCount, 0);
 

@@ -115,8 +115,14 @@ async function getClosedOrders(
           const closedTime = new Date(closedAt).getTime();
           const turnTimeMinutes = (closedTime - openedTime) / 1000 / 60;
 
-          // Skip invalid turn times (negative or outliers > 15 min which are likely technical errors)
-          if (turnTimeMinutes < 0 || turnTimeMinutes > 15) continue;
+          // Negative turn times are clock errors — skip the order entirely.
+          if (turnTimeMinutes < 0) continue;
+
+          // Orders open > 15 min (mobile orders, catering, forgotten closes)
+          // have real SALES but useless turn times. Keep the order so ticket
+          // averages stay accurate; flag turn time unusable with -1 so
+          // downstream averaging excludes it.
+          const turnTimeUsable = turnTimeMinutes <= 15;
 
           allOrders.push({
             id: order.guid,
@@ -124,7 +130,7 @@ async function getClosedOrders(
             openedAt,
             closedAt,
             netAmount: check.amount || 0,
-            turnTimeMinutes: Math.round(turnTimeMinutes * 100) / 100,
+            turnTimeMinutes: turnTimeUsable ? Math.round(turnTimeMinutes * 100) / 100 : -1,
             guestCount: order.numberOfGuests || 1,
             checkGuid: check.guid,
             paymentStatus: check.paymentStatus,

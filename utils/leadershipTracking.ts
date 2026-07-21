@@ -472,8 +472,11 @@ export function calculateLeaderboard(
     });
   });
 
-  // Add users with MANAGER/ADMIN role (in case they're not in Toast)
-  allUsers.filter(u => u.role === UserRole.MANAGER || u.role === UserRole.ADMIN)
+  // Add users with MANAGER role (in case they're not in Toast).
+  // ADMINs (owners / office roles) are NOT auto-added — they only appear if
+  // Toast lists them as an active shift leader by job title. This keeps
+  // owners off the shift-lead scorecard.
+  allUsers.filter(u => u.role === UserRole.MANAGER)
     .forEach(u => {
       if (!teamLeaderMap.has(u.id)) {
         teamLeaderMap.set(u.id, { id: u.id, name: u.name, storeId: u.storeId, toastGuid: u.toastEmployeeGuid });
@@ -547,11 +550,16 @@ export function calculateLeaderboard(
     let orderAvgTicket: number | undefined;
 
     if (hasOrderData) {
-      const totalTurnTime = leaderOrders.reduce((sum, o) => sum + o.turnTimeMinutes, 0);
+      // Turn time excludes flagged orders (turnTimeMinutes === -1 sentinel for
+      // mobile/catering/forgotten-close outliers); ticket average uses ALL
+      // orders because their sales are real.
+      const turnTimeOrders = leaderOrders.filter(o => o.turnTimeMinutes >= 0);
       const totalNetAmount = leaderOrders.reduce((sum, o) => sum + o.netAmount, 0);
-      orderTurnTime = totalTurnTime / leaderOrders.length;
+      if (turnTimeOrders.length > 0) {
+        orderTurnTime = turnTimeOrders.reduce((sum, o) => sum + o.turnTimeMinutes, 0) / turnTimeOrders.length;
+      }
       orderAvgTicket = totalNetAmount / leaderOrders.length;
-      console.log(`[Leaderboard] ${leader.name}: ${leaderOrders.length} orders, avgTurnTime=${orderTurnTime.toFixed(2)}min, avgTicket=$${orderAvgTicket.toFixed(2)}`);
+      console.log(`[Leaderboard] ${leader.name}: ${leaderOrders.length} orders (${turnTimeOrders.length} with usable turn time), avgTurnTime=${orderTurnTime?.toFixed(2) ?? 'N/A'}min, avgTicket=$${orderAvgTicket.toFixed(2)}`);
     }
 
     // Calculate shift scores
@@ -715,8 +723,12 @@ export function calculateLeaderboard(
   // Instead of absolute scores, rank leaders relative to each other
   // ============================================
 
-  // Only rank leaders with some activity
-  const activeEntries = entries.filter(e => e.totalShifts > 0 || e.orderCount > 0);
+  // Only rank leaders with some activity. Review credit counts as activity —
+  // otherwise a leader whose only contribution this period is an attributed
+  // 5-star review is forced to 0 and their bonus points vanish from the board.
+  const isActive = (e: LeaderLeaderboardEntry) =>
+    e.totalShifts > 0 || e.orderCount > 0 || e.reviewBonusPoints > 0;
+  const activeEntries = entries.filter(isActive);
   const n = activeEntries.length;
 
   if (n === 0) return entries;
@@ -775,7 +787,7 @@ export function calculateLeaderboard(
   });
 
   // Inactive entries get 0 score
-  entries.filter(e => e.totalShifts === 0 && e.orderCount === 0).forEach(e => {
+  entries.filter(e => !isActive(e)).forEach(e => {
     e.effectiveScore = 0;
     e.compositePercent = 0;
   });
