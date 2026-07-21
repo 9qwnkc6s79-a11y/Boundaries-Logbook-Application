@@ -358,10 +358,14 @@ function idsMatch(id1: string | undefined | null, id2: string | undefined | null
   const guid2 = extractGuid(id2);
 
   // Match if GUIDs are the same (handles toast-X matching unknown-X)
-  if (guid1 === guid2 && (id1.includes('-') || id2.includes('-'))) return true;
+  if (guid1 === guid2) return true;
 
-  // Match if one contains the other's GUID
-  if (id1.includes(guid2) || id2.includes(guid1)) return true;
+  // Substring matching is only safe for genuine Toast GUIDs (36-char UUIDs).
+  // Short app IDs must never substring-match: 'u-admin-1' is contained in
+  // 'u-admin-12' and would credit orders/reviews to the wrong leader.
+  const isGuidLike = (s: string) => s.length >= 20;
+  if (isGuidLike(guid2) && id1.includes(guid2)) return true;
+  if (isGuidLike(guid1) && id2.includes(guid1)) return true;
 
   return false;
 }
@@ -414,11 +418,19 @@ export function calculateLeaderboard(
   trackedReviews: TrackedGoogleReview[] = [],
   attributedOrders: AttributedOrder[] = [],
   toastTeamLeaders: { id: string; name: string; jobTitle: string; toastGuid: string }[] = [],
-  useMonthToDate: boolean = true
+  useMonthToDate: boolean = true,
+  period?: { start: Date; end: Date }
 ): LeaderLeaderboardEntry[] {
-  // Use Month-to-Date if enabled, otherwise use lookback days
+  // Determine the scoring window. An explicit period (with an END bound) is
+  // required for archiving a past calendar month — the rolling/MTD modes have
+  // no upper bound and would leak current-month data into the archive.
   let cutoff: Date;
-  if (useMonthToDate) {
+  let periodEnd: Date | null = null;
+  if (period) {
+    cutoff = period.start;
+    periodEnd = period.end;
+    console.log(`[Leaderboard] Using explicit period: ${cutoff.toISOString().split('T')[0]} to ${periodEnd.toISOString().split('T')[0]}`);
+  } else if (useMonthToDate) {
     // Start of current month
     const now = new Date();
     cutoff = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -428,9 +440,11 @@ export function calculateLeaderboard(
     cutoff.setDate(cutoff.getDate() - lookbackDays);
   }
 
-  // Filter attributed orders to lookback period
+  const inPeriod = (d: Date) => d >= cutoff && (!periodEnd || d < periodEnd);
+
+  // Filter attributed orders to the scoring window
   const recentOrders = attributedOrders.filter(o =>
-    new Date(o.openedAt) >= cutoff
+    inPeriod(new Date(o.openedAt))
   );
 
   // Build team leaders list from multiple sources:
@@ -477,9 +491,9 @@ export function calculateLeaderboard(
   console.log(`[Leaderboard] Found ${teamLeaders.length} team leaders:`, teamLeaders.map(u => u.name).join(', '));
   console.log(`[Leaderboard] Using ${recentOrders.length} attributed orders for metrics`);
 
-  // Filter to recent submissions
+  // Filter to submissions in the scoring window
   const recentSubmissions = submissions.filter(sub =>
-    sub.submittedAt && new Date(sub.submittedAt) >= cutoff
+    sub.submittedAt && inPeriod(new Date(sub.submittedAt))
   );
 
   console.log(`[Leaderboard] Found ${recentSubmissions.length} submissions in last ${lookbackDays} days`);
@@ -660,8 +674,12 @@ export function calculateLeaderboard(
 
   // Add review data
   const cutoffISO = cutoff.toISOString();
+  const periodEndISO = periodEnd ? periodEnd.toISOString() : null;
+  const reviewInPeriod = (r: TrackedGoogleReview) =>
+    r.detectedAt >= cutoffISO && (!periodEndISO || r.detectedAt < periodEndISO);
+
   const recentReviews = trackedReviews.filter(r =>
-    r.detectedAt >= cutoffISO && r.bonusAwarded && r.attributedToUserId
+    reviewInPeriod(r) && r.bonusAwarded && r.attributedToUserId
   );
 
   recentReviews.forEach(review => {
@@ -674,7 +692,7 @@ export function calculateLeaderboard(
 
   // Add mention bonuses
   const recentReviewsWithMentions = trackedReviews.filter(r =>
-    r.detectedAt >= cutoffISO && r.mentionedEmployeeIds && r.mentionedEmployeeIds.length > 0
+    reviewInPeriod(r) && r.mentionedEmployeeIds && r.mentionedEmployeeIds.length > 0
   );
 
   recentReviewsWithMentions.forEach(review => {
@@ -683,7 +701,11 @@ export function calculateLeaderboard(
       const entry = entries.find(e => idsMatch(e.userId, employeeId));
       if (entry) {
         entry.reviewBonusPoints += 20;
-        entry.fiveStarReviewCount += 1;
+        // Star COUNT only reflects actual 5-star reviews, and the same review
+        // isn't counted twice when this person is also the attributed leader.
+        if (review.rating === 5 && !idsMatch(employeeId, review.attributedToUserId)) {
+          entry.fiveStarReviewCount += 1;
+        }
       }
     });
   });

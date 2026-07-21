@@ -247,17 +247,18 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
         const prevWinner = await db.getPreviousMonthLeaderboard(currentStoreId);
         setPreviousMonthWinner(prevWinner);
 
-        // Check if we need to archive last month's leaderboard
+        // Archive last month's leaderboard if it hasn't been archived yet.
+        // Self-healing: runs whenever the archive is missing, not only during
+        // the first week of the month — the underlying data doesn't expire.
         const now = new Date();
-        const isFirstWeekOfMonth = now.getDate() <= 7;
 
-        if (isFirstWeekOfMonth && !prevWinner) {
-          // We're in the first week of the month and don't have an archive yet
-          // Calculate last month's leaderboard and archive it
+        if (!prevWinner) {
           const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+          const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
           const monthKey = `${lastMonth.getFullYear()}-${String(lastMonth.getMonth() + 1).padStart(2, '0')}`;
 
-          // Calculate the leaderboard for last month
+          // Calculate the leaderboard for EXACTLY last month (bounded window —
+          // the rolling 30-day mode leaked current-month data into the archive)
           const leaderboard = calculateLeaderboard(
             submissions,
             templates,
@@ -266,11 +267,15 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
             googleReviewsData.trackedReviews,
             attributedOrders,
             toastTeamLeaders,
-            false // Don't use MTD, calculate for the full month
+            false,
+            { start: lastMonth, end: thisMonthStart }
           );
 
-          if (leaderboard.length > 0) {
-            const winner = leaderboard[0];
+          // Only archive a winner with real activity — the list includes every
+          // MANAGER/ADMIN at 0 score, so length > 0 alone would archive a
+          // meaningless "0% champion" for months with no data.
+          const winner = leaderboard[0];
+          if (winner && (winner.totalShifts > 0 || winner.orderCount > 0)) {
             const archive: ArchivedLeaderboard = {
               id: monthKey,
               storeId: currentStoreId,
