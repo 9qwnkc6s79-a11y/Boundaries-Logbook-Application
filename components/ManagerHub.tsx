@@ -250,9 +250,13 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
         // Archive last month's leaderboard if it hasn't been archived yet.
         // Self-healing: runs whenever the archive is missing, not only during
         // the first week of the month — the underlying data doesn't expire.
+        // Also re-archive records saved under the old additive scoring system
+        // (scores could exceed 100, e.g. the "110%" champion banner) so the
+        // banner reflects the current 0-100 competitive score.
         const now = new Date();
+        const isStaleFormatArchive = !!prevWinner && prevWinner.winnerScore > 100;
 
-        if (!prevWinner) {
+        if (!prevWinner || isStaleFormatArchive) {
           const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
           const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
           const monthKey = `${lastMonth.getFullYear()}-${String(lastMonth.getMonth() + 1).padStart(2, '0')}`;
@@ -1802,86 +1806,93 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                           {isExpanded && (
                             <div className="px-4 pb-4 border-t border-neutral-200/50 animate-in slide-in-from-top-2 duration-200">
                               <div className="pt-4">
-                                <h4 className="text-[10px] font-black text-neutral-500 uppercase tracking-widest mb-3">Score Breakdown</h4>
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                  {/* Turn Time Score */}
-                                  <div className="bg-white/70 rounded-lg p-3 border border-neutral-200">
-                                    <div className="text-[9px] font-bold text-neutral-400 uppercase tracking-wide mb-1">Turn Time</div>
-                                    <div className="flex items-baseline gap-1">
-                                      <span className={`text-xl font-black ${leader.avgTurnTimeScore > 30 ? 'text-green-600' : leader.avgTurnTimeScore > 20 ? 'text-amber-600' : 'text-red-600'}`}>
-                                        +{leader.avgTurnTimeScore.toFixed(0)}
-                                      </span>
-                                      <span className="text-[10px] text-neutral-400">/40 pts</span>
-                                    </div>
-                                    <div className="text-[9px] text-neutral-500 mt-1">
-                                      {leader.avgTurnTimeMinutes !== undefined ? (
-                                        <>Avg: {leader.avgTurnTimeMinutes.toFixed(1)}min • {leader.avgTurnTimeMinutes < 3.5 ? 'Excellent!' : leader.avgTurnTimeMinutes < 4.5 ? 'Good' : 'Needs work'}</>
-                                      ) : 'No data'}
-                                    </div>
-                                  </div>
+                                <h4 className="text-[10px] font-black text-neutral-500 uppercase tracking-widest mb-3">Score Breakdown — Ranked vs Other Leaders</h4>
+                                {(() => {
+                                  const rb = leader.rankBreakdown || { turnTimePts: 0, ticketPts: 0, onTimePts: 0, reviewPts: 0 };
+                                  return (
+                                    <>
+                                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                        {/* Turn Time (40% weight) */}
+                                        <div className="bg-white/70 rounded-lg p-3 border border-neutral-200">
+                                          <div className="text-[9px] font-bold text-neutral-400 uppercase tracking-wide mb-1">Turn Time</div>
+                                          <div className="flex items-baseline gap-1">
+                                            <span className={`text-xl font-black ${rb.turnTimePts > 30 ? 'text-green-600' : rb.turnTimePts > 15 ? 'text-amber-600' : 'text-red-600'}`}>
+                                              +{rb.turnTimePts}
+                                            </span>
+                                            <span className="text-[10px] text-neutral-400">/40 pts</span>
+                                          </div>
+                                          <div className="text-[9px] text-neutral-500 mt-1">
+                                            {leader.avgTurnTimeMinutes !== undefined ? (
+                                              <>Avg: {leader.avgTurnTimeMinutes.toFixed(1)}min • {leader.avgTurnTimeMinutes < 3.5 ? 'Excellent!' : leader.avgTurnTimeMinutes < 4.5 ? 'Good' : 'Needs work'}</>
+                                            ) : 'No order data — league middle applied'}
+                                          </div>
+                                        </div>
 
-                                  {/* Avg Ticket Score */}
-                                  <div className="bg-white/70 rounded-lg p-3 border border-neutral-200">
-                                    <div className="text-[9px] font-bold text-neutral-400 uppercase tracking-wide mb-1">Avg Ticket</div>
-                                    <div className="flex items-baseline gap-1">
-                                      <span className={`text-xl font-black ${leader.avgTicketScoreValue > 20 ? 'text-green-600' : leader.avgTicketScoreValue > 10 ? 'text-amber-600' : 'text-red-600'}`}>
-                                        +{leader.avgTicketScoreValue.toFixed(0)}
-                                      </span>
-                                      <span className="text-[10px] text-neutral-400">/25 pts</span>
-                                    </div>
-                                    <div className="text-[9px] text-neutral-500 mt-1">
-                                      {leader.avgTicketDollars !== undefined ? (
-                                        <>Avg: ${leader.avgTicketDollars.toFixed(2)} • {leader.avgTicketDollars >= 12 ? 'Great upselling!' : leader.avgTicketDollars >= 9 ? 'Solid' : 'Push add-ons'}</>
-                                      ) : 'No data'}
-                                    </div>
-                                  </div>
+                                        {/* Avg Ticket (25% weight) */}
+                                        <div className="bg-white/70 rounded-lg p-3 border border-neutral-200">
+                                          <div className="text-[9px] font-bold text-neutral-400 uppercase tracking-wide mb-1">Avg Ticket</div>
+                                          <div className="flex items-baseline gap-1">
+                                            <span className={`text-xl font-black ${rb.ticketPts > 18 ? 'text-green-600' : rb.ticketPts > 9 ? 'text-amber-600' : 'text-red-600'}`}>
+                                              +{rb.ticketPts}
+                                            </span>
+                                            <span className="text-[10px] text-neutral-400">/25 pts</span>
+                                          </div>
+                                          <div className="text-[9px] text-neutral-500 mt-1">
+                                            {leader.avgTicketDollars !== undefined ? (
+                                              <>Avg: ${leader.avgTicketDollars.toFixed(2)} • {leader.avgTicketDollars >= 12 ? 'Great upselling!' : leader.avgTicketDollars >= 9 ? 'Solid' : 'Push add-ons'}</>
+                                            ) : 'No order data — league middle applied'}
+                                          </div>
+                                        </div>
 
-                                  {/* Timeliness Score */}
-                                  <div className="bg-white/70 rounded-lg p-3 border border-neutral-200">
-                                    <div className="text-[9px] font-bold text-neutral-400 uppercase tracking-wide mb-1">Timeliness</div>
-                                    <div className="flex items-baseline gap-1">
-                                      <span className={`text-xl font-black ${leader.avgTimelinessScore > 30 ? 'text-green-600' : leader.avgTimelinessScore > 20 ? 'text-amber-600' : 'text-red-600'}`}>
-                                        +{leader.avgTimelinessScore.toFixed(0)}
-                                      </span>
-                                      <span className="text-[10px] text-neutral-400">/40 pts</span>
-                                    </div>
-                                    <div className="text-[9px] text-neutral-500 mt-1">
-                                      {leader.totalShifts > 0 ? (
-                                        <>{leader.onTimeRate.toFixed(0)}% on-time • {leader.onTimeRate >= 90 ? 'Consistent!' : leader.onTimeRate >= 70 ? 'Good' : 'Submit earlier'}</>
-                                      ) : 'No shifts logged'}
-                                    </div>
-                                  </div>
+                                        {/* On-Time (20% weight) */}
+                                        <div className="bg-white/70 rounded-lg p-3 border border-neutral-200">
+                                          <div className="text-[9px] font-bold text-neutral-400 uppercase tracking-wide mb-1">On-Time</div>
+                                          <div className="flex items-baseline gap-1">
+                                            <span className={`text-xl font-black ${rb.onTimePts > 15 ? 'text-green-600' : rb.onTimePts > 8 ? 'text-amber-600' : 'text-red-600'}`}>
+                                              +{rb.onTimePts}
+                                            </span>
+                                            <span className="text-[10px] text-neutral-400">/20 pts</span>
+                                          </div>
+                                          <div className="text-[9px] text-neutral-500 mt-1">
+                                            {leader.totalShifts > 0 ? (
+                                              <>{leader.onTimeRate.toFixed(0)}% on-time • {leader.onTimeRate >= 90 ? 'Consistent!' : leader.onTimeRate >= 70 ? 'Good' : 'Submit earlier'}</>
+                                            ) : 'No shifts logged — league middle applied'}
+                                          </div>
+                                        </div>
 
-                                  {/* Review Bonus */}
-                                  <div className="bg-white/70 rounded-lg p-3 border border-neutral-200">
-                                    <div className="text-[9px] font-bold text-neutral-400 uppercase tracking-wide mb-1">Review Bonus</div>
-                                    <div className="flex items-baseline gap-1">
-                                      <span className={`text-xl font-black ${leader.reviewBonusPoints > 0 ? 'text-yellow-500' : 'text-neutral-300'}`}>
-                                        +{leader.reviewBonusPoints}
-                                      </span>
-                                      <span className="text-[10px] text-neutral-400">bonus</span>
-                                    </div>
-                                    <div className="text-[9px] text-neutral-500 mt-1">
-                                      {leader.fiveStarReviewCount > 0 ? (
-                                        <>{leader.fiveStarReviewCount} 5-star review{leader.fiveStarReviewCount > 1 ? 's' : ''} (+{leader.fiveStarReviewCount * 10}pts)</>
-                                      ) : 'No 5-star reviews yet'}
-                                    </div>
-                                  </div>
-                                </div>
+                                        {/* Reviews (15% weight) */}
+                                        <div className="bg-white/70 rounded-lg p-3 border border-neutral-200">
+                                          <div className="text-[9px] font-bold text-neutral-400 uppercase tracking-wide mb-1">Reviews</div>
+                                          <div className="flex items-baseline gap-1">
+                                            <span className={`text-xl font-black ${rb.reviewPts > 11 ? 'text-yellow-500' : rb.reviewPts > 5 ? 'text-amber-600' : 'text-neutral-300'}`}>
+                                              +{rb.reviewPts}
+                                            </span>
+                                            <span className="text-[10px] text-neutral-400">/15 pts</span>
+                                          </div>
+                                          <div className="text-[9px] text-neutral-500 mt-1">
+                                            {leader.fiveStarReviewCount > 0 ? (
+                                              <>{leader.fiveStarReviewCount} five-star review{leader.fiveStarReviewCount > 1 ? 's' : ''} • +{leader.reviewBonusPoints} bonus pts earned</>
+                                            ) : 'No 5-star reviews yet'}
+                                          </div>
+                                        </div>
+                                      </div>
 
-                                {/* Total calculation */}
-                                <div className="mt-3 pt-3 border-t border-neutral-200 flex items-center justify-between">
-                                  <div className="text-[10px] font-bold text-neutral-500 uppercase tracking-wide">
-                                    Total: {leader.avgTurnTimeScore.toFixed(0)} + {leader.avgTicketScoreValue.toFixed(0)} + {leader.avgTimelinessScore.toFixed(0)} + {leader.reviewBonusPoints} =
-                                  </div>
-                                  <div className={`text-2xl font-black ${
-                                    leader.effectiveScore >= 90 ? 'text-green-600' :
-                                    leader.effectiveScore >= 70 ? 'text-blue-600' :
-                                    leader.effectiveScore >= 50 ? 'text-amber-600' : 'text-red-600'
-                                  }`}>
-                                    {leader.effectiveScore.toFixed(0)} pts
-                                  </div>
-                                </div>
+                                      {/* Total calculation — parts sum exactly to the score */}
+                                      <div className="mt-3 pt-3 border-t border-neutral-200 flex items-center justify-between">
+                                        <div className="text-[10px] font-bold text-neutral-500 uppercase tracking-wide">
+                                          Total: {rb.turnTimePts} + {rb.ticketPts} + {rb.onTimePts} + {rb.reviewPts} =
+                                        </div>
+                                        <div className={`text-2xl font-black ${
+                                          leader.effectiveScore >= 90 ? 'text-green-600' :
+                                          leader.effectiveScore >= 70 ? 'text-blue-600' :
+                                          leader.effectiveScore >= 50 ? 'text-amber-600' : 'text-red-600'
+                                        }`}>
+                                          {leader.effectiveScore.toFixed(0)} pts
+                                        </div>
+                                      </div>
+                                    </>
+                                  );
+                                })()}
                               </div>
                             </div>
                           )}
