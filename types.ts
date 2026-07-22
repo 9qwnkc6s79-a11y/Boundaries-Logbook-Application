@@ -543,3 +543,77 @@ export interface ArchivedLeaderboard {
     fiveStarReviewCount: number;
   }[];
 }
+
+// ─── Ventures (Business Idea Pipeline) ───────────────────────────────
+
+export type VentureStage = 'IDEA' | 'RESEARCH' | 'PLANNING' | 'BUILDING' | 'LAUNCHED' | 'PARKED';
+
+export type VentureWorkstream = 'LEGAL' | 'FINANCE' | 'MARKET' | 'BRAND' | 'PITCH' | 'OPERATIONS';
+
+export interface VentureTask {
+  id: string;
+  workstream: VentureWorkstream;
+  title: string;
+  description?: string;
+  done: boolean;
+  completedAt?: string;
+  dueDate?: string;
+  custom?: boolean; // user-added (vs seeded from the launch playbook)
+}
+
+export interface VentureBudgetItem {
+  id: string;
+  label: string;
+  kind: 'STARTUP' | 'MONTHLY'; // one-time startup cost vs recurring monthly cost
+  estimated: number;
+  actual?: number;
+  notes?: string;
+}
+
+export interface VentureNote {
+  id: string;
+  text: string;
+  createdAt: string;
+  pinned?: boolean;
+}
+
+export interface VentureLink {
+  id: string;
+  label: string;
+  url: string;
+}
+
+// Guided pitch deck outline — keyed by slide id (see PITCH_SLIDES)
+export type VenturePitch = Record<string, string>;
+
+export interface Venture {
+  id: string;
+  ownerId: string;
+  name: string;
+  oneLiner: string;
+  stage: VentureStage;
+  industry?: string;
+
+  // Idea canvas
+  problem?: string;
+  solution?: string;
+  targetCustomer?: string;
+  revenueModel?: string;
+  competition?: string;
+  unfairAdvantage?: string;
+
+  // Prioritization (1-5)
+  excitement?: number;
+  confidence?: number;
+  effort?: number;
+
+  tasks: VentureTask[];
+  budgetItems: VentureBudgetItem[];
+  monthlyRevenueTarget?: number;
+  pitch: VenturePitch;
+  notes: VentureNote[];
+  links: VentureLink[];
+
+  createdAt: string;
+  updatedAt: string;
+}

@@ -1,6 +1,6 @@
 
 // No imports needed - Firebase is loaded globally via CDN script tags in index.html
-import { User, UserProgress, ChecklistSubmission, ChecklistTemplate, TrainingModule, ManualSection, Recipe, CashDeposit, GoogleReviewsData, Organization, Store, AttributedOrder, ArchivedLeaderboard, AuditFeedback, InventoryItem, InventoryCount } from '../types';
+import { User, UserProgress, ChecklistSubmission, ChecklistTemplate, TrainingModule, ManualSection, Recipe, CashDeposit, GoogleReviewsData, Organization, Store, AttributedOrder, ArchivedLeaderboard, AuditFeedback, InventoryItem, InventoryCount, Venture } from '../types';
 import { isHashed } from '../utils/passwordUtils';
 
 declare const firebase: any;
@@ -58,6 +58,7 @@ const DOC_KEYS = {
   AI_AUDIT_FEEDBACK: 'aiAuditFeedback',
   INVENTORY_ITEMS: 'inventoryItems',
   INVENTORY_COUNTS: 'inventoryCounts',
+  VENTURES: 'ventures',
 };
 
 function removeUndefined(obj: any): any {
@@ -1117,6 +1118,22 @@ class CloudAPI {
     }
 
     return this.remoteSet(this.inventoryCountsKey(storeId), next);
+  }
+
+  // ── Ventures (business idea pipeline — admin only) ──
+
+  async fetchVentures(): Promise<Venture[]> {
+    const ventures = await this.remoteGet<Venture[]>(DOC_KEYS.VENTURES, []);
+    if (ventures.length === 0) {
+      // Retry once on empty read — same transient-flake protection as inventory
+      return this.remoteGet<Venture[]>(DOC_KEYS.VENTURES, []);
+    }
+    return ventures;
+  }
+
+  async pushVentures(ventures: Venture[]): Promise<boolean> {
+    console.log(`[DB] pushVentures: Saving ${ventures.length} ventures`);
+    return this.remoteSet(DOC_KEYS.VENTURES, ventures);
   }
 
   async globalSync(defaults: {
