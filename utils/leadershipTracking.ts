@@ -327,6 +327,15 @@ export interface LeaderLeaderboardEntry {
   reviewBonusPoints: number;
   fiveStarReviewCount: number;
   effectiveScore: number;
+  // Integer point contributions per category (turn 40 / ticket 25 / on-time 20 /
+  // reviews 15). Guaranteed to sum EXACTLY to round(effectiveScore) so the UI
+  // breakdown always adds up to the displayed score.
+  rankBreakdown?: {
+    turnTimePts: number;
+    ticketPts: number;
+    onTimePts: number;
+    reviewPts: number;
+  };
 }
 
 /**
@@ -773,12 +782,31 @@ export function calculateLeaderboard(
     const reviewPct = reviewRanks.get(e.userId) ?? 50;
 
     // Weighted composite (out of 100)
-    e.effectiveScore = (
-      turnTimePct * 0.40 +
-      ticketPct * 0.25 +
-      onTimePct * 0.20 +
-      reviewPct * 0.15
-    );
+    const rawParts = [
+      turnTimePct * 0.40,
+      ticketPct * 0.25,
+      onTimePct * 0.20,
+      reviewPct * 0.15,
+    ];
+    e.effectiveScore = rawParts.reduce((a, b) => a + b, 0);
+
+    // Integer display parts that sum exactly to the rounded total
+    // (largest-remainder allocation) — the UI breakdown must add up.
+    const target = Math.round(e.effectiveScore);
+    const parts = rawParts.map(Math.floor);
+    let remainder = target - parts.reduce((a, b) => a + b, 0);
+    const byFraction = rawParts
+      .map((p, i) => ({ i, frac: p - Math.floor(p) }))
+      .sort((a, b) => b.frac - a.frac);
+    for (let k = 0; k < byFraction.length && remainder > 0; k++, remainder--) {
+      parts[byFraction[k].i]++;
+    }
+    e.rankBreakdown = {
+      turnTimePts: parts[0],
+      ticketPts: parts[1],
+      onTimePts: parts[2],
+      reviewPts: parts[3],
+    };
 
     // Also update compositePercent for display consistency
     e.compositePercent = e.effectiveScore;
@@ -790,6 +818,7 @@ export function calculateLeaderboard(
   entries.filter(e => !isActive(e)).forEach(e => {
     e.effectiveScore = 0;
     e.compositePercent = 0;
+    e.rankBreakdown = { turnTimePts: 0, ticketPts: 0, onTimePts: 0, reviewPts: 0 };
   });
 
   // Sort by effective score descending, then alphabetically
