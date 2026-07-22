@@ -542,7 +542,9 @@ const App: React.FC = () => {
       }
 
       const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash-image',
+        // Vision ANALYSIS model — 'gemini-2.5-flash-image' is the image
+        // GENERATION model and returns unreliable results for auditing.
+        model: 'gemini-2.5-flash',
         contents: {
           parts: [
             { inlineData: { mimeType: 'image/jpeg', data: base64Data } },
@@ -550,8 +552,17 @@ const App: React.FC = () => {
           ]
         },
       });
-      const text = response.text || '{"flagged": false, "reason": "No data"}';
-      return JSON.parse(text);
+      // Gemini often wraps JSON in ```json fences — extract the object before
+      // parsing. A raw JSON.parse threw here, which silently returned
+      // "not flagged" for every photo the model DID flag.
+      const text = response.text || '';
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        console.warn('[AI Audit] No JSON in model response:', text.substring(0, 120));
+        return { flagged: false, reason: 'Audit returned no verdict' };
+      }
+      const verdict = JSON.parse(jsonMatch[0]);
+      return { flagged: verdict.flagged === true, reason: typeof verdict.reason === 'string' ? verdict.reason : '' };
     } catch (e) {
       console.error("AI Audit Error:", e);
       return { flagged: false, reason: "Audit service unavailable" };
@@ -584,6 +595,28 @@ const App: React.FC = () => {
     }
 
     if (data.isFinal) {
+      // Re-upload any photos still stored as inline base64 (their original
+      // upload to Firebase Storage failed). Inline photos bloat the
+      // submissions doc and get stripped by size-limit pruning later — which
+      // made AI-flagged photos vanish from the manager's audit queue.
+      taskResults = await Promise.all(taskResults.map(async (res) => {
+        const photos = res.photoUrls || [];
+        if (!photos.some(p => p?.startsWith('data:image/'))) return res;
+        const uploaded = await Promise.all(photos.map(async (p, idx) => {
+          if (!p?.startsWith('data:image/')) return p;
+          try {
+            const path = `photos/${currentStoreId}/${data.targetDate}/${data.id || `sub-${data.templateId}`}/${res.taskId}-${idx}-retry.jpg`;
+            const url = await db.uploadPhoto(p, path);
+            console.log(`[Checklist] Recovered base64 photo to Storage: ${res.taskId}-${idx}`);
+            return url;
+          } catch (e) {
+            console.warn(`[Checklist] Photo re-upload failed for ${res.taskId}-${idx}, keeping inline:`, e);
+            return p; // keep base64 as last resort
+          }
+        }));
+        return { ...res, photoUrls: uploaded, photoUrl: uploaded[0] || res.photoUrl };
+      }));
+
       const template = templates.find(t => t.id === data.templateId);
       const auditPromises = taskResults.map(async (res) => {
         const photos = res.photoUrls || (res.photoUrl ? [res.photoUrl] : []);

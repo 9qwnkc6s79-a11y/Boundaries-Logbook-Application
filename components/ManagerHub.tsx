@@ -486,25 +486,32 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
       return (s.taskResults || []).flatMap(tr => {
         // Support both old photoUrl format and new photoUrls array format
         const photoUrls = tr.photoUrls || (tr.photoUrl ? [tr.photoUrl] : []);
+        const usableUrls = photoUrls.filter(url => url && !url.includes('[photo-stripped-size-limit]'));
 
-        // Create an entry for each photo, filtering out stripped photos
-        return photoUrls
-          .filter(url => url && !url.includes('[photo-stripped-size-limit]'))
-          .map((url, idx) => ({
-            id: `${s.id}-${tr.taskId}-${idx}`,
-            submissionId: s.id,
-            taskId: tr.taskId,
-            url: url,
-            title: tpl?.tasks?.find(tk => tk.id === tr.taskId)?.title || 'Standard',
-            user: allUsers.find(u => u.id === tr.completedByUserId)?.name || 'Unknown',
-            date: s.date,
-            templateName: tpl?.name || 'Log',
-            aiFlagged: tr.aiFlagged,
-            aiReason: tr.aiReason,
-            managerOverride: tr.managerOverride,
-            overrideBy: tr.overrideBy,
-            overrideAt: tr.overrideAt
-          }));
+        const makeEntry = (url: string, idx: number | string, photoMissing: boolean) => ({
+          id: `${s.id}-${tr.taskId}-${idx}`,
+          submissionId: s.id,
+          taskId: tr.taskId,
+          url,
+          photoMissing,
+          title: tpl?.tasks?.find(tk => tk.id === tr.taskId)?.title || 'Standard',
+          user: allUsers.find(u => u.id === tr.completedByUserId)?.name || 'Unknown',
+          date: s.date,
+          templateName: tpl?.name || 'Log',
+          aiFlagged: tr.aiFlagged,
+          aiReason: tr.aiReason,
+          managerOverride: tr.managerOverride,
+          overrideBy: tr.overrideBy,
+          overrideAt: tr.overrideAt
+        });
+
+        // Flagged (or overridden) tasks whose photos were stripped for doc-size
+        // must STILL appear in the audit queue — otherwise the flag exists but
+        // the manager never sees it. Emit a placeholder entry.
+        if (usableUrls.length === 0) {
+          return (tr.aiFlagged || tr.managerOverride) ? [makeEntry('', 'missing', true)] : [];
+        }
+        return usableUrls.map((url, idx) => makeEntry(url, idx, false));
       });
     }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [submissions, templates, allUsers]);
@@ -572,8 +579,10 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
   }, [complianceMatrix]);
 
   const concernNotes = useMemo(() => {
-    // Only show photos that are flagged AND not yet overridden by manager
-    return allPhotos.filter(p => p.aiFlagged && !p.managerOverride).slice(0, 5);
+    // Only show photos that are flagged AND not yet overridden by manager.
+    // Placeholder entries (stripped photos) are excluded here — they render
+    // an image thumbnail; the audit queue handles missing-photo flags.
+    return allPhotos.filter(p => p.aiFlagged && !p.managerOverride && !p.photoMissing).slice(0, 5);
   }, [allPhotos]);
 
   const handleUpdateTemplateLocal = (templateId: string, updates: Partial<ChecklistTemplate>) => {
@@ -2051,8 +2060,9 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                   }`}>
                     {/* Photo Preview */}
                     <div
-                      className="relative aspect-video cursor-pointer group"
+                      className={`relative aspect-video group ${photo.photoMissing ? '' : 'cursor-pointer'}`}
                       onClick={() => {
+                        if (photo.photoMissing) return;
                         const submission = submissions.find(s => s.id === photo.submissionId);
                         const taskResult = submission?.taskResults.find(tr => tr.taskId === photo.taskId);
                         setFullscreenPhoto({
@@ -2066,7 +2076,15 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                         });
                       }}
                     >
-                      <img src={photo.url} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="Flagged" />
+                      {photo.photoMissing ? (
+                        <div className="w-full h-full bg-neutral-100 flex flex-col items-center justify-center gap-2 text-neutral-400">
+                          <ImageIcon size={32} />
+                          <span className="text-[9px] font-black uppercase tracking-widest">Photo no longer available</span>
+                          <span className="text-[8px] font-bold text-neutral-300 px-6 text-center">Removed by storage cleanup — flag details below</span>
+                        </div>
+                      ) : (
+                        <img src={photo.url} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="Flagged" />
+                      )}
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
 
                       {/* Status Badge */}
@@ -2189,7 +2207,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                 <h3 className="text-lg font-black text-[#0F2B3C] uppercase tracking-tight">All Verification Photos</h3>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                {allPhotos.map(photo => (
+                {allPhotos.filter(p => !p.photoMissing).map(photo => (
                   <div
                     key={photo.id}
                     onClick={() => {
