@@ -462,6 +462,10 @@ class CloudAPI {
       } else if (!incomingIsHashed) {
         console.warn(`[Firestore] syncUser: BLOCKED non-hashed password write for ${user.email} — keeping hashed version`);
         user = { ...user, password: existing.password };
+      } else if (user.password !== existing.password) {
+        // Real hash-to-hash rotation. Log it so an accidental stale-hash write
+        // (the lockout pattern) is visible in the console rather than silent.
+        console.log(`[Firestore] syncUser: password hash rotated for ${user.email}`);
       }
     }
 
