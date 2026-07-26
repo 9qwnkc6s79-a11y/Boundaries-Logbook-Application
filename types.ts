@@ -54,6 +54,13 @@ export interface Organization {
   };
   createdAt: string;
   plan?: string;           // 'starter' | 'pro' | 'scale'
+  cameras?: CameraFeedConfig[];  // Per-store live camera feeds shown on the dashboard
+}
+
+export interface CameraFeedConfig {
+  storeId: string;
+  name?: string;   // Display label, e.g. "Drive-Thru"
+  url: string;     // HTTPS stream/page URL: HLS (.m3u8), MJPEG, snapshot JPEG, or embeddable page
 }
 
 export interface ManualSection {
