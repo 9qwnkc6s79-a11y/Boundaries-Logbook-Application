@@ -11,6 +11,7 @@ import { db } from '../services/db';
 import { detectLeaders, calculateTimelinessScore, calculateTurnTimeScore, calculateSalesScore, calculateAvgTicketScore, calculateLeaderboard, determineShiftOwnership } from '../utils/leadershipTracking';
 import { syncOrderAttributions } from '../utils/orderAttribution';
 import TeamManagement from './TeamManagement';
+import CameraSection from './CameraFeed';
 import NotificationBanner from './NotificationBanner';
 import { checkLateSubmissions, checkHighTurnTime, getTodayDate } from '../services/notificationTriggers';
 import { showLocalNotification, isAnyStoreManager, getNotificationConfig } from '../services/notifications';
@@ -1649,6 +1650,14 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                 </div>
               </div>
             </div>
+
+            {/* Live Cameras */}
+            <CameraSection
+              org={org}
+              currentStoreId={currentStoreId}
+              onSaveOrg={onSaveOrg}
+              canEdit={currentUser?.role === UserRole.ADMIN || currentUser?.role === UserRole.MANAGER}
+            />
 
             {/* Team Leader Leaderboard */}
             <section className="bg-white p-4 md:p-6 rounded-xl border border-neutral-100 shadow-sm">
