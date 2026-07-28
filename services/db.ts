@@ -39,7 +39,12 @@ if (typeof firebase !== 'undefined') {
 
 // Increment this version whenever curriculum structure or lesson properties change
 // This forces Firebase to update cached curriculum data
-const CURRICULUM_VERSION = 9;
+const CURRICULUM_VERSION = 10;
+
+// Bump when the manual or recipe defaults change and must OVERWRITE cloud
+// copies (deliberate source-of-truth refresh — e.g. a new Ops Manual /
+// Recipe Book release). v2 = Ops Manual v1.8 + Recipe Book v1.10.
+const CONTENT_DEFAULTS_VERSION = 2;
 
 const DOC_KEYS = {
   USERS: 'users',
@@ -1234,19 +1239,37 @@ class CloudAPI {
       this.remoteSet(RECIPES_POPULATED_KEY, { populated: true, at: new Date().toISOString() });
     }
 
-    // Merge new recipes from defaults that don't exist in cloud
-    // This ensures new recipes added to mockData.ts appear in the app
-    const cloudRecipeIds = new Set(recipes.map((r: Recipe) => r.id));
-    const newRecipes = defaults.recipes.filter(r => !cloudRecipeIds.has(r.id));
-
+    // Content version force-refresh: when the source-of-truth documents
+    // (Ops Manual / Recipe Book) are re-released, the code defaults must
+    // OVERWRITE the cloud manual and recipes. This is a deliberate,
+    // version-gated overwrite — unlike the seed-on-empty paths, it runs
+    // exactly once per version bump.
+    let finalManual = manual;
     let mergedRecipes = recipes;
-    if (newRecipes.length > 0 && !(recipes.length === 0 && recipesPopulated.populated)) {
-      console.log(`[Firestore] globalSync: Found ${newRecipes.length} new recipe(s), merging...`);
-      mergedRecipes = [...recipes, ...newRecipes];
-      // Push merged recipes back to cloud
-      await this.remoteSet(DOC_KEYS.RECIPES, mergedRecipes);
-    } else if (recipes.length === 0 && recipesPopulated.populated) {
-      console.warn('[Firestore] globalSync: Recipes read empty but marker set — REFUSING to write defaults');
+    const cloudContentVersion = await this.remoteGet<number>('content_version', 0);
+    if (cloudContentVersion < CONTENT_DEFAULTS_VERSION) {
+      console.log(`[Firestore] globalSync: Content version ${cloudContentVersion} → ${CONTENT_DEFAULTS_VERSION}, refreshing manual + recipes from defaults`);
+      finalManual = defaults.manual;
+      mergedRecipes = defaults.recipes;
+      await Promise.all([
+        this.remoteSet(DOC_KEYS.MANUAL, finalManual),
+        this.remoteSet(DOC_KEYS.RECIPES, mergedRecipes),
+        this.remoteSet('content_version', CONTENT_DEFAULTS_VERSION),
+      ]);
+    } else {
+      // Merge new recipes from defaults that don't exist in cloud
+      // This ensures new recipes added to the seed appear in the app
+      const cloudRecipeIds = new Set(recipes.map((r: Recipe) => r.id));
+      const newRecipes = defaults.recipes.filter(r => !cloudRecipeIds.has(r.id));
+
+      if (newRecipes.length > 0 && !(recipes.length === 0 && recipesPopulated.populated)) {
+        console.log(`[Firestore] globalSync: Found ${newRecipes.length} new recipe(s), merging...`);
+        mergedRecipes = [...recipes, ...newRecipes];
+        // Push merged recipes back to cloud
+        await this.remoteSet(DOC_KEYS.RECIPES, mergedRecipes);
+      } else if (recipes.length === 0 && recipesPopulated.populated) {
+        console.warn('[Firestore] globalSync: Recipes read empty but marker set — REFUSING to write defaults');
+      }
     }
 
     // Seed inventory items per store if cloud is empty
@@ -1445,7 +1468,7 @@ class CloudAPI {
       }
     }
 
-    return { users, submissions, progress, templates, curriculum, manual, recipes: mergedRecipes };
+    return { users, submissions, progress, templates, curriculum, manual: finalManual, recipes: mergedRecipes };
   }
 }
 
