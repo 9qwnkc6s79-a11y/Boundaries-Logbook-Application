@@ -1409,5 +1409,291 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
         ]
       }
     ]
+  },
+
+  // ─── BOUNDARIES CERTIFICATION EXAM ───────────────────────────────────
+  {
+    id: 'm-certification-exam',
+    title: 'Boundaries Certification Exam',
+    description: 'The capstone exam — a little from every section of the Operations Manual, with a heavy focus on recipes. Covers culture, service, store flow, equipment, and every drink category.',
+    category: 'ONBOARDING' as const,
+    lessons: [
+      {
+        id: 'l-cert-exam-content',
+        moduleId: 'm-certification-exam',
+        title: 'Certification Exam Overview',
+        type: 'CONTENT' as const,
+        content: `<p>This is the capstone exam for the full Boundaries Academy. It touches every section of the Operations Manual and Recipe Book:</p>
+
+<ul>
+  <li><strong>Culture &amp; Service</strong> — mission, values, hospitality, order taking</li>
+  <li><strong>Store Operations</strong> — Expo, food staffing, store flow, speed goals</li>
+  <li><strong>Equipment</strong> — espresso system, frozen machine care</li>
+  <li><strong>Recipes (the heavy focus)</strong> — espresso standards, Originals and signature mixes, matchas, nitro, sweet cream, energy, frozen drinks, lemonades, smoothies, teas, kids drinks, brewing</li>
+</ul>
+
+<h3>What to Expect</h3>
+<ul>
+  <li>30 questions — roughly one third operations, two thirds recipes</li>
+  <li>Everything comes straight from the Operations Manual v1.8 and Recipe Book v1.10</li>
+  <li>Review the Manual and Recipe Book sections in the app before attempting</li>
+</ul>`
+      },
+      {
+        id: 'l-cert-exam-quiz',
+        moduleId: 'm-certification-exam',
+        title: 'Certification Exam',
+        type: 'QUIZ' as const,
+        quizQuestions: [
+          // ── Culture & Service ──
+          {
+            id: 'ce1',
+            type: 'MULTIPLE_CHOICE' as const,
+            question: 'What is the Boundaries Coffee mission?',
+            options: ['Serve the best coffee in Texas', 'Push the boundaries of everyday coffee', 'Coffee fast, coffee fresh', 'Quality over everything'],
+            correctAnswers: ['Push the boundaries of everyday coffee'],
+            explanation: 'The mission: push the boundaries of everyday coffee.'
+          },
+          {
+            id: 'ce2',
+            type: 'MULTIPLE_CHOICE' as const,
+            question: 'What are the three Boundaries core values?',
+            options: ['Speed, Quality, Consistency', 'Passion, Hospitality, Selflessness', 'Service, Craft, Community', 'Welcome, Serve, Recover'],
+            correctAnswers: ['Passion, Hospitality, Selflessness'],
+            explanation: 'Core values: Passion, Hospitality, Selflessness. (Speed, Quality, Consistency are the cultural standards.)'
+          },
+          {
+            id: 'ce3',
+            type: 'MULTIPLE_CHOICE' as const,
+            question: 'What is the total drive-thru time goal?',
+            options: ['Under 2 minutes', 'Under 3.5 minutes', 'Under 5 minutes', 'Under 60 seconds'],
+            correctAnswers: ['Under 3.5 minutes'],
+            explanation: 'Goal is under 3.5 minutes total, and never more than 1 minute at the window.'
+          },
+          {
+            id: 'ce4',
+            type: 'MULTIPLE_CHOICE' as const,
+            question: 'When does the Order Taker stand outside by the menu board?',
+            options: ['Always', 'When 2 or more people are clocked in', 'When 3 or more people are clocked in', 'Only during rush'],
+            correctAnswers: ['When 3 or more people are clocked in'],
+            explanation: 'With 3+ clocked in, the Order Taker works outside with the satchel and handheld POS.'
+          },
+          {
+            id: 'ce5',
+            type: 'MULTIPLE_CHOICE' as const,
+            question: 'With exactly 3 people on staff, who carries food responsibility?',
+            options: ['Order Taker', 'Coffee Bar Person 2', 'The Exit Rider (Expo)', 'Not Coffee Bar'],
+            correctAnswers: ['The Exit Rider (Expo)'],
+            explanation: 'With 3 people, Expo/Exit Rider handles food. With 4+, food passes to the Food / Not Coffee position.'
+          },
+          {
+            id: 'ce6',
+            type: 'MULTIPLE_CHOICE' as const,
+            question: 'What is the window time expectation for the Exit Rider?',
+            options: ['At or under 60 seconds', 'Under 2 minutes', 'Under 3.5 minutes', 'No specific goal'],
+            correctAnswers: ['At or under 60 seconds'],
+            explanation: 'Window time at or under 60 seconds, with 100% order accuracy.'
+          },
+          {
+            id: 'ce7',
+            type: 'MULTIPLE_CHOICE' as const,
+            question: 'What food rotation standard does Boundaries follow?',
+            options: ['LIFO — last in, first out', 'FIFO — first in, first out', 'Use-by-feel', 'Newest first'],
+            correctAnswers: ['FIFO — first in, first out'],
+            explanation: 'FIFO rotation, with all prepped items labeled and dated.'
+          },
+          // ── Equipment ──
+          {
+            id: 'ce8',
+            type: 'MULTIPLE_CHOICE' as const,
+            question: 'What is the target window for espresso shot time?',
+            options: ['±1 second of standard', '±2 seconds of standard', '±5 seconds of standard', '20-30 seconds'],
+            correctAnswers: ['±2 seconds of standard'],
+            explanation: 'Shots must land within ±2 seconds of the standard shot time.'
+          },
+          {
+            id: 'ce9',
+            type: 'MULTIPLE_CHOICE' as const,
+            question: 'After building a fresh frozen coffee batch and switching to FREEZE, when can you serve?',
+            options: ['Immediately after a test pull', 'After 5 minutes', 'After a full 15 minutes', 'After 30 minutes'],
+            correctAnswers: ['After a full 15 minutes'],
+            explanation: 'Never serve before 15 minutes. Draw a small test pull first.'
+          },
+          {
+            id: 'ce10',
+            type: 'MULTIPLE_CHOICE' as const,
+            question: 'Frozen coffee mix held in the hopper must stay at or below what temperature?',
+            options: ['33°F', '38°F', '41°F', '45°F'],
+            correctAnswers: ['41°F'],
+            explanation: 'The base is dairy — a temperature-controlled food. Hold at or below 41°F; when in doubt, drain it.'
+          },
+          // ── Recipes: Espresso & Classics ──
+          {
+            id: 'ce11',
+            type: 'MULTIPLE_CHOICE' as const,
+            question: 'What is the espresso dose standard?',
+            options: ['17g per single shot', '18g per double shot', '19g per double shot', '20g per double shot'],
+            correctAnswers: ['18g per double shot'],
+            explanation: 'Dose is 18g per double. One shot means a double (2 oz) — singles are not dosed or pulled.'
+          },
+          {
+            id: 'ce12',
+            type: 'MULTIPLE_CHOICE' as const,
+            question: 'How much espresso goes in an ICED Americano?',
+            options: ['2 oz', '3 oz', '4 oz', '1 oz'],
+            correctAnswers: ['3 oz'],
+            explanation: 'Iced Americano takes 3 oz — pull two doubles and split one. Hot Americano takes 2 oz.'
+          },
+          {
+            id: 'ce13',
+            type: 'MULTIPLE_CHOICE' as const,
+            question: 'A Cappuccino is served at what size, with what foam?',
+            options: ['4 oz, no foam', '6 oz, dry foam', '8 oz, thin microfoam', '3 oz, marked with foam'],
+            correctAnswers: ['6 oz, dry foam'],
+            explanation: 'Cappuccino: 6 oz, 2 oz espresso, dry foam. (Flat White is 8 oz with thin microfoam.)'
+          },
+          // ── Recipes: Lattes & Mixes ──
+          {
+            id: 'ce14',
+            type: 'MULTIPLE_CHOICE' as const,
+            question: 'How much total syrup goes in a latte, at any size?',
+            options: ['0.5 oz', '1 oz', '1.5 oz', 'Scales with size'],
+            correctAnswers: ['1 oz'],
+            explanation: 'Lattes hold at 1 oz total syrup across all sizes — and they are not sold at 24 oz.'
+          },
+          {
+            id: 'ce15',
+            type: 'MULTIPLE_CHOICE' as const,
+            question: 'What are the three ingredients in the Texas Delight mix?',
+            options: ['Caramel, Vanilla, Cinnamon', 'Honey, 1883 Vanilla, 1883 Cinnamon', 'Honey, Maple, Vanilla', 'Brown Sugar, Cinnamon, Vanilla'],
+            correctAnswers: ['Honey, 1883 Vanilla, 1883 Cinnamon'],
+            explanation: 'Texas Delight is equal thirds Honey, 1883 Vanilla, and 1883 Cinnamon — batched in-house as of July 2026.'
+          },
+          {
+            id: 'ce16',
+            type: 'MULTIPLE_CHOICE' as const,
+            question: 'Why must Texas Delight be batched before Cinnamon Dulce?',
+            options: ['It expires faster', 'Cinnamon Dulce uses Texas Delight mix as an ingredient', 'They share a bucket', 'No particular reason'],
+            correctAnswers: ['Cinnamon Dulce uses Texas Delight mix as an ingredient'],
+            explanation: 'Cinnamon Dulce = Texas Delight mix + Caramel + Brown Sugar Simple (2:1).'
+          },
+          {
+            id: 'ce17',
+            type: 'MULTIPLE_CHOICE' as const,
+            question: 'What is in the Hill Country mix?',
+            options: ['64 oz Butter Pecan + 64 oz Caramel', '64 oz Honey + 64 oz Lavender', '64 oz White Chocolate + 64 oz Maple', '64 oz Caramel + 64 oz Vanilla'],
+            correctAnswers: ['64 oz Butter Pecan + 64 oz Caramel'],
+            explanation: 'Hill Country is 64 oz Butter Pecan + 64 oz Caramel. (Lavender Sunrise is Honey + Lavender; Harvest Moon is White Chocolate + Maple.)'
+          },
+          {
+            id: 'ce18',
+            type: 'MULTIPLE_CHOICE' as const,
+            question: 'Can you substitute simple syrup for brown sugar simple at equal volume?',
+            options: ['Yes, they are interchangeable', 'No — brown sugar simple is 2:1 and changes sweetness and sugar load', 'Only in hot drinks', 'Only in frozen drinks'],
+            correctAnswers: ['No — brown sugar simple is 2:1 and changes sweetness and sugar load'],
+            explanation: 'Simple syrup is 1:1; brown sugar simple is 2:1. They are NOT interchangeable at equal volume.'
+          },
+          // ── Recipes: Matcha, Nitro, Sweet Cream ──
+          {
+            id: 'ce19',
+            type: 'MULTIPLE_CHOICE' as const,
+            question: 'What is the matcha base preparation?',
+            options: ['30g matcha + 300ml water', '20g matcha + 200ml water', '40g matcha + 300ml water', '30g matcha + 500ml water'],
+            correctAnswers: ['30g matcha + 300ml water'],
+            explanation: '30 grams matcha powder to 300 milliliters water.'
+          },
+          {
+            id: 'ce20',
+            type: 'MULTIPLE_CHOICE' as const,
+            question: 'What is the standard nitro build?',
+            options: ['Ice scoop, nitro to 2nd-to-last line, 3 oz sweet cream, 0.5 oz syrup', 'No ice, nitro to top, 2 oz cream, 1 oz syrup', 'Full ice, nitro halfway, 4 oz cream', 'Ice scoop, nitro to fill line, 1 oz syrup only'],
+            correctAnswers: ['Ice scoop, nitro to 2nd-to-last line, 3 oz sweet cream, 0.5 oz syrup'],
+            explanation: '1 scoop ice → nitro to the 2nd-to-last line → 3 oz sweet cream → 0.5 oz flavor syrup.'
+          },
+          {
+            id: 'ce21',
+            type: 'MULTIPLE_CHOICE' as const,
+            question: 'What is in a Cookie Butter nitro?',
+            options: ['0.5 oz Biscoff + 10g White Chocolate', 'Equal parts White Chocolate and Speculoos — 0.25 oz each', '0.5 oz Speculoos only', '1 oz White Chocolate'],
+            correctAnswers: ['Equal parts White Chocolate and Speculoos — 0.25 oz each'],
+            explanation: 'Cookie Butter splits the 0.5 oz total equally: 0.25 oz White Chocolate + 0.25 oz Speculoos.'
+          },
+          {
+            id: 'ce22',
+            type: 'MULTIPLE_CHOICE' as const,
+            question: 'What is the standard sweet cream build, and how long can it be stored?',
+            options: ['3 oz cream + 0.5 oz syrup, 24 hours max', '4 oz cream + 1 oz syrup, 48 hours max', '2 oz cream + 0.5 oz syrup, 12 hours max', '3 oz cream + 1 oz syrup, 1 week'],
+            correctAnswers: ['3 oz cream + 0.5 oz syrup, 24 hours max'],
+            explanation: 'Standard: 3 oz cream + 0.5 oz syrup. Prepared in tumblers, labeled and dated, stored cold, 24 hours maximum.'
+          },
+          // ── Recipes: Energy, Frozen, Sodas ──
+          {
+            id: 'ce23',
+            type: 'MULTIPLE_CHOICE' as const,
+            question: 'How much syrup goes in a 16oz energy drink?',
+            options: ['1 oz', '1.5 oz', '2 oz', '0.5 oz'],
+            correctAnswers: ['1.5 oz'],
+            explanation: 'Energy follows 1 / 1.5 / 2 / 2 — the same pattern as sodas, lemonades, and iced teas.'
+          },
+          {
+            id: 'ce24',
+            type: 'MULTIPLE_CHOICE' as const,
+            question: 'Blue Haze is a three-way split. In a 16oz, how much of EACH flavor?',
+            options: ['0.33 oz each', '0.5 oz each', '0.67 oz each', '0.75 oz each'],
+            correctAnswers: ['0.5 oz each'],
+            explanation: '16oz = 1.5 oz total ÷ 3 flavors = 0.5 oz each of Lavender, Blue Raspberry, and Pomegranate.'
+          },
+          {
+            id: 'ce25',
+            type: 'MULTIPLE_CHOICE' as const,
+            question: 'What is in the frozen coffee base?',
+            options: ['Whole milk, chilled espresso, 1:1 simple syrup — nothing else', 'Milk, ice cream base, sugar', '2% milk, hot espresso, raw sugar', 'Cold brew, cream, vanilla'],
+            correctAnswers: ['Whole milk, chilled espresso, 1:1 simple syrup — nothing else'],
+            explanation: 'Pure dairy base. Espresso fully chilled first, viscosity stays at 1, flavor is never batched into the hopper.'
+          },
+          {
+            id: 'ce26',
+            type: 'MULTIPLE_CHOICE' as const,
+            question: 'How are frozen energy drinks and frozen lemonades made?',
+            options: ['Drawn from the frozen machine', 'Pre-batched each morning', 'Blended to order individually', 'Poured over crushed ice'],
+            correctAnswers: ['Blended to order individually'],
+            explanation: 'Both are blended to order. Frozen coffee is the ONLY product that runs on the Spaceman 6455-CL.'
+          },
+          // ── Recipes: Smoothies, Fill Lines, Kids, Brewing ──
+          {
+            id: 'ce27',
+            type: 'MULTIPLE_CHOICE' as const,
+            question: 'What goes in a 16oz smoothie?',
+            options: ['4 oz puree + 3 oz water + heaping scoop of ice', '3 oz puree + 2 oz water + level scoop', '5 oz puree + 4 oz water + 2 scoops', '4 oz puree + 4 oz water + fill line ice'],
+            correctAnswers: ['4 oz puree + 3 oz water + heaping scoop of ice'],
+            explanation: '16oz = 4 oz puree + 3 oz water + heaping scoop (cup overflowing), then blend. Smoothies use no flavor syrup.'
+          },
+          {
+            id: 'ce28',
+            type: 'MULTIPLE_CHOICE' as const,
+            question: 'What are the cup fill lines for 12 / 16 / 20 / 24 oz?',
+            options: ['9 / 11 / 14 / 16 oz', '9 / 11 / 14 / 17 oz', '8 / 10 / 13 / 15 oz', '10 / 12 / 15 / 17 oz'],
+            correctAnswers: ['9 / 11 / 14 / 16 oz'],
+            explanation: 'Fill line is a property of the cup: 9 / 11 / 14 / 16. Frozen drinks are the exception — they fill the whole cup.'
+          },
+          {
+            id: 'ce29',
+            type: 'MULTIPLE_CHOICE' as const,
+            question: 'How much total chocolate sauce goes in a 16oz Zebra Milk?',
+            options: ['20g', '30g', '40g', '10g'],
+            correctAnswers: ['40g'],
+            explanation: 'Zebra Milk: 20g total at 12oz, 40g total at all other sizes — split evenly between dark and white chocolate.'
+          },
+          {
+            id: 'ce30',
+            type: 'MULTIPLE_CHOICE' as const,
+            question: 'How long does cold brew steep, and at what grind settings do batch brew and cold brew run?',
+            options: ['10 hours; batch grind 9, cold brew grind 13', '8 hours; batch grind 7, cold brew grind 9', '12 hours; both at grind 11', '10 hours; both at grind 9'],
+            correctAnswers: ['10 hours; batch grind 9, cold brew grind 13'],
+            explanation: 'Cold brew steeps 10 hours. EK-43 settings: batch brew at 9, cold brew at 13.'
+          }
+        ]
+      }
+    ]
   }
 ];
