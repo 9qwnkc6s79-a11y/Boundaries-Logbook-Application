@@ -93,12 +93,17 @@ Customers come to Boundaries for **Speed, Quality, and Consistency**. These aren
     id: 's-4',
     number: 4,
     title: 'Espresso',
-    content: `Espresso is the foundation of everything we serve. Mastery of the espresso system defines consistency.
+    content: `Espresso is the foundation of everything we serve. Mastery of the espresso system defines consistency. Shot standards and dose specifications are in the Recipe Book under Core Standards.
 
 ### Equipment
 - **Espresso Machine**: La Marzocco PB3 Group Head
 - **Grinder**: Mahlkönig E80 GBW (grind-by-weight)
 - **Automatic Tamper**: PuqPress
+
+### Dose & Shot Convention
+- Dose is **18 g per double shot**.
+- One shot means a **double, 2 oz**. Singles are not dosed or pulled.
+- **Iced Americano takes 3 oz** — pull two doubles and split one.
 
 ### Espresso Variables
 1. Dose Weight
@@ -127,7 +132,7 @@ Customers come to Boundaries for **Speed, Quality, and Consistency**. These aren
   },
   {
     id: 's-5',
-    number: 2,
+    number: 5,
     title: 'Coffee Bar',
     content: `All espresso-based drinks—hot or iced—are produced here. The Coffee Bar is typically a **two-person team** but may be run solo.
 
@@ -185,15 +190,44 @@ Customers come to Boundaries for **Speed, Quality, and Consistency**. These aren
   {
     id: 's-7',
     number: 7,
-    title: 'Not Coffee Bar (Placeholder)',
-    content: `This section will include detailed processes for:
-- Frozen drinks
-- Smoothies
-- Teas (iced and tea lattes)
-- Lotus energy drinks
-- Lemonades
+    title: 'Not Coffee Bar',
+    content: `The Not Coffee Bar covers frozen beverages, smoothies, iced teas and tea lattes, energy drinks, sodas, and lemonades. Full builds and ratios for every category live in the **Recipe Book**. The frozen coffee base is reproduced here because it is a batched preparation the bar must build on shift.
 
-*Procedures to be finalized in next version.*`
+### 7.1 Frozen Coffee
+All frozen coffee is built as a **single dairy base** and flavored per drink at the window. The base runs in the **Spaceman 6455-CL** frozen beverage machine. Flavor is never batched into the hopper.
+
+**Batch Chart**
+| Ingredient | Small (3/4 gal) | Medium (1 gal) | Large (1.5 gal) |
+| :--- | :--- | :--- | :--- |
+| Whole Milk | 96 oz | 128 oz | 192 oz |
+| Espresso, chilled | 24 oz | 32 oz | 48 oz |
+| Double shots | 12 | 16 | 24 |
+| Simple Syrup 1:1 | 14.5 oz | 19 oz | 29 oz |
+| **Total Yield** | ~134 oz | ~180 oz | ~270 oz |
+
+Espresso is dosed at 18 g per double shot. Pull to standard shot time, then **chill completely** before it goes anywhere near the hopper.
+
+**Machine Settings**: Viscosity **1** · No air tube (machine not equipped) · Hopper temp default refrigerated · Cylinder fill **75% minimum**.
+
+**Build Process**
+1. Pull espresso and chill completely.
+2. Combine milk, espresso, and simple syrup in a bucket.
+3. Whisk 30 seconds.
+4. Pour into hopper.
+5. Prime until the cylinder fills past 75%, then close the screw.
+6. Switch to FREEZE.
+7. **Wait a full 15 minutes.**
+8. Draw a small test pull before serving.
+
+**Non-Negotiable**: Espresso fully chilled before the hopper. Viscosity stays at 1. Never serve before 15 minutes.
+
+**Per Drink**: Draw into cup → Add flavor syrup → Lid → Serve. Frozen coffee **fills the whole cup** — it does not use the iced fill lines. Not offered in 12 oz.
+
+### 7.2 Frozen Energy
+Frozen energy drinks and frozen lemonades are both **blended to order individually**. Neither is pre-batched and neither runs in the frozen machine. Frozen coffee is the only product on the 6455-CL.
+
+### 7.3 Sodas, Smoothies, Teas, Energy & Lemonades
+Builds are specified in the Recipe Book. Smoothie and energy builds are complete. Sodas, lemonade flavor builds, and all tea recipes are still open. Syrup volume for every category is set by **Syrup by Drink Size** in Section 10.`
   },
   {
     id: 's-8',
@@ -203,7 +237,7 @@ Customers come to Boundaries for **Speed, Quality, and Consistency**. These aren
 All drip coffee is brewed on the Fetco system in 1-gallon batches.
 
 ### Steps
-1. Grind beans on EK-43 (**grind 7 – 9**).
+1. Grind beans on EK-43 (**grind setting 9**).
 2. Form filter correctly to avoid collapse.
 3. Place filter in basket, ensure lid open and pour stop closed.
 4. Press **1-Gallon Batch**.
@@ -214,7 +248,7 @@ All drip coffee is brewed on the Fetco system in 1-gallon batches.
     number: 9,
     title: 'Cold Brew',
     content: `### Process (Toddy Method)
-1. Grind entire 5 lb bag of Cold Brew Roast coffee.
+1. Grind entire 5 lb bag of Cold Brew Roast coffee (**EK-43, grind setting 13**).
 2. Insert paper filter and mesh filter in Toddy bucket.
 3. Add grounds to filter bag.
 4. Pour 7 quarts water over grounds.
@@ -230,23 +264,48 @@ All drip coffee is brewed on the Fetco system in 1-gallon batches.
     number: 10,
     title: 'Syrup Batching & Signature Mixes',
     content: `### Overview
-All signature mixes are batched in 1-gallon increments and stored in three-gallon buckets on the syrup shelf. Each batch must be clearly labeled with name and date.
+All signature mixes are batched in 1-gallon increments (128 oz total) and stored in three-gallon buckets on the syrup shelf. Each batch must be clearly labeled with name and date. Per-drink syrup amounts for the Originals lattes are in the Recipe Book.
 
-### Recipes
-**Hill Country Latte Mix**
-- 64 oz Caramel
-- 64 oz Butter Pecan
+### Syrup Base Standards
+House syrups are **not** all made at the same strength. Check the ratio before batching or substituting.
+- **Simple Syrup — 1:1**: Equal parts sugar and water. Used in the frozen coffee base.
+- **Brown Sugar Simple — 2:1**: Two parts brown sugar to one part water. Denser and sweeter. Used in the Cinnamon Dulce mix.
 
-**Lavender Sunrise Mix**
-- 64 oz Honey
-- 64 oz Lavender
+*Brown sugar simple is NOT interchangeable with simple syrup — substituting at equal volume changes both the sweetness and sugar load of the finished drink.*
 
-**Sweet Trio Mix**
-- 1/3 Dark Chocolate
-- 1/3 Caramel
-- 1/3 Hazelnut
+### Signature Mixes
+| Mix | Composition | Status |
+| :--- | :--- | :--- |
+| **Hill Country** | 64 oz Butter Pecan + 64 oz Caramel | Currently batching |
+| **Lavender Sunrise** | 64 oz Honey + 64 oz Lavender | Currently batching |
+| **Texas Delight** | 42.67 oz Honey + 42.67 oz 1883 Vanilla + 42.67 oz 1883 Cinnamon | Currently batching — in-house as of July 2026 |
+| **Sweet Trio** | 42.67 oz Dark Chocolate + 42.67 oz Caramel + 42.67 oz Hazelnut | Batched — not a menu drink |
+| **Cinnamon Dulce** | 42.67 oz Texas Delight mix + 42.67 oz Caramel + 42.67 oz Brown Sugar Simple (2:1) | Batched — uses Texas Delight as an ingredient |
+| **Harvest Moon** | 64 oz White Chocolate + 64 oz Maple | Cinnamon added at build, not in batch |
+| **Golden Cream** | 64 oz Caramel + 64 oz Vanilla | Not currently batching |
+| **Salted Sweetheart** | 64 oz Salted Caramel + 64 oz White Chocolate | Not currently batching |
 
-*Note: All sauces should be warmed in a hot-water bath before mixing to ensure full blending. Label each batch with product name, date, and initials.*`
+### Batching Standards
+- Warm all sauces in a hot water bath before mixing to ensure proper blending.
+- Label every batch with product name, date, and the initials of who made it.
+- **Texas Delight is batched in-house.** It is no longer purchased pre-made off-site.
+- **Cinnamon Dulce contains Texas Delight mix.** Batch Texas Delight first, then use it as an ingredient.
+
+### Syrup by Drink Size
+Flavor syrup scales with cup size. This table is the single source for syrup volume across every category. Multi-flavor drinks divide the size total equally.
+| Category | 12 oz | 16 oz | 20 oz | 24 oz |
+| :--- | :--- | :--- | :--- | :--- |
+| Lattes | 1 oz | 1 oz | 1 oz | — |
+| Matchas | 1 oz | 1 oz | 1 oz | — |
+| Energy | 1 oz | 1.5 oz | 2 oz | 2 oz |
+| Frozen Energy | 0.5 oz | 1 oz | 1.5 oz | 2 oz |
+| Sodas | 1 oz | 1.5 oz | 2 oz | 2 oz |
+| Frozen Coffee | — | 1 oz | 1.5 oz | 2 oz |
+| Frozen Lemonade | 1 oz | 1.5 oz | 2 oz | 2 oz |
+| Lemonade | 1 oz | 1.5 oz | 2 oz | 2 oz |
+| Iced Teas | 1 oz | 1.5 oz | 2 oz | 2 oz |
+
+*A dash means the size is not offered. Nitro is not on this table — it holds at 0.5 oz. Smoothies use no flavor syrup.*`
   },
   {
     id: 's-11',
@@ -301,9 +360,91 @@ All signature mixes are batched in 1-gallon increments and stored in three-gallo
 **[Order Taker]** → **[Coffee Bar 1 (+ Not Coffee)]** → **[Coffee Bar 2 (Steam/Finish)]** → **[Expo / Food]**
 
 ### Five-Person Flow
-**[Order Taker]** ↔ **[Coffee Bar 1]** ↔ **[Coffee Bar 2]** ↔ **[Expo (Exit Rider)]** 
+**[Order Taker]** ↔ **[Coffee Bar 1]** ↔ **[Coffee Bar 2]** ↔ **[Expo (Exit Rider)]**
 ↑ **[Not Coffee / Food]**
 *Summary*: Full team flow. Exit Rider controls pace & quality. Not Coffee handles smoothies, frozen, teas, food.`
+  },
+  {
+    id: 's-14',
+    number: 14,
+    title: 'Restocking & Cleaning',
+    content: `Zone-specific checklists for Coffee Bar, Not Coffee Bar, Expo / Window, Walk-In Cooler, and Lobby / Exterior. Daily versus end-of-day tasks to be defined in the next version.
+
+### Closing Cross-Reference
+The frozen machine nightly close is in **Section 15.1**. It is required at every close with no exceptions and should be pulled into the closing checklist when this section is built.`
+  },
+  {
+    id: 's-15',
+    number: 15,
+    title: 'Maintenance & Equipment Care',
+    content: `Espresso and grinder daily care is covered in Section 4. Frozen beverage machine care is specified in full below.
+
+## 15.1 Frozen Machine — Spaceman 6455-CL
+
+### Cleaning Schedule
+| Frequency | Task |
+| :--- | :--- |
+| **Every close** | Drain product, run WASH cycle with sanitizer, rinse until clear. Wipe hopper lid, draw valve, drip trays, and exterior. |
+| **Every other day** | Full teardown, hand-wash, sanitize, and re-lube before reopening. Inspect scraper blades and o-rings for wear or nicks. |
+| **Weekly** | Clean condenser air-intake screen and confirm clear airflow. Check all gaskets and o-rings for cracks or flat spots. |
+| **Monthly** | Vacuum or brush the condenser coil. Listen for bearing noise. Deep-inspect beater and drive-shaft assembly. |
+| **1–3 months** | Replace scraper blades and worn o-rings and gaskets (tune-up kit). |
+| **6 months** | Install Spaceman 6-month maintenance kit. Book a service check. |
+
+### End-of-Day Close (Nightly)
+1. Turn the machine from FREEZE to OFF.
+2. Set to WASH and drain all remaining product into a bucket.
+3. Rinse hopper and cylinder with cool sanitizer water. Brush loose debris.
+4. Drain, rinse, and repeat until the water runs clear.
+5. Mix 2 gallons Spaceman sanitizer solution and pour into the hopper.
+6. Run WASH 5–10 minutes, **never past 10**. Brush hopper walls and agitator.
+7. Open the draw valve, drain fully, then turn power OFF.
+
+### Dairy Safety
+- Frozen coffee base is **dairy** — a time and temperature controlled food.
+- Never leave product sitting in a machine that is switched off.
+- Mix held in the hopper must stay at or below **41°F**.
+- When in doubt, drain it and start fresh.
+
+### Full Teardown & Sanitize — Every Other Day
+**Step 1 — Disassemble** (power off, unplugged): Remove torque arm, then dispenser-door hand screws. Pull door assembly, torque assembly, and beater assembly. Remove door gasket, draw-valve o-rings, scraper blades, and ice buster. Twist out draw valve and prime plug. At the cylinder rear, remove the drive shaft and its gasket. Pull front and internal drip trays.
+
+**Step 2 — Clean** (hand wash only, NO dishwasher): Scrub cylinder and cylinder rear with Spaceman brushes and cool water. Hand-wash every removed part. Wipe off old lubricant. Discard any nicked blade or cracked o-ring. Dry with a clean towel.
+
+**Step 3 — Reassemble & lubricate**: Re-lube o-rings and gaskets with **Spaceman food-safe lubricant only**. Rebuild drive shaft, beater, scraper blades, then door and draw valve. Seat door flush, hand-tighten screws in a cross pattern — do not force. Reinstall torque arm, tapered end down.
+
+**Step 4 — Sanitize before first batch**: Confirm draw valve CLOSED. Pour 2 gallons Spaceman sanitizer into hopper. Run WASH 5–10 minutes, brush hopper walls. Drain fully, power OFF. Add fresh frozen coffee base immediately after sanitizing.
+
+### OEM Supplies Only
+Spaceman sanitizer packets · Spaceman food-safe lubricant · Brush kit · Scraper blade sets · O-ring and gasket tune-up kit.
+
+### Never
+- Never dishwasher any part.
+- Never run WASH dry or past 10 minutes.
+- Never leave dairy in an off machine.
+- Never use non-OEM lubricant or sanitizer.
+- Never force the door when seating.
+
+### Cadence & Regulatory Note
+Full teardown runs every other day, but the WASH-cycle sanitize at every close stays **daily with no exceptions**. On the off day, hold mix at or below 41°F. Get your health inspector's sign-off before operating on the every-other-day teardown cadence.`
+  },
+  {
+    id: 's-16',
+    number: 16,
+    title: 'Opening / Shift Change / Closing',
+    content: `Defines opening checklists, shift handoff responsibilities, and closing and lock-up procedures. To be completed in the next version.`
+  },
+  {
+    id: 's-17',
+    number: 17,
+    title: 'Safety & Emergencies',
+    content: `Outlines fire safety protocols, first-aid response, incident report forms, and the manager notification chain. To be completed in the next version.`
+  },
+  {
+    id: 's-18',
+    number: 18,
+    title: 'Appendices',
+    content: `Future content: cleaning checklists, vendor references, and the training cross-reference index. Drink spec charts live in the **Recipe Book**.`
   }
 ];
 
@@ -811,7 +952,7 @@ Cold brew infused with nitrogen for creamy, smooth texture
 
 • Vanilla Cream - Cold Brew + Vanilla Sweet Cream (Classic nitro)
 • Salted Caramel - Salted Caramel (Sweet & salty)
-• Cookie Butter - White Chocolate & Biscoff (Dessert-like)
+• Cookie Butter - White Chocolate & Speculoos (Dessert-like)
 
 ═══════════════════════════════════════
 ENERGY | BUBBLY | FREEZE
@@ -889,7 +1030,7 @@ Sugar-Free Options: Vanilla, Dark Chocolate, Caramel`
           { id: 'mk4', type: 'MULTIPLE_CHOICE', question: 'What makes the Salted Sweetheart unique?', options: ['It has espresso and sea salt', 'Salted Caramel & White Chocolate combination', 'It\'s made with salted butter', 'Brown Sugar & Salt'], correctAnswers: ['Salted Caramel & White Chocolate combination'] },
           { id: 'mk5', type: 'MULTIPLE_CHOICE', question: 'The Lavender Sunrise pairs lavender with what other flavor?', options: ['Vanilla', 'Lemon', 'Honey', 'Rose'], correctAnswers: ['Honey'] },
           { id: 'mk6', type: 'MULTIPLE_CHOICE', question: 'What flavor is paired with matcha in the Blue Coconut?', options: ['Blueberry', 'Blue Raspberry', 'Coconut', 'Vanilla'], correctAnswers: ['Coconut'] },
-          { id: 'mk7', type: 'MULTIPLE_CHOICE', question: 'The Cookie Butter Nitro contains which two flavors?', options: ['Chocolate Chip & Vanilla', 'White Chocolate & Biscoff', 'Caramel & Cookie', 'Brown Sugar & Cinnamon'], correctAnswers: ['White Chocolate & Biscoff'] },
+          { id: 'mk7', type: 'MULTIPLE_CHOICE', question: 'The Cookie Butter Nitro contains which two flavors?', options: ['Chocolate Chip & Vanilla', 'White Chocolate & Speculoos', 'Caramel & Cookie', 'Brown Sugar & Cinnamon'], correctAnswers: ['White Chocolate & Speculoos'] },
           { id: 'mk8', type: 'MULTIPLE_CHOICE', question: 'What is the White Pom. Matcha flavor combination?', options: ['White Tea & Pomegranate', 'White Chocolate & Pomegranate', 'Vanilla & Pomegranate', 'Coconut & Pomegranate'], correctAnswers: ['White Chocolate & Pomegranate'] },
           { id: 'mk9', type: 'MULTIPLE_CHOICE', question: 'What are the flavors in The Drift?', options: ['Mango & Pineapple', 'Strawberry & Pineapple', 'Peach & Pineapple', 'Orange & Pineapple'], correctAnswers: ['Strawberry & Pineapple'] },
           { id: 'mk10', type: 'MULTIPLE_CHOICE', question: 'The Shockwave contains which three fruits?', options: ['Strawberry, Mango, Kiwi', 'Passionfruit, Strawberry, Kiwi', 'Pineapple, Strawberry, Lime', 'Blueberry, Strawberry, Pomegranate'], correctAnswers: ['Passionfruit, Strawberry, Kiwi'] },
@@ -1737,7 +1878,7 @@ WHAT YOU NEED TO DO:
 Your photos will be saved in your Progress Gallery so you can see your improvement over time. Let's get started!`,
         checklistItems: [
           // Espresso Shots (5)
-          { id: 'esp-1', title: 'Espresso Shot #1 (Dialed In)', description: 'Pull a properly dialed-in shot. Target: 19g dose, 24s brew time.', requiresPhoto: true },
+          { id: 'esp-1', title: 'Espresso Shot #1 (Dialed In)', description: 'Pull a properly dialed-in shot. Target: 18g dose per double, within ±2s of standard shot time.', requiresPhoto: true },
           { id: 'esp-2', title: 'Espresso Shot #2 (Dialed In)', description: 'Pull another dialed-in shot. Demonstrate consistency.', requiresPhoto: true },
           { id: 'esp-3', title: 'Espresso Shot #3 (Dialed In)', description: 'Pull a third shot with minimal guidance.', requiresPhoto: true },
           { id: 'esp-under', title: 'Espresso Shot (Under-extracted)', description: 'Pull an under-extracted shot. Identify the sour, acidic taste.', requiresPhoto: true },
@@ -1773,7 +1914,7 @@ Your photos will be saved in your Progress Gallery so you can see your improveme
           { id: 'db1', type: 'MULTIPLE_CHOICE', question: 'What is espresso?', options: ['A type of coffee bean', 'A brew method requiring ground coffee, water, heat, pressure, filter, and time', 'A dark roast coffee', 'Coffee with milk added'], correctAnswers: ['A brew method requiring ground coffee, water, heat, pressure, filter, and time'] },
           { id: 'db2', type: 'MULTIPLE_CHOICE', question: 'What are the 6 things required for espresso?', options: ['Beans, grinder, machine, cup, water, milk', 'Ground coffee, water, heat, pressure (9 bar), filter, time', 'Steam, pressure, heat, beans, filter, cup', 'Coffee, cream, sugar, water, heat, time'], correctAnswers: ['Ground coffee, water, heat, pressure (9 bar), filter, time'] },
           { id: 'db3', type: 'MULTIPLE_CHOICE', question: 'What is the standard espresso yield and shot time range?', options: ['1oz, 10-15 seconds', '2oz, 20-30 seconds', '3oz, 40-50 seconds', '4oz, 60-90 seconds'], correctAnswers: ['2oz, 20-30 seconds'] },
-          { id: 'db4', type: 'MULTIPLE_CHOICE', question: 'What is the Monarch espresso recipe at Boundaries Coffee?', options: ['18g dose at 20s brew time', '19g dose at 24s brew time', '21g dose at 30s brew time', '17g dose at 22s brew time'], correctAnswers: ['19g dose at 24s brew time'] },
+          { id: 'db4', type: 'MULTIPLE_CHOICE', question: 'What is the espresso dose standard at Boundaries Coffee?', options: ['18g per double shot, ±2s of standard shot time', '19g per double at 24s brew time', '21g per double at 30s brew time', '17g per single at 22s brew time'], correctAnswers: ['18g per double shot, ±2s of standard shot time'] },
           { id: 'db5', type: 'MULTIPLE_CHOICE', question: 'What is the acceptable range for dose and brew time variation?', options: ['+/- 1g, +/- 5s', '+/- 0.2g, +/- 2s', '+/- 0.5g, +/- 3s', '+/- 2g, +/- 10s'], correctAnswers: ['+/- 0.2g, +/- 2s'] },
           { id: 'db6', type: 'MULTIPLE_CHOICE', question: 'What does an under-extracted shot taste like?', options: ['Bitter and harsh', 'Sour and acidic', 'Sweet and balanced', 'Burnt and smoky'], correctAnswers: ['Sour and acidic'] },
           { id: 'db7', type: 'MULTIPLE_CHOICE', question: 'What does an over-extracted shot taste like?', options: ['Sour and bright', 'Bitter and harsh', 'Fruity and light', 'Watery and thin'], correctAnswers: ['Bitter and harsh'] },
