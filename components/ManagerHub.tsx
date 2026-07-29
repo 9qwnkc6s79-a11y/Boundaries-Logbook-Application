@@ -12,6 +12,7 @@ import { detectLeaders, calculateTimelinessScore, calculateTurnTimeScore, calcul
 import { syncOrderAttributions } from '../utils/orderAttribution';
 import TeamManagement from './TeamManagement';
 import CameraSection from './CameraFeed';
+import WeeklyReport from './WeeklyReport';
 import NotificationBanner from './NotificationBanner';
 import { checkLateSubmissions, checkHighTurnTime, getTodayDate } from '../services/notificationTriggers';
 import { showLocalNotification, isAnyStoreManager, getNotificationConfig } from '../services/notifications';
@@ -1650,6 +1651,15 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                 </div>
               </div>
             </div>
+
+            {/* Weekly Report */}
+            <WeeklyReport
+              currentStoreId={currentStoreId}
+              storeName={stores.find(s => s.id === currentStoreId)?.name || currentStoreId}
+              submissions={submissions}
+              templates={templates}
+              allUsers={allUsers}
+            />
 
             {/* Live Cameras */}
             <CameraSection
