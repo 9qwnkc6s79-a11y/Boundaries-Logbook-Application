@@ -209,16 +209,16 @@ class CloudAPI {
 
   async fetchOrg(orgId: string): Promise<Organization | null> {
     if (!firestore) return null;
-    try {
-      const docRef = firestore.doc(`organizations/${orgId}/config/main`);
-      const snap = await docRef.get();
-      if (!snap.exists) return null;
-      const data = snap.data();
-      return data?.data || null;
-    } catch (error) {
-      console.error(`[Firestore] fetchOrg(${orgId}): Error:`, error);
-      return null;
-    }
+    // Re-throw on transient errors so callers can distinguish "org doesn't
+    // exist" (null) from "read failed" (throw). Collapsing the two used to
+    // send initOrg down the first-run path on a network blip, which then
+    // re-ran migrateToOrg and clobbered current org data (including hashed
+    // passwords) with the legacy appData snapshot.
+    const docRef = firestore.doc(`organizations/${orgId}/config/main`);
+    const snap = await docRef.get();
+    if (!snap.exists) return null;
+    const data = snap.data();
+    return data?.data || null;
   }
 
   async saveOrg(org: Organization): Promise<boolean> {
@@ -244,6 +244,28 @@ class CloudAPI {
 
   async migrateToOrg(orgId: string): Promise<boolean> {
     if (!firestore) return false;
+
+    // Idempotency guard: if this org already carries the "migrated" marker,
+    // return without touching anything. Without this, a transient fetchOrg
+    // failure (network blip, quota) would push initOrg back into the first-
+    // run branch and re-copy the legacy appData snapshot on top of current
+    // org data — silently reverting hashed passwords to old values and
+    // locking users out. The marker turns every subsequent call into a
+    // no-op so a stale snapshot can never overwrite live credentials.
+    const markerRef = firestore.doc(`organizations/${orgId}/data/appDataMigrated`);
+    try {
+      const markerSnap = await markerRef.get();
+      if (markerSnap.exists && markerSnap.data()?.data?.done === true) {
+        console.log(`[Firestore] migrateToOrg(${orgId}): Marker present, skipping — already migrated`);
+        return true;
+      }
+    } catch (error) {
+      // If the marker read itself fails, refuse to migrate. A blind migration
+      // here is exactly what causes the password-reversion bug.
+      console.error(`[Firestore] migrateToOrg(${orgId}): Marker read failed, refusing to migrate:`, error);
+      return false;
+    }
+
     console.log(`[Firestore] migrateToOrg(${orgId}): Starting migration from appData...`);
 
     try {
@@ -281,6 +303,13 @@ class CloudAPI {
           console.log(`[Firestore] migrateToOrg: Updated ${updatedUsers.length} users with orgId=${orgId}`);
         }
       }
+
+      // Seal the marker so a subsequent transient fetchOrg failure can't
+      // re-run this migration and overwrite live credentials.
+      await markerRef.set({
+        data: { done: true, at: new Date().toISOString() },
+        lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: false });
 
       console.log(`[Firestore] migrateToOrg(${orgId}): Migration complete`);
       return true;
@@ -326,6 +355,8 @@ class CloudAPI {
 
   async fetchAllOrgs(): Promise<Organization[]> {
     if (!firestore) return [];
+    // fetchOrg now throws on transient errors — the outer try/catch here
+    // preserves the previous swallow-and-return-empty contract for callers.
     try {
       // We need to scan organizations collection - each org has a config/main sub-doc
       // For now, we look for known orgs. In future, maintain an index.

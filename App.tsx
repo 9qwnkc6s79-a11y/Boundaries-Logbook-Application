@@ -145,14 +145,30 @@ const App: React.FC = () => {
 
   // Initialize org on first load
   const initOrg = useCallback(async () => {
-    // Try to load the Boundaries org
-    let org = await db.fetchOrg(DEFAULT_ORG_ID);
+    // Try to load the Boundaries org. fetchOrg now throws on transient
+    // Firestore errors so we don't confuse them with "org doesn't exist"
+    // — collapsing the two used to send us into the first-run branch on
+    // a network blip and re-run migrateToOrg, which overwrote current
+    // user data (including hashed passwords) with the legacy appData
+    // snapshot and locked people out.
+    let org: Organization | null;
+    try {
+      org = await db.fetchOrg(DEFAULT_ORG_ID);
+    } catch (err) {
+      console.error('[App] Org fetch failed transiently, keeping in-memory default (no create/migrate):', err);
+      const fallback = { ...DEFAULT_ORG, stores: MOCK_STORES };
+      db.setOrg(fallback.id);
+      setCurrentOrg(fallback);
+      applyOrgTheme(fallback);
+      return fallback;
+    }
+
     if (!org) {
       // First time: create org and migrate data
       console.log('[App] No org found, creating default Boundaries Coffee org...');
       org = { ...DEFAULT_ORG, stores: MOCK_STORES };
       await db.createOrg(org);
-      // Migrate existing appData to org
+      // Migrate existing appData to org (idempotent — marker-guarded inside)
       await db.migrateToOrg(DEFAULT_ORG_ID);
       console.log('[App] Default org created and data migrated');
     }
@@ -360,11 +376,16 @@ const App: React.FC = () => {
     // Load org config for user
     const orgId = found.orgId || DEFAULT_ORG_ID;
     if (!currentOrg || currentOrg.id !== orgId) {
-      const org = await db.fetchOrg(orgId);
-      if (org) {
-        db.setOrg(org.id);
-        setCurrentOrg(org);
-        applyOrgTheme(org);
+      try {
+        const org = await db.fetchOrg(orgId);
+        if (org) {
+          db.setOrg(org.id);
+          setCurrentOrg(org);
+          applyOrgTheme(org);
+        }
+      } catch (err) {
+        // Transient org read failure — don't block login on org theme.
+        console.warn('[Auth] Org config fetch failed, using current theme:', err);
       }
     }
 
@@ -427,9 +448,16 @@ const App: React.FC = () => {
     // Generate orgId from shop name
     let orgId = 'org-' + data.orgName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
-    // Check for collision
-    const existing = await db.fetchOrg(orgId);
-    if (existing) {
+    // Check for collision. If the read errors we can't be sure the org is
+    // free, so fail-closed by adding a timestamp suffix — better to make a
+    // new namespace than to createOrg-overwrite someone else's config.
+    try {
+      const existing = await db.fetchOrg(orgId);
+      if (existing) {
+        orgId = orgId + '-' + Date.now();
+      }
+    } catch (err) {
+      console.warn('[App] Onboarding collision check failed, using timestamped id:', err);
       orgId = orgId + '-' + Date.now();
     }
 
