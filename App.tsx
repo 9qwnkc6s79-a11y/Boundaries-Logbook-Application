@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { User, UserRole, UserProgress, ChecklistSubmission, ChecklistTemplate, Store, TrainingModule, ManualSection, Recipe, ToastSalesData, ToastTimeEntry, Organization, ToastSyncEmployee, InventoryItem, InventoryCount } from './types';
+import { User, UserRole, UserProgress, ChecklistSubmission, ChecklistTemplate, Store, TrainingModule, ManualSection, Recipe, ToastSalesData, ToastTimeEntry, Organization, ToastSyncEmployee, InventoryItem, InventoryCount, Venture } from './types';
 import { TRAINING_CURRICULUM, CHECKLIST_TEMPLATES, MOCK_USERS, MOCK_STORES, BOUNDARIES_MANUAL, BOUNDARIES_RECIPES } from './data/mockData';
 import { SEED_INVENTORY } from './data/inventoryItems';
 import { db } from './services/db';
@@ -10,6 +10,7 @@ import ManagerHub from './components/ManagerHub';
 import StaffDashboard from './components/StaffDashboard';
 import RecipeBook from './components/RecipeBook';
 import InventoryView from './components/InventoryView';
+import VenturesView from './components/VenturesView';
 import Login from './components/Login';
 import Onboarding, { OnboardingData } from './components/Onboarding';
 import { getStarterPack } from './data/starterPacks';
@@ -139,6 +140,7 @@ const App: React.FC = () => {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
   const [inventoryCounts, setInventoryCounts] = useState<InventoryCount[]>([]);
+  const [ventures, setVentures] = useState<Venture[]>([]);
 
   // Track the last time we updated a submission locally to avoid the "sync overwrite flicker"
   const lastSubmissionUpdateRef = useRef<number>(0);
@@ -280,6 +282,14 @@ const App: React.FC = () => {
     };
     if (currentUser) loadInventory();
   }, [currentStoreId, currentUser]);
+
+  // Load ventures for admins (owner-only business idea pipeline)
+  useEffect(() => {
+    if (!currentUser || currentUser.role !== UserRole.ADMIN) return;
+    db.fetchVentures()
+      .then(setVentures)
+      .catch(e => console.warn('[App] Failed to load ventures:', e));
+  }, [currentUser]);
 
   const effectiveUser = useMemo(() => {
     if (!currentUser) return null;
@@ -1007,6 +1017,17 @@ const App: React.FC = () => {
             onUpdateItems={async (items) => {
               setInventoryItems(items);
               await db.pushInventoryItems(currentStoreId, items);
+            }}
+          />
+        )}
+        {activeTab === 'ventures' && currentUser.role === UserRole.ADMIN && (
+          <VenturesView
+            currentUser={currentUser}
+            ventures={ventures}
+            onSave={async (next) => {
+              setVentures(next);
+              const ok = await db.pushVentures(next);
+              if (!ok) setSaveError('Failed to save ventures — check your connection and try again.');
             }}
           />
         )}
