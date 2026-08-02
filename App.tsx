@@ -329,12 +329,14 @@ const App: React.FC = () => {
     // Build a single updated user object for any needed migrations
     let migratedUser = { ...found };
     let needsMigration = false;
+    let passwordMigration = false;
 
     // Auto-migrate plaintext password to hashed on successful login
     if (!isHashed(found.password)) {
       try {
         migratedUser.password = await hashPassword(pass);
         needsMigration = true;
+        passwordMigration = true;
         console.log(`[Auth] Will migrate password hash for ${found.email}`);
       } catch (e) {
         console.warn('[Auth] Password hash failed:', e);
@@ -347,10 +349,14 @@ const App: React.FC = () => {
       needsMigration = true;
     }
 
-    // Save all migrations in a single write to avoid overwriting the hash
+    // Save all migrations in a single write. Only assert changePassword when
+    // the password was actually re-hashed — an orgId-only migration must not
+    // clear the syncUser guard, or a stale cached hash would silently
+    // clobber a fresh cloud password (e.g. an admin reset that landed
+    // between our sync read and this write).
     if (needsMigration) {
       try {
-        await db.syncUser(migratedUser, { changePassword: true });
+        await db.syncUser(migratedUser, { changePassword: passwordMigration });
         console.log(`[Auth] Migrated user ${found.email} (hash=${!isHashed(found.password)}, orgId=${!found.orgId})`);
       } catch (e) {
         console.warn('[Auth] User migration failed:', e);
@@ -857,8 +863,15 @@ const App: React.FC = () => {
         orgId: currentOrg?.id
       };
 
-      // Use syncUser (read-modify-write) to avoid overwriting other users' data
-      await db.syncUser(newUser, { changePassword: true });
+      // Use syncUser (read-modify-write) to avoid overwriting other users' data.
+      // Do NOT pass changePassword: true here. The existence check above uses
+      // stale React state, so this "new user" path can land on a user who
+      // already exists in cloud (same deterministic id from emp.guid). Without
+      // the flag, syncUser preserves the cloud password when one exists — new
+      // users still get the temp hash because the guard only fires when the
+      // existing record has a hashed password. Passing the flag would reset
+      // real user passwords back to temp123 on every Toast sync.
+      await db.syncUser(newUser);
       newCount++;
       console.log(`[App] Created user account for ${emp.name} (${finalEmail})`);
     }
