@@ -246,6 +246,24 @@ class CloudAPI {
 
   async migrateToOrg(orgId: string): Promise<boolean> {
     if (!firestore) return false;
+
+    // HARD SAFETY GUARD: this function wholesale-copies the frozen legacy
+    // appData snapshot over the org's live data. Running it against an org
+    // that already has users REVERTS the entire user base and training
+    // progress to that ancient snapshot (the 2026-08-03 lockout incident).
+    // It may only ever run against a truly empty org.
+    try {
+      const existingUsers = await firestore.doc(`organizations/${orgId}/data/users`).get();
+      if (existingUsers.exists) {
+        console.error(`[Firestore] migrateToOrg(${orgId}): REFUSED — org already has a users document. Migration would destroy live data.`);
+        return false;
+      }
+    } catch (e) {
+      // If we can't even verify, refuse — never migrate blind.
+      console.error(`[Firestore] migrateToOrg(${orgId}): REFUSED — could not verify org state:`, e);
+      return false;
+    }
+
     console.log(`[Firestore] migrateToOrg(${orgId}): Starting migration from appData...`);
 
     try {
