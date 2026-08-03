@@ -145,16 +145,24 @@ const App: React.FC = () => {
 
   // Initialize org on first load
   const initOrg = useCallback(async () => {
-    // Try to load the Boundaries org
-    let org = await db.fetchOrg(DEFAULT_ORG_ID);
+    // Load the Boundaries org, retrying on transient failures.
+    //
+    // CRITICAL: a failed/empty read must NEVER be treated as "org doesn't
+    // exist". The old code re-created the org and re-ran the appData
+    // migration whenever fetchOrg returned null — including on flaky
+    // network reads — which wholesale-reverted users and progress to an
+    // ancient snapshot. That was the root cause of the recurring account
+    // wipes and the 2026-08-03 total-lockout incident.
+    let org: Organization | null = null;
+    for (let attempt = 0; attempt < 3 && !org; attempt++) {
+      if (attempt > 0) await new Promise(r => setTimeout(r, 1000 * attempt));
+      org = await db.fetchOrg(DEFAULT_ORG_ID);
+    }
     if (!org) {
-      // First time: create org and migrate data
-      console.log('[App] No org found, creating default Boundaries Coffee org...');
+      // Proceed with in-memory defaults only. NO writes, NO migration —
+      // the next successful sync will pick up the real org config.
+      console.warn('[App] Org config unavailable after retries — using in-memory defaults WITHOUT writing.');
       org = { ...DEFAULT_ORG, stores: MOCK_STORES };
-      await db.createOrg(org);
-      // Migrate existing appData to org
-      await db.migrateToOrg(DEFAULT_ORG_ID);
-      console.log('[App] Default org created and data migrated');
     }
     db.setOrg(org.id);
     setCurrentOrg(org);
