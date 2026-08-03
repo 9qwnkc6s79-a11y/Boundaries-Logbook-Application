@@ -3,8 +3,9 @@ import { User, UserRole, Store, InventoryItem, InventoryCount } from '../types';
 import {
   Package, ChevronDown, ChevronRight, Minus, Plus, Send, Search,
   AlertTriangle, CheckCircle, ShoppingCart, Edit3, Save, X, Trash2,
-  Clock, BarChart3, Filter, ChevronUp, PlusCircle, Archive
+  Clock, BarChart3, Filter, ChevronUp, PlusCircle, Archive, Warehouse
 } from 'lucide-react';
+import WarehouseView from './WarehouseView';
 
 interface InventoryViewProps {
   currentUser: User;
@@ -24,7 +25,8 @@ const InventoryView: React.FC<InventoryViewProps> = ({
   onSubmitCount, onUpdateItems
 }) => {
   const isManager = currentUser.role === UserRole.MANAGER || currentUser.role === UserRole.ADMIN;
-  const [managerTab, setManagerTab] = useState<'count' | 'orders' | 'pars' | 'history'>('count');
+  const isAdmin = currentUser.role === UserRole.ADMIN;
+  const [managerTab, setManagerTab] = useState<'count' | 'orders' | 'pars' | 'history' | 'warehouse'>('count');
   const [countDate, setCountDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [counts, setCounts] = useState<Record<string, number>>({});
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['Coffee']));
@@ -716,17 +718,18 @@ const InventoryView: React.FC<InventoryViewProps> = ({
       {/* Manager sub-tabs */}
       {isManager ? (
         <>
-          <div className="flex gap-1 bg-neutral-100 rounded-xl p-1">
+          <div className="flex gap-1 bg-neutral-100 rounded-xl p-1 overflow-x-auto">
             {([
               { id: 'count', label: 'Count', icon: Package },
               { id: 'orders', label: 'Orders', icon: ShoppingCart },
               { id: 'pars', label: 'Par Mgmt', icon: Edit3 },
               { id: 'history', label: 'History', icon: Clock },
-            ] as const).map(tab => (
+              ...(isAdmin ? [{ id: 'warehouse', label: 'Warehouse', icon: Warehouse }] : []),
+            ] as { id: 'count' | 'orders' | 'pars' | 'history' | 'warehouse'; label: string; icon: any }[]).map(tab => (
               <button
                 key={tab.id}
                 onClick={() => setManagerTab(tab.id)}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-3 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
+                className={`flex-1 flex items-center justify-center gap-1.5 py-3 px-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${
                   managerTab === tab.id
                     ? 'bg-white text-[#0F2B3C] shadow-sm'
                     : 'text-neutral-400 hover:text-neutral-600'
@@ -742,6 +745,9 @@ const InventoryView: React.FC<InventoryViewProps> = ({
           {managerTab === 'orders' && renderOrderReport()}
           {managerTab === 'pars' && renderParManagement()}
           {managerTab === 'history' && renderHistory()}
+          {managerTab === 'warehouse' && isAdmin && (
+            <WarehouseView currentUser={currentUser} stores={stores} />
+          )}
         </>
       ) : (
         renderCountForm()
