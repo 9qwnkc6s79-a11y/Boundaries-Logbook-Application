@@ -513,6 +513,36 @@ export interface InventoryItem {
   sortOrder?: number;
 }
 
+// ── Warehouse Inventory (admin) ──
+// Bulk items are received at the warehouse, then transferred to stores.
+// The TRANSFER is the expense event — it hits that store's COGS.
+export interface WarehouseItem {
+  id: string;
+  name: string;          // e.g. "12oz Hot Cups"
+  unit: string;          // e.g. "case", "sleeve"
+  quantity: number;      // on hand at the warehouse
+  costPerUnit: number;   // current cost per unit (used for transfers)
+  active: boolean;
+  createdAt: string;
+}
+
+export interface WarehouseTransaction {
+  id: string;
+  itemId: string;
+  itemName: string;      // denormalized so reports survive item renames
+  unit: string;
+  type: 'RECEIVE' | 'TRANSFER' | 'ADJUST';
+  quantity: number;      // always positive; type determines direction
+  costPerUnit: number;   // unit cost at transaction time
+  totalCost: number;     // quantity * costPerUnit — COGS value for TRANSFERs
+  storeId?: string;      // TRANSFER destination
+  storeName?: string;
+  date: string;          // ISO timestamp
+  byUserId: string;
+  byUserName: string;
+  notes?: string;
+}
+
 export interface InventoryCount {
   id: string;
   storeId: string;

@@ -1,6 +1,6 @@
 
 // No imports needed - Firebase is loaded globally via CDN script tags in index.html
-import { User, UserProgress, ChecklistSubmission, ChecklistTemplate, TrainingModule, ManualSection, Recipe, CashDeposit, GoogleReviewsData, Organization, Store, AttributedOrder, ArchivedLeaderboard, AuditFeedback, InventoryItem, InventoryCount } from '../types';
+import { User, UserProgress, ChecklistSubmission, ChecklistTemplate, TrainingModule, ManualSection, Recipe, CashDeposit, GoogleReviewsData, Organization, Store, AttributedOrder, ArchivedLeaderboard, AuditFeedback, InventoryItem, InventoryCount, WarehouseItem, WarehouseTransaction } from '../types';
 import { isHashed } from '../utils/passwordUtils';
 
 declare const firebase: any;
@@ -63,6 +63,8 @@ const DOC_KEYS = {
   AI_AUDIT_FEEDBACK: 'aiAuditFeedback',
   INVENTORY_ITEMS: 'inventoryItems',
   INVENTORY_COUNTS: 'inventoryCounts',
+  WAREHOUSE_ITEMS: 'warehouseItems',
+  WAREHOUSE_TRANSACTIONS: 'warehouseTransactions',
 };
 
 function removeUndefined(obj: any): any {
@@ -1095,6 +1097,55 @@ class CloudAPI {
     }
 
     return counts;
+  }
+
+  // ── Warehouse Inventory (admin) ──
+
+  async fetchWarehouseItems(): Promise<WarehouseItem[]> {
+    return this.remoteGet<WarehouseItem[]>(DOC_KEYS.WAREHOUSE_ITEMS, []);
+  }
+
+  async pushWarehouseItems(items: WarehouseItem[]): Promise<boolean> {
+    // DATA LOSS PREVENTION: refuse to overwrite a previously-populated doc
+    // with an empty list caused by a transient read upstream.
+    const WAREHOUSE_POPULATED_KEY = 'warehousePopulated';
+    const marker = await this.remoteGet<{ populated: boolean }>(WAREHOUSE_POPULATED_KEY, { populated: false });
+    if (items.length === 0 && marker.populated) {
+      console.error('[Firestore] pushWarehouseItems REFUSED: empty write over populated doc');
+      return false;
+    }
+    const ok = await this.remoteSet(DOC_KEYS.WAREHOUSE_ITEMS, items);
+    if (ok && items.length > 0 && !marker.populated) {
+      this.remoteSet(WAREHOUSE_POPULATED_KEY, { populated: true, at: new Date().toISOString() });
+    }
+    return ok;
+  }
+
+  async fetchWarehouseTransactions(): Promise<WarehouseTransaction[]> {
+    return this.remoteGet<WarehouseTransaction[]>(DOC_KEYS.WAREHOUSE_TRANSACTIONS, []);
+  }
+
+  /** Append-only transaction log — read-modify-write with empty-read guard. */
+  async appendWarehouseTransaction(tx: WarehouseTransaction): Promise<WarehouseTransaction[] | null> {
+    const TX_POPULATED_KEY = 'warehouseTxPopulated';
+    let existing = await this.fetchWarehouseTransactions();
+    const marker = await this.remoteGet<{ populated: boolean }>(TX_POPULATED_KEY, { populated: false });
+    if (existing.length === 0 && marker.populated) {
+      // Retry once, then refuse rather than wipe the ledger.
+      await new Promise(r => setTimeout(r, 500));
+      existing = await this.fetchWarehouseTransactions();
+      if (existing.length === 0) {
+        console.error('[Firestore] appendWarehouseTransaction REFUSED: ledger read empty but marker set');
+        return null;
+      }
+    }
+    const next = [tx, ...existing];
+    const ok = await this.remoteSet(DOC_KEYS.WAREHOUSE_TRANSACTIONS, next);
+    if (!ok) return null;
+    if (!marker.populated) {
+      this.remoteSet(TX_POPULATED_KEY, { populated: true, at: new Date().toISOString() });
+    }
+    return next;
   }
 
   async pushInventoryCount(count: InventoryCount): Promise<boolean> {
