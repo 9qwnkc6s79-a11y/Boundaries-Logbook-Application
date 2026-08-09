@@ -6,10 +6,15 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-// NOTE: Env var names are swapped relative to actual locations (set incorrectly in Vercel)
+// Straight mapping: each location reads its own env var.
+// HISTORY: this used to cross-wire the vars based on a claim that they were
+// "set incorrectly in Vercel". Verified 2026-08-09 via stored review text
+// (a review praising Little Elm was being assigned to Prosper): the
+// cross-wiring itself was producing swapped results. Review data written
+// under the swap is corrected by migration v4 in ManagerHub.
 const PLACE_IDS: Record<string, string> = {
-  'littleelm': process.env.VITE_GOOGLE_PLACE_ID_PROSPER || '',
-  'prosper': process.env.VITE_GOOGLE_PLACE_ID_LITTLEELM || '',
+  'littleelm': process.env.VITE_GOOGLE_PLACE_ID_LITTLEELM || '',
+  'prosper': process.env.VITE_GOOGLE_PLACE_ID_PROSPER || '',
 };
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
