@@ -4,7 +4,7 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
   // ─── MODULE 17: MATCHAS ───────────────────────────────────────────────
   {
     id: 'm-matchas',
-    title: 'Module 17: Matchas',
+    title: 'Module 19: Matchas',
     description: 'Master matcha drink recipes and measurement standards.',
     category: 'ONBOARDING' as const,
     lessons: [
@@ -142,7 +142,7 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
   // ─── MODULE 18: NITRO COLD BREW ──────────────────────────────────────
   {
     id: 'm-nitro',
-    title: 'Module 18: Nitro Cold Brew',
+    title: 'Module 20: Nitro Cold Brew',
     description: 'Learn nitro cold brew builds and flavor variations.',
     category: 'ONBOARDING' as const,
     lessons: [
@@ -241,7 +241,7 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
   // ─── MODULE 19: ENERGY DRINKS (LOTUS) ────────────────────────────────
   {
     id: 'm-energy',
-    title: 'Module 19: Energy Drinks (Lotus)',
+    title: 'Module 21: Energy Drinks',
     description: 'Learn energy drink syrup amounts, fill lines, and multi-flavor builds.',
     category: 'ONBOARDING' as const,
     lessons: [
@@ -351,7 +351,7 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
   // ─── MODULE 20: BUBBLY / SODA DRINKS ─────────────────────────────────
   {
     id: 'm-bubbly',
-    title: 'Module 20: Bubbly / Soda Drinks',
+    title: 'Module 22: Sodas',
     description: 'Learn bubbly and soda water drink builds.',
     category: 'ONBOARDING' as const,
     lessons: [
@@ -431,7 +431,7 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
   // ─── MODULE 21: FROZEN ENERGY ─────────────────────────────────────────
   {
     id: 'm-frozen-energy',
-    title: 'Module 21: Frozen Energy',
+    title: 'Module 23: Frozen Energy',
     description: 'Learn how frozen energy syrup amounts differ from regular energy drinks.',
     category: 'ONBOARDING' as const,
     lessons: [
@@ -534,7 +534,7 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
   // ─── MODULE 22: FROZEN COFFEE ─────────────────────────────────────────
   {
     id: 'm-frozen-coffee',
-    title: 'Module 22: Frozen Coffee',
+    title: 'Module 24: Frozen Coffee',
     description: 'Learn frozen coffee sizes, syrup, and sauce measurements.',
     category: 'ONBOARDING' as const,
     lessons: [
@@ -634,7 +634,7 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
   // ─── MODULE 23: LEMONADES ─────────────────────────────────────────────
   {
     id: 'm-lemonades',
-    title: 'Module 23: Lemonades (Regular & Frozen)',
+    title: 'Module 25: Lemonades (Regular & Frozen)',
     description: 'Master regular and frozen lemonade recipes and measurements.',
     category: 'ONBOARDING' as const,
     lessons: [
@@ -753,7 +753,7 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
   // ─── MODULE 24: SMOOTHIES ─────────────────────────────────────────────
   {
     id: 'm-smoothies',
-    title: 'Module 24: Smoothies',
+    title: 'Module 26: Smoothies',
     description: 'Learn smoothie puree, water, and ice ratios.',
     category: 'ONBOARDING' as const,
     lessons: [
@@ -866,7 +866,7 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
   // ─── MODULE 25: TEAS ──────────────────────────────────────────────────
   {
     id: 'm-teas',
-    title: 'Module 25: Teas',
+    title: 'Module 27: Teas',
     description: 'Learn tea concentrate preparation, steep times, and sweetening standards.',
     category: 'ONBOARDING' as const,
     lessons: [
@@ -990,7 +990,7 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
   // ─── MODULE 26: KIDS DRINKS ───────────────────────────────────────────
   {
     id: 'm-kids-drinks',
-    title: 'Module 26: Kids Drinks',
+    title: 'Module 28: Kids Drinks',
     description: 'Learn the recipes for Unicorn Latte, Dino Juice, Zebra Milk, and Kiddos Coffee.',
     category: 'ONBOARDING' as const,
     lessons: [
@@ -1108,7 +1108,7 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
   // ─── MODULE 27: BATCH BREW ────────────────────────────────────────────
   {
     id: 'm-batch-brew',
-    title: 'Module 27: Batch Brew',
+    title: 'Module 29: Batch Brew',
     description: 'Learn Fetco batch brew system setup and process.',
     category: 'ONBOARDING' as const,
     lessons: [
@@ -1414,7 +1414,7 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
   // ─── MODULE 28: KNOW YOUR ESPRESSO MACHINE ───────────────────────────
   {
     id: 'm-machine-parts',
-    title: 'Module 28: Know Your Espresso Machine',
+    title: 'Module 4: Know Your Espresso Machine',
     description: 'Learn every part of the La Marzocco PB — what each piece is called and what it does.',
     category: 'ONBOARDING' as const,
     lessons: [
@@ -1424,6 +1424,8 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
         title: 'La Marzocco PB — Parts & Functions',
         type: 'CONTENT' as const,
         content: `<p>Our espresso machine is the <strong>La Marzocco PB, 3 group head</strong>. Every barista must know each part by name — when a trainer says "lock it into the group" or "purge the wand," you need to know exactly what they mean.</p>
+
+<img src="/training/pb-parts.png" alt="La Marzocco PB parts diagram" style="max-width:100%;border-radius:12px;margin:12px 0;border:1px solid #e5e5e5;" />
 
 <h3>Machine Parts</h3>
 <table>
@@ -1456,7 +1458,10 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
 </table>
 
 <h3>Why Names Matter</h3>
-<p>Espresso quality problems get diagnosed by part: channeling happens in the <em>basket</em>, temperature instability shows at the <em>group</em>, milk texture is made at the <em>wand tip</em>. If you know the parts, you can describe the problem — and fix it.</p>`
+<p>Espresso quality problems get diagnosed by part: channeling happens in the <em>basket</em>, temperature instability shows at the <em>group</em>, milk texture is made at the <em>wand tip</em>. If you know the parts, you can describe the problem — and fix it.</p>
+
+<h3>What We Build With It — The Classics</h3>
+<img src="/training/classics-poster.png" alt="Boundaries Classics: espresso, macchiato, cortado, cappuccino, latte, americano" style="max-width:100%;border-radius:12px;margin:12px 0;" />`
       },
       {
         id: 'l-machine-parts-quiz',
@@ -1552,7 +1557,7 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
   // ─── MODULE 29: EXTRACTION, STEAMING & DIAL-IN STANDARDS ─────────────
   {
     id: 'm-extraction-standards',
-    title: 'Module 29: Extraction, Steaming & Dial-In',
+    title: 'Module 5: Extraction, Steaming & Dial-In',
     description: 'The science of extraction, the Boundaries milk steaming standard, and the official dial-in procedure.',
     category: 'ONBOARDING' as const,
     lessons: [
@@ -1562,6 +1567,8 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
         title: 'Extraction Over Time',
         type: 'CONTENT' as const,
         content: `<p>Coffee flavors don't extract all at once — they come out in a predictable ORDER. Understanding this order is how you diagnose any brew by taste.</p>
+
+<img src="/training/extraction-over-time.png" alt="Extraction Over Time diagram" style="max-width:100%;border-radius:12px;margin:12px 0;border:1px solid #e5e5e5;" />
 
 <h3>The Three Stages of Extraction</h3>
 <table>
@@ -1656,6 +1663,8 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
         type: 'CONTENT' as const,
         content: `<p>Milk steaming has two jobs — <strong>aeration</strong> (adding air for texture) and <strong>heat &amp; spin</strong> (rolling the milk to integrate that air). The Boundaries standard is defined by TEMPERATURE checkpoints you can feel on the pitcher.</p>
 
+<img src="/training/milk-steaming.png" alt="Milk steaming temperature and aeration graph" style="max-width:100%;border-radius:12px;margin:12px 0;border:1px solid #e5e5e5;" />
+
 <h3>The Two Controls</h3>
 <table>
   <thead><tr><th>Control</th><th>How It Works</th></tr></thead>
@@ -1748,6 +1757,8 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
         title: 'The Dial-In Procedure',
         type: 'CONTENT' as const,
         content: `<p>Dialing in confirms the grinder is producing shots inside our standard before we serve a single drink. Follow this exact flow:</p>
+
+<img src="/training/dial-in-flow.png" alt="Dial-in procedure flowchart" style="max-width:100%;border-radius:12px;margin:12px 0;border:1px solid #e5e5e5;" />
 
 <h3>The Dial-In Flow</h3>
 <ol>
