@@ -17,6 +17,7 @@ export interface User {
   toastEmployeeGuid?: string;
   orgId?: string;
   mustChangePassword?: boolean;
+  trainerId?: string;  // user id of the trainer responsible for overseeing this person's training
 }
 
 // Employee data returned from Toast sync endpoint (api/toast-employees)

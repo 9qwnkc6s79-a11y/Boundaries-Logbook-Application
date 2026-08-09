@@ -104,8 +104,23 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
     };
   }, []);
 
-  const getStatus = (lessonId: string) => progress.find(p => p.lessonId === lessonId)?.status || 'NOT_STARTED';
+  // Recertification: the Certification Exam expires after RECERT_DAYS and
+  // must be retaken. An expired completion reports as NOT_STARTED, which
+  // automatically reopens the quiz. Attempt history is preserved.
+  const RECERT_LESSON_IDS = new Set(['l-cert-exam-quiz']);
+  const RECERT_DAYS = 180;
+  const isRecertExpired = (p?: UserProgress) => {
+    if (!p || p.status !== 'COMPLETED' || !p.completedAt) return false;
+    return (Date.now() - new Date(p.completedAt).getTime()) > RECERT_DAYS * 86400000;
+  };
+  const getStatus = (lessonId: string) => {
+    const p = progress.find(pr => pr.lessonId === lessonId);
+    if (!p) return 'NOT_STARTED';
+    if (RECERT_LESSON_IDS.has(lessonId) && isRecertExpired(p)) return 'NOT_STARTED';
+    return p.status;
+  };
   const getProgressData = (lessonId: string) => progress.find(p => p.lessonId === lessonId);
+  const certRecertDue = isRecertExpired(progress.find(p => p.lessonId === 'l-cert-exam-quiz'));
 
   // Safety filter
   const curriculumArray = Array.isArray(curriculum) ? curriculum : [];
@@ -1286,7 +1301,14 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
                   />
                 </div>
               ) : (
-                <h3 className="text-xl font-black text-[#0F2B3C] tracking-tight uppercase">{module.title}</h3>
+                <h3 className="text-xl font-black text-[#0F2B3C] tracking-tight uppercase flex items-center gap-3 flex-wrap">
+                  {module.title}
+                  {module.id === 'm-certification-exam' && certRecertDue && (
+                    <span className="px-2.5 py-1 bg-amber-100 text-amber-700 rounded-lg text-[9px] font-black uppercase tracking-widest animate-pulse">
+                      Recertification Due
+                    </span>
+                  )}
+                </h3>
               )}
               {isEditMode && (
                 <button onClick={() => setDeleteConfirm({ id: module.id, title: module.title, code: 'DELETE', input: '' })} className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors">
