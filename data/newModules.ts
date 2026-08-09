@@ -1108,8 +1108,8 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
   // ─── MODULE 27: BATCH BREW ────────────────────────────────────────────
   {
     id: 'm-batch-brew',
-    title: 'Module 29: Batch Brew',
-    description: 'Learn Fetco batch brew system setup and process.',
+    title: 'Module 29: Batch Brew & Cold Brew',
+    description: 'Fetco batch brew and the full Toddy cold brew process — grind, bag setup, steep, dilute, and package.',
     category: 'ONBOARDING' as const,
     lessons: [
       {
@@ -1198,6 +1198,146 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
             correctAnswers: ['Open'],
             explanation: 'The lid should be open when placing the filter in the basket.'
           }
+        ]
+      },
+      {
+        id: 'l-cold-brew-content',
+        moduleId: 'm-batch-brew',
+        title: 'Cold Brew — The Toddy Process',
+        type: 'CONTENT' as const,
+        content: `<p>Cold brew is a 10-hour commitment — a mistake at setup costs a full day of product. Every step below matters, in this exact order.</p>
+
+<h3>The Bag Setup (where most mistakes happen)</h3>
+<ol>
+  <li>The <strong>paper filter bag goes INSIDE the mesh filter bag</strong>.</li>
+  <li>Both go into the Toddy bucket together.</li>
+  <li>ALL of the grounds go into the paper bag.</li>
+</ol>
+
+<h3>The Full Process</h3>
+<ol>
+  <li><strong>Grind</strong> the ENTIRE 5 lb bag of Cold Brew Roast — EK-43, <strong>grind setting 13</strong>. (Batch brew is 9 — do not mix them up.)</li>
+  <li><strong>Set up the bags</strong>: paper filter bag inside the mesh filter bag, in the Toddy bucket.</li>
+  <li><strong>Add all grounds</strong> to the paper bag.</li>
+  <li><strong>First water</strong>: pour 7 quarts <em>inside the paper bag</em>, saturating the grounds.</li>
+  <li><strong>Tie the bag.</strong></li>
+  <li><strong>Second water</strong>: pour another 7 quarts <em>over the top of the tied bag</em>.</li>
+  <li><strong>Steep 10 hours.</strong></li>
+  <li><strong>Label</strong> with your name and the time brewed.</li>
+  <li><strong>Strain</strong> and discard grounds carefully — the bag is heavy and tears easily.</li>
+  <li><strong>Dilute</strong>: add 7 quarts fresh water to the Toddy.</li>
+  <li><strong>Package</strong>: fill and crimp Nitro bags, label them, store <strong>FIFO</strong> in the walk-in.</li>
+</ol>
+
+<h3>The Numbers to Memorize</h3>
+<table>
+  <thead><tr><th>Spec</th><th>Value</th></tr></thead>
+  <tbody>
+    <tr><td>Coffee</td><td>Entire 5 lb bag of Cold Brew Roast</td></tr>
+    <tr><td>Grind</td><td>EK-43, setting 13</td></tr>
+    <tr><td>Water</td><td>7 quarts inside the bag + 7 quarts on top + 7 quarts dilution after steeping (21 total)</td></tr>
+    <tr><td>Steep</td><td>10 hours</td></tr>
+  </tbody>
+</table>
+
+<h3>Common Mistakes That Ruin a Batch</h3>
+<ul>
+  <li>Wrong grind setting (using batch brew's 9 instead of 13)</li>
+  <li>Skipping the mesh bag, or putting the mesh inside the paper instead of paper inside mesh</li>
+  <li>Pouring all 14 quarts at once instead of 7 inside, tie, 7 on top</li>
+  <li>Forgetting to tie the bag before the second pour</li>
+  <li>Pulling it early or letting it sit well past 10 hours</li>
+  <li>Skipping the 7-quart dilution — the concentrate is NOT ready to serve</li>
+  <li>No label, or packaged bags stored out of FIFO order</li>
+</ul>`
+      },
+      {
+        id: 'l-cold-brew-quiz',
+        moduleId: 'm-batch-brew',
+        title: 'Cold Brew Quiz',
+        type: 'QUIZ' as const,
+        quizQuestions: [
+          {
+            id: 'cb1',
+            type: 'MULTIPLE_CHOICE' as const,
+            question: 'How much coffee goes into a cold brew batch?',
+            options: ['240 grams', 'Half a 5 lb bag', 'The entire 5 lb bag of Cold Brew Roast', 'Two 5 lb bags'],
+            correctAnswers: ['The entire 5 lb bag of Cold Brew Roast'],
+            explanation: 'The whole 5 lb bag, ground on the EK-43 at setting 13.'
+          },
+          {
+            id: 'cb2',
+            type: 'MULTIPLE_CHOICE' as const,
+            question: 'What grind setting for cold brew on the EK-43?',
+            options: ['9', '11', '13', '15'],
+            correctAnswers: ['13'],
+            explanation: 'Cold brew is setting 13. Batch brew is 9 — do not mix them up.'
+          },
+          {
+            id: 'cb3',
+            type: 'MULTIPLE_CHOICE' as const,
+            question: 'How do the filter bags go into the Toddy?',
+            options: ['Mesh bag inside the paper bag', 'Paper bag inside the mesh bag', 'Paper bag only', 'Mesh bag only'],
+            correctAnswers: ['Paper bag inside the mesh bag'],
+            explanation: 'Paper inside mesh, both in the bucket — then all the grounds go into the paper bag.'
+          },
+          {
+            id: 'cb4',
+            type: 'MULTIPLE_CHOICE' as const,
+            question: 'How is the water added?',
+            options: ['All 14 quarts at once over the bag', '7 quarts inside the paper bag, tie it, then 7 quarts over the top', '7 quarts total, tied first', '21 quarts before tying'],
+            correctAnswers: ['7 quarts inside the paper bag, tie it, then 7 quarts over the top'],
+            explanation: 'First 7 quarts saturate the grounds INSIDE the bag, then tie, then 7 more on top.'
+          },
+          {
+            id: 'cb5',
+            type: 'MULTIPLE_CHOICE' as const,
+            question: 'How long does cold brew steep?',
+            options: ['4 hours', '8 hours', '10 hours', '24 hours'],
+            correctAnswers: ['10 hours'],
+            explanation: 'Steep 10 hours, labeled with name and time brewed.'
+          },
+          {
+            id: 'cb6',
+            type: 'MULTIPLE_CHOICE' as const,
+            question: 'After straining, what happens before packaging?',
+            options: ['Serve it immediately', 'Add 7 quarts fresh water to the Toddy', 'Add ice', 'Re-steep for 2 hours'],
+            correctAnswers: ['Add 7 quarts fresh water to the Toddy'],
+            explanation: 'The concentrate must be diluted with 7 quarts of fresh water — it is NOT ready to serve straight.'
+          },
+          {
+            id: 'cb7',
+            type: 'MULTIPLE_CHOICE' as const,
+            question: 'How is finished cold brew stored?',
+            options: ['In the Toddy bucket on the counter', 'Nitro bags, filled and crimped, labeled, FIFO in the walk-in', 'Open pitchers in the fridge', 'Frozen'],
+            correctAnswers: ['Nitro bags, filled and crimped, labeled, FIFO in the walk-in'],
+            explanation: 'Fill and crimp Nitro bags, label them, and store first-in-first-out in the walk-in.'
+          },
+          {
+            id: 'cb8',
+            type: 'MULTIPLE_CHOICE' as const,
+            question: 'Why does a setup mistake matter more for cold brew than most drinks?',
+            options: ['It doesn\'t', 'The steep takes 10 hours — a bad setup costs a full day of product', 'Cold brew is cheap to remake', 'The machine catches errors'],
+            correctAnswers: ['The steep takes 10 hours — a bad setup costs a full day of product'],
+            explanation: 'You will not know the batch is bad until tomorrow. Setup discipline is everything.'
+          }
+        ]
+      },
+      {
+        id: 'l-cold-brew-practice',
+        moduleId: 'm-batch-brew',
+        title: 'Hands-On: Brew a Toddy Batch with Your Trainer',
+        type: 'PRACTICE' as const,
+        content: `Run a real cold brew batch start to finish with your trainer watching. The steep finishes tomorrow — your trainer checks the label and the packaging on the follow-up.`,
+        checklistItems: [
+          { id: 'cbp-1', title: 'Grind the full 5 lb bag at setting 13', description: 'Confirm the EK-43 is on 13 (not batch brew\'s 9) before grinding.', requiresPhoto: true },
+          { id: 'cbp-2', title: 'Set up the bags correctly', description: 'Paper filter bag INSIDE the mesh filter bag, both seated in the Toddy bucket.', requiresPhoto: true },
+          { id: 'cbp-3', title: 'Add all grounds to the paper bag', description: 'Every bit of the 5 lb bag goes in.' },
+          { id: 'cbp-4', title: 'First 7 quarts inside the bag', description: 'Pour inside the paper bag, saturating all the grounds.' },
+          { id: 'cbp-5', title: 'Tie the bag', description: 'Tie securely before the second pour.', requiresPhoto: true },
+          { id: 'cbp-6', title: 'Second 7 quarts over the top', description: 'Pour over the tied bag.' },
+          { id: 'cbp-7', title: 'Label with name and time', description: 'So the 10-hour steep can be tracked by whoever closes or opens.', requiresPhoto: true },
+          { id: 'cbp-8', title: 'Next day: strain, dilute, package', description: 'Strain carefully, add 7 quarts fresh water, fill and crimp Nitro bags, label, store FIFO.', requiresPhoto: true }
         ]
       }
     ]
