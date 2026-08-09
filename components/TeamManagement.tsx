@@ -71,6 +71,7 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
     resetPassword: false,
     newPassword: '',
     toastEmployeeGuid: '' as string | undefined,
+    trainerId: '' as string | undefined,
   });
 
   // Toast Sync State
@@ -297,6 +298,7 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
         role: editForm.role,
         storeId: editForm.storeId,
         toastEmployeeGuid: editForm.toastEmployeeGuid || undefined,
+        trainerId: editForm.trainerId || undefined,
       };
 
       if (editForm.resetPassword && editForm.newPassword) {
@@ -340,6 +342,7 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
       resetPassword: false,
       newPassword: '',
       toastEmployeeGuid: user.toastEmployeeGuid || '',
+      trainerId: user.trainerId || '',
     });
     setError('');
     setShowPassword(false);
@@ -388,6 +391,14 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
                 <MapPin size={10} />
                 {getStoreName(user.storeId)}
               </span>
+              {user.trainerId && (() => {
+                const trainer = allUsers.find(u => u.id === user.trainerId);
+                return trainer ? (
+                  <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest bg-purple-50 text-purple-600 border border-purple-100">
+                    Trainer: {trainer.name.split(' ')[0]}
+                  </span>
+                ) : null;
+              })()}
               {isDeactivated && (
                 <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest bg-red-50 text-red-600 border border-red-200">
                   Deactivated
@@ -763,6 +774,27 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
                     GUID: {editForm.toastEmployeeGuid}
                   </p>
                 )}
+              </div>
+
+              {/* Assigned Trainer */}
+              <div className="border border-neutral-100 rounded-xl p-4 bg-neutral-50/50">
+                <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest mb-2 block">Assigned Trainer</label>
+                <select
+                  value={editForm.trainerId || ''}
+                  onChange={e => setEditForm({ ...editForm, trainerId: e.target.value || undefined })}
+                  className="w-full bg-white border border-neutral-200 rounded-xl px-4 py-3.5 focus:ring-4 focus:ring-[#0F2B3C]/10 focus:border-[#0F2B3C] transition-all outline-none font-bold text-sm appearance-none"
+                >
+                  <option value="">No trainer assigned</option>
+                  {allUsers
+                    .filter(u => u.active !== false && u.id !== editingUser?.id &&
+                      (u.role === UserRole.TRAINER || u.role === UserRole.MANAGER || u.role === UserRole.ADMIN))
+                    .map(u => (
+                      <option key={u.id} value={u.id}>{u.name} ({u.role})</option>
+                    ))}
+                </select>
+                <p className="text-[10px] text-neutral-400 mt-2 font-medium">
+                  The trainer oversees this person's academy progress and signs off practice lessons.
+                </p>
               </div>
 
               {/* Password Reset */}

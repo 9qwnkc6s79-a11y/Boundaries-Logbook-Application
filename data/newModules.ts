@@ -1550,6 +1550,24 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
             explanation: 'GBW = grind by weight. It doses exactly 18g per double automatically.'
           }
         ]
+      },
+      {
+        id: 'l-machine-parts-practice',
+        moduleId: 'm-machine-parts',
+        title: 'Hands-On: Machine Walkthrough with Your Trainer',
+        type: 'PRACTICE' as const,
+        content: `Stand at the machine WITH YOUR TRAINER and physically work through this checklist. Your trainer watches each item — this is about your hands knowing the machine, not just your memory.`,
+        checklistItems: [
+          { id: 'mw-1', title: 'Point out and name all machine parts', description: 'Main switch, pressure gauge, all 3 brew groups, group keypads, steam wands, steam knobs, hot water nozzle, drain tray, shot timer — name each out loud to your trainer.' },
+          { id: 'mw-2', title: 'Remove and lock in a portafilter', description: 'Remove a portafilter from a group, then lock it back in cleanly — snug, handle centered.', requiresPhoto: true },
+          { id: 'mw-3', title: 'Purge a group head', description: 'Run the single-dose rinse and explain to your trainer why we purge before brewing.' },
+          { id: 'mw-4', title: 'Purge and wipe a steam wand', description: 'Open the steam knob to purge, wipe the wand with the wand cloth, purge again after.' },
+          { id: 'mw-5', title: 'Dispense hot water', description: 'Use the hot water nozzle as you would for an Americano.' },
+          { id: 'mw-6', title: 'Dose with the E80 GBW', description: 'Place the portafilter in the grinder cradle, let it tare and dose 18g, and show the green screen to your trainer.', requiresPhoto: true },
+          { id: 'mw-7', title: 'Distribute and tamp', description: 'Level the puck with the OCD distributor, then tamp with the PuqPress.' },
+          { id: 'mw-8', title: 'Knock out and clean', description: 'Knock the spent puck into the knock box, wipe the basket clean and dry.' },
+          { id: 'mw-9', title: 'Remove and replace the drain tray', description: 'Pull the drain tray, rinse it, and seat it back correctly.' }
+        ]
       }
     ]
   },
@@ -1838,6 +1856,23 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
             correctAnswers: ['Grind finer'],
             explanation: 'Fast + sour = under-extracted. A finer grind slows the water down and extracts further into the sugars.'
           }
+        ]
+      },
+      {
+        id: 'l-extraction-practice',
+        moduleId: 'm-extraction-standards',
+        title: 'Hands-On: Tasting, Steaming & Dial-In with Your Trainer',
+        type: 'PRACTICE' as const,
+        content: `This is the hands-on session from the Trainer Guide. Your trainer pulls three shots — one balanced, one under-extracted, one over-extracted — and coaches you through tasting, steaming, and a full solo dial-in.`,
+        checklistItems: [
+          { id: 'ep-1', title: 'Taste the balanced shot', description: 'Taste and describe the mouthfeel and flavor out loud. Write down what you taste.' },
+          { id: 'ep-2', title: 'Taste the under- and over-extracted shots', description: 'Describe how each differs in look, mouthfeel, and taste from the balanced shot.' },
+          { id: 'ep-3', title: 'Blind identification', description: 'Trainer shuffles three fresh shots. Identify which is balanced, under, and over by taste alone.', requiresPhoto: true },
+          { id: 'ep-4', title: 'Steam milk to the checkpoints — round 1', description: 'Aerate until warm to the touch (100°), then heat & spin, shut off when too hot to touch (140–150°). Trainer verifies no aeration after 100°.' },
+          { id: 'ep-5', title: 'Steam milk to the checkpoints — round 2', description: 'Repeat with correct wand position: 40° toward you, back wall, quadrant 1. Show the finished microfoam.', requiresPhoto: true },
+          { id: 'ep-6', title: 'Name the Five Errors', description: 'Recite all five steaming errors to your trainer without looking.' },
+          { id: 'ep-7', title: 'Run a full dial-in SOLO', description: 'Purge 1, pull 2, check consistency (within 2s), average, verify parameter, adjust grind if needed, repeat until in spec.', requiresPhoto: true },
+          { id: 'ep-8', title: 'Taste your dialed-in shot', description: 'Final gate: taste it and tell your trainer whether you would serve it — and why.' }
         ]
       }
     ]
