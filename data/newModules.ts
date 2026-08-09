@@ -1411,6 +1411,427 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
     ]
   },
 
+  // ─── MODULE 28: KNOW YOUR ESPRESSO MACHINE ───────────────────────────
+  {
+    id: 'm-machine-parts',
+    title: 'Module 28: Know Your Espresso Machine',
+    description: 'Learn every part of the La Marzocco PB — what each piece is called and what it does.',
+    category: 'ONBOARDING' as const,
+    lessons: [
+      {
+        id: 'l-machine-parts-content',
+        moduleId: 'm-machine-parts',
+        title: 'La Marzocco PB — Parts & Functions',
+        type: 'CONTENT' as const,
+        content: `<p>Our espresso machine is the <strong>La Marzocco PB, 3 group head</strong>. Every barista must know each part by name — when a trainer says "lock it into the group" or "purge the wand," you need to know exactly what they mean.</p>
+
+<h3>Machine Parts</h3>
+<table>
+  <thead><tr><th>Part</th><th>What It Is / What It Does</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Main Switch</strong></td><td>Powers the machine on and off.</td></tr>
+    <tr><td><strong>Pressure Gauge</strong></td><td>Shows steam and brew water pressure so you can confirm the machine is at operating pressure.</td></tr>
+    <tr><td><strong>Brew Groups (Group Heads)</strong></td><td>Where the portafilter locks in and hot water is forced through the coffee under pressure. Our PB has 3.</td></tr>
+    <tr><td><strong>Group Keypad</strong></td><td>The buttons above each group that start and stop programmed shots (like the double-shot button).</td></tr>
+    <tr><td><strong>Control Panel &amp; Digital Display</strong></td><td>Machine settings and readouts (temperature, timers).</td></tr>
+    <tr><td><strong>Steam Wand</strong></td><td>The metal arm that injects steam into milk to heat and texture it. Purge after every use.</td></tr>
+    <tr><td><strong>Steam Knob</strong></td><td>Opens and closes steam flow to the steam wand.</td></tr>
+    <tr><td><strong>Hot Water Dispense Nozzle</strong></td><td>Dispenses hot water — used for Americanos and hot teas.</td></tr>
+    <tr><td><strong>Removable Drain Tray</strong></td><td>Catches drips and purge water. Removed for cleaning.</td></tr>
+    <tr><td><strong>Water Inspection Window</strong></td><td>Lets you visually check water in the machine.</td></tr>
+    <tr><td><strong>Shot Timer</strong></td><td>Times the extraction so you can hit the ±2 second shot window.</td></tr>
+  </tbody>
+</table>
+
+<h3>Tools That Work With the Machine</h3>
+<table>
+  <thead><tr><th>Tool</th><th>What It Does</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Portafilter</strong></td><td>The handle with a metal filter basket that holds the ground coffee. It locks into the brew group.</td></tr>
+    <tr><td><strong>Knock Box</strong></td><td>Where you knock the spent puck out of the portafilter.</td></tr>
+    <tr><td><strong>Mahlkönig E80 GBW</strong></td><td>Our espresso grinder — grinds by weight directly into the portafilter (18g per double).</td></tr>
+    <tr><td><strong>OCD Distributor</strong></td><td>Levels and evenly distributes the grounds in the basket before tamping.</td></tr>
+    <tr><td><strong>PuqPress</strong></td><td>The automatic tamper — compresses the grounds with perfectly even pressure every time.</td></tr>
+  </tbody>
+</table>
+
+<h3>Why Names Matter</h3>
+<p>Espresso quality problems get diagnosed by part: channeling happens in the <em>basket</em>, temperature instability shows at the <em>group</em>, milk texture is made at the <em>wand tip</em>. If you know the parts, you can describe the problem — and fix it.</p>`
+      },
+      {
+        id: 'l-machine-parts-quiz',
+        moduleId: 'm-machine-parts',
+        title: 'Espresso Machine Parts Quiz',
+        type: 'QUIZ' as const,
+        quizQuestions: [
+          {
+            id: 'mp1',
+            type: 'MULTIPLE_CHOICE' as const,
+            question: 'What is a portafilter?',
+            options: ['The water reservoir', 'The handle with a metal filter basket that holds the ground coffee', 'The steam arm', 'The drip tray'],
+            correctAnswers: ['The handle with a metal filter basket that holds the ground coffee'],
+            explanation: 'The portafilter holds the dosed, tamped coffee and locks into the brew group.'
+          },
+          {
+            id: 'mp2',
+            type: 'MULTIPLE_CHOICE' as const,
+            question: 'What is the brew group (group head)?',
+            options: ['The grinder attachment', 'Where the portafilter locks in and pressurized hot water is forced through the coffee', 'The milk steaming station', 'The hot water tap'],
+            correctAnswers: ['Where the portafilter locks in and pressurized hot water is forced through the coffee'],
+            explanation: 'The group head is where extraction happens. Our La Marzocco PB has three of them.'
+          },
+          {
+            id: 'mp3',
+            type: 'MULTIPLE_CHOICE' as const,
+            question: 'How many group heads does our La Marzocco PB have?',
+            options: ['1', '2', '3', '4'],
+            correctAnswers: ['3'],
+            explanation: 'Our PB is a 3-group machine — three portafilters can brew at once.'
+          },
+          {
+            id: 'mp4',
+            type: 'MULTIPLE_CHOICE' as const,
+            question: 'What does the steam wand do?',
+            options: ['Dispenses hot water for teas', 'Injects steam into milk to heat and texture it', 'Cleans the portafilter', 'Controls machine pressure'],
+            correctAnswers: ['Injects steam into milk to heat and texture it'],
+            explanation: 'The steam wand heats and textures milk. Purge it after every use.'
+          },
+          {
+            id: 'mp5',
+            type: 'MULTIPLE_CHOICE' as const,
+            question: 'What controls the flow of steam to the wand?',
+            options: ['The group keypad', 'The main switch', 'The steam knob', 'The paddle'],
+            correctAnswers: ['The steam knob'],
+            explanation: 'The steam knob opens and closes steam flow to the wand.'
+          },
+          {
+            id: 'mp6',
+            type: 'MULTIPLE_CHOICE' as const,
+            question: 'Where does the water for an Americano come from?',
+            options: ['The steam wand', 'The brew group', 'The hot water dispense nozzle', 'The drain tray'],
+            correctAnswers: ['The hot water dispense nozzle'],
+            explanation: 'Hot water for Americanos and hot teas comes from the dedicated hot water nozzle.'
+          },
+          {
+            id: 'mp7',
+            type: 'MULTIPLE_CHOICE' as const,
+            question: 'What does the pressure gauge show?',
+            options: ['Shot weight', 'Steam and brew water pressure', 'Water temperature only', 'Grind size'],
+            correctAnswers: ['Steam and brew water pressure'],
+            explanation: 'The gauge confirms the machine is at proper steam and brew pressure.'
+          },
+          {
+            id: 'mp8',
+            type: 'MULTIPLE_CHOICE' as const,
+            question: 'Which tool tamps the coffee at Boundaries?',
+            options: ['A hand tamper', 'The OCD distributor', 'The PuqPress automatic tamper', 'The portafilter itself'],
+            correctAnswers: ['The PuqPress automatic tamper'],
+            explanation: 'The PuqPress tamps with perfectly even, repeatable pressure. The OCD distributor levels the grounds BEFORE tamping.'
+          },
+          {
+            id: 'mp9',
+            type: 'MULTIPLE_CHOICE' as const,
+            question: 'What is the knock box for?',
+            options: ['Storing clean portafilters', 'Knocking the spent coffee puck out of the portafilter', 'Holding fresh grounds', 'Catching drips under the group'],
+            correctAnswers: ['Knocking the spent coffee puck out of the portafilter'],
+            explanation: 'After pulling a shot, the used puck gets knocked out into the knock box.'
+          },
+          {
+            id: 'mp10',
+            type: 'MULTIPLE_CHOICE' as const,
+            question: 'What makes our Mahlkönig E80 GBW grinder special?',
+            options: ['It grinds by time', 'It grinds by weight directly into the portafilter', 'It has no burrs', 'It tamps automatically'],
+            correctAnswers: ['It grinds by weight directly into the portafilter'],
+            explanation: 'GBW = grind by weight. It doses exactly 18g per double automatically.'
+          }
+        ]
+      }
+    ]
+  },
+
+  // ─── MODULE 29: EXTRACTION, STEAMING & DIAL-IN STANDARDS ─────────────
+  {
+    id: 'm-extraction-standards',
+    title: 'Module 29: Extraction, Steaming & Dial-In',
+    description: 'The science of extraction, the Boundaries milk steaming standard, and the official dial-in procedure.',
+    category: 'ONBOARDING' as const,
+    lessons: [
+      {
+        id: 'l-extraction-content',
+        moduleId: 'm-extraction-standards',
+        title: 'Extraction Over Time',
+        type: 'CONTENT' as const,
+        content: `<p>Coffee flavors don't extract all at once — they come out in a predictable ORDER. Understanding this order is how you diagnose any brew by taste.</p>
+
+<h3>The Three Stages of Extraction</h3>
+<table>
+  <thead><tr><th>Stage</th><th>What Extracts</th><th>What It Tastes Like</th></tr></thead>
+  <tbody>
+    <tr><td><strong>1. First</strong> (first 1/3 of brew)</td><td>Fruit acids &amp; organic salts</td><td>Sourness, fruitiness, vibrancy, complexity</td></tr>
+    <tr><td><strong>2. Middle</strong></td><td>Simple &amp; complex sugars</td><td>Sweetness, balance, sugar-browning flavors, pleasant finish</td></tr>
+    <tr><td><strong>3. Last</strong> (end of brew)</td><td>Bitter agents</td><td>Bitterness — too much creates a dry/chalky aftertaste</td></tr>
+  </tbody>
+</table>
+
+<p><strong>Ideal extraction: 18–23%.</strong> The goal is to extract as many sugars as possible — enough to get past the acids, but stopping before the bitters take over.</p>
+
+<h3>Diagnosing by Taste</h3>
+<table>
+  <thead><tr><th>The Brew Tastes...</th><th>The Problem</th><th>The Fix</th></tr></thead>
+  <tbody>
+    <tr><td>Sour, savory, salty, quick finish</td><td>UNDER-extracted (stopped in stage 1)</td><td><strong>Extract MORE</strong>: less coffee/more water, grind finer/brew longer, add a pour, higher temperature</td></tr>
+    <tr><td>Sweet, bright, transparent, long pleasant finish</td><td>None — this is the best brew!</td><td>Nothing. Serve it.</td></tr>
+    <tr><td>Astringent, hollow, lacks sweetness, long dry finish</td><td>OVER-extracted (went into stage 3)</td><td><strong>Extract LESS</strong>: more coffee/less water, grind coarser/brew faster, remove a pour, lower temperature</td></tr>
+  </tbody>
+</table>`
+      },
+      {
+        id: 'l-extraction-quiz',
+        moduleId: 'm-extraction-standards',
+        title: 'Extraction Quiz',
+        type: 'QUIZ' as const,
+        quizQuestions: [
+          {
+            id: 'ex1',
+            type: 'MULTIPLE_CHOICE' as const,
+            question: 'What extracts FIRST when brewing coffee?',
+            options: ['Bitter agents', 'Sugars', 'Fruit acids and organic salts', 'Caffeine only'],
+            correctAnswers: ['Fruit acids and organic salts'],
+            explanation: 'Fruit acids and organic salts extract in the first 1/3 of the brew — they create sourness, fruitiness, and vibrancy.'
+          },
+          {
+            id: 'ex2',
+            type: 'MULTIPLE_CHOICE' as const,
+            question: 'What do the sugars (middle stage) add to the cup?',
+            options: ['Sourness and vibrancy', 'Sweetness, balance, and a pleasant finish', 'Dryness and chalkiness', 'Extra caffeine'],
+            correctAnswers: ['Sweetness, balance, and a pleasant finish'],
+            explanation: 'Sugars add sweetness, balance, and sugar-browning flavors. The goal is to extract as many sugars as possible.'
+          },
+          {
+            id: 'ex3',
+            type: 'MULTIPLE_CHOICE' as const,
+            question: 'What extracts LAST, at the end of the brew?',
+            options: ['Fruit acids', 'Organic salts', 'Sugars', 'Bitter agents'],
+            correctAnswers: ['Bitter agents'],
+            explanation: 'Bitter agents come out at the end as sugars slow down. Too many overpower the sweetness and leave a dry/chalky aftertaste.'
+          },
+          {
+            id: 'ex4',
+            type: 'MULTIPLE_CHOICE' as const,
+            question: 'What is the ideal extraction range?',
+            options: ['10–15%', '18–23%', '25–30%', '30–34%'],
+            correctAnswers: ['18–23%'],
+            explanation: 'Ideal extraction is 18–23% — deep enough to capture the sugars, short of the heavy bitters.'
+          },
+          {
+            id: 'ex5',
+            type: 'MULTIPLE_CHOICE' as const,
+            question: 'The brew tastes sour and salty with a quick finish. What do you do?',
+            options: ['Extract LESS — grind coarser', 'Extract MORE — grind finer, brew longer, or raise temperature', 'Add more coffee', 'Serve it — that\'s the standard'],
+            correctAnswers: ['Extract MORE — grind finer, brew longer, or raise temperature'],
+            explanation: 'Sour/savory/salty means under-extracted — you stopped in the acid stage. Push extraction further to reach the sugars.'
+          },
+          {
+            id: 'ex6',
+            type: 'MULTIPLE_CHOICE' as const,
+            question: 'The brew tastes astringent and hollow with a long dry finish. What do you do?',
+            options: ['Extract MORE — grind finer', 'Extract LESS — grind coarser, brew faster, or lower temperature', 'Add a pour', 'Use less coffee'],
+            correctAnswers: ['Extract LESS — grind coarser, brew faster, or lower temperature'],
+            explanation: 'Astringent/dry means over-extracted — you went into the bitter stage. Pull extraction back.'
+          },
+          {
+            id: 'ex7',
+            type: 'MULTIPLE_CHOICE' as const,
+            question: 'What does the BEST brew taste like?',
+            options: ['Strong and bitter', 'Sour and complex', 'Sweet, bright, and transparent with a long pleasant finish', 'Heavy and syrupy'],
+            correctAnswers: ['Sweet, bright, and transparent with a long pleasant finish'],
+            explanation: 'Sweet, bright, transparent, long pleasant finish — that is the target for every brew.'
+          }
+        ]
+      },
+      {
+        id: 'l-steaming-standard-content',
+        moduleId: 'm-extraction-standards',
+        title: 'The Milk Steaming Standard',
+        type: 'CONTENT' as const,
+        content: `<p>Milk steaming has two jobs — <strong>aeration</strong> (adding air for texture) and <strong>heat &amp; spin</strong> (rolling the milk to integrate that air). The Boundaries standard is defined by TEMPERATURE checkpoints you can feel on the pitcher.</p>
+
+<h3>The Two Controls</h3>
+<table>
+  <thead><tr><th>Control</th><th>How It Works</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Aeration = steam wand DEPTH</strong></td><td>LOWER the pitcher to expose the wand tip → aerates (adds air). RAISE the pitcher to submerge the tip → stops aerating.</td></tr>
+    <tr><td><strong>Spin = pitcher &amp; wand ANGLE</strong></td><td>Wand angled 40° out toward the barista, resting centered on the back wall of the pitcher, tip entering the milk in the center of quadrant 1. This rolls the milk in a whirlpool.</td></tr>
+  </tbody>
+</table>
+
+<h3>The Temperature Timeline</h3>
+<table>
+  <thead><tr><th>Temperature</th><th>Feel</th><th>What You Do</th></tr></thead>
+  <tbody>
+    <tr><td>Start → 100°F</td><td>Cool → warm to the touch</td><td><strong>Aerate</strong> (tip exposed) while spinning</td></tr>
+    <tr><td>100°F</td><td>Warm to the touch</td><td><strong>STOP aerating</strong> — submerge the tip</td></tr>
+    <tr><td>100°F → 140–150°F</td><td>Getting hot</td><td><strong>Heat &amp; spin only</strong> — no more air</td></tr>
+    <tr><td>140–150°F</td><td>Too hot to touch</td><td><strong>Shut off</strong></td></tr>
+    <tr><td>160°F+</td><td>—</td><td>"Extra hot" requests only — never standard</td></tr>
+  </tbody>
+</table>
+
+<h3>The Five Errors</h3>
+<ol>
+  <li>Over-aerating before 100°</li>
+  <li>Under-aerating before 100°</li>
+  <li><strong>Any</strong> aeration after 100°</li>
+  <li>Burning the milk (over 160°)</li>
+  <li>Insufficient spin</li>
+</ol>`
+      },
+      {
+        id: 'l-steaming-standard-quiz',
+        moduleId: 'm-extraction-standards',
+        title: 'Milk Steaming Standard Quiz',
+        type: 'QUIZ' as const,
+        quizQuestions: [
+          {
+            id: 'ms1',
+            type: 'MULTIPLE_CHOICE' as const,
+            question: 'How do you control aeration while steaming?',
+            options: ['Turn the steam knob higher', 'Steam wand DEPTH — lower the pitcher to expose the tip and aerate, raise it to stop', 'Tilt the pitcher side to side', 'Move the wand in circles'],
+            correctAnswers: ['Steam wand DEPTH — lower the pitcher to expose the tip and aerate, raise it to stop'],
+            explanation: 'Aeration = wand depth. Tip exposed adds air; tip submerged stops adding air.'
+          },
+          {
+            id: 'ms2',
+            type: 'MULTIPLE_CHOICE' as const,
+            question: 'When do you STOP aerating?',
+            options: ['After 5 seconds no matter what', 'At 100° — when the pitcher is warm to the touch', 'When the milk doubles in volume', 'When the pitcher is too hot to touch'],
+            correctAnswers: ['At 100° — when the pitcher is warm to the touch'],
+            explanation: 'All aeration happens before 100°F (warm to the touch). After that, submerge the tip — heat and spin only.'
+          },
+          {
+            id: 'ms3',
+            type: 'MULTIPLE_CHOICE' as const,
+            question: 'When do you shut the steam off?',
+            options: ['At 100°', 'At 120°', 'At 140–150° — when the pitcher is too hot to touch', 'At 180°'],
+            correctAnswers: ['At 140–150° — when the pitcher is too hot to touch'],
+            explanation: 'Shut off at 140–150°F, the point where the pitcher becomes too hot to keep your hand on.'
+          },
+          {
+            id: 'ms4',
+            type: 'MULTIPLE_CHOICE' as const,
+            question: 'At what temperature is milk considered BURNED?',
+            options: ['Over 120°', 'Over 140°', 'Over 160°', 'Milk cannot burn'],
+            correctAnswers: ['Over 160°'],
+            explanation: 'Over 160°F burns the milk. 160°+ is only for explicit "extra hot" requests — never the standard.'
+          },
+          {
+            id: 'ms5',
+            type: 'MULTIPLE_CHOICE' as const,
+            question: 'What is the correct wand position for spin?',
+            options: ['Straight down the center of the pitcher', 'Angled 40° toward the barista, on the back wall, tip in the center of quadrant 1', 'Flat against the side wall', 'Anywhere, as long as it\'s deep'],
+            correctAnswers: ['Angled 40° toward the barista, on the back wall, tip in the center of quadrant 1'],
+            explanation: 'That position rolls the milk in a whirlpool, integrating the air into silky microfoam.'
+          },
+          {
+            id: 'ms6',
+            type: 'MULTIPLE_CHOICE' as const,
+            question: 'Which of these is one of the Five Errors?',
+            options: ['Spinning the milk after 100°', 'ANY aeration after 100°', 'Shutting off at 145°', 'Aerating before 100°'],
+            correctAnswers: ['ANY aeration after 100°'],
+            explanation: 'The Five Errors: over-aerating before 100°, under-aerating before 100°, ANY aeration after 100°, burning the milk (over 160°), and insufficient spin.'
+          }
+        ]
+      },
+      {
+        id: 'l-dialin-content',
+        moduleId: 'm-extraction-standards',
+        title: 'The Dial-In Procedure',
+        type: 'CONTENT' as const,
+        content: `<p>Dialing in confirms the grinder is producing shots inside our standard before we serve a single drink. Follow this exact flow:</p>
+
+<h3>The Dial-In Flow</h3>
+<ol>
+  <li><strong>Purge 1 shot</strong> — pull and discard one shot to clear stale grounds from the burrs.</li>
+  <li><strong>Pull 2 shots</strong> and time them.</li>
+  <li><strong>Are they consistent?</strong> Consistent means the two shot times are <strong>within 2 seconds of each other</strong>.
+    <ul><li>NO / not sure → <strong>pull 1 more</strong> and re-check.</li></ul>
+  </li>
+  <li><strong>Yes → average the times.</strong></li>
+  <li><strong>Is the average inside the shot-time parameter?</strong> (±2 seconds of our standard shot time)
+    <ul>
+      <li>NO → <strong>adjust grind size</strong>, then start over: purge 1, pull 2.</li>
+      <li>YES → <strong>taste it</strong> — the final gate is always flavor.</li>
+    </ul>
+  </li>
+</ol>
+
+<h3>Which Way Do I Adjust?</h3>
+<ul>
+  <li>Shots running <strong>too fast</strong> (short times, sour) → grind <strong>finer</strong></li>
+  <li>Shots running <strong>too slow</strong> (long times, bitter/dry) → grind <strong>coarser</strong></li>
+</ul>
+
+<p><em>Remember from Extraction Over Time: fast shots stop in the acid stage (sour), slow shots run into the bitter stage. The shot time window exists to land you in the sugars.</em></p>`
+      },
+      {
+        id: 'l-dialin-quiz',
+        moduleId: 'm-extraction-standards',
+        title: 'Dial-In Quiz',
+        type: 'QUIZ' as const,
+        quizQuestions: [
+          {
+            id: 'di1',
+            type: 'MULTIPLE_CHOICE' as const,
+            question: 'What is the FIRST step of the dial-in procedure?',
+            options: ['Pull 2 shots', 'Taste a shot', 'Purge 1 shot', 'Adjust the grind'],
+            correctAnswers: ['Purge 1 shot'],
+            explanation: 'Always purge one shot first to clear stale grounds from the burrs.'
+          },
+          {
+            id: 'di2',
+            type: 'MULTIPLE_CHOICE' as const,
+            question: 'After purging, you pull 2 shots. What makes them "consistent"?',
+            options: ['They look the same', 'Their times are within 2 seconds of each other', 'They weigh exactly the same', 'They were pulled on the same group'],
+            correctAnswers: ['Their times are within 2 seconds of each other'],
+            explanation: 'Consistent = the two shot times land within 2 seconds of each other.'
+          },
+          {
+            id: 'di3',
+            type: 'MULTIPLE_CHOICE' as const,
+            question: 'The 2 shots are NOT consistent (or you\'re not sure). What next?',
+            options: ['Adjust the grind immediately', 'Pull 1 more shot and re-check', 'Serve the faster one', 'Start the machine over'],
+            correctAnswers: ['Pull 1 more shot and re-check'],
+            explanation: 'Inconsistent or unsure → pull one more shot before making any grind change.'
+          },
+          {
+            id: 'di4',
+            type: 'MULTIPLE_CHOICE' as const,
+            question: 'The average shot time is OUTSIDE the parameter. What do you do?',
+            options: ['Taste it anyway', 'Adjust grind size, then purge 1 and pull 2 again', 'Just pull harder', 'Change the dose weight'],
+            correctAnswers: ['Adjust grind size, then purge 1 and pull 2 again'],
+            explanation: 'Out of parameter → adjust the grind and run the whole flow again from the purge.'
+          },
+          {
+            id: 'di5',
+            type: 'MULTIPLE_CHOICE' as const,
+            question: 'The average time IS in parameter. What is the final step?',
+            options: ['Open the store — you\'re done', 'Taste it', 'Pull 2 more to be safe', 'Log the time'],
+            correctAnswers: ['Taste it'],
+            explanation: 'The final gate is always flavor — a shot can hit the time window and still taste off.'
+          },
+          {
+            id: 'di6',
+            type: 'MULTIPLE_CHOICE' as const,
+            question: 'Shots are running too FAST and taste sour. Which way do you adjust?',
+            options: ['Grind coarser', 'Grind finer', 'Lower the temperature', 'Use less coffee'],
+            correctAnswers: ['Grind finer'],
+            explanation: 'Fast + sour = under-extracted. A finer grind slows the water down and extracts further into the sugars.'
+          }
+        ]
+      }
+    ]
+  },
+
   // ─── BOUNDARIES CERTIFICATION EXAM ───────────────────────────────────
   {
     id: 'm-certification-exam',
