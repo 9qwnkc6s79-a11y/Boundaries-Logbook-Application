@@ -644,7 +644,7 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
         title: 'Lemonade Standards',
         type: 'CONTENT' as const,
         content: `<h3>Regular (Iced) Lemonades</h3>
-<p>The concentrate-and-water build is <strong>RETIRED</strong>. Lemonades are poured from the lemonade base to the fill line for the cup size, then flavored per the syrup chart.</p>
+<p>Lemonade is <strong>not built anymore</strong> — the concentrate-and-water build is retired. Dispense lemonade straight from the <strong>soda gun</strong> to the fill line for the cup size, then flavor per the syrup chart.</p>
 <table>
   <thead><tr><th>Size</th><th>Syrup</th><th>Fill Line</th></tr></thead>
   <tbody>
@@ -693,9 +693,9 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
             id: 'le2',
             type: 'MULTIPLE_CHOICE' as const,
             question: 'How is a regular lemonade built?',
-            options: ['Concentrate + water + syrup', 'Lemonade base to the fill line, then flavor syrup', 'Equal parts concentrate and syrup', 'Syrup + soda water'],
-            correctAnswers: ['Lemonade base to the fill line, then flavor syrup'],
-            explanation: 'The concentrate build is retired. Pour lemonade base to the fill line for the cup size, then add flavor syrup.'
+            options: ['Concentrate + water + syrup', 'Lemonade from the soda gun to the fill line, then flavor syrup', 'Equal parts concentrate and syrup', 'Blended with ice'],
+            correctAnswers: ['Lemonade from the soda gun to the fill line, then flavor syrup'],
+            explanation: 'Lemonade is not built — dispense it from the soda gun to the fill line, then add flavor syrup.'
           },
           {
             id: 'le3',
@@ -1006,7 +1006,7 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
 </ul>
 
 <h3>Dino Juice</h3>
-<p>Flavored lemonade — equal parts Blue Raspberry and Pineapple, built on the lemonade base. Syrup volume follows the Lemonade row, two-way split.</p>
+<p>Flavored lemonade — equal parts Blue Raspberry and Pineapple over soda-gun lemonade. Syrup volume follows the Lemonade row, two-way split.</p>
 <table>
   <thead><tr><th>Size</th><th>Blue Raspberry</th><th>Pineapple</th></tr></thead>
   <tbody>
@@ -1290,9 +1290,9 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
             id: 'fx6',
             type: 'MULTIPLE_CHOICE' as const,
             question: 'How is a regular lemonade built?',
-            options: ['Concentrate + syrup + water', 'Lemonade base to the fill line, then flavor syrup', 'Equal parts concentrate and syrup', 'Syrup + soda water'],
-            correctAnswers: ['Lemonade base to the fill line, then flavor syrup'],
-            explanation: 'The concentrate build is retired — pour the lemonade base to the fill line, then flavor per the syrup chart.'
+            options: ['Concentrate + syrup + water', 'Lemonade from the soda gun to the fill line, then flavor syrup', 'Equal parts concentrate and syrup', 'Blended with ice'],
+            correctAnswers: ['Lemonade from the soda gun to the fill line, then flavor syrup'],
+            explanation: 'Lemonade is not built — dispense it from the soda gun to the fill line, then flavor per the syrup chart.'
           },
           {
             id: 'fx7',

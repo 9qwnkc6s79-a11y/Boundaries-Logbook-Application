@@ -324,7 +324,7 @@ export const BOUNDARIES_RECIPES: Recipe[] = [
       { label: '20oz', values: ['2 oz', '14 oz'] },
       { label: '24oz', values: ['2 oz', '16 oz'] }
     ],
-    notes: 'Pour lemonade base to the fill line for the cup size, then flavor per the syrup column. The concentrate-and-water build is RETIRED. Replacement base product not yet documented in Recipe Book v1.10.'
+    notes: 'Dispense lemonade from the SODA GUN to the fill line for the cup size, then flavor per the syrup column. Lemonade is no longer built — the concentrate-and-water build is retired.'
   },
   {
     id: 'r-lemonade-flavors',
@@ -420,9 +420,9 @@ export const BOUNDARIES_RECIPES: Recipe[] = [
     ingredients: [
       { name: 'Blue Raspberry syrup', quantity: 'Equal split' },
       { name: 'Pineapple syrup', quantity: 'Equal split' },
-      { name: 'Lemonade base', quantity: 'To fill line' }
+      { name: 'Lemonade (soda gun)', quantity: 'To fill line' }
     ],
-    notes: 'Flavored lemonade. Syrup volume follows the Lemonade row, two-way split. Built on the lemonade base (base still undocumented in v1.10).'
+    notes: 'Flavored lemonade. Syrup volume follows the Lemonade row, two-way split. Lemonade dispensed from the soda gun.'
   },
   {
     id: 'r-kids-zebra',
