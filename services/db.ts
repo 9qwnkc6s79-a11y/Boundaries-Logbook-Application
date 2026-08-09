@@ -43,8 +43,8 @@ const CURRICULUM_VERSION = 12;
 
 // Bump when the manual or recipe defaults change and must OVERWRITE cloud
 // copies (deliberate source-of-truth refresh — e.g. a new Ops Manual /
-// Recipe Book release). v3 = lemonade dispensed from soda gun.
-const CONTENT_DEFAULTS_VERSION = 3;
+// Recipe Book release). v4 = cold brew bag-setup clarifications.
+const CONTENT_DEFAULTS_VERSION = 4;
 
 const DOC_KEYS = {
   USERS: 'users',
