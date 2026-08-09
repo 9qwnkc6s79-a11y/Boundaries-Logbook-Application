@@ -311,7 +311,7 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
 
   const getEmbedUrl = (url: string) => {
     if (!url) return '';
-    const youtubeRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})(?:\S+)?/;
+    const youtubeRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})(?:\S+)?/;
     const match = url.match(youtubeRegex);
     if (match && match[1]) {
       return `https://www.youtube.com/embed/${match[1]}?modestbranding=1&rel=0&autoplay=0&enablejsapi=1`;

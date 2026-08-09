@@ -1563,6 +1563,7 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
         moduleId: 'm-machine-parts',
         title: 'La Marzocco PB — Parts & Functions',
         type: 'CONTENT' as const,
+        videoUrl: 'https://youtube.com/shorts/PjRaQrVAys8',
         content: `<p>Our espresso machine is the <strong>La Marzocco PB, 3 group head</strong>. Every barista must know each part by name — when a trainer says "lock it into the group" or "purge the wand," you need to know exactly what they mean.</p>
 
 <img src="/training/pb-parts.png" alt="La Marzocco PB parts diagram" style="max-width:100%;border-radius:12px;margin:12px 0;border:1px solid #e5e5e5;" />
