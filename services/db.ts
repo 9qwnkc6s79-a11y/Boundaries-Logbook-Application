@@ -39,7 +39,7 @@ if (typeof firebase !== 'undefined') {
 
 // Increment this version whenever curriculum structure or lesson properties change
 // This forces Firebase to update cached curriculum data
-const CURRICULUM_VERSION = 10;
+const CURRICULUM_VERSION = 11;
 
 // Bump when the manual or recipe defaults change and must OVERWRITE cloud
 // copies (deliberate source-of-truth refresh — e.g. a new Ops Manual /

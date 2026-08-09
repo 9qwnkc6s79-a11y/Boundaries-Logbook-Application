@@ -602,7 +602,7 @@ If you have any questions about which site to use or need help with the process,
   },
   {
     id: 'm-ordering',
-    title: 'Module 4: Ordering at a Coffee Shop',
+    title: 'Module 6: Ordering at a Coffee Shop',
     description: 'Understand the menu standards and drink definitions.',
     category: 'ONBOARDING',
     lessons: [
@@ -636,7 +636,7 @@ If you have any questions about which site to use or need help with the process,
   },
   {
     id: 'm-specialty',
-    title: 'Module 5: What is Specialty Coffee?',
+    title: 'Module 7: What is Specialty Coffee?',
     description: 'Learn the technical definitions and Jon\'s long-term goal for the industry.',
     category: 'ONBOARDING',
     lessons: [
@@ -668,7 +668,7 @@ If you have any questions about which site to use or need help with the process,
   },
   {
     id: 'm-seed',
-    title: 'Module 6: Coffee Seed to Cup',
+    title: 'Module 8: Coffee Seed to Cup',
     description: 'Trace the journey of coffee from the plant to the green bean.',
     category: 'ONBOARDING',
     lessons: [
@@ -705,7 +705,7 @@ If you have any questions about which site to use or need help with the process,
   },
   {
     id: 'm-onyx',
-    title: 'Module 7: Onyx Coffee Lab',
+    title: 'Module 9: Onyx Coffee Lab',
     description: 'Learn from the quality standards of an industry-leading roastery.',
     category: 'ONBOARDING',
     lessons: [
@@ -736,7 +736,7 @@ If you have any questions about which site to use or need help with the process,
   },
   {
     id: 'm-ideal',
-    title: 'Module 8: The Ideal Team Player',
+    title: 'Module 10: The Ideal Team Player',
     description: 'Master the soft skills required for a high-performing team.',
     category: 'ONBOARDING',
     lessons: [
@@ -772,7 +772,7 @@ If you have any questions about which site to use or need help with the process,
   },
   {
     id: 'm-espresso-fundamentals',
-    title: 'Module 9: Espresso Fundamentals',
+    title: 'Module 11: Espresso Fundamentals',
     description: 'Learn the basics of espresso extraction, dosing, tamping, and equipment.',
     category: 'ONBOARDING',
     lessons: [
@@ -816,7 +816,7 @@ If you have any questions about which site to use or need help with the process,
   },
   {
     id: 'm-espresso-troubleshooting',
-    title: 'Module 10: Espresso Troubleshooting',
+    title: 'Module 12: Espresso Troubleshooting',
     description: 'Learn how to diagnose and fix common espresso problems.',
     category: 'ONBOARDING',
     lessons: [
@@ -860,7 +860,7 @@ If you have any questions about which site to use or need help with the process,
   },
   {
     id: 'm-milk-steaming',
-    title: 'Module 11: Milk Steaming Fundamentals',
+    title: 'Module 13: Milk Steaming Fundamentals',
     description: 'Learn proper milk steaming technique for silky microfoam.',
     category: 'ONBOARDING',
     lessons: [
@@ -904,7 +904,7 @@ If you have any questions about which site to use or need help with the process,
   },
   {
     id: 'm-menu-knowledge',
-    title: 'Module 13: Menu Knowledge',
+    title: 'Module 14: Menu Knowledge',
     description: 'Master the complete Boundaries Coffee menu including all drink categories, flavor combinations, and customization options.',
     category: 'ONBOARDING',
     lessons: [
@@ -1050,7 +1050,7 @@ Sugar-Free Options: Vanilla, Dark Chocolate, Caramel`
   },
   {
     id: 'm-hospitality-ritz',
-    title: 'Module 14: Hospitality Training',
+    title: 'Module 16: Hospitality Training',
     description: 'Learn the Ritz Carlton service philosophy and Boundaries core values for exceptional guest experiences.',
     category: 'ONBOARDING',
     lessons: [
@@ -1271,7 +1271,7 @@ Great hospitality is about anticipating needs, clear communication, and making g
   },
   {
     id: 'm-order-taking',
-    title: 'Module 15: Order Taking',
+    title: 'Module 17: Order Taking',
     description: 'Master the 8-step greeting script, flow management, and efficient order-taking techniques.',
     category: 'ONBOARDING',
     lessons: [
@@ -1456,7 +1456,7 @@ Great hospitality is about anticipating needs, clear communication, and making g
   },
   {
     id: 'm-toast-pos',
-    title: 'Module 16: Toast POS Navigation',
+    title: 'Module 18: Toast POS Navigation',
     description: 'Learn to navigate the Toast POS system, process orders, handle payments, and manage common scenarios.',
     category: 'ONBOARDING',
     lessons: [
@@ -1840,7 +1840,7 @@ Great hospitality is about anticipating needs, clear communication, and making g
   ...NEW_TRAINING_MODULES,
   {
     id: 'm-drink-making-basics',
-    title: 'Module 12: Drink Making Basics - Day 1 Hot Drinks',
+    title: 'Module 15: Drink Making Basics - Day 1 Hot Drinks',
     description: 'Learn espresso extraction, drink making process, milk steaming, dialing in, and cleaning procedures.',
     category: 'ONBOARDING',
     lessons: [

@@ -97,6 +97,18 @@ const DEFAULT_ORG: Organization = {
   createdAt: new Date().toISOString(),
 };
 
+// Sort modules by their "Module N" title number so the academy always
+// displays in curriculum order regardless of the cloud array's historical
+// append order. Unnumbered modules (exams) sort last, keeping their
+// relative order.
+function sortCurriculum(modules: TrainingModule[]): TrainingModule[] {
+  const num = (m: TrainingModule) => {
+    const match = m.title.match(/Module\s+(\d+)/i);
+    return match ? parseInt(match[1], 10) : 999;
+  };
+  return [...modules].sort((a, b) => num(a) - num(b));
+}
+
 // Apply org theme to CSS custom properties
 function applyOrgTheme(org: Organization | null) {
   const root = document.documentElement;
@@ -193,7 +205,7 @@ const App: React.FC = () => {
       
       setProgress(data.progress || []);
       setTemplates(data.templates || []);
-      setCurriculum(data.curriculum || []);
+      setCurriculum(sortCurriculum(data.curriculum || []));
       setManual(data.manual || []);
       setRecipes(data.recipes || []);
 
