@@ -1563,7 +1563,7 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
         moduleId: 'm-machine-parts',
         title: 'La Marzocco PB — Parts & Functions',
         type: 'CONTENT' as const,
-        videoUrl: 'https://youtube.com/shorts/QXpBRu2Lcyo',
+        videoUrl: 'https://youtube.com/shorts/ucEumO8kVYc',
         content: `<p>Our espresso machine is the <strong>La Marzocco PB, 3 group head</strong>. Every barista must know each part by name — when a trainer says "lock it into the group" or "purge the wand," you need to know exactly what they mean.</p>
 
 <img src="/training/pb-parts.png" alt="La Marzocco PB parts diagram" style="max-width:100%;border-radius:12px;margin:12px 0;border:1px solid #e5e5e5;" />
@@ -1820,7 +1820,7 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
         moduleId: 'm-extraction-standards',
         title: 'The Milk Steaming Standard',
         type: 'CONTENT' as const,
-        videoUrl: 'https://youtube.com/shorts/ucEumO8kVYc',
+        videoUrl: 'https://youtube.com/shorts/VsX19AZE-GU',
         content: `<p>Milk steaming has two jobs — <strong>aeration</strong> (adding air for texture) and <strong>heat &amp; spin</strong> (rolling the milk to integrate that air). The Boundaries standard is defined by TEMPERATURE checkpoints you can feel on the pitcher.</p>
 
 <img src="/training/milk-steaming.png" alt="Milk steaming temperature and aeration graph" style="max-width:100%;border-radius:12px;margin:12px 0;border:1px solid #e5e5e5;" />
