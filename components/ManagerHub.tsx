@@ -323,18 +323,48 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
   const isActionableLesson = (type: string) => type !== 'CONTENT';
 
   const trainingStats = useMemo(() => {
-    const onboardingLessons = curriculum.filter(m => m.category === 'ONBOARDING').flatMap(m => m.lessons).filter(l => isActionableLesson(l.type));
+    const onboardingModules = curriculum.filter(m => m.category === 'ONBOARDING');
+    const onboardingLessons = onboardingModules.flatMap(m => m.lessons).filter(l => isActionableLesson(l.type));
     const continuedLessons = curriculum.filter(m => m.category === 'CONTINUED').flatMap(m => m.lessons).filter(l => isActionableLesson(l.type));
 
     return allUsers.map(member => {
-      const memberProgress = allProgress.filter(p => p.userId === member.id && p.status === 'COMPLETED');
-      const onboardingCompleted = memberProgress.filter(p => onboardingLessons.some(l => l.id === p.lessonId)).length;
+      const memberProgressAll = allProgress.filter(p => p.userId === member.id);
+      const completedSet = new Set(memberProgressAll.filter(p => p.status === 'COMPLETED').map(p => p.lessonId));
+      const onboardingCompleted = onboardingLessons.filter(l => completedSet.has(l.id)).length;
       const onboardingPercent = onboardingLessons.length > 0 ? Math.round((onboardingCompleted / onboardingLessons.length) * 100) : 0;
-      const continuedCompleted = memberProgress.filter(p => continuedLessons.some(l => l.id === p.lessonId)).length;
+      const continuedCompleted = continuedLessons.filter(l => completedSet.has(l.id)).length;
       const continuedPercent = continuedLessons.length > 0 ? Math.round((continuedCompleted / continuedLessons.length) * 100) : 0;
       const isUpToDate = continuedPercent === 100;
 
-      return { userId: member.id, onboardingPercent, continuedPercent, isUpToDate, totalCompleted: memberProgress.length };
+      // Where they are: first onboarding module (in display order) with an
+      // incomplete actionable lesson.
+      let currentModule: string | null = null;
+      for (const mod of onboardingModules) {
+        const actionable = mod.lessons.filter(l => isActionableLesson(l.type));
+        if (actionable.some(l => !completedSet.has(l.id))) {
+          currentModule = mod.title;
+          break;
+        }
+      }
+
+      // Last training activity from progress timestamps
+      let lastActivity: string | null = null;
+      memberProgressAll.forEach(p => {
+        const t = p.completedAt || p.lastAttemptDate;
+        if (t && (!lastActivity || t > lastActivity)) lastActivity = t;
+      });
+      const daysSinceActivity = lastActivity ? Math.floor((Date.now() - new Date(lastActivity).getTime()) / 86400000) : null;
+
+      // Certification status (180-day recert window, mirrors TrainingView)
+      const cert = memberProgressAll.find(p => p.lessonId === 'l-cert-exam-quiz' && p.status === 'COMPLETED');
+      const certified = !!cert?.completedAt && (Date.now() - new Date(cert.completedAt).getTime()) <= 180 * 86400000;
+      const certExpired = !!cert && !certified;
+
+      return {
+        userId: member.id, onboardingPercent, continuedPercent, isUpToDate,
+        totalCompleted: completedSet.size, currentModule, lastActivity,
+        daysSinceActivity, certified, certExpired,
+      };
     });
   }, [allUsers, allProgress, curriculum]);
 
@@ -2520,6 +2550,87 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
             : staff;
           return (
           <section className="animate-in fade-in">
+            {/* Training Tracker — where everyone is at a glance */}
+            {visibleStaff.length > 0 && (
+              <div className="bg-white p-4 md:p-6 rounded-xl border border-neutral-100 shadow-sm mb-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2 bg-blue-50 text-blue-600 rounded-xl"><GraduationCap size={20} /></div>
+                  <div>
+                    <h2 className="text-lg font-black text-[#0F2B3C] uppercase tracking-tight">Training Tracker</h2>
+                    <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">Sorted by who needs attention</p>
+                  </div>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm min-w-[640px]">
+                    <thead>
+                      <tr className="text-[9px] font-black text-neutral-400 uppercase tracking-widest border-b border-neutral-100">
+                        <th className="text-left py-2 pr-2">Staff</th>
+                        <th className="text-left py-2 px-2 w-36">Onboarding</th>
+                        <th className="text-left py-2 px-2">Current Module</th>
+                        <th className="text-left py-2 px-2">Last Active</th>
+                        <th className="text-left py-2 px-2">Trainer</th>
+                        <th className="text-left py-2 pl-2">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[...visibleStaff]
+                        .map(m => ({ m, s: trainingStats.find(t => t.userId === m.id) }))
+                        .sort((a, b) => {
+                          const rank = (x: typeof a) => x.s?.certified ? 3 : (x.s?.onboardingPercent === 100 ? 2 : (x.s?.onboardingPercent || 0) > 0 ? 0 : 1);
+                          const r = rank(a) - rank(b);
+                          if (r !== 0) return r;
+                          return (a.s?.onboardingPercent || 0) - (b.s?.onboardingPercent || 0);
+                        })
+                        .map(({ m, s }) => {
+                          const pct = s?.onboardingPercent || 0;
+                          const stuck = pct > 0 && pct < 100 && (s?.daysSinceActivity ?? 99) >= 7;
+                          const trainer = m.trainerId ? allUsers.find(u => u.id === m.trainerId) : null;
+                          const moduleLabel = s?.currentModule
+                            ? s.currentModule.replace(/^Module (\d+): /, '$1 · ')
+                            : (pct === 100 ? 'All modules done' : '—');
+                          return (
+                            <tr key={m.id} className="border-b border-neutral-50">
+                              <td className="py-2.5 pr-2">
+                                <span className="font-bold text-[#0F2B3C]">{m.name}</span>
+                                <span className="text-[9px] text-neutral-400 font-bold uppercase ml-1.5">{m.role}</span>
+                              </td>
+                              <td className="py-2.5 px-2">
+                                <div className="flex items-center gap-2">
+                                  <div className="flex-1 h-2 bg-neutral-100 rounded-full overflow-hidden min-w-[60px]">
+                                    <div className={`h-full ${pct === 100 ? 'bg-green-500' : pct > 0 ? 'bg-blue-500' : 'bg-neutral-200'}`} style={{ width: `${pct}%` }} />
+                                  </div>
+                                  <span className="text-xs font-black tabular-nums w-9 text-right">{pct}%</span>
+                                </div>
+                              </td>
+                              <td className="py-2.5 px-2 text-xs font-medium text-neutral-600 max-w-[180px] truncate">{moduleLabel}</td>
+                              <td className="py-2.5 px-2 text-xs text-neutral-500 whitespace-nowrap">
+                                {s?.daysSinceActivity === null || s?.daysSinceActivity === undefined ? 'Never' :
+                                  s.daysSinceActivity === 0 ? 'Today' : `${s.daysSinceActivity}d ago`}
+                              </td>
+                              <td className="py-2.5 px-2 text-xs text-neutral-500">{trainer ? trainer.name.split(' ')[0] : '—'}</td>
+                              <td className="py-2.5 pl-2">
+                                {s?.certified ? (
+                                  <span className="px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest bg-green-50 text-green-600 border border-green-100">Certified</span>
+                                ) : s?.certExpired ? (
+                                  <span className="px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest bg-amber-50 text-amber-600 border border-amber-100">Recert Due</span>
+                                ) : stuck ? (
+                                  <span className="px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest bg-red-50 text-red-600 border border-red-100">Stuck</span>
+                                ) : pct === 100 ? (
+                                  <span className="px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest bg-blue-50 text-blue-600 border border-blue-100">Exam Pending</span>
+                                ) : pct > 0 ? (
+                                  <span className="px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest bg-neutral-100 text-neutral-500">In Progress</span>
+                                ) : (
+                                  <span className="px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest bg-neutral-50 text-neutral-400 border border-neutral-100">Not Started</span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
             {visibleStaff.length === 0 ? (
               <div className="bg-white p-16 rounded-xl border border-neutral-100 shadow-sm text-center">
                 <div className="max-w-md mx-auto space-y-6">

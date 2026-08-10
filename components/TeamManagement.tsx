@@ -47,6 +47,9 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [showInvite, setShowInvite] = useState<{ email: string; password: string; name: string } | null>(null);
   const [confirmDeactivate, setConfirmDeactivate] = useState<User | null>(null);
+  const [bulkMode, setBulkMode] = useState(false);
+  const [bulkSelected, setBulkSelected] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   // Form state
   const [saving, setSaving] = useState(false);
@@ -1052,14 +1055,117 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
       {/* ── Active Users ── */}
       {activeUsers.length > 0 ? (
         <div>
-          <div className="flex items-center gap-2 mb-4 px-1">
+          <div className="flex items-center gap-2 mb-4 px-1 flex-wrap">
             <UserCheck size={16} className="text-green-500" />
             <h3 className="text-xs font-black text-neutral-400 uppercase tracking-widest">Active Team Members ({activeUsers.length})</h3>
+            <button
+              onClick={() => { setBulkMode(!bulkMode); setBulkSelected(new Set()); }}
+              className={`ml-auto px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest border transition-all ${
+                bulkMode ? 'bg-[#0F2B3C] text-white border-[#0F2B3C]' : 'bg-white text-neutral-500 border-neutral-200 hover:border-neutral-400'
+              }`}
+            >
+              {bulkMode ? 'Exit Cleanup' : 'Bulk Cleanup'}
+            </button>
           </div>
+
+          {bulkMode && (
+            <div className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-xl space-y-3">
+              <p className="text-xs font-bold text-amber-800">
+                Select stale accounts to deactivate. Deactivation is reversible — data is preserved and accounts can be reactivated any time.
+                Cards marked <span className="px-1.5 py-0.5 bg-red-50 text-red-600 border border-red-200 rounded text-[9px] font-black uppercase">No Toast Match</span> have no matching employee in Toast.
+              </p>
+              <div className="flex gap-2 flex-wrap">
+                <button
+                  onClick={() => {
+                    const stale = activeUsers.filter(u =>
+                      toastEmployees.length > 0 &&
+                      !isSelf(u) &&
+                      u.role !== UserRole.ADMIN &&
+                      !toastEmployees.some(emp => !emp.deleted && (
+                        (u.toastEmployeeGuid && emp.guid === u.toastEmployeeGuid) ||
+                        (emp.email && emp.email.toLowerCase() === u.email.toLowerCase()) ||
+                        nameMatches(emp.name, u.name)
+                      ))
+                    );
+                    setBulkSelected(new Set(stale.map(u => u.id)));
+                  }}
+                  disabled={toastEmployees.length === 0}
+                  className="px-3 py-2 bg-white border border-amber-300 text-amber-700 rounded-lg text-[9px] font-black uppercase tracking-widest disabled:opacity-40"
+                >
+                  Select All Without Toast Match
+                </button>
+                <button
+                  onClick={() => setBulkSelected(new Set())}
+                  className="px-3 py-2 bg-white border border-neutral-200 text-neutral-500 rounded-lg text-[9px] font-black uppercase tracking-widest"
+                >
+                  Clear Selection
+                </button>
+                <button
+                  onClick={async () => {
+                    if (bulkSelected.size === 0) return;
+                    setBulkBusy(true);
+                    try {
+                      for (const id of bulkSelected) {
+                        const u = allUsers.find(x => x.id === id);
+                        if (u) await db.syncUser({ ...u, active: false });
+                      }
+                      onUserUpdated();
+                      setBulkSelected(new Set());
+                      setBulkMode(false);
+                    } finally {
+                      setBulkBusy(false);
+                    }
+                  }}
+                  disabled={bulkSelected.size === 0 || bulkBusy}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg text-[9px] font-black uppercase tracking-widest disabled:opacity-40 ml-auto"
+                >
+                  {bulkBusy ? 'Deactivating...' : `Deactivate Selected (${bulkSelected.size})`}
+                </button>
+              </div>
+              {toastEmployees.length === 0 && (
+                <p className="text-[10px] text-amber-600 font-medium">Toast employee list not loaded yet — the "no match" helper needs a Toast sync first.</p>
+              )}
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {activeUsers.map(user => (
-              <UserCard key={user.id} user={user} />
-            ))}
+            {activeUsers.map(user => {
+              const noToastMatch = toastEmployees.length > 0 && !toastEmployees.some(emp => !emp.deleted && (
+                (user.toastEmployeeGuid && emp.guid === user.toastEmployeeGuid) ||
+                (emp.email && emp.email.toLowerCase() === user.email.toLowerCase()) ||
+                nameMatches(emp.name, user.name)
+              ));
+              return (
+                <div key={user.id} className="relative">
+                  {bulkMode && !isSelf(user) && (
+                    <button
+                      onClick={() => {
+                        setBulkSelected(prev => {
+                          const next = new Set(prev);
+                          if (next.has(user.id)) next.delete(user.id);
+                          else next.add(user.id);
+                          return next;
+                        });
+                      }}
+                      className={`absolute top-3 right-3 z-10 w-7 h-7 rounded-lg border-2 flex items-center justify-center text-sm font-black transition-all ${
+                        bulkSelected.has(user.id) ? 'bg-red-600 border-red-600 text-white' : 'bg-white border-neutral-300 text-transparent hover:border-red-400'
+                      }`}
+                      aria-label="Select for deactivation"
+                    >
+                      ✓
+                    </button>
+                  )}
+                  {noToastMatch && (
+                    <span className="absolute -top-2 left-3 z-10 px-2 py-0.5 bg-red-50 text-red-600 border border-red-200 rounded-md text-[8px] font-black uppercase tracking-widest">
+                      No Toast Match
+                    </span>
+                  )}
+                  <div className={bulkMode && bulkSelected.has(user.id) ? 'ring-2 ring-red-500 rounded-xl' : ''}>
+                    <UserCard user={user} />
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       ) : (
