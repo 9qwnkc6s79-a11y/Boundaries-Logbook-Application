@@ -781,7 +781,7 @@ If you have any questions about which site to use or need help with the process,
         moduleId: 'm-espresso-fundamentals',
         title: 'The Perfect Shot at Boundaries (POV)',
         type: 'VIDEO',
-        videoUrl: 'https://youtube.com/shorts/VsX19AZE-GU',
+        videoUrl: 'https://youtube.com/shorts/QXpBRu2Lcyo',
         content: 'First-person view of a full shot on our bar: knock out, rinse, dose on the E80, distribute, PuqPress, lock in, brew. This is exactly how it should look every time.'
       },
       {
