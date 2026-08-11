@@ -2490,68 +2490,12 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                 </div>
              </div>
 
-             <div className="bg-white p-6 rounded-xl border border-neutral-100 shadow-sm">
-                <div className="flex items-center justify-between mb-6 px-2">
-                  <h3 className="text-xs font-black text-neutral-400 uppercase tracking-widest">Top Performer Leaderboard</h3>
-                  <span className="text-[9px] font-black text-neutral-400 uppercase tracking-widest">Last 30 Days</span>
-                </div>
-                <div className="space-y-6">
-                  {performanceData.sort((a,b) => (b.score || 0) - (a.score || 0)).map((member, idx) => (
-                    <div key={member.id} className="flex items-center justify-between gap-4 p-4 hover:bg-neutral-50 rounded-xl transition-colors group">
-                       <div className="flex items-center gap-4">
-                          <span className="text-[10px] font-black text-neutral-300 w-4">{idx + 1}</span>
-                          <div className="w-10 h-10 rounded-xl bg-[#0F2B3C] text-white flex items-center justify-center font-black text-xs">{member.name?.charAt(0)}</div>
-                          <div><p className="font-black text-xs text-[#0F2B3C] uppercase tracking-tight">{member.name}</p><p className="text-[8px] font-bold text-neutral-400 uppercase tracking-widest">{member.completionRate} Total Tasks</p></div>
-                       </div>
-                       <div className="flex items-center gap-4">
-                          <div className="text-right"><p className="text-lg font-black text-[#0F2B3C]">{member.score}%</p><p className="text-[7px] font-black text-neutral-400 uppercase">Audit Score</p></div>
-                          {idx === 0 && <Award size={20} className="text-amber-500 fill-amber-500/10" />}
-                       </div>
-                    </div>
-                  ))}
-                </div>
-             </div>
-          </section>
-        )}
-
-          </div>
-        )}
-
-        {activeSubTab === 'settings' && (
-          <div className="space-y-6 animate-in fade-in duration-500">
-            {/* Settings Sub-tabs */}
-            <div className="bg-white p-4 rounded-xl border border-neutral-100 shadow-sm">
-              <div className="flex flex-wrap gap-2">
-                {[
-                  { id: 'editor', label: 'Protocols', icon: Settings },
-                  { id: 'staff', label: 'Staff', icon: Users },
-                  { id: 'manual', label: 'Manual', icon: FileText },
-                  ...(currentUser?.role === UserRole.ADMIN ? [
-                    { id: 'team', label: 'Team', icon: ShieldCheck },
-                    { id: 'branding', label: 'Branding', icon: Palette },
-                    { id: 'stores', label: 'Stores', icon: Building2 },
-                  ] : []),
-                ].map(tab => (
-                  <button
-                    key={tab.id}
-                    onClick={() => setSettingsSubTab(tab.id as any)}
-                    className={`px-4 py-2 text-[9px] font-black rounded-lg transition-all flex items-center gap-2 whitespace-nowrap tracking-widest ${settingsSubTab === tab.id ? 'bg-[#0F2B3C] text-white shadow-lg' : 'text-neutral-500 hover:text-[#0F2B3C] bg-neutral-50'}`}
-                  >
-                    <tab.icon size={14} /> {tab.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-        {settingsSubTab === 'staff' && (() => {
-          // Admins see all users; managers see their store's staff
-          const visibleStaff = currentUser?.role === UserRole.ADMIN
-            ? allUsers.filter(u => u.id !== currentUser?.id)
-            : staff;
-          return (
-          <section className="animate-in fade-in">
+             {(() => {
+               const trackerStaff = (currentUser?.role === UserRole.ADMIN ? allUsers.filter(u => u.id !== currentUser?.id) : staff).filter(u => u.active !== false);
+               return (
+                 <>
             {/* Training Tracker — where everyone is at a glance */}
-            {visibleStaff.length > 0 && (
+            {trackerStaff.length > 0 && (
               <div className="bg-white p-4 md:p-6 rounded-xl border border-neutral-100 shadow-sm mb-6">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="p-2 bg-blue-50 text-blue-600 rounded-xl"><GraduationCap size={20} /></div>
@@ -2573,7 +2517,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                       </tr>
                     </thead>
                     <tbody>
-                      {[...visibleStaff]
+                      {[...trackerStaff]
                         .map(m => ({ m, s: trainingStats.find(t => t.userId === m.id) }))
                         .sort((a, b) => {
                           const rank = (x: typeof a) => x.s?.certified ? 3 : (x.s?.onboardingPercent === 100 ? 2 : (x.s?.onboardingPercent || 0) > 0 ? 0 : 1);
@@ -2631,6 +2575,48 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                 </div>
               </div>
             )}
+                 </>
+               );
+             })()}
+          </section>
+        )}
+
+          </div>
+        )}
+
+        {activeSubTab === 'settings' && (
+          <div className="space-y-6 animate-in fade-in duration-500">
+            {/* Settings Sub-tabs */}
+            <div className="bg-white p-4 rounded-xl border border-neutral-100 shadow-sm">
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { id: 'editor', label: 'Protocols', icon: Settings },
+                  { id: 'staff', label: 'Staff', icon: Users },
+                  { id: 'manual', label: 'Manual', icon: FileText },
+                  ...(currentUser?.role === UserRole.ADMIN ? [
+                    { id: 'team', label: 'Team', icon: ShieldCheck },
+                    { id: 'branding', label: 'Branding', icon: Palette },
+                    { id: 'stores', label: 'Stores', icon: Building2 },
+                  ] : []),
+                ].map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setSettingsSubTab(tab.id as any)}
+                    className={`px-4 py-2 text-[9px] font-black rounded-lg transition-all flex items-center gap-2 whitespace-nowrap tracking-widest ${settingsSubTab === tab.id ? 'bg-[#0F2B3C] text-white shadow-lg' : 'text-neutral-500 hover:text-[#0F2B3C] bg-neutral-50'}`}
+                  >
+                    <tab.icon size={14} /> {tab.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+        {settingsSubTab === 'staff' && (() => {
+          // Admins see all users; managers see their store's staff
+          const visibleStaff = currentUser?.role === UserRole.ADMIN
+            ? allUsers.filter(u => u.id !== currentUser?.id)
+            : staff;
+          return (
+          <section className="animate-in fade-in">
             {visibleStaff.length === 0 ? (
               <div className="bg-white p-16 rounded-xl border border-neutral-100 shadow-sm text-center">
                 <div className="max-w-md mx-auto space-y-6">
