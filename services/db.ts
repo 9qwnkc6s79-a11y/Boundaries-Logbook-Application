@@ -1200,7 +1200,27 @@ class CloudAPI {
     manual: ManualSection[],
     recipes: Recipe[],
     inventorySeed?: Record<string, InventoryItem[]>
-  }) {
+  }, opts?: { light?: boolean }): Promise<{
+    users: User[],
+    submissions: ChecklistSubmission[],
+    progress: UserProgress[],
+    templates?: ChecklistTemplate[],
+    curriculum?: TrainingModule[],
+    manual?: ManualSection[],
+    recipes?: Recipe[],
+  }> {
+    // LIGHT sync: only the live operational data. Static content and the
+    // one-time migrations are skipped — they run on full syncs (app load and
+    // explicit user actions). This keeps the background heartbeat at ~4
+    // Firestore reads instead of ~18, protecting the daily read quota.
+    if (opts?.light) {
+      const [users, submissions, progress] = await Promise.all([
+        this.fetchUsers(defaults.users),
+        this.fetchSubmissions(),
+        this.fetchProgress(),
+      ]);
+      return { users, submissions, progress };
+    }
     const [users, submissions, progress, templates, cloudCurriculum, manual, recipes, cloudVersion] = await Promise.all([
       this.fetchUsers(defaults.users),
       this.fetchSubmissions(),
