@@ -185,6 +185,12 @@ const App: React.FC = () => {
   const performCloudSync = useCallback(async (background = false) => {
     if (!background) setIsSyncing(true);
     try {
+      // Background heartbeats do a LIGHT sync (users/submissions/progress
+      // only). Full syncs — with static content (curriculum, manual,
+      // recipes, templates) and one-time migrations — run on load and on
+      // explicit user actions. This cut Firestore reads ~6x per tick; the
+      // old every-tick full sync was exhausting the daily read quota, which
+      // made reads return empty and the app appear to "lose" progress.
       const data = await db.globalSync({
         users: MOCK_USERS,
         templates: CHECKLIST_TEMPLATES,
@@ -192,22 +198,28 @@ const App: React.FC = () => {
         manual: BOUNDARIES_MANUAL,
         recipes: BOUNDARIES_RECIPES,
         inventorySeed: SEED_INVENTORY
-      });
-      
-      setAllUsers(data.users);
-      
-      // OPTIMISTIC UI PROTECTION: 
-      // If we recently updated a submission, don't overwrite the state with 
+      }, { light: background });
+
+      // Never blank state on a failed/empty read — keep what we have.
+      if (data.users && data.users.length > 0) setAllUsers(data.users);
+
+      // OPTIMISTIC UI PROTECTION:
+      // If we recently updated a submission, don't overwrite the state with
       // potentially stale data from the server for 7 seconds.
-      if (Date.now() - lastSubmissionUpdateRef.current > 7000) {
-        setSubmissions(data.submissions || []);
+      if (data.submissions && Date.now() - lastSubmissionUpdateRef.current > 7000) {
+        setSubmissions(data.submissions);
       }
-      
-      setProgress(data.progress || []);
-      setTemplates(data.templates || []);
-      setCurriculum(sortCurriculum(data.curriculum || []));
-      setManual(data.manual || []);
-      setRecipes(data.recipes || []);
+
+      // Progress: only overwrite state when the read returned something, or
+      // when we have nothing yet. A transient empty read must not make
+      // completed training vanish from the screen.
+      if (data.progress && data.progress.length > 0) {
+        setProgress(data.progress);
+      }
+      if (data.templates) setTemplates(data.templates);
+      if (data.curriculum) setCurriculum(sortCurriculum(data.curriculum));
+      if (data.manual) setManual(data.manual);
+      if (data.recipes) setRecipes(data.recipes);
 
       return data;
     } catch (err) {
@@ -247,12 +259,15 @@ const App: React.FC = () => {
     init();
   }, [performCloudSync, initOrg]);
 
-  // Aggressive sync heartbeat to ensure Manager sees Trainee work near real-time
+  // Sync heartbeat. Was 4 seconds with a FULL sync (~18 Firestore reads per
+  // tick), which burned through the daily read quota by mid-day — reads then
+  // returned empty and the app appeared to lose logins and training
+  // progress. Now a light sync every 30 seconds (~4 reads).
   useEffect(() => {
     if (!currentUser) return;
     const heartbeat = setInterval(() => {
-      performCloudSync(true); 
-    }, 4000); 
+      performCloudSync(true);
+    }, 30000);
     return () => clearInterval(heartbeat);
   }, [currentUser, performCloudSync]);
 
@@ -524,8 +539,24 @@ const App: React.FC = () => {
     };
 
     setProgress(prev => [...prev, entry]);
-    await db.pushProgress([entry]);
-    performCloudSync(true);
+    // Retry the save up to 3 times, and NEVER fail silently — a lesson that
+    // shows completed on screen but never persisted is how staff "lose"
+    // training days later.
+    let saved = false;
+    for (let attempt = 0; attempt < 3 && !saved; attempt++) {
+      try {
+        if (attempt > 0) await new Promise(r => setTimeout(r, 1500 * attempt));
+        await db.pushProgress([entry]);
+        saved = true;
+      } catch (e) {
+        console.error(`[Training] Progress save attempt ${attempt + 1} failed:`, e);
+      }
+    }
+    if (!saved) {
+      setSaveError('Your lesson completion could NOT be saved. Check your connection and redo the final step of the lesson.');
+    } else {
+      performCloudSync(true);
+    }
   };
 
   const auditPhotoWithAI = async (photoUrl: string, taskTitle: string): Promise<{ flagged: boolean; reason: string }> => {
@@ -840,6 +871,12 @@ const App: React.FC = () => {
     for (const emp of toastEmployees) {
       // Skip deleted employees
       if (emp.deleted) continue;
+
+      // Skip POS-internal/system entries — these are not real staff and were
+      // filling the roster with junk accounts ("Default", "TDS", etc.).
+      const empName = (emp.name || '').trim().toLowerCase();
+      if (!empName || ['default', 'tds', 'test', 'training'].includes(empName)) continue;
+      if (emp.email && emp.email.toLowerCase().endsWith('@toasttab.com')) continue;
 
       // Compute the final email BEFORE the dedup check — when emp.email is
       // missing we construct firstname.lastname@boundariescoffee.com, which
