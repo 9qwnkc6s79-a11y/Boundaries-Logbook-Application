@@ -597,6 +597,62 @@ If you have any questions about which site to use or need help with the process,
           { id: 'q42', type: 'MULTIPLE_CHOICE', question: 'Why is restocking supplies before opening important for the flow of service?', options: ['It gives baristas something to do while waiting for customers', 'It ensures you won\'t run out of essential items during the rush, which would slow down service', 'It\'s not important - you can restock during slow periods', 'It\'s mainly for appearance when the manager arrives'], correctAnswers: ['It ensures you won\'t run out of essential items during the rush, which would slow down service'] },
           { id: 'q43', type: 'MULTIPLE_CHOICE', question: 'What is the purpose of purging the espresso group head before pulling a shot?', options: ['To cool down the machine', 'To flush out old grounds and ensure fresh, clean water for extraction', 'To make a noise that signals you\'re ready', 'It\'s not necessary if the machine is already on'], correctAnswers: ['To flush out old grounds and ensure fresh, clean water for extraction'] }
         ]
+      },
+      {
+        id: 'l-cleaning-fundamentals',
+        moduleId: 'm-morning',
+        title: 'Cleaning Fundamentals — Mop, Surfaces & Glass',
+        type: 'CONTENT',
+        content: `<p>Half of being a great barista is keeping the store spotless. <strong>"If you have time to lean, you have time to clean."</strong> These are the standards for the three cleaning jobs you'll do every single shift.</p>
+
+<h3>1. Mopping — the right way</h3>
+<ol>
+  <li><strong>Sweep first.</strong> Mopping over debris just makes mud and drags grit across the floor.</li>
+  <li><strong>Fill the bucket at the MOP SINK</strong> — never a hand sink or prep sink (health code). Use the floor cleaner at the dilution on the label.</li>
+  <li><strong>Wet floor sign goes out BEFORE the mop touches the floor.</strong></li>
+  <li><strong>Wring well</strong> — the mop should be damp, not dripping. A soaked mop leaves standing water and streaks.</li>
+  <li><strong>Figure-8 pattern</strong>, overlapping each pass, working in small sections. Flip/rinse the mop as you go.</li>
+  <li><strong>Work backward toward the exit</strong> so you never walk across your clean, wet floor.</li>
+  <li><strong>Change the water the moment it turns cloudy.</strong> Dirty water doesn't clean — it repaints the floor with dirt.</li>
+  <li><strong>Afterward:</strong> empty and rinse the bucket in the mop sink, rinse the mop head, wring it, and hang it to air-dry. Never leave a mop sitting in the bucket — it breeds bacteria and smells.</li>
+</ol>
+
+<h3>2. Surfaces — clean, THEN sanitize (two steps, always)</h3>
+<ul>
+  <li><strong>Step 1 — CLEAN:</strong> surface cleaner + cloth removes the visible soil (crumbs, milk, syrup).</li>
+  <li><strong>Step 2 — SANITIZE:</strong> sanitizer kills what you can't see. Sanitizer sprayed on a dirty surface does NOT work — it can't reach the surface through the soil.</li>
+  <li>Food-contact surfaces (bar tops, prep counters, steam wands' cloths) get sanitizer at the correct concentration and then <strong>air-dry</strong> — don't towel it off, that undoes the sanitizing.</li>
+  <li><strong>Sanitizer cloths live in the sanitizer bucket</strong> between wipes — never left lying on the counter.</li>
+  <li>Change the sanitizer solution when it's dirty or per the schedule — it loses strength.</li>
+</ul>
+
+<h3>3. Glass & windows — streak-free</h3>
+<ul>
+  <li>Spray glass cleaner and wipe with a <strong>microfiber cloth</strong> (paper towels leave lint) — or use a squeegee.</li>
+  <li>Work <strong>top to bottom in overlapping S-pattern passes</strong>; if squeegeeing, wipe the blade between passes.</li>
+  <li>Finish the edges with a dry cloth — that edge line is the difference between clean and professional.</li>
+</ul>
+
+<h3>The habit that matters most</h3>
+<p><strong>Clean as you go.</strong> Wipe the wand after every steam. Rinse the pitcher when you set it down. Wipe drips when they happen. A closing shift is easy when the whole day was clean.</p>`
+      },
+      {
+        id: 'l-cleaning-quiz',
+        moduleId: 'm-morning',
+        title: 'Cleaning Fundamentals Quiz',
+        type: 'QUIZ',
+        quizQuestions: [
+          { id: 'cl1', type: 'MULTIPLE_CHOICE', question: 'What do you do BEFORE mopping a floor?', options: ['Put chairs up', 'Sweep it first', 'Rinse it with water', 'Spray sanitizer'], correctAnswers: ['Sweep it first'], explanation: 'Mopping over debris just makes mud. Sweep first, always.' },
+          { id: 'cl2', type: 'MULTIPLE_CHOICE', question: 'Where do you fill and empty the mop bucket?', options: ['The hand sink', 'The prep sink', 'The mop sink only', 'Outside'], correctAnswers: ['The mop sink only'], explanation: 'Mop water never touches hand or prep sinks — that is health code, not preference.' },
+          { id: 'cl3', type: 'MULTIPLE_CHOICE', question: 'When does the wet floor sign go out?', options: ['After mopping is done', 'Before the mop touches the floor', 'Only during business hours', 'Only if someone slips'], correctAnswers: ['Before the mop touches the floor'], explanation: 'The sign goes out first — before the floor is wet, not after.' },
+          { id: 'cl4', type: 'MULTIPLE_CHOICE', question: 'What is the correct mopping pattern?', options: ['Straight lines back and forth', 'Figure-8 with overlapping passes, working backward toward the exit', 'Circles from the center out', 'Any pattern works'], correctAnswers: ['Figure-8 with overlapping passes, working backward toward the exit'], explanation: 'Figure-8 keeps the mop head working and the overlap ensures no missed spots — and you never walk on your clean floor.' },
+          { id: 'cl5', type: 'MULTIPLE_CHOICE', question: 'When do you change the mop water?', options: ['Once a week', 'Only when it smells', 'The moment it turns cloudy', 'Never — the cleaner keeps working'], correctAnswers: ['The moment it turns cloudy'], explanation: 'Dirty water doesn\'t clean — it spreads dirt back onto the floor.' },
+          { id: 'cl6', type: 'MULTIPLE_CHOICE', question: 'Why must you CLEAN a surface before you SANITIZE it?', options: ['It looks better', 'Sanitizer can\'t work through visible soil — it never reaches the surface', 'Cleaning is optional if you sanitize', 'To use less sanitizer'], correctAnswers: ['Sanitizer can\'t work through visible soil — it never reaches the surface'], explanation: 'Two steps, always: clean removes what you see, sanitizer kills what you can\'t.' },
+          { id: 'cl7', type: 'MULTIPLE_CHOICE', question: 'After sanitizing a food-contact surface, you should:', options: ['Towel it dry immediately', 'Let it air-dry', 'Rinse it with water', 'Wipe it with a dry paper towel'], correctAnswers: ['Let it air-dry'], explanation: 'Toweling it off wipes away the sanitizer before it finishes working.' },
+          { id: 'cl8', type: 'MULTIPLE_CHOICE', question: 'Where does the sanitizer cloth live between wipes?', options: ['On the counter', 'In your apron', 'In the sanitizer bucket', 'By the register'], correctAnswers: ['In the sanitizer bucket'], explanation: 'A cloth left on the counter grows bacteria. It goes back in the bucket every time.' },
+          { id: 'cl9', type: 'MULTIPLE_CHOICE', question: 'How do you get streak-free glass?', options: ['Paper towels and lots of spray', 'Microfiber or squeegee, top-to-bottom overlapping passes, dry the edges', 'Circular scrubbing', 'Hot water only'], correctAnswers: ['Microfiber or squeegee, top-to-bottom overlapping passes, dry the edges'], explanation: 'Microfiber doesn\'t lint; overlapping top-to-bottom passes and dry edges are the professional finish.' },
+          { id: 'cl10', type: 'MULTIPLE_CHOICE', question: '"If you have time to lean..."', options: ['...take a break', '...you have time to clean', '...check your phone', '...ask for a task'], correctAnswers: ['...you have time to clean'], explanation: 'Clean as you go — wipe the wand, rinse the pitcher, catch drips when they happen.' }
+        ]
       }
     ]
   },
