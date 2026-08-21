@@ -3,6 +3,7 @@ import { AlertTriangle, RefreshCw, UtensilsCrossed } from 'lucide-react';
 import { db } from '../services/db';
 import { toastAPI } from '../services/toast';
 import { Food86Event, FoodClosingWasteEntry, FoodSkuDay, FoodSoldResponse, User } from '../types';
+import { isBakeryFoodItem } from '../utils/food86Bakery';
 
 function locationForStore(storeId: string): string {
   return storeId === 'store-prosper' ? 'prosper' : 'littleelm';
@@ -61,6 +62,7 @@ const Food86Panel: React.FC<Food86PanelProps> = ({ storeId, storeName, user, mod
         error: err?.message || 'Failed to load Toast food stock',
         items: [],
         excludedDrinkCount: 0,
+        excludedNonBakeryCount: 0,
       })),
       db.fetchFood86Events(storeId).catch((): Food86Event[] => []),
       db.fetchFoodClosingWaste(storeId, businessDate).catch((): FoodClosingWasteEntry[] => []),
@@ -117,24 +119,10 @@ const Food86Panel: React.FC<Food86PanelProps> = ({ storeId, storeName, user, mod
   }, [load]);
 
   const rows = useMemo(() => {
-    const items = (payload?.items || []).filter(item => item.includeInFoodView);
-    if (mode !== 'closing') return items;
-    const seen = new Set(items.map(item => item.itemGuid));
-    const extras: FoodSkuDay[] = Object.values(wasteByGuid)
-      .filter(row => !seen.has(row.itemGuid))
-      .map(row => ({
-        itemGuid: row.itemGuid,
-        name: row.itemName || row.itemGuid,
-        status: 'QUANTITY',
-        quantity: null,
-        categoryHint: 'food',
-        includeInFoodView: true,
-        lastSoldAt: null,
-        soldCount: 0,
-        soldOutAt: null,
-      }));
-    return [...items, ...extras];
-  }, [payload, wasteByGuid, mode]);
+    // Bakery menu group only. Old payloads / leftover rows for Item-hex, drip, tea,
+    // modifiers, and retail stay hidden even if includeInFoodView was true.
+    return (payload?.items || []).filter(isBakeryFoodItem);
+  }, [payload]);
 
   const persistWaste = async (item: FoodSkuDay, leftover: string, waste: string) => {
     // Waste log = any signed-in employee. Do not check UserRole / manager.
@@ -169,8 +157,8 @@ const Food86Panel: React.FC<Food86PanelProps> = ({ storeId, storeName, user, mod
   const scopeMissing = payload && !payload.stockScopeOk;
   const title = mode === 'closing' ? 'Food leftover & waste' : 'Food 86 / last sold';
   const subtitle = mode === 'closing'
-    ? 'Any closer logs leftover qty + waste qty here — barista, team lead, or GM. You do not need Manager Hub. Toast food SKUs, not syrups. Open: GM enters starting qty in Toast. Toast 86s at 0.'
-    : `${storeName || 'This store'} · today (America/Chicago). 86 time and last-sold time are both shown. Leftover and waste come from the closing food list.`;
+    ? 'Any closer logs leftover qty + waste qty here — barista, team lead, or GM. You do not need Manager Hub. Toast Bakery SKUs only (pastry case). Open: GM enters starting qty in Toast. Toast 86s at 0.'
+    : `${storeName || 'This store'} · today (America/Chicago). Bakery menu group only. 86 time and last-sold time are both shown. Leftover and waste come from the closing bakery list.`;
 
   return (
     <section className={`rounded-xl border shadow-sm ${mode === 'closing' ? 'border-amber-100 bg-amber-50/20' : 'border-neutral-100 bg-white'} p-4 sm:p-6`}>
@@ -224,7 +212,7 @@ const Food86Panel: React.FC<Food86PanelProps> = ({ storeId, storeName, user, mod
         <p className="text-xs text-neutral-400 font-medium">
           {scopeMissing
             ? 'No food SKUs to list while Toast stock is unavailable. Remaining / 86 / last-sold are not invented. Refresh when stock:read is back, then any closer can enter leftover qty and waste qty here.'
-            : 'No qty-tracked food items from Toast right now. GMs only see items they count at open (QUANTITY / OUT_OF_STOCK / IN_STOCK with a qty). Any closer can enter leftover qty and waste qty here once items appear.'}
+            : 'No Toast Bakery items to list right now. Only the Bakery menu group (QUANTITY / OUT_OF_STOCK / IN_STOCK with a qty) appears here. Any closer can enter leftover qty and waste qty once bakery items appear.'}
         </p>
       )}
 
@@ -316,9 +304,9 @@ const Food86Panel: React.FC<Food86PanelProps> = ({ storeId, storeName, user, mod
         </div>
       )}
 
-      {(payload?.excludedDrinkCount || 0) > 0 && (
+      {((payload?.excludedNonBakeryCount ?? payload?.excludedDrinkCount) || 0) > 0 && (
         <p className="mt-3 text-[10px] font-bold text-neutral-400 uppercase tracking-widest">
-          {payload?.excludedDrinkCount} likely-drink item{payload?.excludedDrinkCount === 1 ? '' : 's'} hidden (syrups / espresso). Unknown items stay listed.
+          {payload?.excludedNonBakeryCount ?? payload?.excludedDrinkCount} non-bakery item{(payload?.excludedNonBakeryCount ?? payload?.excludedDrinkCount) === 1 ? '' : 's'} hidden (unnamed stock, drinks, modifiers, retail).
         </p>
       )}
     </section>

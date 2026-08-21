@@ -232,6 +232,7 @@ class ToastAPI {
         status: data.status || response.status,
         items: [],
         excludedDrinkCount: 0,
+        excludedNonBakeryCount: 0,
       };
     }
 
