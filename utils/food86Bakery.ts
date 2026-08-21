@@ -5,7 +5,7 @@
  * Null quantity / missing stock is still visible — do not hide 86'd bakery.
  * Unnamed stock GUIDs ("Item 8a142d5c") never belong on the close list.
  * Daniel no longer stocks a short name list (brownie, donut, lunch taco,
- * muffin for MWM, plain croissant, taco toppings) — drop those by name only.
+ * muffin for MWM, plain croissant, taco toppings / toppngs) — drop those by name only.
  */
 
 const UNRESOLVED_ITEM_NAME = /^(unknown(\s+item)?|item\s+[0-9a-f]{4,})$/i;
@@ -20,6 +20,7 @@ const UNSTOCKED_FOOD86_NAMES = [
   'muffin for mwm',
   'plain croissant',
   'taco toppings',
+  'taco toppngs', // live Toast typo (missing i)
 ];
 
 type Food86Meta = {
