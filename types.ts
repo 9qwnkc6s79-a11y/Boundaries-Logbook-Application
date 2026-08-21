@@ -555,7 +555,8 @@ export interface InventoryCount {
 }
 
 // ── Toast food 86 / last-sold / closing waste ──
-// Toast Bakery QUANTITY + OUT_OF_STOCK + IN_STOCK-with-qty SKUs (not drinks, modifiers, retail, or unnamed stock GUIDs).
+// Toast Bakery + taco QUANTITY + OUT_OF_STOCK + IN_STOCK-with-qty SKUs
+// (not drinks, milk modifiers, retail, unnamed stock GUIDs, or other non-food modifiers).
 
 export type FoodCategoryHint = 'food' | 'drink' | 'unknown';
 export type Food86Source = 'webhook' | 'poll';

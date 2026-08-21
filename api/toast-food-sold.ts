@@ -99,28 +99,57 @@ async function getAuthToken(): Promise<string> {
   return token;
 }
 
+const EXCLUDED_NONFOOD = /\b(retail|5\s*lb|drip|teas?|fairlife|half\s*(and|&)\s*half)\b/i;
+
+type Food86Meta = { name?: string; menuName?: string; menuGroup?: string; includeInFoodView?: boolean };
+
+function itemText(item?: Food86Meta): string {
+  return `${item?.name || ''} ${item?.menuName || ''} ${item?.menuGroup || ''}`.toLowerCase();
+}
+
 function isUnresolvedStockName(name?: string): boolean {
   const n = (name || '').trim();
   return !n || UNRESOLVED_ITEM_NAME.test(n);
 }
 
-function isBakeryMenu(meta: { menuName?: string; menuGroup?: string }): boolean {
-  const menuText = `${meta.menuName || ''} ${meta.menuGroup || ''}`.toLowerCase();
-  return menuText.includes('bakery');
+function isBakeryMenu(meta?: Food86Meta): boolean {
+  return `${meta?.menuName || ''} ${meta?.menuGroup || ''}`.toLowerCase().includes('bakery');
 }
 
-/** Closing leftover/waste + Manager Hub Food 86: Toast Bakery group only. */
+function isTacoNamed(item?: Food86Meta): boolean {
+  return itemText(item).includes('taco');
+}
+
+function isTacoTypeModifier(item?: Food86Meta): boolean {
+  if (!(item?.menuGroup || '').toLowerCase().includes('modifier')) return false;
+  const name = (item?.name || '').toLowerCase();
+  return (name.includes('bacon') && name.includes('egg')) || name.includes('chorizo');
+}
+
+function isExcludedNonFood(item?: Food86Meta): boolean {
+  return EXCLUDED_NONFOOD.test(itemText(item));
+}
+
+/** Named Toast Bakery SKUs + taco types (bacon/chorizo modifiers). No hardcoded GUIDs. */
+function isFood86VisibleItem(item?: Food86Meta): boolean {
+  if (!item) return false;
+  if (item.includeInFoodView === false) return false;
+  if (isUnresolvedStockName(item.name)) return false;
+  if (isBakeryMenu(item)) return true;
+  if (isExcludedNonFood(item)) return false;
+  return isTacoNamed(item) || isTacoTypeModifier(item);
+}
+
 function classifyFoodItem(meta: { name?: string; menuName?: string; menuGroup?: string }) {
-  const bakery = isBakeryMenu(meta);
-  const unresolved = isUnresolvedStockName(meta.name);
-  if (bakery && !unresolved) {
+  const keep = isFood86VisibleItem(meta);
+  if (keep) {
     return { categoryHint: 'food' as const, includeInFoodView: true };
   }
-  return { categoryHint: bakery ? 'food' as const : 'unknown' as const, includeInFoodView: false };
+  return { categoryHint: 'unknown' as const, includeInFoodView: false };
 }
 
-function keepBakeryFoodItem(item: { includeInFoodView?: boolean; name?: string; menuName?: string; menuGroup?: string }): boolean {
-  return item.includeInFoodView === true && isBakeryMenu(item) && !isUnresolvedStockName(item.name);
+function keepFood86Item(item: Food86Meta): boolean {
+  return item.includeInFoodView === true && isFood86VisibleItem(item);
 }
 
 function parseQuantity(raw: any): number | null {
@@ -274,7 +303,7 @@ async function fetchToastStock(token: string, restaurantGuid: string) {
   const list = Array.isArray(rows) ? rows : [];
   const lookup = await loadMenuLookup(token, restaurantGuid);
   const resolved = resolveStockItems(list, lookup);
-  const items = resolved.filter(keepBakeryFoodItem);
+  const items = resolved.filter(keepFood86Item);
   return {
     ok: true,
     status: 200,
