@@ -431,74 +431,118 @@ class CloudAPI {
   }
 
   async syncUser(user: User, options?: { changePassword?: boolean }): Promise<User[]> {
-    let currentUsers = await this.remoteGet(DOC_KEYS.USERS, [] as User[]);
-
-    // Safety: if read returned empty, retry once. A transient read failure
-    // returning [] would cause us to write ONLY this user, destroying everyone else.
-    if (currentUsers.length === 0) {
-      console.warn('[Firestore] syncUser: First read returned 0 users, retrying...');
-      await new Promise(r => setTimeout(r, 500));
-      currentUsers = await this.remoteGet(DOC_KEYS.USERS, [] as User[]);
-      if (currentUsers.length === 0) {
-        console.warn('[Firestore] syncUser: Retry also returned 0 users');
-      } else {
-        console.log(`[Firestore] syncUser: Retry succeeded, got ${currentUsers.length} users`);
-      }
+    if (!firestore) {
+      console.error('[Firestore] syncUser: FAILED - Firestore not initialized');
+      throw new Error('User database unavailable. Please try again in a moment.');
     }
 
-    // DATA LOSS PREVENTION: if reads keep returning empty but we have a marker
-    // saying users were previously populated, this is a transient read failure —
-    // NOT a fresh deployment. Refuse to write, or we'll wipe every user except
-    // this one. That's how Heath and others were disappearing.
+    // The users doc is a single-doc array of every user. A plain
+    // read-modify-write here races: between our read and set(merge:false),
+    // an admin's password reset elsewhere completes, and our stale-read
+    // write reverts it — the exact "password mysteriously changed / user
+    // locked out" symptom. Fix: do the read-modify-write inside a Firestore
+    // transaction so writes on the same doc are serialised and retried on
+    // conflict. The per-caller password-preservation guard is now applied
+    // against the transactionally-fresh state, and other users' fields
+    // (including their hashed passwords) can no longer be silently reverted.
     const USERS_POPULATED_KEY = 'usersPopulated';
     const usersPopulated = await this.remoteGet<{ populated: boolean }>(USERS_POPULATED_KEY, { populated: false });
-    if (currentUsers.length === 0 && usersPopulated.populated) {
-      const msg = `syncUser REFUSED: users read empty but marker set — refusing to write and wipe other users. Retry later.`;
-      console.error(`[Firestore] ${msg}`);
-      throw new Error('User database temporarily unavailable. Please try again in a moment.');
+
+    const collectionPath = this.getCollectionPath();
+    const usersDocRef = collectionPath.includes('/')
+      ? firestore.doc(`${collectionPath}/${DOC_KEYS.USERS}`)
+      : firestore.collection(collectionPath).doc(DOC_KEYS.USERS);
+
+    let result: User[] = [];
+    let markerNeedsSealing = false;
+
+    try {
+      await firestore.runTransaction(async (tx: any) => {
+        // Reset per-attempt state (transactions may retry).
+        markerNeedsSealing = false;
+
+        const snap = await tx.get(usersDocRef);
+        const raw = snap.exists ? snap.data() : null;
+        const currentUsers: User[] = (raw && Array.isArray(raw.data)) ? raw.data : [];
+
+        // DATA LOSS PREVENTION: if the read is empty but a marker says the
+        // doc was previously populated, this is a transient read failure —
+        // never a fresh install. Refuse to write, or we'd wipe every user
+        // except this one.
+        if (currentUsers.length === 0 && usersPopulated.populated) {
+          console.error('[Firestore] syncUser REFUSED: users read empty but marker set');
+          throw new Error('User database temporarily unavailable. Please try again in a moment.');
+        }
+
+        const userMap = new Map<string, User>();
+        currentUsers.forEach(u => userMap.set(u.email.toLowerCase(), u));
+
+        const existing = userMap.get(user.email.toLowerCase());
+
+        // Backstop against silent identity collisions: if a different user
+        // record (different id) already occupies this email, refuse to
+        // overwrite. Callers that intend to update an existing user must
+        // pass that user's id; callers linking external accounts (e.g.
+        // Toast sync) must look up the existing record by email first.
+        if (existing && existing.id && user.id && existing.id !== user.id) {
+          const msg = `syncUser refused: incoming id ${user.id} would overwrite existing user ${existing.id} at ${user.email}`;
+          console.error(`[Firestore] ${msg}`);
+          throw new Error(`A different account already exists at ${user.email}. Update the existing record instead of creating a new one.`);
+        }
+
+        // Password preservation: callers updating non-credential fields (home
+        // store, active flag, name/role/storeId) carry a stale in-memory
+        // password hash that would otherwise silently clobber a recently-reset
+        // password. Preserve the cloud password by default; require explicit
+        // { changePassword: true } to write a new hash. Evaluated against the
+        // transactionally-fresh cloud state, so a race with an admin's reset
+        // is impossible — this attempt would retry.
+        let nextUser = user;
+        if (existing?.password && isHashed(existing.password)) {
+          const changePassword = options?.changePassword === true;
+          const incomingIsHashed = !!nextUser.password && isHashed(nextUser.password);
+
+          if (!changePassword) {
+            nextUser = { ...nextUser, password: existing.password };
+          } else if (!incomingIsHashed) {
+            console.warn(`[Firestore] syncUser: BLOCKED non-hashed password write for ${nextUser.email} — keeping hashed version`);
+            nextUser = { ...nextUser, password: existing.password };
+          }
+        }
+
+        userMap.set(nextUser.email.toLowerCase(), nextUser);
+        const next = Array.from(userMap.values());
+
+        tx.set(usersDocRef, {
+          data: removeUndefined(next),
+          lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: false });
+
+        result = next;
+
+        if (next.length > 0 && !usersPopulated.populated) {
+          markerNeedsSealing = true;
+        }
+      });
+    } catch (error: any) {
+      // Re-throw application-level errors (empty/marker refusal, identity
+      // collision) untouched. For transaction conflict/network failures,
+      // surface a friendly message so the caller retries.
+      const msg = error?.message || '';
+      if (msg.includes('temporarily unavailable') || msg.includes('A different account')) {
+        throw error;
+      }
+      console.error('[Firestore] syncUser: transaction failed:', error);
+      throw new Error('Could not save user changes. Please try again.');
     }
 
-    // First successful non-empty read seals the marker.
-    if (currentUsers.length > 0 && !usersPopulated.populated) {
+    // Seal the populated marker outside the transaction. Fire-and-forget —
+    // it's only a subsequent guard, not a correctness dependency.
+    if (markerNeedsSealing) {
       this.remoteSet(USERS_POPULATED_KEY, { populated: true, at: new Date().toISOString() });
     }
 
-    const userMap = new Map<string, User>();
-    currentUsers.forEach(u => userMap.set(u.email.toLowerCase(), u));
-
-    const existing = userMap.get(user.email.toLowerCase());
-
-    // Backstop against silent identity collisions: if a different user record
-    // (different id) already occupies this email, refuse to overwrite. Callers
-    // that intend to update an existing user must pass that user's id; callers
-    // that intend to link external accounts (e.g. Toast sync) must look up the
-    // existing record by email first and update it, not create a new one.
-    if (existing && existing.id && user.id && existing.id !== user.id) {
-      const msg = `syncUser refused: incoming id ${user.id} would overwrite existing user ${existing.id} at ${user.email}`;
-      console.error(`[Firestore] ${msg}`);
-      throw new Error(`A different account already exists at ${user.email}. Update the existing record instead of creating a new one.`);
-    }
-
-    // Password preservation: callers updating non-credential fields (home store,
-    // active flag, name/role/storeId) carry a stale in-memory password hash that
-    // can silently clobber a recently-reset password. Preserve the cloud password
-    // by default; require explicit { changePassword: true } to write a new hash.
-    if (existing?.password && isHashed(existing.password)) {
-      const changePassword = options?.changePassword === true;
-      const incomingIsHashed = !!user.password && isHashed(user.password);
-
-      if (!changePassword) {
-        user = { ...user, password: existing.password };
-      } else if (!incomingIsHashed) {
-        console.warn(`[Firestore] syncUser: BLOCKED non-hashed password write for ${user.email} — keeping hashed version`);
-        user = { ...user, password: existing.password };
-      }
-    }
-
-    userMap.set(user.email.toLowerCase(), user);
-    const next = Array.from(userMap.values());
-    await this.remoteSet(DOC_KEYS.USERS, next);
-    return next;
+    return result;
   }
 
   async fetchSubmissions(): Promise<ChecklistSubmission[]> {
