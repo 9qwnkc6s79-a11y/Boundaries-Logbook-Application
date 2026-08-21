@@ -23,37 +23,7 @@ const STORE_BY_LOCATION: Record<string, string> = {
   prosper: 'store-prosper',
 };
 
-const FOOD_MENU_PHRASES = [
-  'main street', 'bistro', 'lisa cordero', 'sysco', 'food', 'pastry', 'bakery',
-  'taco', 'sandwich', 'breakfast', 'lunch', 'dinner', 'entree', 'entrée',
-  'snack', 'grab and go', 'grab n go', 'kitchen',
-];
-
-const FOOD_ITEM_KEYWORDS = [
-  'taco', 'sandwich', 'pastry', 'croissant', 'muffin', 'bagel', 'cookie',
-  'brownie', 'cake', 'cupcake', 'quiche', 'wrap', 'burrito', 'salad', 'soup',
-  'empanada', 'quesadilla', 'nacho', 'pizza', 'panini', 'scone', 'donut',
-  'doughnut', 'kolache', 'biscuit', 'bread', 'pretzel', 'chip', 'fruit',
-  'yogurt', 'parfait', 'granola', 'slider', 'burger', 'hot dog', 'danish',
-  'turnover', 'strudel', 'churro', 'flauta', 'tostada', 'tortilla', 'chicken',
-  'beef', 'pork', 'bacon', 'sausage', 'avocado toast', 'acai', 'waffle',
-  'pancake', 'french toast', 'hummus', 'pita', 'falafel', 'protein', 'platter',
-  'entree', 'entrée', 'appetizer', 'queso', 'guacamole', 'rice bowl',
-];
-
-const DRINK_MENU_PHRASES = [
-  'syrup', 'espresso bar', 'coffee drinks', 'beverages', 'hot drinks',
-  'cold drinks', 'specialty drinks', 'tea menu',
-];
-
-const DRINK_ITEM_KEYWORDS = [
-  'latte', 'mocha', 'cappuccino', 'espresso', 'americano', 'macchiato',
-  'cold brew', 'nitro', 'cortado', 'flat white', 'affogato', 'pour over',
-  'drip coffee', 'brewed coffee', 'matcha', 'chai', 'lemonade', 'refresher',
-  'frappe', 'frappuccino', 'smoothie', 'milkshake', 'red bull', 'energy drink',
-  'sparkling', 'syrup', 'hot chocolate', 'cocoa', 'kombucha', 'horchata',
-  'steamer', 'breve',
-];
+const UNRESOLVED_ITEM_NAME = /^(unknown(\s+item)?|item\s+[0-9a-f]{4,})$/i;
 
 interface SoldAgg {
   lastSoldAt: string | null;
@@ -129,36 +99,28 @@ async function getAuthToken(): Promise<string> {
   return token;
 }
 
-function includesAny(haystack: string, needles: string[]): boolean {
-  return needles.some(n => haystack.includes(n));
+function isUnresolvedStockName(name?: string): boolean {
+  const n = (name || '').trim();
+  return !n || UNRESOLVED_ITEM_NAME.test(n);
 }
 
+function isBakeryMenu(meta: { menuName?: string; menuGroup?: string }): boolean {
+  const menuText = `${meta.menuName || ''} ${meta.menuGroup || ''}`.toLowerCase();
+  return menuText.includes('bakery');
+}
+
+/** Closing leftover/waste + Manager Hub Food 86: Toast Bakery group only. */
 function classifyFoodItem(meta: { name?: string; menuName?: string; menuGroup?: string }) {
-  const name = (meta.name || '').trim();
-  const menuName = (meta.menuName || '').trim();
-  const menuGroup = (meta.menuGroup || '').trim();
-
-  if (!name && !menuName && !menuGroup) {
-    return { categoryHint: 'unknown' as const, includeInFoodView: true };
+  const bakery = isBakeryMenu(meta);
+  const unresolved = isUnresolvedStockName(meta.name);
+  if (bakery && !unresolved) {
+    return { categoryHint: 'food' as const, includeInFoodView: true };
   }
+  return { categoryHint: bakery ? 'food' as const : 'unknown' as const, includeInFoodView: false };
+}
 
-  const menuText = `${menuName} ${menuGroup}`.toLowerCase();
-  const itemText = name.toLowerCase();
-  const menuIsFood = includesAny(menuText, FOOD_MENU_PHRASES);
-  const menuIsDrink = includesAny(menuText, DRINK_MENU_PHRASES);
-  const itemIsFood = includesAny(itemText, FOOD_ITEM_KEYWORDS);
-  const itemIsDrink = includesAny(itemText, DRINK_ITEM_KEYWORDS);
-
-  if (menuIsFood && itemIsFood) return { categoryHint: 'food' as const, includeInFoodView: true };
-  if (menuIsFood && !itemIsDrink) return { categoryHint: 'food' as const, includeInFoodView: true };
-  if (itemIsFood && !itemIsDrink) return { categoryHint: 'food' as const, includeInFoodView: true };
-  if (itemIsDrink && !itemIsFood && !menuIsFood) return { categoryHint: 'drink' as const, includeInFoodView: false };
-  if (menuIsDrink && !itemIsFood) return { categoryHint: 'drink' as const, includeInFoodView: false };
-  if (itemIsFood && itemIsDrink) {
-    if (menuIsFood) return { categoryHint: 'food' as const, includeInFoodView: true };
-    return { categoryHint: 'unknown' as const, includeInFoodView: true };
-  }
-  return { categoryHint: 'unknown' as const, includeInFoodView: true };
+function keepBakeryFoodItem(item: { includeInFoodView?: boolean; name?: string; menuName?: string; menuGroup?: string }): boolean {
+  return item.includeInFoodView === true && isBakeryMenu(item) && !isUnresolvedStockName(item.name);
 }
 
 function parseQuantity(raw: any): number | null {
@@ -286,6 +248,7 @@ async function fetchToastStock(token: string, restaurantGuid: string) {
       ok: false,
       status: response.status,
       items: [] as any[],
+      excludedNonBakeryCount: 0,
       scopeMissing: true,
       menusForbidden: false,
       error: `Toast stock:read was rejected (${response.status}). ${body.substring(0, 120)}`.trim(),
@@ -299,6 +262,7 @@ async function fetchToastStock(token: string, restaurantGuid: string) {
       ok: false,
       status: response.status,
       items: [] as any[],
+      excludedNonBakeryCount: 0,
       scopeMissing: false,
       menusForbidden: false,
       error: `Toast stock API error (${response.status}): ${body.substring(0, 120)}`,
@@ -309,10 +273,13 @@ async function fetchToastStock(token: string, restaurantGuid: string) {
   const rows = await response.json();
   const list = Array.isArray(rows) ? rows : [];
   const lookup = await loadMenuLookup(token, restaurantGuid);
+  const resolved = resolveStockItems(list, lookup);
+  const items = resolved.filter(keepBakeryFoodItem);
   return {
     ok: true,
     status: 200,
-    items: resolveStockItems(list, lookup),
+    items,
+    excludedNonBakeryCount: resolved.length - items.length,
     scopeMissing: false,
     menusForbidden: lookup.menusForbidden,
     error: undefined as string | undefined,
@@ -552,6 +519,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           status: stock.status,
           items: [],
           excludedDrinkCount: 0,
+          excludedNonBakeryCount: 0,
         });
       }
 
@@ -607,7 +575,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         stockScopeOk: true,
         menusResolved: !stock.menusForbidden,
         items,
-        excludedDrinkCount: items.filter(i => !i.includeInFoodView).length,
+        excludedDrinkCount: stock.excludedNonBakeryCount,
+        excludedNonBakeryCount: stock.excludedNonBakeryCount,
         persisted86Count,
       });
     } catch (error: any) {
@@ -622,6 +591,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         message: error?.message,
         items: [],
         excludedDrinkCount: 0,
+        excludedNonBakeryCount: 0,
       });
     }
   } catch (error: any) {
@@ -634,6 +604,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         message: error?.message,
         items: [],
         excludedDrinkCount: 0,
+        excludedNonBakeryCount: 0,
       });
     } catch {
       return res.status(200).end('{"ok":false,"stockScopeOk":false,"items":[]}');

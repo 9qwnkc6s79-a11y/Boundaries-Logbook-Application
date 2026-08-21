@@ -555,7 +555,7 @@ export interface InventoryCount {
 }
 
 // ── Toast food 86 / last-sold / closing waste ──
-// QUANTITY + OUT_OF_STOCK + IN_STOCK-with-qty items GMs count in Toast at open (not the syrup catalog).
+// Toast Bakery QUANTITY + OUT_OF_STOCK + IN_STOCK-with-qty SKUs (not drinks, modifiers, retail, or unnamed stock GUIDs).
 
 export type FoodCategoryHint = 'food' | 'drink' | 'unknown';
 export type Food86Source = 'webhook' | 'poll';
@@ -612,6 +612,7 @@ export interface FoodSoldResponse {
   status?: number;
   items: FoodSkuDay[];
   excludedDrinkCount: number;
+  excludedNonBakeryCount?: number;
   persisted86Count?: number;
 }
 
