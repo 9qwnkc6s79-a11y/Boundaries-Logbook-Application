@@ -4,10 +4,11 @@ import {
   CheckCircle2, AlertCircle, Eye, User as UserIcon, Calendar, Check, X,
   Settings, Plus, Trash2, Edit3, BarChart3, ListTodo, BrainCircuit, Clock, TrendingDown, TrendingUp,
   ArrowRight, MessageSquare, Save, Users, LayoutDashboard, Flag, Activity, GraduationCap, Award, FileText, MoveUp, MoveDown, Coffee, Camera, Hash, AlertTriangle, ExternalLink, FileText as FileIcon, Image as ImageIcon, Search, ShieldCheck,
-  RefreshCw, RotateCcw, CalendarDays, Timer, Store as StoreIcon, MapPin, GripVertical, AlertOctagon, Info, Zap, Gauge, History, SearchCheck, ChevronUp, ChevronDown, ClipboardList, DollarSign, TrendingUp as TrendingUpIcon, UserCheck, Target, Trophy, Star, Palette, Building2
+  RefreshCw, RotateCcw, CalendarDays, Timer, Store as StoreIcon, MapPin, GripVertical, AlertOctagon, Info, Zap, Gauge, History, SearchCheck, ChevronUp, ChevronDown, ClipboardList, DollarSign, TrendingUp as TrendingUpIcon, UserCheck, Target, Trophy, Star, Palette, Building2, UtensilsCrossed
 } from 'lucide-react';
 import { toastAPI } from '../services/toast';
 import { db } from '../services/db';
+import Food86Panel from './Food86Panel';
 import { detectLeaders, calculateTimelinessScore, calculateTurnTimeScore, calculateSalesScore, calculateAvgTicketScore, calculateLeaderboard, determineShiftOwnership } from '../utils/leadershipTracking';
 import { syncOrderAttributions } from '../utils/orderAttribution';
 import TeamManagement from './TeamManagement';
@@ -16,6 +17,7 @@ import WeeklyReport from './WeeklyReport';
 import NotificationBanner from './NotificationBanner';
 import { checkLateSubmissions, checkHighTurnTime, getTodayDate } from '../services/notificationTriggers';
 import { showLocalNotification, isAnyStoreManager, getNotificationConfig } from '../services/notifications';
+import { insertFoodWasteTask, templateHasFoodWasteTask } from '../data/foodCloseTasks';
 
 /**
  * Fuzzy name matching for Toast employees to database users.
@@ -97,7 +99,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
   org, onSaveOrg, onSyncToastEmployees
 }) => {
   const [activeSubTab, setActiveSubTab] = useState<'dashboard' | 'operations' | 'settings'>('dashboard');
-  const [operationsSubTab, setOperationsSubTab] = useState<'compliance' | 'gallery' | 'cash-audit' | 'training'>('compliance');
+  const [operationsSubTab, setOperationsSubTab] = useState<'compliance' | 'gallery' | 'cash-audit' | 'training' | 'food'>('compliance');
   const [settingsSubTab, setSettingsSubTab] = useState<'editor' | 'team' | 'manual' | 'branding' | 'stores'>('editor');
   const [auditFilter, setAuditFilter] = useState<'pending' | 'approved' | 'all'>('pending');
   const [overrideFeedback, setOverrideFeedback] = useState<Record<string, string>>({});
@@ -1637,6 +1639,14 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
               </div>
             </section>
 
+            <Food86Panel
+              storeId={currentStoreId}
+              storeName={currentStoreName}
+              user={currentUser}
+              mode="report"
+              readOnly
+            />
+
             {/* Action Items Grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
               {/* Pending Checklists */}
@@ -2144,6 +2154,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                   { id: 'gallery', label: 'Photo Audit', icon: ImageIcon },
                   { id: 'cash-audit', label: 'Cash Audit', icon: DollarSign },
                   { id: 'training', label: 'Training Export', icon: GraduationCap },
+                  { id: 'food', label: 'Food 86', icon: UtensilsCrossed },
                 ].map(tab => (
                   <button
                     key={tab.id}
@@ -2155,6 +2166,16 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                 ))}
               </div>
             </div>
+
+            {operationsSubTab === 'food' && (
+              <Food86Panel
+                storeId={currentStoreId}
+                storeName={currentStoreName}
+                user={currentUser}
+                mode="report"
+                readOnly
+              />
+            )}
 
             {operationsSubTab === 'gallery' && (
               <section className="animate-in fade-in space-y-6">
@@ -2834,6 +2855,15 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                       const newTask: ChecklistTask = { id: `t-${Date.now()}`, title: 'New Task Standard', requiresPhoto: false, isCritical: false };
                       handleUpdateTemplateLocal(tpl.id, { tasks: [...tpl.tasks, newTask] });
                     }} className="w-full py-6 border-2 border-dashed border-neutral-200 rounded-xl text-neutral-400 font-black uppercase text-[10px] tracking-[0.2em] hover:bg-neutral-50 hover:text-[#0F2B3C] hover:border-[#0F2B3C] transition-all flex items-center justify-center gap-2"><Plus size={18}/> Append Standard</button>
+                    {tpl.type === 'CLOSING' && !templateHasFoodWasteTask(tpl) && (
+                      <button
+                        type="button"
+                        onClick={() => handleUpdateTemplateLocal(tpl.id, { tasks: insertFoodWasteTask(tpl.tasks) })}
+                        className="w-full py-4 border-2 border-dashed border-amber-200 bg-amber-50/50 rounded-xl text-amber-800 font-black uppercase text-[10px] tracking-[0.2em] hover:bg-amber-50 hover:border-amber-400 transition-all flex items-center justify-center gap-2"
+                      >
+                        <UtensilsCrossed size={18}/> Add leftover qty + waste qty (Toast food SKUs)
+                      </button>
+                    )}
                   </div>
                   )}
                 </div>

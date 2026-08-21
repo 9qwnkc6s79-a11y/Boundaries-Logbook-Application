@@ -1,7 +1,8 @@
 
 // No imports needed - Firebase is loaded globally via CDN script tags in index.html
-import { User, UserProgress, ChecklistSubmission, ChecklistTemplate, TrainingModule, ManualSection, Recipe, CashDeposit, GoogleReviewsData, Organization, Store, AttributedOrder, ArchivedLeaderboard, AuditFeedback, InventoryItem, InventoryCount, WarehouseItem, WarehouseTransaction } from '../types';
+import { User, UserProgress, ChecklistSubmission, ChecklistTemplate, TrainingModule, ManualSection, Recipe, CashDeposit, GoogleReviewsData, Organization, Store, AttributedOrder, ArchivedLeaderboard, AuditFeedback, InventoryItem, InventoryCount, WarehouseItem, WarehouseTransaction, Food86Event, FoodClosingWasteEntry } from '../types';
 import { isHashed } from '../utils/passwordUtils';
+import { applyFoodCloseTemplatePatch, patchFoodCloseManualSections } from '../data/foodCloseTasks';
 
 declare const firebase: any;
 
@@ -39,12 +40,13 @@ if (typeof firebase !== 'undefined') {
 
 // Increment this version whenever curriculum structure or lesson properties change
 // This forces Firebase to update cached curriculum data
-const CURRICULUM_VERSION = 12;
+const CURRICULUM_VERSION = 15;
 
 // Bump when the manual or recipe defaults change and must OVERWRITE cloud
 // copies (deliberate source-of-truth refresh — e.g. a new Ops Manual /
-// Recipe Book release). v4 = cold brew bag-setup clarifications.
-const CONTENT_DEFAULTS_VERSION = 4;
+// Recipe Book release). v7 = patch live §12 / §14 / §16 food close only;
+// do not overwrite the Recipe Book.
+const CONTENT_DEFAULTS_VERSION = 7;
 
 const DOC_KEYS = {
   USERS: 'users',
@@ -65,6 +67,8 @@ const DOC_KEYS = {
   INVENTORY_COUNTS: 'inventoryCounts',
   WAREHOUSE_ITEMS: 'warehouseItems',
   WAREHOUSE_TRANSACTIONS: 'warehouseTransactions',
+  FOOD_86_EVENTS: 'food86Events',
+  FOOD_CLOSING_WASTE: 'foodClosingWaste',
 };
 
 function removeUndefined(obj: any): any {
@@ -330,6 +334,7 @@ class CloudAPI {
         this.remoteSet(DOC_KEYS.SUBMISSIONS, []),
         this.remoteSet(DOC_KEYS.PROGRESS, []),
         this.remoteSet(DOC_KEYS.CURRICULUM_VERSION, CURRICULUM_VERSION),
+        this.remoteSet('content_version', CONTENT_DEFAULTS_VERSION),
       ]);
 
       console.log(`[Firestore] seedOrgData(${orgId}): Seeding complete`);
@@ -1193,6 +1198,113 @@ class CloudAPI {
     return this.remoteSet(this.inventoryCountsKey(storeId), next);
   }
 
+  // ── Food 86 events + closing leftover/waste (per-store docs) ──
+
+  private food86EventsKey(storeId: string): string {
+    return `${DOC_KEYS.FOOD_86_EVENTS}-${storeId}`;
+  }
+
+  private foodClosingWasteKey(storeId: string): string {
+    return `${DOC_KEYS.FOOD_CLOSING_WASTE}-${storeId}`;
+  }
+
+  private pruneByBusinessDate<T extends { businessDate: string }>(rows: T[], days = 90): T[] {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - days);
+    const cutoffStr = cutoff.toISOString().split('T')[0];
+    return rows.filter(r => r.businessDate >= cutoffStr);
+  }
+
+  async fetchFood86Events(storeId: string): Promise<Food86Event[]> {
+    const key = this.food86EventsKey(storeId);
+    let events = await this.remoteGet<Food86Event[]>(key, []);
+    if (!Array.isArray(events) || events.length === 0) {
+      console.log(`[DB] fetchFood86Events(${storeId}): empty, retrying once...`);
+      events = await this.remoteGet<Food86Event[]>(key, []);
+    }
+    return Array.isArray(events) ? events : [];
+  }
+
+  async recordFood86Event(event: Food86Event): Promise<Food86Event[] | null> {
+    return this.recordFood86Events([event]);
+  }
+
+  async recordFood86Events(incoming: Food86Event[]): Promise<Food86Event[] | null> {
+    if (incoming.length === 0) return [];
+    const storeId = incoming[0].storeId;
+    const POPULATED_KEY = `food86Populated-${storeId}`;
+
+    let existing = await this.fetchFood86Events(storeId);
+    const marker = await this.remoteGet<{ populated: boolean }>(POPULATED_KEY, { populated: false });
+    if (existing.length === 0 && marker.populated) {
+      await new Promise(r => setTimeout(r, 500));
+      existing = await this.fetchFood86Events(storeId);
+      if (existing.length === 0) {
+        console.error('[Firestore] recordFood86Events REFUSED: empty read but marker set');
+        return null;
+      }
+    }
+
+    const map = new Map<string, Food86Event>();
+    existing.forEach(e => map.set(`${e.businessDate}:${e.itemGuid}`, e));
+
+    for (const event of incoming) {
+      const key = `${event.businessDate}:${event.itemGuid}`;
+      const prev = map.get(key);
+      if (!prev || event.soldOutAt < prev.soldOutAt) {
+        map.set(key, prev ? { ...prev, ...event, soldOutAt: event.soldOutAt } : event);
+      }
+    }
+
+    const next = this.pruneByBusinessDate(Array.from(map.values()));
+    const ok = await this.remoteSet(this.food86EventsKey(storeId), next);
+    if (!ok) return null;
+    if (next.length > 0 && !marker.populated) {
+      this.remoteSet(POPULATED_KEY, { populated: true, at: new Date().toISOString() });
+    }
+    return next;
+  }
+
+  async fetchFoodClosingWaste(storeId: string, businessDate?: string): Promise<FoodClosingWasteEntry[]> {
+    const key = this.foodClosingWasteKey(storeId);
+    let rows = await this.remoteGet<FoodClosingWasteEntry[]>(key, []);
+    if (!Array.isArray(rows) || rows.length === 0) {
+      console.log(`[DB] fetchFoodClosingWaste(${storeId}): empty, retrying once...`);
+      rows = await this.remoteGet<FoodClosingWasteEntry[]>(key, []);
+    }
+    const list = Array.isArray(rows) ? rows : [];
+    return businessDate ? list.filter(r => r.businessDate === businessDate) : list;
+  }
+
+  async upsertFoodClosingWaste(entry: FoodClosingWasteEntry): Promise<FoodClosingWasteEntry[] | null> {
+    const storeId = entry.storeId;
+    const POPULATED_KEY = `foodWastePopulated-${storeId}`;
+
+    let existing = await this.fetchFoodClosingWaste(storeId);
+    const marker = await this.remoteGet<{ populated: boolean }>(POPULATED_KEY, { populated: false });
+    if (existing.length === 0 && marker.populated) {
+      await new Promise(r => setTimeout(r, 500));
+      existing = await this.fetchFoodClosingWaste(storeId);
+      if (existing.length === 0) {
+        console.error('[Firestore] upsertFoodClosingWaste REFUSED: empty read but marker set');
+        return null;
+      }
+    }
+
+    const key = `${entry.businessDate}:${entry.itemGuid}`;
+    const map = new Map<string, FoodClosingWasteEntry>();
+    existing.forEach(r => map.set(`${r.businessDate}:${r.itemGuid}`, r));
+    map.set(key, entry);
+
+    const next = this.pruneByBusinessDate(Array.from(map.values()));
+    const ok = await this.remoteSet(this.foodClosingWasteKey(storeId), next);
+    if (!ok) return null;
+    if (next.length > 0 && !marker.populated) {
+      this.remoteSet(POPULATED_KEY, { populated: true, at: new Date().toISOString() });
+    }
+    return next;
+  }
+
   async globalSync(defaults: {
     users: User[],
     templates: ChecklistTemplate[],
@@ -1328,23 +1440,23 @@ class CloudAPI {
       this.remoteSet(RECIPES_POPULATED_KEY, { populated: true, at: new Date().toISOString() });
     }
 
-    // Content version force-refresh: when the source-of-truth documents
-    // (Ops Manual / Recipe Book) are re-released, the code defaults must
-    // OVERWRITE the cloud manual and recipes. This is a deliberate,
-    // version-gated overwrite — unlike the seed-on-empty paths, it runs
-    // exactly once per version bump.
+    // Content version: Ops Manual / Recipe Book refresh. v7+ patches
+    // leftover/waste close into live §12 / §14 / §16 only — never wipe
+    // a live Recipe Book or other manual sections managers have edited.
     let finalManual = manual;
     let mergedRecipes = recipes;
     const cloudContentVersion = await this.remoteGet<number>('content_version', 0);
     if (cloudContentVersion < CONTENT_DEFAULTS_VERSION) {
-      console.log(`[Firestore] globalSync: Content version ${cloudContentVersion} → ${CONTENT_DEFAULTS_VERSION}, refreshing manual + recipes from defaults`);
-      finalManual = defaults.manual;
-      mergedRecipes = defaults.recipes;
-      await Promise.all([
-        this.remoteSet(DOC_KEYS.MANUAL, finalManual),
-        this.remoteSet(DOC_KEYS.RECIPES, mergedRecipes),
-        this.remoteSet('content_version', CONTENT_DEFAULTS_VERSION),
-      ]);
+      if (Array.isArray(manual) && manual.length > 0) {
+        finalManual = patchFoodCloseManualSections(manual, defaults.manual);
+        console.log(`[Firestore] globalSync: Content version ${cloudContentVersion} → ${CONTENT_DEFAULTS_VERSION}, patched Ops Manual §12 / §14 / §16`);
+        await Promise.all([
+          this.remoteSet(DOC_KEYS.MANUAL, finalManual),
+          this.remoteSet('content_version', CONTENT_DEFAULTS_VERSION),
+        ]);
+      } else {
+        console.warn('[Firestore] globalSync: Manual read empty — REFUSING to seed food-close sections');
+      }
     } else {
       // Merge new recipes from defaults that don't exist in cloud
       // This ensures new recipes added to the seed appear in the app
@@ -1557,7 +1669,19 @@ class CloudAPI {
       }
     }
 
-    return { users, submissions, progress, templates, curriculum, manual: finalManual, recipes: mergedRecipes };
+    // Additive: leftover/waste + Toast starting-qty tasks on live checklists.
+    // Live Firestore templates already differ from seed — append only.
+    let syncedTemplates = templates;
+    if (Array.isArray(templates) && templates.length > 0) {
+      const patched = applyFoodCloseTemplatePatch(templates);
+      syncedTemplates = patched.next;
+      if (patched.mutated) {
+        console.log('[Firestore] globalSync: Added food leftover/waste + Toast starting-qty tasks to checklists');
+        await this.remoteSet(DOC_KEYS.TEMPLATES, syncedTemplates);
+      }
+    }
+
+    return { users, submissions, progress, templates: syncedTemplates, curriculum, manual: finalManual, recipes: mergedRecipes };
   }
 }
 

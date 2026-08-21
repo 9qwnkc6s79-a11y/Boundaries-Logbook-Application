@@ -152,6 +152,31 @@ If you need help:
 2. Contact Toast support for API access issues
 3. Review error messages in browser console (F12 > Console tab)
 
+## Written close (OpsBook / Drive)
+
+OpsBook and the Manager Playbook are **not** in this repo. The ship-ready close copy for Amy to paste into Drive is:
+
+`docs/close-procedure.md`
+
+Same procedure is in Playbook V2 §21 Opening / §22 Closing (Amy files from that markdown), in-app Ops Manual §12 / §16, Academy “Closing Duties: Food Counts”, and the logbook closing food list.
+
+## Food 86 / last-sold webhook
+
+Owen’s food view uses Toast **stock:read** plus **ordersBulk** last-sold times. The stock webhook is optional: the app also **polls** `/stock/v1/inventory` and records the first QUANTITY→OUT_OF_STOCK time it sees (America/Chicago business date).
+
+Register this later in Toast (Developer / Webhooks → `stock` category, `out_of_stock`):
+
+```
+POST https://<your-vercel-host>/api/toast-stock-webhook
+```
+
+Same route also answers `GET` with a health payload. Webhook and poll write the same Firestore doc: `organizations/{orgId}/data/food86Events-{storeId}`. Earliest `soldOutAt` wins.
+
+Required Toast scopes:
+- `stock:read` — without it the UI says so and shows no invented quantities
+- existing orders access — last-sold check
+- `menus:read` — names / menu groups so drinks and syrups stay out of Owen’s food table
+
 ## Future Enhancements
 
 Potential additions:

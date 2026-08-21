@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { ChecklistTemplate, User, ChecklistSubmission, UserRole } from '../types';
 import { Camera, Check, AlertCircle, Info, Send, ChevronRight, X, Clock, User as UserIcon, MessageSquare, Save, RotateCcw, Users, RefreshCw, Trash2, CheckCircle2, ShieldCheck, AlertTriangle, Sunrise, Sunset, ClipboardList, CalendarCheck, CloudCheck, CalendarDays, Timer, Lock, Eye, Sparkles, Zap, Unlock, Loader2 } from 'lucide-react';
 import { db } from '../services/db';
+import Food86Panel from './Food86Panel';
 
 interface CameraModalProps {
   isOpen: boolean;
@@ -178,6 +179,7 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onCapture })
 
 interface OpsViewProps {
   user: User;
+  storeId?: string;
   allUsers: User[];
   templates: ChecklistTemplate[];
   existingSubmissions: ChecklistSubmission[];
@@ -185,7 +187,8 @@ interface OpsViewProps {
   onResetSubmission?: (id: string) => void;
 }
 
-const OpsView: React.FC<OpsViewProps> = ({ user, allUsers, templates, existingSubmissions, onUpdate, onResetSubmission }) => {
+const OpsView: React.FC<OpsViewProps> = ({ user, storeId, allUsers, templates, existingSubmissions, onUpdate, onResetSubmission }) => {
+  const activeStoreId = storeId || user.storeId;
   const [activeTemplate, setActiveTemplate] = useState<ChecklistTemplate | null>(() => {
     const saved = localStorage.getItem('boundaries_active_template_id');
     return saved ? templates.find(t => t.id === saved) || null : null;
@@ -660,6 +663,16 @@ const OpsView: React.FC<OpsViewProps> = ({ user, allUsers, templates, existingSu
           <div className="flex items-center justify-between gap-4">
             <div>
               <h2 className="text-2xl sm:text-4xl font-[900] text-[#0F2B3C] tracking-tighter uppercase leading-none">{activeTemplate.name}</h2>
+              {activeTemplate.type === 'CLOSING' && (
+                <p className="text-[11px] sm:text-xs text-neutral-500 font-semibold mt-2 max-w-xl leading-snug">
+                  Leftover qty + waste qty on the food list below — any closer logs it (barista, team lead, GM). You do not need Manager Hub. Open: GM enters starting qty in Toast; Toast 86s at 0.
+                </p>
+              )}
+              {activeTemplate.type === 'OPENING' && (
+                <p className="text-[11px] sm:text-xs text-neutral-500 font-semibold mt-2 max-w-xl leading-snug">
+                  Playbook V2 §21: GMs enter starting food qty in Toast inventory for every food SKU you count. Toast 86s when qty hits 0. V2 §22: closers enter leftover qty and waste qty on the logbook food list.
+                </p>
+              )}
               <div className="text-xs sm:text-sm text-neutral-400 font-bold mt-1 flex items-center gap-2 flex-wrap">
                 <span className="bg-neutral-50 px-2 py-0.5 rounded-full border border-neutral-100">{displayDate}</span>
                 {isReadOnly && (
@@ -875,6 +888,14 @@ const OpsView: React.FC<OpsViewProps> = ({ user, allUsers, templates, existingSu
           })}
         </div>
 
+        {activeTemplate.type === 'CLOSING' && (
+          <Food86Panel
+            storeId={activeStoreId}
+            user={user}
+            mode="closing"
+          />
+        )}
+
         {!isReadOnly && (
           <div className="pb-24">
             <button 
@@ -970,7 +991,7 @@ const OpsView: React.FC<OpsViewProps> = ({ user, allUsers, templates, existingSu
     <div className="space-y-12 sm:space-y-16 animate-in fade-in duration-700">
       <header className="max-w-2xl">
         <h1 className="text-4xl sm:text-6xl font-[900] text-[#0F2B3C] tracking-tighter mb-2 leading-none uppercase">Logbook</h1>
-        <p className="text-neutral-500 font-medium text-base sm:text-lg">Collaborative shift standards.</p>
+        <p className="text-neutral-500 font-medium text-base sm:text-lg">Collaborative shift standards. Playbook V2 §21–22: GMs enter starting qty in Toast at open; Toast 86s at 0; leftover qty + waste qty go on the food list (Toast food SKUs) every close.</p>
       </header>
 
       <div className="space-y-16">

@@ -7,7 +7,7 @@
  * API Documentation: https://doc.toasttab.com/
  */
 
-import { ToastSalesData, ToastLaborEntry, ToastTimeEntry, ToastSyncEmployee } from '../types';
+import { ToastSalesData, ToastLaborEntry, ToastTimeEntry, ToastSyncEmployee, FoodSoldResponse } from '../types';
 
 class ToastAPI {
   /**
@@ -207,6 +207,35 @@ class ToastAPI {
       console.error('[Toast API] Failed to fetch sales with comparison:', error);
       throw error;
     }
+  }
+
+  /**
+   * Today's Toast QUANTITY / OUT_OF_STOCK food SKUs with last-sold + 86 time.
+   * Returns the API payload as-is — including STOCK_SCOPE_MISSING. No fake rows.
+   */
+  async getFoodSold(location?: string, date?: string): Promise<FoodSoldResponse> {
+    const today = date || new Date().toLocaleDateString('en-CA', { timeZone: 'America/Chicago' });
+    const locationParam = location ? `&location=${location}` : '';
+    const response = await fetch(`/api/toast-food-sold?date=${today}${locationParam}`);
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      return {
+        ok: false,
+        location: location || 'littleelm',
+        storeId: location === 'prosper' ? 'store-prosper' : 'store-elm',
+        businessDate: today,
+        stockScopeOk: false,
+        code: data.code || (response.status === 403 ? 'STOCK_SCOPE_MISSING' : 'STOCK_API_ERROR'),
+        error: data.error || data.message || `Food sold request failed (${response.status})`,
+        hint: data.hint,
+        status: data.status || response.status,
+        items: [],
+        excludedDrinkCount: 0,
+      };
+    }
+
+    return data as FoodSoldResponse;
   }
 }
 
