@@ -555,7 +555,7 @@ export interface InventoryCount {
 }
 
 // ── Toast food 86 / last-sold / closing waste ──
-// QUANTITY + OUT_OF_STOCK items GMs count in Toast at open (not the syrup catalog).
+// QUANTITY + OUT_OF_STOCK + IN_STOCK-with-qty items GMs count in Toast at open (not the syrup catalog).
 
 export type FoodCategoryHint = 'food' | 'drink' | 'unknown';
 export type Food86Source = 'webhook' | 'poll';

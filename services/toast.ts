@@ -210,7 +210,7 @@ class ToastAPI {
   }
 
   /**
-   * Today's Toast QUANTITY / OUT_OF_STOCK food SKUs with last-sold + 86 time.
+   * Today's Toast QUANTITY / OUT_OF_STOCK / IN_STOCK-with-qty food SKUs with last-sold + 86 time.
    * Returns the API payload as-is — including STOCK_SCOPE_MISSING. No fake rows.
    */
   async getFoodSold(location?: string, date?: string): Promise<FoodSoldResponse> {

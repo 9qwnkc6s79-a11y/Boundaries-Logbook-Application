@@ -224,7 +224,7 @@ const Food86Panel: React.FC<Food86PanelProps> = ({ storeId, storeName, user, mod
         <p className="text-xs text-neutral-400 font-medium">
           {scopeMissing
             ? 'No food SKUs to list while Toast stock is unavailable. Remaining / 86 / last-sold are not invented. Refresh when stock:read is back, then any closer can enter leftover qty and waste qty here.'
-            : 'No QUANTITY / OUT_OF_STOCK food items from Toast right now. GMs only see items they qty-track at open. Any closer can enter leftover qty and waste qty here once items appear.'}
+            : 'No qty-tracked food items from Toast right now. GMs only see items they count at open (QUANTITY / OUT_OF_STOCK / IN_STOCK with a qty). Any closer can enter leftover qty and waste qty here once items appear.'}
         </p>
       )}
 
