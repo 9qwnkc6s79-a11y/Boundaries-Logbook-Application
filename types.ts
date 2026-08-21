@@ -567,8 +567,8 @@ export interface FoodSkuStatus {
   name: string;
   menuName?: string;
   menuGroup?: string;
-  status: 'QUANTITY' | 'OUT_OF_STOCK' | string;
-  quantity: number | null;
+  status: 'QUANTITY' | 'OUT_OF_STOCK' | 'UNKNOWN' | string;
+  quantity: number | null; // null = Toast has no stock row; never invent a count
   categoryHint: FoodCategoryHint;
   includeInFoodView: boolean;
 }

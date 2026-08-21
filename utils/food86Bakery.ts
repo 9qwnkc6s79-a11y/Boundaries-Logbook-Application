@@ -2,6 +2,7 @@
  * Food 86 / leftover-waste visibility.
  * Keep named Toast Bakery SKUs and taco SKUs (including bacon / chorizo
  * modifier types). Match by menu/name text — never by hardcoded GUIDs.
+ * Null quantity / missing stock is still visible — do not hide 86'd bakery.
  * Unnamed stock GUIDs ("Item 8a142d5c") never belong on the close list.
  */
 
@@ -60,7 +61,7 @@ export function isFood86VisibleItem(item?: Food86Meta | null): boolean {
   return isTacoNamed(item) || isTacoTypeModifier(item);
 }
 
-/** Named bakery + taco SKUs. Used by Food86Panel against any payload. */
+/** Named bakery + taco SKUs. Used by Food86Panel against any payload, including menu-only (quantity null) rows. */
 export function isBakeryFoodItem(item?: Food86Meta | null): boolean {
   return isFood86VisibleItem(item);
 }
