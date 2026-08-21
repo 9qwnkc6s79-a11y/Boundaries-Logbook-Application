@@ -3,6 +3,11 @@
  * Used by ManagerHub migration v5 — never blanket-flips unmatched rows.
  */
 
+export const PINNED_PLACE_IDS = {
+  littleelm: 'ChIJ0ZxTHVs_FUQRd_o0bDQBv4M',
+  prosper: 'ChIJRWTcb9hBTIYRdcWWthkQiHA',
+} as const;
+
 export type LiveReviewKey = {
   authorName?: string;
   publishTime?: string;
@@ -44,6 +49,14 @@ export function indexLiveReviewLocations(
  * storeId/location. Reviews that do not appear in either live payload stay put
  * (Google only returns the 5 newest).
  */
+/** True only when both locations report the Maps-verified pinned Place IDs. */
+export function livePayloadsArePinned(
+  payloads: Record<string, { placeId?: string | null }>,
+  locations: Array<keyof typeof PINNED_PLACE_IDS> = ['littleelm', 'prosper'],
+): boolean {
+  return locations.every((location) => payloads[location]?.placeId === PINNED_PLACE_IDS[location]);
+}
+
 export function rematchStoredReviewLocation(
   review: { id?: string; authorName?: string; publishTime?: string; storeId: string; location: string },
   liveIndex: Map<string, string>,

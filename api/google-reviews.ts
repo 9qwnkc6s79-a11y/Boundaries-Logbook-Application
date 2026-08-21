@@ -46,6 +46,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!apiKey || !placeId) {
     return json(res, 200, {
       location,
+      placeId: placeId || null,
       reviews: [],
       fetchedAt: new Date().toISOString(),
       configured: false,
@@ -72,6 +73,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       console.error(`[Google Reviews] Places API status: ${data.status}`, data.error_message);
       return json(res, 200, {
         location,
+        placeId,
         reviews: [],
         fetchedAt: new Date().toISOString(),
         configured: true,
@@ -92,6 +94,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.setHeader('Cache-Control', 's-maxage=120');
     return json(res, 200, {
       location,
+      placeId,
       reviews,
       fetchedAt: new Date().toISOString(),
       configured: true,

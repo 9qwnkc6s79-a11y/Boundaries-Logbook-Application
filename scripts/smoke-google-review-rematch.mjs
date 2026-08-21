@@ -33,15 +33,40 @@ const loader = spawnSync(
       if (!src.includes('reviews_sort=newest')) {
         throw new Error('reviews_sort=newest is missing');
       }
+      if (!src.includes('placeId')) {
+        throw new Error('API must return placeId so v5 can confirm pinned IDs');
+      }
       console.log('module load api/google-reviews.ts: ok');
       console.log('pinned Place IDs: ok');
 
       const {
+        PINNED_PLACE_IDS,
         googleReviewCompositeId,
         indexLiveReviewLocations,
+        livePayloadsArePinned,
         rematchStoredReviewLocation,
         storeIdForReviewLocation,
       } = await import(${JSON.stringify(join(root, 'utils/googleReviewRematch.ts'))});
+
+      if (PINNED_PLACE_IDS.littleelm !== 'ChIJ0ZxTHVs_FUQRd_o0bDQBv4M'
+        || PINNED_PLACE_IDS.prosper !== 'ChIJRWTcb9hBTIYRdcWWthkQiHA') {
+        throw new Error('PINNED_PLACE_IDS drifted from the verified Maps IDs');
+      }
+      if (!livePayloadsArePinned({
+        littleelm: { placeId: PINNED_PLACE_IDS.littleelm },
+        prosper: { placeId: PINNED_PLACE_IDS.prosper },
+      })) {
+        throw new Error('pinned payloads should pass livePayloadsArePinned');
+      }
+      if (livePayloadsArePinned({
+        littleelm: { placeId: PINNED_PLACE_IDS.prosper },
+        prosper: { placeId: PINNED_PLACE_IDS.littleelm },
+      })) {
+        throw new Error('swapped place IDs must not pass livePayloadsArePinned');
+      }
+      if (livePayloadsArePinned({ littleelm: {}, prosper: {} })) {
+        throw new Error('missing placeId must not pass livePayloadsArePinned');
+      }
 
       const heathId = googleReviewCompositeId('Jacob Norvell', '2026-08-14T23:56:28.000Z');
       const liveIndex = indexLiveReviewLocations({

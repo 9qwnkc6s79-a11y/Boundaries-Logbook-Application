@@ -18,7 +18,7 @@ import NotificationBanner from './NotificationBanner';
 import { checkLateSubmissions, checkHighTurnTime, getTodayDate } from '../services/notificationTriggers';
 import { showLocalNotification, isAnyStoreManager, getNotificationConfig } from '../services/notifications';
 import { insertFoodWasteTask, templateHasFoodWasteTask } from '../data/foodCloseTasks';
-import { indexLiveReviewLocations, rematchStoredReviewLocation } from '../utils/googleReviewRematch';
+import { indexLiveReviewLocations, livePayloadsArePinned, rematchStoredReviewLocation } from '../utils/googleReviewRematch';
 
 /**
  * Fuzzy name matching for Toast employees to database users.
@@ -1250,16 +1250,18 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
       const needsV5 = !(data as any)._reviewMigrationV5;
       if (data.trackedReviews.length > 0 && needsV5) {
         const liveByLocation: Record<string, GoogleReview[]> = {};
+        const livePayloadMeta: Record<string, { placeId?: string | null }> = {};
         let fetchedBoth = true;
         for (const location of ['littleelm', 'prosper']) {
           try {
-            const response = await fetch(`/api/google-reviews?location=${location}`);
+            const response = await fetch(`/api/google-reviews?location=${location}&migration=v5`);
             if (!response.ok) {
               fetchedBoth = false;
               break;
             }
             const payload = await response.json();
             liveByLocation[location] = payload.reviews || [];
+            livePayloadMeta[location] = { placeId: payload.placeId };
           } catch (err) {
             console.warn(`[Reviews] Migration v5: failed to fetch live ${location} reviews:`, err);
             fetchedBoth = false;
@@ -1269,6 +1271,9 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
 
         if (!fetchedBoth) {
           console.warn('[Reviews] Migration v5: live API fetch failed; will retry on next load');
+        } else if (!livePayloadsArePinned(livePayloadMeta)) {
+          // Old cached / env-swapped responses must not rematch or set the flag.
+          console.warn('[Reviews] Migration v5: live API is not serving pinned Place IDs yet; will retry on next load');
         } else {
           const liveIndex = indexLiveReviewLocations(liveByLocation);
           const rematched: TrackedGoogleReview[] = [];
