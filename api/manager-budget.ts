@@ -18,8 +18,11 @@
  *
  * Labor: prefer Analytics POST /era/v1/labor → totalCost. If that 403s (this
  * machine client is blocked), fall back to /labor/v1/timeEntries hours ×
- * hourlyWage. Any punch with hourlyWage or hours null → Incomplete, never $0.
- * Incomplete stores list those punches (name or Toast guid, job, in/out).
+ * hourlyWage. Null/missing hourlyWage = not an hourly job (Owner, Manager);
+ * those punches are excluded — no invented rate, not $0 labor, and they do
+ * not mark the store Incomplete. Incomplete only when a punch that IS hourly
+ * (wage present) cannot be costed because hours cannot be determined.
+ * Incomplete stores list those hourly punches (name or Toast guid, job, in/out).
  * Wages are never invented or returned on the missing-punch objects.
  *
  * Dates: America/Chicago business dates, not UTC calendar dates / UTC-6.
@@ -95,6 +98,8 @@ export interface StoreBudget {
   laborVsTarget: LaborVsTarget;
   laborMessage: string;
   missingWagePunches: MissingWagePunch[];
+  /** Non-hourly punches (null hourlyWage: Owner, Manager, …). Not a problem. */
+  punchesExcluded?: number;
 }
 
 export interface ManagerBudget {
@@ -141,6 +146,8 @@ export interface TimeEntryLabor {
   punches: number;
   punchesWithWage: number;
   punchesMissingWage: number;
+  /** Null/missing hourlyWage — not an hourly job. Excluded, not Incomplete. */
+  punchesExcluded: number;
   hours: number;
   usedCostField: boolean;
   usedHoursTimesWage: boolean;
@@ -165,6 +172,7 @@ interface StoreLaborCost {
   days: number;
   punches?: number;
   punchesMissingWage?: number;
+  punchesExcluded?: number;
   missingWagePunches: MissingWagePunch[];
   source: LaborCostSource;
   message: string;
@@ -735,6 +743,7 @@ export function summariseTimeEntries(
   let punches = 0;
   let punchesWithWage = 0;
   let punchesMissingWage = 0;
+  let punchesExcluded = 0;
   let hours = 0;
   let usedCostField = false;
   let usedHoursTimesWage = false;
@@ -755,15 +764,21 @@ export function summariseTimeEntries(
     }
 
     const wage = asNumber(entry.hourlyWage);
-    const punchHours = timeEntryHours(entry, asOfMs);
-    if (punchHours !== null) hours += punchHours;
+    // Null/missing hourlyWage = not an hourly job (Owner, Manager, …).
+    // Exclude from labor dollars. Never invent a rate. Do not mark Incomplete.
+    if (wage === null) {
+      punchesExcluded++;
+      continue;
+    }
 
-    if (wage === null || punchHours === null) {
+    const punchHours = timeEntryHours(entry, asOfMs);
+    if (punchHours === null) {
       punchesMissingWage++;
       missingWagePunches.push(describeMissingWagePunch(entry, punchHours, wage, opts));
       continue;
     }
 
+    hours += punchHours;
     punchesWithWage++;
     dollars += wage * punchHours;
     usedHoursTimesWage = true;
@@ -776,6 +791,7 @@ export function summariseTimeEntries(
       punches,
       punchesWithWage,
       punchesMissingWage,
+      punchesExcluded,
       hours: roundMoney(hours),
       usedCostField,
       usedHoursTimesWage,
@@ -789,6 +805,7 @@ export function summariseTimeEntries(
     punches,
     punchesWithWage,
     punchesMissingWage,
+    punchesExcluded,
     hours: roundMoney(hours),
     usedCostField,
     usedHoursTimesWage,
@@ -1144,20 +1161,26 @@ function storeFromTimeEntries(name: string, summary: TimeEntryLabor, days: numbe
       days,
       punches: summary.punches,
       punchesMissingWage: summary.punchesMissingWage,
+      punchesExcluded: summary.punchesExcluded,
       missingWagePunches: summary.missingWagePunches,
       source: 'timeEntries.hourlyWage',
       message:
         `Incomplete — ${summary.punchesMissingWage} of ${summary.punches} ${name} ` +
-        `time entries are missing a wage or hours. Not shown as $0 labor.`,
+        `hourly time entries are missing hours. Not shown as $0 labor.`,
     };
   }
+  const excludedNote =
+    summary.punchesExcluded > 0
+      ? `; ${summary.punchesExcluded} non-hourly punch${summary.punchesExcluded === 1 ? '' : 'es'} excluded`
+      : '';
   return okStore(summary.dollars ?? 0, days, 'timeEntries.hourlyWage', {
     punches: summary.punches,
     punchesMissingWage: 0,
+    punchesExcluded: summary.punchesExcluded,
     missingWagePunches: [],
     message:
       `Analytics labor 403; fallback /labor/v1/timeEntries ` +
-      `(${summary.punches} punches, hours × hourlyWage; OT at base rate)`,
+      `(${summary.punchesWithWage} hourly punches, hours × hourlyWage; OT at base rate${excludedNote})`,
   });
 }
 
@@ -1241,8 +1264,8 @@ async function fetchTimeEntryFallback(opts: {
     probes: opts.probes,
     message:
       status === 'incomplete'
-        ? 'Analytics labor 403. Time-entry fallback is incomplete — missing wages, not shown as $0.'
-        : 'Analytics labor 403. Using /labor/v1/timeEntries hours × hourlyWage.',
+        ? 'Analytics labor 403. Time-entry fallback is incomplete — hourly punches missing hours, not shown as $0.'
+        : 'Analytics labor 403. Using /labor/v1/timeEntries hours × hourlyWage. Null wage = not hourly, excluded.',
   };
 }
 
@@ -1577,6 +1600,7 @@ export async function getManagerBudget(
       laborVsTarget: laborVsTarget(lePct),
       laborMessage: labor.littleElm.message,
       missingWagePunches: labor.littleElm.missingWagePunches,
+      punchesExcluded: labor.littleElm.punchesExcluded,
     },
     prosper: {
       name: 'Prosper / Celina',
@@ -1590,6 +1614,7 @@ export async function getManagerBudget(
       laborVsTarget: laborVsTarget(prPct),
       laborMessage: labor.prosper.message,
       missingWagePunches: labor.prosper.missingWagePunches,
+      punchesExcluded: labor.prosper.punchesExcluded,
     },
     labor: {
       status: labor.status,
