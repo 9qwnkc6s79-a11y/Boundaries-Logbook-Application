@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "verify:manager-budget": "npx --yes tsx scripts/verify-manager-budget.ts"
   },
   "dependencies": {
     "@google/genai": "^1.35.0",
