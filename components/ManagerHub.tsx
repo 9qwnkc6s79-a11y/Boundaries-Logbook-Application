@@ -1644,6 +1644,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
               storeName={currentStoreName}
               user={currentUser}
               mode="report"
+              readOnly
             />
 
             {/* Action Items Grid */}
@@ -2172,6 +2173,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                 storeName={currentStoreName}
                 user={currentUser}
                 mode="report"
+                readOnly
               />
             )}
 

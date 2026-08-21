@@ -33,7 +33,9 @@ interface Food86PanelProps {
   storeId: string;
   storeName?: string;
   user?: User;
+  /** report = Manager Hub (read-only leftover/waste). closing = Logbook waste log (every signed-in employee). */
   mode: 'report' | 'closing';
+  /** Report view only. Closing leftover/waste writes ignore this — archive lock must not block closers. */
   readOnly?: boolean;
 }
 
@@ -115,12 +117,29 @@ const Food86Panel: React.FC<Food86PanelProps> = ({ storeId, storeName, user, mod
   }, [load]);
 
   const rows = useMemo(() => {
-    const items = payload?.items || [];
-    return items.filter(item => item.includeInFoodView);
-  }, [payload]);
+    const items = (payload?.items || []).filter(item => item.includeInFoodView);
+    if (mode !== 'closing') return items;
+    const seen = new Set(items.map(item => item.itemGuid));
+    const extras: FoodSkuDay[] = Object.values(wasteByGuid)
+      .filter(row => !seen.has(row.itemGuid))
+      .map(row => ({
+        itemGuid: row.itemGuid,
+        name: row.itemName || row.itemGuid,
+        status: 'QUANTITY',
+        quantity: null,
+        categoryHint: 'food',
+        includeInFoodView: true,
+        lastSoldAt: null,
+        soldCount: 0,
+        soldOutAt: null,
+      }));
+    return [...items, ...extras];
+  }, [payload, wasteByGuid, mode]);
 
   const persistWaste = async (item: FoodSkuDay, leftover: string, waste: string) => {
-    if (!user || readOnly) return;
+    // Waste log = any signed-in employee. Do not check UserRole / manager.
+    // Do not inherit checklist archive readOnly — leftover/waste is not Manager Hub.
+    if (mode !== 'closing' || !user) return;
     setSavingGuid(item.itemGuid);
     const parse = (raw: string): number | null => {
       const trimmed = raw.trim();
@@ -150,7 +169,7 @@ const Food86Panel: React.FC<Food86PanelProps> = ({ storeId, storeName, user, mod
   const scopeMissing = payload && !payload.stockScopeOk;
   const title = mode === 'closing' ? 'Food leftover & waste' : 'Food 86 / last sold';
   const subtitle = mode === 'closing'
-    ? 'Playbook V2 §22: leftover qty + waste qty here every close (Toast food SKUs, not syrups). Open: GM enters starting qty in Toast. Toast 86s at 0.'
+    ? 'Any closer logs leftover qty + waste qty here — barista, team lead, or GM. You do not need Manager Hub. Toast food SKUs, not syrups. Open: GM enters starting qty in Toast. Toast 86s at 0.'
     : `${storeName || 'This store'} · today (America/Chicago). 86 time and last-sold time are both shown. Leftover and waste come from the closing food list.`;
 
   return (
@@ -201,9 +220,11 @@ const Food86Panel: React.FC<Food86PanelProps> = ({ storeId, storeName, user, mod
         <p className="text-xs text-neutral-400 font-bold uppercase tracking-widest">Loading Toast food stock…</p>
       )}
 
-      {!loading && !scopeMissing && rows.length === 0 && payload?.ok && (
+      {!loading && rows.length === 0 && (
         <p className="text-xs text-neutral-400 font-medium">
-          No QUANTITY / OUT_OF_STOCK food items from Toast right now. GMs only see items they qty-track at open.
+          {scopeMissing
+            ? 'No food SKUs to list while Toast stock is unavailable. Remaining / 86 / last-sold are not invented. Refresh when stock:read is back, then any closer can enter leftover qty and waste qty here.'
+            : 'No QUANTITY / OUT_OF_STOCK food items from Toast right now. GMs only see items they qty-track at open. Any closer can enter leftover qty and waste qty here once items appear.'}
         </p>
       )}
 
@@ -225,7 +246,7 @@ const Food86Panel: React.FC<Food86PanelProps> = ({ storeId, storeName, user, mod
                 const saved = wasteByGuid[item.itemGuid];
                 const leftover = draft[item.itemGuid]?.leftover ?? (saved?.leftoverQty ?? '');
                 const waste = draft[item.itemGuid]?.waste ?? (saved?.wasteQty ?? '');
-                const editable = mode === 'closing' && !readOnly && !!user;
+                const editable = mode === 'closing' && !!user;
                 return (
                   <tr key={item.itemGuid} className="border-b border-neutral-50 last:border-0">
                     <td className="py-3 pr-3">

@@ -665,7 +665,7 @@ const OpsView: React.FC<OpsViewProps> = ({ user, storeId, allUsers, templates, e
               <h2 className="text-2xl sm:text-4xl font-[900] text-[#0F2B3C] tracking-tighter uppercase leading-none">{activeTemplate.name}</h2>
               {activeTemplate.type === 'CLOSING' && (
                 <p className="text-[11px] sm:text-xs text-neutral-500 font-semibold mt-2 max-w-xl leading-snug">
-                  Playbook V2 §22: leftover qty + waste qty on the food list below every close (replaces Tue/Thu/Sat Toast waste log). Open: GM enters starting qty in Toast; Toast 86s at 0. Toast food SKUs — not syrups.
+                  Leftover qty + waste qty on the food list below — any closer logs it (barista, team lead, GM). You do not need Manager Hub. Open: GM enters starting qty in Toast; Toast 86s at 0.
                 </p>
               )}
               {activeTemplate.type === 'OPENING' && (
@@ -893,7 +893,6 @@ const OpsView: React.FC<OpsViewProps> = ({ user, storeId, allUsers, templates, e
             storeId={activeStoreId}
             user={user}
             mode="closing"
-            readOnly={isReadOnly}
           />
         )}
 
