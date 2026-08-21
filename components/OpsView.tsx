@@ -3,6 +3,7 @@ import { ChecklistTemplate, User, ChecklistSubmission, UserRole } from '../types
 import { Camera, Check, AlertCircle, Info, Send, ChevronRight, X, Clock, User as UserIcon, MessageSquare, Save, RotateCcw, Users, RefreshCw, Trash2, CheckCircle2, ShieldCheck, AlertTriangle, Sunrise, Sunset, ClipboardList, CalendarCheck, CloudCheck, CalendarDays, Timer, Lock, Eye, Sparkles, Zap, Unlock, Loader2 } from 'lucide-react';
 import { db } from '../services/db';
 import Food86Panel from './Food86Panel';
+import { sortChecklistsByStoreDay } from '../utils/checklistOrder';
 
 interface CameraModalProps {
   isOpen: boolean;
@@ -205,8 +206,14 @@ const OpsView: React.FC<OpsViewProps> = ({ user, storeId, allUsers, templates, e
   const interactionLock = useRef<Record<string, number>>({});
   const lastSyncedSubmissionRef = useRef<string | null>(null);
 
-  const dailyProtocols = useMemo(() => templates.filter(t => ['OPENING', 'CLOSING', 'SHIFT_CHANGE'].includes(t.type)), [templates]);
-  const maintenanceProtocols = useMemo(() => templates.filter(t => ['WEEKLY', 'MONTHLY'].includes(t.type)), [templates]);
+  const dailyProtocols = useMemo(
+    () => sortChecklistsByStoreDay(templates.filter(t => ['OPENING', 'CLOSING', 'SHIFT_CHANGE'].includes(t.type))),
+    [templates]
+  );
+  const maintenanceProtocols = useMemo(
+    () => sortChecklistsByStoreDay(templates.filter(t => ['WEEKLY', 'MONTHLY'].includes(t.type))),
+    [templates]
+  );
 
   const isManager = user.role === UserRole.MANAGER || user.role === UserRole.ADMIN;
 
