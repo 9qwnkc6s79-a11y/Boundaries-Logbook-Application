@@ -103,6 +103,17 @@ async function getAuthToken(): Promise<string> {
 
 const EXCLUDED_NONFOOD = /\b(retail|5\s*lb|drip|teas?|fairlife|half\s*(and|&)\s*half)\b/i;
 
+/** No longer stocked. Item name only — do not match menu/group (taco family). */
+const UNSTOCKED_FOOD86_NAMES = [
+  'brownie',
+  'donut',
+  'doughnut',
+  'lunch taco',
+  'muffin for mwm',
+  'plain croissant',
+  'taco toppings',
+];
+
 type Food86Meta = { name?: string; menuName?: string; menuGroup?: string; includeInFoodView?: boolean };
 
 function itemText(item?: Food86Meta): string {
@@ -132,11 +143,33 @@ function isExcludedNonFood(item?: Food86Meta): boolean {
   return EXCLUDED_NONFOOD.test(itemText(item));
 }
 
+function normalizeFood86Name(name?: string): string {
+  return (name || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+    .replace(/\s+/g, ' ');
+}
+
+/** Unstocked SKU names. Case/punctuation/spacing flexible. Name only. */
+function isUnstockedFood86Name(item?: Food86Meta): boolean {
+  const name = normalizeFood86Name(item?.name);
+  if (!name) return false;
+  const compact = name.replace(/\s+/g, '');
+  return UNSTOCKED_FOOD86_NAMES.some((excluded) => {
+    if (name === excluded || name === `${excluded}s`) return true;
+    if (name.startsWith(`${excluded} `)) return true;
+    const excludedCompact = excluded.replace(/\s+/g, '');
+    return compact === excludedCompact || compact === `${excludedCompact}s`;
+  });
+}
+
 /** Named Toast Bakery SKUs + taco types (bacon/chorizo modifiers). No hardcoded GUIDs. */
 function isFood86VisibleItem(item?: Food86Meta): boolean {
   if (!item) return false;
   if (item.includeInFoodView === false) return false;
   if (isUnresolvedStockName(item.name)) return false;
+  if (isUnstockedFood86Name(item)) return false;
   if (isBakeryMenu(item)) return true;
   if (isExcludedNonFood(item)) return false;
   return isTacoNamed(item) || isTacoTypeModifier(item);

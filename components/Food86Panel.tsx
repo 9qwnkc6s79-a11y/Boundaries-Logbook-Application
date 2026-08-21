@@ -120,8 +120,9 @@ const Food86Panel: React.FC<Food86PanelProps> = ({ storeId, storeName, user, mod
   }, [load]);
 
   const rows = useMemo(() => {
-    // Bakery + taco SKUs. Old payloads / leftover rows for Item-hex, drip, tea,
-    // milk modifiers, retail, and other non-food mods stay hidden.
+    // Bakery + taco SKUs. Old payloads / leftover rows for unstocked names
+    // (brownie, donut, lunch taco, muffin for MWM, plain croissant, taco
+    // toppings), Item-hex, drip, tea, milk modifiers, retail stay hidden.
     return (payload?.items || []).filter(isBakeryFoodItem);
   }, [payload]);
 

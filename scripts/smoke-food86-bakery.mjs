@@ -7,6 +7,15 @@ import { dirname, join } from 'node:path';
 
 const UNRESOLVED_ITEM_NAME = /^(unknown(\s+item)?|item\s+[0-9a-f]{4,})$/i;
 const EXCLUDED_NONFOOD = /\b(retail|5\s*lb|drip|teas?|fairlife|half\s*(and|&)\s*half)\b/i;
+const UNSTOCKED_FOOD86_NAMES = [
+  'brownie',
+  'donut',
+  'doughnut',
+  'lunch taco',
+  'muffin for mwm',
+  'plain croissant',
+  'taco toppings',
+];
 
 function itemText(item) {
   return `${item?.name || ''} ${item?.menuName || ''} ${item?.menuGroup || ''}`.toLowerCase();
@@ -35,10 +44,31 @@ function isExcludedNonFood(item) {
   return EXCLUDED_NONFOOD.test(itemText(item));
 }
 
+function normalizeFood86Name(name) {
+  return (name || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+    .replace(/\s+/g, ' ');
+}
+
+function isUnstockedFood86Name(item) {
+  const name = normalizeFood86Name(item?.name);
+  if (!name) return false;
+  const compact = name.replace(/\s+/g, '');
+  return UNSTOCKED_FOOD86_NAMES.some((excluded) => {
+    if (name === excluded || name === `${excluded}s`) return true;
+    if (name.startsWith(`${excluded} `)) return true;
+    const excludedCompact = excluded.replace(/\s+/g, '');
+    return compact === excludedCompact || compact === `${excludedCompact}s`;
+  });
+}
+
 function isBakeryFoodItem(item) {
   if (!item) return false;
   if (item.includeInFoodView === false) return false;
   if (isUnresolvedStockName(item.name)) return false;
+  if (isUnstockedFood86Name(item)) return false;
   if (isBakeryMenu(item)) return true;
   if (isExcludedNonFood(item)) return false;
   return isTacoNamed(item) || isTacoTypeModifier(item);
@@ -50,12 +80,18 @@ const keep = [
   { name: 'Chocolate Croissant', menuGroup: 'Bakery', status: 'OUT_OF_STOCK', quantity: 0, includeInFoodView: true },
   { name: 'Chocolate Croissant', menuGroup: 'Bakery', status: 'UNKNOWN', quantity: null, includeInFoodView: true },
   { name: 'Kolache (Sausage/Cheese)', menuName: 'Weekend Bakery', includeInFoodView: true },
-  { name: 'Bacon Egg and Cheese', menuGroup: 'Modifier', includeInFoodView: true },
-  { name: 'Chorizo (Beef) Egg and Cheese', menuGroup: 'Modifier', includeInFoodView: true },
-  { name: 'Lunch Taco', menuGroup: 'Bakery', includeInFoodView: true },
-  { name: 'Lunch Taco', menuGroup: 'Food', includeInFoodView: true },
+  { name: 'Bacon Egg and Cheese', menuGroup: 'Modifier', menuName: 'Tacos', includeInFoodView: true },
+  { name: 'Chorizo (Beef) Egg and Cheese', menuGroup: 'Modifier', menuName: 'Tacos', includeInFoodView: true },
 ];
 const drop = [
+  { name: 'Brownie', menuGroup: 'Bakery', includeInFoodView: true },
+  { name: 'Donut', menuGroup: 'Bakery', includeInFoodView: true },
+  { name: 'Lunch Taco', menuGroup: 'Bakery', includeInFoodView: true },
+  { name: 'Lunch Taco', menuGroup: 'Food', includeInFoodView: true },
+  { name: 'Muffin for MWM', menuGroup: 'Bakery', includeInFoodView: true },
+  { name: 'muffin for mwm', menuGroup: 'Bakery', includeInFoodView: true },
+  { name: 'Plain Croissant', menuGroup: 'Bakery', includeInFoodView: true },
+  { name: 'Taco Toppings', menuGroup: 'Modifier', includeInFoodView: true },
   { name: 'Item 2b36a013', includeInFoodView: true },
   { name: 'UNKNOWN', includeInFoodView: true },
   { name: 'Decaf House Drip (Columbian Huila)', menuGroup: 'Drip Coffee', includeInFoodView: true },
@@ -101,12 +137,21 @@ const loader = spawnSync(
       const filter = await import(${JSON.stringify(join(root, 'utils/food86Bakery.ts'))});
       if (typeof stock.default !== 'function') throw new Error('toast-stock default export missing');
       if (typeof sold.default !== 'function') throw new Error('toast-food-sold default export missing');
-      const bacon = { name: 'Bacon Egg and Cheese', menuGroup: 'Modifier' };
+      const bacon = { name: 'Bacon Egg and Cheese', menuGroup: 'Modifier', menuName: 'Tacos' };
       const hex = { name: 'Item 8a142d5c', menuGroup: 'Bakery' };
       const menuOnly = { name: 'Chocolate Croissant', menuGroup: 'Bakery', quantity: null, includeInFoodView: true };
+      const blueberry = { name: 'Blueberry Muffin', menuGroup: 'Bakery' };
+      const lunchTaco = { name: 'Lunch Taco', menuGroup: 'Bakery' };
+      const muffinMwm = { name: 'Muffin for MWM', menuGroup: 'Bakery' };
       if (!filter.isBakeryFoodItem(bacon)) throw new Error('util should keep bacon taco modifier');
       if (filter.isBakeryFoodItem(hex)) throw new Error('util should drop unnamed hex');
       if (!filter.isBakeryFoodItem(menuOnly)) throw new Error('util should keep bakery with no stock qty');
+      if (!filter.isBakeryFoodItem(blueberry)) throw new Error('util should keep blueberry muffin (not muffin for MWM)');
+      if (filter.isBakeryFoodItem(lunchTaco)) throw new Error('util should drop unstocked lunch taco');
+      if (filter.isBakeryFoodItem(muffinMwm)) throw new Error('util should drop unstocked muffin for MWM');
+      if (typeof filter.isUnstockedFood86Name === 'function' && !filter.isUnstockedFood86Name(lunchTaco)) {
+        throw new Error('util should flag lunch taco as unstocked');
+      }
 
       const lookup = {
         byGuid: new Map([
@@ -117,6 +162,13 @@ const loader = spawnSync(
           ['drip-guid', { guid: 'drip-guid', name: 'House Drip', menuName: 'Drinks', menuGroup: 'Drip Coffee' }],
           ['bacon-guid', { guid: 'bacon-guid', name: 'Bacon Egg and Cheese', menuName: 'Tacos', menuGroup: 'Modifier' }],
           ['chorizo-guid', { guid: 'chorizo-guid', name: 'Chorizo (Beef) Egg and Cheese', menuName: 'Tacos', menuGroup: 'Modifier' }],
+          ['kolache-guid', { guid: 'kolache-guid', name: 'Kolache', menuName: 'All Day', menuGroup: 'Bakery' }],
+          ['brownie-guid', { guid: 'brownie-guid', name: 'Brownie', menuName: 'All Day', menuGroup: 'Bakery' }],
+          ['donut-guid', { guid: 'donut-guid', name: 'Donut', menuName: 'All Day', menuGroup: 'Bakery' }],
+          ['lunch-guid', { guid: 'lunch-guid', name: 'Lunch Taco', menuName: 'All Day', menuGroup: 'Bakery' }],
+          ['mwm-guid', { guid: 'mwm-guid', name: 'Muffin for MWM', menuName: 'All Day', menuGroup: 'Bakery' }],
+          ['plain-guid', { guid: 'plain-guid', name: 'Plain Croissant', menuName: 'All Day', menuGroup: 'Bakery' }],
+          ['toppings-guid', { guid: 'toppings-guid', name: 'Taco Toppings', menuName: 'Tacos', menuGroup: 'Modifier' }],
         ]),
         byMl: new Map(),
       };
@@ -126,6 +178,8 @@ const loader = spawnSync(
         { guid: 'hex-guid', status: 'QUANTITY', quantity: 1 },
         { guid: 'drip-guid', status: 'QUANTITY', quantity: 10 },
         { guid: 'bacon-guid', status: 'QUANTITY', quantity: 2 },
+        { guid: 'brownie-guid', status: 'QUANTITY', quantity: 4 },
+        { guid: 'lunch-guid', status: 'QUANTITY', quantity: 1 },
       ];
 
       for (const mod of [stock, sold]) {
@@ -142,10 +196,16 @@ const loader = spawnSync(
         if (!byName['Chorizo (Beef) Egg and Cheese'] || byName['Chorizo (Beef) Egg and Cheese'].quantity !== null) {
           throw new Error(src + ' should keep taco keeper from menu with no invented qty');
         }
+        if (!byName['Kolache'] || byName['Kolache'].quantity !== null) {
+          throw new Error(src + ' should keep kolache from menu with no invented qty');
+        }
         if (byName['Item 8a142d5c'] || built.items.some((i) => /^Item\\s+[0-9a-f]/i.test(i.name))) {
           throw new Error(src + ' should drop unnamed hex rows');
         }
         if (byName['House Drip']) throw new Error(src + ' should drop drinks');
+        for (const dropped of ['Brownie', 'Donut', 'Lunch Taco', 'Muffin for MWM', 'Plain Croissant', 'Taco Toppings']) {
+          if (byName[dropped]) throw new Error(src + ' should drop unstocked ' + dropped);
+        }
       }
       console.log('module load api/toast-stock.ts: ok');
       console.log('module load api/toast-food-sold.ts: ok');
