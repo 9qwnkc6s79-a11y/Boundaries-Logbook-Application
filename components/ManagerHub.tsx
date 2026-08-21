@@ -18,6 +18,7 @@ import NotificationBanner from './NotificationBanner';
 import { checkLateSubmissions, checkHighTurnTime, getTodayDate } from '../services/notificationTriggers';
 import { showLocalNotification, isAnyStoreManager, getNotificationConfig } from '../services/notifications';
 import { insertFoodWasteTask, templateHasFoodWasteTask } from '../data/foodCloseTasks';
+import { indexLiveReviewLocations, rematchStoredReviewLocation } from '../utils/googleReviewRematch';
 
 /**
  * Fuzzy name matching for Toast employees to database users.
@@ -55,6 +56,75 @@ function fuzzyNameMatch(toastName: string, userName: string): boolean {
   if (userLast.length >= 3 && toastLast.startsWith(userLast)) return true;
 
   return false;
+}
+
+function clearTrackedReviewAttribution(review: TrackedGoogleReview) {
+  review.attributedToUserId = null;
+  review.attributedToName = null;
+  review.bonusAwarded = false;
+  review.bonusPoints = 0;
+  review.mentionedEmployeeIds = undefined;
+  review.mentionedEmployeeNames = undefined;
+  review.mentionBonusPoints = undefined;
+}
+
+async function reattributeTrackedReviewLikeV4(
+  review: TrackedGoogleReview,
+  allUsers: User[],
+  getLocalStr: (d: Date) => string,
+  logPrefix: string,
+) {
+  if (!review.publishTime) return;
+  try {
+    const reviewDate = new Date(review.publishTime);
+    const daysSinceReview = (Date.now() - reviewDate.getTime()) / (1000 * 60 * 60 * 24);
+    if (isNaN(reviewDate.getTime()) || daysSinceReview > 30) return;
+
+    const dateStr = getLocalStr(reviewDate);
+    const laborResponse = await fetch(`/api/toast-labor?location=${review.location}&startDate=${dateStr}&endDate=${dateStr}`);
+    if (!laborResponse.ok) return;
+
+    const laborData = await laborResponse.json();
+    const timeEntries: ToastTimeEntry[] = laborData.timeEntries || [];
+    const reviewTime = reviewDate.getTime();
+    const clockedInAtReview = timeEntries.filter((entry: ToastTimeEntry) => {
+      if (!entry.inDate) return false;
+      const inMs = new Date(entry.inDate).getTime();
+      const outMs = entry.outDate ? new Date(entry.outDate).getTime() : Date.now();
+      return inMs <= reviewTime && reviewTime <= outMs;
+    });
+
+    const leaders = detectLeaders(clockedInAtReview, allUsers);
+    if (leaders.length > 0) {
+      review.attributedToUserId = leaders[0].userId;
+      review.attributedToName = leaders[0].name;
+      const isFiveStar = review.rating === 5;
+      review.bonusAwarded = isFiveStar;
+      review.bonusPoints = isFiveStar ? 25 : 0;
+      console.log(`[Reviews] ${logPrefix} re-attributed "${review.authorName}" → ${leaders[0].name} (${review.location})`);
+    }
+
+    if (review.text) {
+      const mentionedIds: string[] = [];
+      const mentionedNames: string[] = [];
+      const textLower = review.text.toLowerCase();
+      allUsers.forEach(user => {
+        if (!user.name || user.name === 'Unknown') return;
+        const firstName = user.name.split(' ')[0].toLowerCase();
+        if (firstName.length >= 3 && textLower.includes(firstName) && !mentionedIds.includes(user.id)) {
+          mentionedIds.push(user.id);
+          mentionedNames.push(user.name);
+        }
+      });
+      if (mentionedIds.length > 0) {
+        review.mentionedEmployeeIds = mentionedIds;
+        review.mentionedEmployeeNames = mentionedNames;
+        review.mentionBonusPoints = mentionedIds.length * 20;
+      }
+    }
+  } catch (err) {
+    console.warn(`[Reviews] ${logPrefix} re-attribution failed for review:`, err);
+  }
 }
 
 interface ManagerHubProps {
@@ -1171,6 +1241,59 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
 
         await db.pushGoogleReviews(data);
         console.log('[Reviews] Migration v4 complete');
+      }
+
+      // One-time migration v5: rematch stored cards to the live API after
+      // Place IDs were pinned in api/google-reviews.ts. Do NOT blanket-flip
+      // every row — Google only returns the 5 newest, and older stored
+      // reviews must keep their storeId.
+      const needsV5 = !(data as any)._reviewMigrationV5;
+      if (data.trackedReviews.length > 0 && needsV5) {
+        const liveByLocation: Record<string, GoogleReview[]> = {};
+        let fetchedBoth = true;
+        for (const location of ['littleelm', 'prosper']) {
+          try {
+            const response = await fetch(`/api/google-reviews?location=${location}`);
+            if (!response.ok) {
+              fetchedBoth = false;
+              break;
+            }
+            const payload = await response.json();
+            liveByLocation[location] = payload.reviews || [];
+          } catch (err) {
+            console.warn(`[Reviews] Migration v5: failed to fetch live ${location} reviews:`, err);
+            fetchedBoth = false;
+            break;
+          }
+        }
+
+        if (!fetchedBoth) {
+          console.warn('[Reviews] Migration v5: live API fetch failed; will retry on next load');
+        } else {
+          const liveIndex = indexLiveReviewLocations(liveByLocation);
+          const rematched: TrackedGoogleReview[] = [];
+          let unmatched = 0;
+          for (const review of data.trackedReviews) {
+            const decision = rematchStoredReviewLocation(review, liveIndex);
+            if (decision.kind === 'unmatched') {
+              unmatched++;
+              continue;
+            }
+            if (decision.kind === 'unchanged') continue;
+            review.storeId = decision.storeId;
+            review.location = decision.location;
+            clearTrackedReviewAttribution(review);
+            rematched.push(review);
+          }
+
+          for (const review of rematched) {
+            await reattributeTrackedReviewLikeV4(review, allUsers, getLocalStr, 'v5');
+          }
+
+          (data as any)._reviewMigrationV5 = true;
+          await db.pushGoogleReviews(data);
+          console.log(`[Reviews] Migration v5 complete: moved ${rematched.length}, left ${unmatched} unmatched (not in live 5 newest)`);
+        }
       }
       setGoogleReviewsData(data);
     });
