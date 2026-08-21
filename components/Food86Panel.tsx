@@ -119,8 +119,8 @@ const Food86Panel: React.FC<Food86PanelProps> = ({ storeId, storeName, user, mod
   }, [load]);
 
   const rows = useMemo(() => {
-    // Bakery menu group only. Old payloads / leftover rows for Item-hex, drip, tea,
-    // modifiers, and retail stay hidden even if includeInFoodView was true.
+    // Bakery + taco SKUs. Old payloads / leftover rows for Item-hex, drip, tea,
+    // milk modifiers, retail, and other non-food mods stay hidden.
     return (payload?.items || []).filter(isBakeryFoodItem);
   }, [payload]);
 
@@ -157,8 +157,8 @@ const Food86Panel: React.FC<Food86PanelProps> = ({ storeId, storeName, user, mod
   const scopeMissing = payload && !payload.stockScopeOk;
   const title = mode === 'closing' ? 'Food leftover & waste' : 'Food 86 / last sold';
   const subtitle = mode === 'closing'
-    ? 'Any closer logs leftover qty + waste qty here — barista, team lead, or GM. You do not need Manager Hub. Toast Bakery SKUs only (pastry case). Open: GM enters starting qty in Toast. Toast 86s at 0.'
-    : `${storeName || 'This store'} · today (America/Chicago). Bakery menu group only. 86 time and last-sold time are both shown. Leftover and waste come from the closing bakery list.`;
+    ? 'Any closer logs leftover qty + waste qty here — barista, team lead, or GM. You do not need Manager Hub. Toast bakery + taco SKUs (pastry case and taco types). Open: GM enters starting qty in Toast. Toast 86s at 0.'
+    : `${storeName || 'This store'} · today (America/Chicago). Bakery + tacos. 86 time and last-sold time are both shown. Leftover and waste come from the closing bakery + taco list.`;
 
   return (
     <section className={`rounded-xl border shadow-sm ${mode === 'closing' ? 'border-amber-100 bg-amber-50/20' : 'border-neutral-100 bg-white'} p-4 sm:p-6`}>
@@ -212,7 +212,7 @@ const Food86Panel: React.FC<Food86PanelProps> = ({ storeId, storeName, user, mod
         <p className="text-xs text-neutral-400 font-medium">
           {scopeMissing
             ? 'No food SKUs to list while Toast stock is unavailable. Remaining / 86 / last-sold are not invented. Refresh when stock:read is back, then any closer can enter leftover qty and waste qty here.'
-            : 'No Toast Bakery items to list right now. Only the Bakery menu group (QUANTITY / OUT_OF_STOCK / IN_STOCK with a qty) appears here. Any closer can enter leftover qty and waste qty once bakery items appear.'}
+            : 'No bakery or taco items to list right now. Named Toast Bakery SKUs and taco types (including bacon / chorizo modifiers) appear here. Any closer can enter leftover qty and waste qty once items appear.'}
         </p>
       )}
 
@@ -306,7 +306,7 @@ const Food86Panel: React.FC<Food86PanelProps> = ({ storeId, storeName, user, mod
 
       {((payload?.excludedNonBakeryCount ?? payload?.excludedDrinkCount) || 0) > 0 && (
         <p className="mt-3 text-[10px] font-bold text-neutral-400 uppercase tracking-widest">
-          {payload?.excludedNonBakeryCount ?? payload?.excludedDrinkCount} non-bakery item{(payload?.excludedNonBakeryCount ?? payload?.excludedDrinkCount) === 1 ? '' : 's'} hidden (unnamed stock, drinks, modifiers, retail).
+          {payload?.excludedNonBakeryCount ?? payload?.excludedDrinkCount} other item{(payload?.excludedNonBakeryCount ?? payload?.excludedDrinkCount) === 1 ? '' : 's'} hidden (unnamed stock, drinks, milk modifiers, retail).
         </p>
       )}
     </section>
