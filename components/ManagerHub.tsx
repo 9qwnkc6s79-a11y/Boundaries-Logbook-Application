@@ -20,6 +20,7 @@ import { checkLateSubmissions, checkHighTurnTime, getTodayDate } from '../servic
 import { showLocalNotification, isAnyStoreManager, getNotificationConfig } from '../services/notifications';
 import { insertFoodWasteTask, templateHasFoodWasteTask } from '../data/foodCloseTasks';
 import { indexLiveReviewLocations, livePayloadsArePinned, rematchStoredReviewLocation } from '../utils/googleReviewRematch';
+import { sortChecklistsByStoreDay } from '../utils/checklistOrder';
 
 /**
  * Fuzzy name matching for Toast employees to database users.
@@ -448,7 +449,9 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
       return getLocalStr(d);
     }).reverse();
 
-    const mainTemplates = templates.filter(t => ['OPENING', 'CLOSING', 'SHIFT_CHANGE', 'WEEKLY'].includes(t.type));
+    const mainTemplates = sortChecklistsByStoreDay(
+      templates.filter(t => ['OPENING', 'CLOSING', 'SHIFT_CHANGE', 'WEEKLY'].includes(t.type))
+    );
 
     // Helper to get deadline for a template on a specific date
     const getDeadline = (tpl: ChecklistTemplate, dateStr: string): Date => {
@@ -649,7 +652,9 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
       return getLocalStr(d);
     })();
 
-    const todayTemplates = templates.filter(t => t.type === 'OPENING' || t.type === 'CLOSING' || t.type === 'SHIFT_CHANGE');
+    const todayTemplates = sortChecklistsByStoreDay(
+      templates.filter(t => t.type === 'OPENING' || t.type === 'CLOSING' || t.type === 'SHIFT_CHANGE')
+    );
     
     return todayTemplates.map(tpl => {
       const effectiveDate = (localHour < (tpl.unlockHour ?? 0)) ? yesterdayStr : todayStr;
@@ -672,6 +677,11 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
       };
     });
   }, [templates, submissions]);
+
+  const pulseTemplates = useMemo(
+    () => sortChecklistsByStoreDay((templates || []).filter(t => ['OPENING', 'CLOSING', 'SHIFT_CHANGE'].includes(t.type))),
+    [templates]
+  );
 
   const trailingSummary = useMemo(() => {
     // Only count statuses that are applicable (not FUTURE or N/A)
@@ -2583,7 +2593,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-neutral-50">
-                      {(templates || []).filter(t => ['OPENING', 'CLOSING', 'SHIFT_CHANGE'].includes(t.type)).map(tpl => (
+                      {pulseTemplates.map(tpl => (
                         <tr key={tpl.id}>
                           <td className="py-4 pr-6 font-bold text-xs text-[#0F2B3C] uppercase tracking-tight">{tpl.name}</td>
                           {complianceMatrix.map(day => {
@@ -2813,7 +2823,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
             </div>
             
             <div className="space-y-6">
-              {localTemplates.map(tpl => {
+              {sortChecklistsByStoreDay(localTemplates).map(tpl => {
                 const isExpanded = expandedProtocolId === tpl.id;
                 const criticalCount = tpl.tasks.filter(t => t.isCritical).length;
                 const photoCount = tpl.tasks.filter(t => t.requiresPhoto || (t.requiredPhotos || 0) > 0).length;
@@ -2870,8 +2880,8 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                              <label className="text-[8px] font-black text-neutral-400 uppercase tracking-[0.2em] block ml-1">Category</label>
                              <select value={tpl.type} onChange={e => handleUpdateTemplateLocal(tpl.id, { type: e.target.value as any })} className="w-40 bg-white border border-neutral-200 p-3 rounded-xl text-[10px] font-black uppercase tracking-widest outline-none shadow-inner appearance-none">
                                 <option value="OPENING">OPENING</option>
-                                <option value="CLOSING">CLOSING</option>
                                 <option value="SHIFT_CHANGE">SHIFT CHANGE</option>
+                                <option value="CLOSING">CLOSING</option>
                                 <option value="WEEKLY">WEEKLY</option>
                              </select>
                           </div>

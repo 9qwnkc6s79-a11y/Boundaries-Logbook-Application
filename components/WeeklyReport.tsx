@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { FileDown, Loader2 } from 'lucide-react';
 import { ChecklistSubmission, ChecklistTemplate, User } from '../types';
+import { sortChecklistsByStoreDay } from '../utils/checklistOrder';
 
 interface WeeklyReportProps {
   currentStoreId: string;
@@ -131,8 +132,10 @@ const WeeklyReport: React.FC<WeeklyReportProps> = ({ currentStoreId, storeName, 
       lines.push('');
 
       // ── Checklist Completion ──
-      const dailyTemplates = templates.filter(t =>
-        t.type === 'OPENING' || t.type === 'SHIFT_CHANGE' || t.type === 'CLOSING'
+      const dailyTemplates = sortChecklistsByStoreDay(
+        templates.filter(t =>
+          t.type === 'OPENING' || t.type === 'SHIFT_CHANGE' || t.type === 'CLOSING'
+        )
       );
 
       lines.push(row('CHECKLIST COMPLETION'));
