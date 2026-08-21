@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, RefreshCw, UtensilsCrossed } from 'lucide-react';
+import { AlertTriangle, ChevronDown, RefreshCw, UtensilsCrossed } from 'lucide-react';
 import { db } from '../services/db';
 import { toastAPI } from '../services/toast';
 import { Food86Event, FoodClosingWasteEntry, FoodSkuDay, FoodSoldResponse, User } from '../types';
@@ -39,10 +39,14 @@ interface Food86PanelProps {
   mode: 'report' | 'closing';
   /** Report view only. Closing leftover/waste writes ignore this — archive lock must not block closers. */
   readOnly?: boolean;
+  /** Dashboard only: collapse the extensive last-sold table. OPS / closing stay expanded. */
+  collapsible?: boolean;
+  defaultCollapsed?: boolean;
 }
 
-const Food86Panel: React.FC<Food86PanelProps> = ({ storeId, storeName, user, mode, readOnly }) => {
+const Food86Panel: React.FC<Food86PanelProps> = ({ storeId, storeName, user, mode, readOnly, collapsible = false, defaultCollapsed = false }) => {
   const [payload, setPayload] = useState<FoodSoldResponse | null>(null);
+  const [collapsed, setCollapsed] = useState(defaultCollapsed);
   const [wasteByGuid, setWasteByGuid] = useState<Record<string, FoodClosingWasteEntry>>({});
   const [loading, setLoading] = useState(true);
   const [savingGuid, setSavingGuid] = useState<string | null>(null);
@@ -161,19 +165,45 @@ const Food86Panel: React.FC<Food86PanelProps> = ({ storeId, storeName, user, mod
   const subtitle = mode === 'closing'
     ? 'Any closer logs leftover qty + waste qty here — barista, team lead, or GM. You do not need Manager Hub. Toast bakery + taco SKUs (pastry case and taco types). Open: GM enters starting qty in Toast. Toast 86s at 0.'
     : `${storeName || 'This store'} · today (America/Chicago). Bakery + tacos. 86 time and last-sold time are both shown. Leftover and waste come from the closing bakery + taco list.`;
+  const soldOutCount = rows.filter(item => item.status === 'OUT_OF_STOCK').length;
+  const countLine = loading && !payload
+    ? 'Loading…'
+    : `${rows.length} item${rows.length === 1 ? '' : 's'}${soldOutCount > 0 ? ` · ${soldOutCount} 86'd` : ''}`;
+  const headerLine = collapsible ? countLine : subtitle;
+  const hideBody = collapsible && collapsed;
 
   return (
     <section className={`rounded-xl border shadow-sm ${mode === 'closing' ? 'border-amber-100 bg-amber-50/20' : 'border-neutral-100 bg-white'} p-4 sm:p-6`}>
-      <div className="flex items-start justify-between gap-3 mb-4">
-        <div className="flex items-start gap-3">
-          <div className="p-2 bg-[#0F2B3C] text-white rounded-xl shrink-0">
-            <UtensilsCrossed size={16} />
+      <div className={`flex items-start justify-between gap-3 ${hideBody ? '' : 'mb-4'}`}>
+        {collapsible ? (
+          <button
+            type="button"
+            onClick={() => setCollapsed(c => !c)}
+            className="flex items-start gap-3 text-left min-w-0 flex-1"
+            aria-expanded={!collapsed}
+          >
+            <div className="p-2 bg-[#0F2B3C] text-white rounded-xl shrink-0">
+              <UtensilsCrossed size={16} />
+            </div>
+            <div className="min-w-0">
+              <h2 className="text-lg sm:text-xl font-black text-[#0F2B3C] uppercase tracking-tight flex items-center gap-2">
+                {title}
+                <ChevronDown size={16} className={`transition-transform ${collapsed ? '' : 'rotate-180'}`} />
+              </h2>
+              <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mt-0.5">{headerLine}</p>
+            </div>
+          </button>
+        ) : (
+          <div className="flex items-start gap-3">
+            <div className="p-2 bg-[#0F2B3C] text-white rounded-xl shrink-0">
+              <UtensilsCrossed size={16} />
+            </div>
+            <div>
+              <h2 className="text-lg sm:text-xl font-black text-[#0F2B3C] uppercase tracking-tight">{title}</h2>
+              <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mt-0.5">{headerLine}</p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-lg sm:text-xl font-black text-[#0F2B3C] uppercase tracking-tight">{title}</h2>
-            <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mt-0.5">{subtitle}</p>
-          </div>
-        </div>
+        )}
         <button
           type="button"
           onClick={load}
@@ -184,6 +214,9 @@ const Food86Panel: React.FC<Food86PanelProps> = ({ storeId, storeName, user, mod
           <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
         </button>
       </div>
+
+      {!hideBody && (
+      <div>
 
       {scopeMissing && (
         <div className="mb-4 flex items-start gap-2 p-3 rounded-xl bg-red-50 border border-red-100">
@@ -310,6 +343,8 @@ const Food86Panel: React.FC<Food86PanelProps> = ({ storeId, storeName, user, mod
         <p className="mt-3 text-[10px] font-bold text-neutral-400 uppercase tracking-widest">
           {payload?.excludedNonBakeryCount ?? payload?.excludedDrinkCount} other item{(payload?.excludedNonBakeryCount ?? payload?.excludedDrinkCount) === 1 ? '' : 's'} hidden (unnamed stock, drinks, milk modifiers, retail).
         </p>
+      )}
+      </div>
       )}
     </section>
   );

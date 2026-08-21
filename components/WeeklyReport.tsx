@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FileDown, Loader2 } from 'lucide-react';
+import { FileDown, FileText, Loader2, X } from 'lucide-react';
 import { ChecklistSubmission, ChecklistTemplate, User } from '../types';
 import { sortChecklistsByStoreDay } from '../utils/checklistOrder';
 
@@ -9,6 +9,8 @@ interface WeeklyReportProps {
   submissions: ChecklistSubmission[];
   templates: ChecklistTemplate[];
   allUsers: User[];
+  /** card = inline section. button = compact header trigger that opens the same report in a modal. */
+  variant?: 'card' | 'button';
 }
 
 /** Previous full week, Monday through Sunday, as local YYYY-MM-DD strings. */
@@ -71,9 +73,10 @@ async function fetchDaySales(location: string, date: string): Promise<DaySales> 
   }
 }
 
-const WeeklyReport: React.FC<WeeklyReportProps> = ({ currentStoreId, storeName, submissions, templates, allUsers }) => {
+const WeeklyReport: React.FC<WeeklyReportProps> = ({ currentStoreId, storeName, submissions, templates, allUsers, variant = 'card' }) => {
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
 
   const generateReport = async () => {
     setGenerating(true);
@@ -214,7 +217,7 @@ const WeeklyReport: React.FC<WeeklyReportProps> = ({ currentStoreId, storeName, 
     }
   };
 
-  return (
+  const reportCard = (
     <section className="bg-white p-4 md:p-6 rounded-xl border border-neutral-100 shadow-sm">
       <div className="flex items-center gap-3 flex-wrap">
         <div className="p-2 bg-green-50 text-green-600 rounded-xl"><FileDown size={20} /></div>
@@ -241,6 +244,44 @@ const WeeklyReport: React.FC<WeeklyReportProps> = ({ currentStoreId, storeName, 
       )}
     </section>
   );
+
+  if (variant === 'button') {
+    return (
+      <>
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="flex-1 md:flex-none px-3 md:px-5 py-2.5 md:py-3 text-[9px] md:text-[10px] font-black rounded-xl bg-[#0F2B3C] text-white border-2 border-[#0F2B3C] shadow-lg flex items-center justify-center gap-1.5 md:gap-2 whitespace-nowrap tracking-widest uppercase hover:bg-[#1a3d52] active:scale-95 transition-all"
+        >
+          <FileText size={14} className="md:hidden" />
+          <FileText size={16} className="hidden md:block" />
+          Weekly Report
+        </button>
+        {open && (
+          <div
+            className="fixed inset-0 z-[110] bg-[#0F2B3C]/60 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in duration-200"
+            onClick={() => setOpen(false)}
+          >
+            <div className="max-w-lg w-full" onClick={e => e.stopPropagation()}>
+              <div className="flex justify-end mb-3">
+                <button
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  className="p-2 rounded-xl bg-white text-neutral-500 hover:text-[#0F2B3C] border border-neutral-200"
+                  aria-label="Close weekly report"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+              {reportCard}
+            </div>
+          </div>
+        )}
+      </>
+    );
+  }
+
+  return reportCard;
 };
 
 export default WeeklyReport;

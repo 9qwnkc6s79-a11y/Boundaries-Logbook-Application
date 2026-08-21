@@ -1637,17 +1637,29 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
           <h1 className="text-3xl sm:text-4xl font-extrabold text-[#0F2B3C] uppercase tracking-tighter leading-none">Manager Hub</h1>
         </div>
 
-        {/* Tab navigation - 3 Main Tabs */}
-        <div className="flex gap-1.5 w-full md:w-auto">
-          {[
-            { id: 'dashboard', label: 'DASHBOARD', icon: LayoutDashboard },
-            { id: 'operations', label: 'OPS', icon: ClipboardList },
-            { id: 'settings', label: 'SETTINGS', icon: Settings },
-          ].map(tab => (
-            <button key={tab.id} onClick={() => setActiveSubTab(tab.id as any)} className={`flex-1 md:flex-none px-3 md:px-6 py-2.5 md:py-3 text-[9px] md:text-[10px] font-black rounded-xl transition-all flex items-center justify-center gap-1.5 md:gap-2 whitespace-nowrap tracking-widest border-2 ${activeSubTab === tab.id ? 'bg-[#0F2B3C] text-white border-[#0F2B3C] shadow-lg' : 'bg-white text-neutral-500 border-neutral-200 hover:border-[#0F2B3C] hover:text-[#0F2B3C]'}`}>
-              <tab.icon size={14} className="md:hidden" /><tab.icon size={16} className="hidden md:block" /> {tab.label}
-            </button>
-          ))}
+        {/* Tab navigation - 3 Main Tabs + Weekly Report (Dashboard only) */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full md:w-auto">
+          <div className="flex gap-1.5 w-full md:w-auto">
+            {[
+              { id: 'dashboard', label: 'DASHBOARD', icon: LayoutDashboard },
+              { id: 'operations', label: 'OPS', icon: ClipboardList },
+              { id: 'settings', label: 'SETTINGS', icon: Settings },
+            ].map(tab => (
+              <button key={tab.id} onClick={() => setActiveSubTab(tab.id as any)} className={`flex-1 md:flex-none px-3 md:px-6 py-2.5 md:py-3 text-[9px] md:text-[10px] font-black rounded-xl transition-all flex items-center justify-center gap-1.5 md:gap-2 whitespace-nowrap tracking-widest border-2 ${activeSubTab === tab.id ? 'bg-[#0F2B3C] text-white border-[#0F2B3C] shadow-lg' : 'bg-white text-neutral-500 border-neutral-200 hover:border-[#0F2B3C] hover:text-[#0F2B3C]'}`}>
+                <tab.icon size={14} className="md:hidden" /><tab.icon size={16} className="hidden md:block" /> {tab.label}
+              </button>
+            ))}
+          </div>
+          {activeSubTab === 'dashboard' && (
+            <WeeklyReport
+              variant="button"
+              currentStoreId={currentStoreId}
+              storeName={stores.find(s => s.id === currentStoreId)?.name || currentStoreId}
+              submissions={submissions}
+              templates={templates}
+              allUsers={allUsers}
+            />
+          )}
         </div>
       </header>
 
@@ -1664,8 +1676,6 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
 
             {/* Notification Permission Banner */}
             <NotificationBanner currentUser={currentUser} storeId={currentStoreId} />
-
-            <ManagerBudgetTile />
 
             {/* Live Store Performance - Top Priority */}
             <section className="bg-gradient-to-br from-[#0F2B3C] to-[#1a3d52] p-3 md:p-6 rounded-xl shadow-md text-white border border-[#B87333]/20">
@@ -1780,149 +1790,64 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
               </div>
             </section>
 
-            <Food86Panel
-              storeId={currentStoreId}
-              storeName={currentStoreName}
-              user={currentUser}
-              mode="report"
-              readOnly
-            />
+            <ManagerBudgetTile />
 
-            {/* Action Items Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
-              {/* Pending Checklists */}
-              <div className="bg-white p-6 rounded-xl border border-neutral-100 shadow-sm">
-                <div className="flex items-center gap-2 mb-4">
-                  <ClipboardList size={16} className={realTimeCompliance.filter(c => c.percent < 100).length > 0 ? 'text-amber-500' : 'text-green-500'} />
-                  <h3 className="text-sm font-black text-[#0F2B3C] uppercase tracking-tight">Today's Protocols</h3>
+            {/* Today's Protocols / audit alerts — summary counts, not a sprawling list */}
+            <section className="bg-white p-4 md:p-6 rounded-xl border border-neutral-100 shadow-sm">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 bg-[#0F2B3C] text-white rounded-xl">
+                  <ClipboardList size={16} />
                 </div>
-                <div className="space-y-3">
-                  {realTimeCompliance.length === 0 ? (
-                    <p className="text-xs text-neutral-400 font-medium">No protocols due today</p>
-                  ) : (
-                    realTimeCompliance.slice(0, 3).map((stat, i) => (
-                      <div key={i} className="flex items-center justify-between">
-                        <div className="flex-1 min-w-0">
-                          <div className="text-xs font-bold text-neutral-700 truncate">{stat.name}</div>
-                          <div className="text-[9px] text-neutral-400 font-medium">{stat.completed}/{stat.total} tasks</div>
-                        </div>
-                        <div className={`px-2 py-1 rounded-lg text-[9px] font-black ${
-                          stat.percent === 100 ? 'bg-green-100 text-green-700' :
-                          stat.percent > 0 ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'
-                        }`}>
-                          {stat.percent}%
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-                {realTimeCompliance.length > 3 && (
-                  <button
-                    onClick={() => { setActiveSubTab('operations'); setOperationsSubTab('compliance'); }}
-                    className="mt-4 w-full py-2 bg-neutral-50 hover:bg-neutral-100 rounded-xl text-[9px] font-black text-neutral-600 uppercase tracking-widest transition-all"
-                  >
-                    View All Protocols
-                  </button>
-                )}
-              </div>
-
-              {/* Audit Alerts */}
-              <div className="bg-white p-6 rounded-xl border border-neutral-100 shadow-sm">
-                <div className="flex items-center gap-2 mb-4">
-                  <AlertTriangle size={16} className={concernNotes.length > 0 ? 'text-red-500' : 'text-green-500'} />
-                  <h3 className="text-sm font-black text-[#0F2B3C] uppercase tracking-tight">Audit Alerts</h3>
-                </div>
-                {concernNotes.length === 0 ? (
-                  <div className="text-center py-8">
-                    <ShieldCheck size={32} className="text-green-500 mx-auto mb-2" />
-                    <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">All Clear</p>
-                  </div>
-                ) : (
-                  <>
-                    <div className="space-y-3">
-                      {concernNotes.slice(0, 2).map((concern, idx) => (
-                        <div
-                          key={idx}
-                          className="flex gap-3 p-3 bg-red-50 rounded-xl border border-red-100 cursor-pointer hover:border-red-200 transition-colors"
-                          onClick={() => {
-                            const submission = submissions.find(s => s.id === concern.submissionId);
-                            const taskResult = submission?.taskResults.find(tr => tr.taskId === concern.taskId);
-                            setFullscreenPhoto({
-                              url: concern.url,
-                              title: concern.title,
-                              user: concern.user,
-                              aiReview: { flagged: true, reason: concern.aiReason || '' },
-                              submissionId: concern.submissionId,
-                              taskId: concern.taskId,
-                              existingComment: taskResult?.managerPhotoComment
-                            });
-                          }}
-                        >
-                          <div className="w-12 h-12 rounded-lg overflow-hidden shrink-0 border border-red-200 bg-red-100">
-                            {concern.url && (
-                              <img src={concern.url} className="w-full h-full object-cover" alt={concern.title} />
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-[10px] font-black text-red-800 uppercase tracking-tight truncate">{concern.title}</p>
-                            <p className="text-[9px] text-red-600 font-medium truncate">{concern.aiReason || 'Flagged'}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    <button
-                      onClick={() => { setActiveSubTab('operations'); setOperationsSubTab('gallery'); }}
-                      className="mt-4 w-full py-2 bg-red-50 hover:bg-red-100 rounded-xl text-[9px] font-black text-red-600 uppercase tracking-widest transition-all"
-                    >
-                      Review All ({concernNotes.length})
-                    </button>
-                  </>
-                )}
-              </div>
-
-              {/* Sales Summary */}
-              <div className="bg-white p-4 md:p-6 rounded-xl border border-neutral-100 shadow-sm">
-                <div className="flex items-center gap-2 mb-4">
-                  <TrendingUp size={16} className="text-green-600" />
-                  <h3 className="text-sm font-black text-[#0F2B3C] uppercase tracking-tight">Sales Summary</h3>
-                </div>
-                <div className="space-y-4">
-                  <div>
-                    <div className="text-[10px] font-black text-neutral-400 uppercase tracking-widest mb-1">Today's Total</div>
-                    <div className="text-2xl font-black text-green-600">${toastSales?.totalSales?.toFixed(0) || '—'}</div>
-                    <div className="text-[9px] text-neutral-500 font-medium mt-1">
-                      {toastSales?.totalOrders || 0} orders
-                    </div>
-                  </div>
-
-                  <div className="pt-4 border-t border-neutral-100 grid grid-cols-2 gap-4">
-                    <div>
-                      <div className="text-[9px] font-bold text-neutral-500 mb-1">Avg Ticket</div>
-                      <div className="text-lg font-black text-[#0F2B3C]">${toastSales?.averageCheck?.toFixed(2) || '—'}</div>
-                    </div>
-                    <div>
-                      <div className="text-[9px] font-bold text-neutral-500 mb-1">vs Last Week</div>
-                      {salesComparison ? (
-                        <div className={`text-lg font-black ${salesComparison.salesPercent >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          {salesComparison.salesPercent >= 0 ? '+' : ''}{salesComparison.salesPercent.toFixed(1)}%
-                        </div>
-                      ) : (
-                        <div className="text-lg font-black text-neutral-300">—</div>
-                      )}
-                    </div>
-                  </div>
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-lg font-black text-[#0F2B3C] uppercase tracking-tight">Today's Protocols</h2>
+                  <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">Counts and audit alerts</p>
                 </div>
               </div>
-            </div>
-
-            {/* Weekly Report */}
-            <WeeklyReport
-              currentStoreId={currentStoreId}
-              storeName={stores.find(s => s.id === currentStoreId)?.name || currentStoreId}
-              submissions={submissions}
-              templates={templates}
-              allUsers={allUsers}
-            />
+              {(() => {
+                const due = realTimeCompliance.length;
+                const complete = realTimeCompliance.filter(c => c.percent === 100).length;
+                const incomplete = realTimeCompliance.filter(c => c.percent < 100).length;
+                const alerts = concernNotes.length;
+                return (
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div className="rounded-xl border border-neutral-100 bg-neutral-50/40 p-3">
+                      <div className="text-2xl font-black text-[#0F2B3C]">{due}</div>
+                      <div className="text-[9px] font-black text-neutral-400 uppercase tracking-widest">Due today</div>
+                    </div>
+                    <div className="rounded-xl border border-neutral-100 bg-neutral-50/40 p-3">
+                      <div className={`text-2xl font-black ${incomplete > 0 ? 'text-amber-600' : 'text-green-600'}`}>{incomplete}</div>
+                      <div className="text-[9px] font-black text-neutral-400 uppercase tracking-widest">Incomplete</div>
+                    </div>
+                    <div className="rounded-xl border border-neutral-100 bg-neutral-50/40 p-3">
+                      <div className={`text-2xl font-black ${complete === due && due > 0 ? 'text-green-600' : 'text-[#0F2B3C]'}`}>{complete}</div>
+                      <div className="text-[9px] font-black text-neutral-400 uppercase tracking-widest">Complete</div>
+                    </div>
+                    <div className="rounded-xl border border-neutral-100 bg-neutral-50/40 p-3">
+                      <div className={`text-2xl font-black ${alerts > 0 ? 'text-red-600' : 'text-green-600'}`}>{alerts}</div>
+                      <div className="text-[9px] font-black text-neutral-400 uppercase tracking-widest">Audit alerts</div>
+                    </div>
+                  </div>
+                );
+              })()}
+              <div className="flex flex-col sm:flex-row gap-2 mt-4">
+                <button
+                  onClick={() => { setActiveSubTab('operations'); setOperationsSubTab('compliance'); }}
+                  className="flex-1 py-2 bg-neutral-50 hover:bg-neutral-100 rounded-xl text-[9px] font-black text-neutral-600 uppercase tracking-widest transition-all"
+                >
+                  View Protocols
+                </button>
+                <button
+                  onClick={() => { setActiveSubTab('operations'); setOperationsSubTab('gallery'); }}
+                  className={`flex-1 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${
+                    concernNotes.length > 0
+                      ? 'bg-red-50 hover:bg-red-100 text-red-600'
+                      : 'bg-neutral-50 hover:bg-neutral-100 text-neutral-600'
+                  }`}
+                >
+                  {concernNotes.length > 0 ? `Review Alerts (${concernNotes.length})` : 'Photo Audit'}
+                </button>
+              </div>
+            </section>
 
             {/* Live Cameras */}
             <CameraSection
@@ -2185,6 +2110,50 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                 );
               })()}
             </section>
+
+            <Food86Panel
+              storeId={currentStoreId}
+              storeName={currentStoreName}
+              user={currentUser}
+              mode="report"
+              readOnly
+              collapsible
+              defaultCollapsed
+            />
+
+            {/* Sales Summary — quieter lower block */}
+            <div className="bg-white p-4 md:p-6 rounded-xl border border-neutral-100 shadow-sm">
+              <div className="flex items-center gap-2 mb-4">
+                <TrendingUp size={16} className="text-green-600" />
+                <h3 className="text-sm font-black text-[#0F2B3C] uppercase tracking-tight">Sales Summary</h3>
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <div className="text-[10px] font-black text-neutral-400 uppercase tracking-widest mb-1">Today's Total</div>
+                  <div className="text-2xl font-black text-green-600">${toastSales?.totalSales?.toFixed(0) || '—'}</div>
+                  <div className="text-[9px] text-neutral-500 font-medium mt-1">
+                    {toastSales?.totalOrders || 0} orders
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-neutral-100 grid grid-cols-2 gap-4">
+                  <div>
+                    <div className="text-[9px] font-bold text-neutral-500 mb-1">Avg Ticket</div>
+                    <div className="text-lg font-black text-[#0F2B3C]">${toastSales?.averageCheck?.toFixed(2) || '—'}</div>
+                  </div>
+                  <div>
+                    <div className="text-[9px] font-bold text-neutral-500 mb-1">vs Last Week</div>
+                    {salesComparison ? (
+                      <div className={`text-lg font-black ${salesComparison.salesPercent >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {salesComparison.salesPercent >= 0 ? '+' : ''}{salesComparison.salesPercent.toFixed(1)}%
+                      </div>
+                    ) : (
+                      <div className="text-lg font-black text-neutral-300">—</div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
 
             {/* Quick Stats Bar */}
             <section className="bg-white p-6 rounded-xl border border-neutral-100 shadow-sm">
