@@ -7,7 +7,7 @@
  * API Documentation: https://doc.toasttab.com/
  */
 
-import { ToastSalesData, ToastLaborEntry, ToastTimeEntry, ToastSyncEmployee, FoodSoldResponse } from '../types';
+import { ToastSalesData, ToastLaborEntry, ToastTimeEntry, ToastSyncEmployee, FoodSoldResponse, ManagerBudget } from '../types';
 
 class ToastAPI {
   /**
@@ -207,6 +207,22 @@ class ToastAPI {
       console.error('[Toast API] Failed to fetch sales with comparison:', error);
       throw error;
     }
+  }
+
+  /**
+   * Both-store MTD sales (Toast Sales Summary gross) + labor vs 26%.
+   * Separate from getSalesData / getLaborData — those keep the old contracts.
+   */
+  async getManagerBudget(): Promise<ManagerBudget> {
+    const response = await fetch(`/api/manager-budget?t=${Date.now()}`, { cache: 'no-cache' });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(payload?.details || payload?.error || `Manager budget failed (${response.status})`);
+    }
+    if (!payload?.budget) {
+      throw new Error('Manager budget response was empty');
+    }
+    return payload.budget as ManagerBudget;
   }
 
   /**

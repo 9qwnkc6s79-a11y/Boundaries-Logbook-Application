@@ -283,6 +283,40 @@ export interface ToastSalesData {
   lastUpdated: string;
 }
 
+/** Manager Hub labor vs sales tile. Port of dashboard /api/manager/budget @ 274056b. */
+export type LaborCostStatus = 'ok' | 'blocked' | 'incomplete' | 'unavailable';
+export type LaborVsTarget = 'under' | 'over' | 'unavailable';
+
+export interface ManagerStoreBudget {
+  name: string;
+  todaySales: number | null;
+  mtdSales: number | null;
+  mtdNetSales: number | null;
+  mtdDiscounts: number | null;
+  mtdLaborDollars: number | null;
+  mtdLaborPercent: number | null;
+  laborStatus: LaborCostStatus;
+  laborVsTarget: LaborVsTarget;
+  laborMessage: string;
+}
+
+export interface ManagerBudget {
+  timezone: 'America/Chicago';
+  businessDate: string;
+  period: { startDate: string; endDate: string; daysRequested: number; daysSucceeded: number };
+  salesBasis: 'gross';
+  salesComplete: boolean;
+  salesNote?: string;
+  laborTargetPercent: number;
+  littleElm: ManagerStoreBudget;
+  prosper: ManagerStoreBudget;
+  labor: {
+    status: LaborCostStatus;
+    source: 'era.labor.totalCost' | 'timeEntries.hourlyWage' | null;
+    message: string;
+  };
+}
+
 // Toast Cash Management Types
 export interface ToastCashData {
   location: string;

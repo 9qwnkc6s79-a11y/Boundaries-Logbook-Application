@@ -9,6 +9,7 @@ import {
 import { toastAPI } from '../services/toast';
 import { db } from '../services/db';
 import Food86Panel from './Food86Panel';
+import ManagerBudgetTile from './ManagerBudgetTile';
 import { detectLeaders, calculateTimelinessScore, calculateTurnTimeScore, calculateSalesScore, calculateAvgTicketScore, calculateLeaderboard, determineShiftOwnership } from '../utils/leadershipTracking';
 import { syncOrderAttributions } from '../utils/orderAttribution';
 import TeamManagement from './TeamManagement';
@@ -1653,6 +1654,8 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
 
             {/* Notification Permission Banner */}
             <NotificationBanner currentUser={currentUser} storeId={currentStoreId} />
+
+            <ManagerBudgetTile />
 
             {/* Live Store Performance - Top Priority */}
             <section className="bg-gradient-to-br from-[#0F2B3C] to-[#1a3d52] p-3 md:p-6 rounded-xl shadow-md text-white border border-[#B87333]/20">
