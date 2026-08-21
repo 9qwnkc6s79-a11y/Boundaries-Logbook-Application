@@ -158,7 +158,7 @@ OpsBook and the Manager Playbook are **not** in this repo. The ship-ready close 
 
 `docs/close-procedure.md`
 
-Same procedure is in Ops Manual §16, Academy “Closing Duties: Food Counts”, and the logbook closing food list.
+Same procedure is in Playbook V2 §21 Opening / §22 Closing (Amy files from that markdown), in-app Ops Manual §12 / §16, Academy “Closing Duties: Food Counts”, and the logbook closing food list.
 
 ## Food 86 / last-sold webhook
 

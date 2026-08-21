@@ -39,12 +39,12 @@ if (typeof firebase !== 'undefined') {
 
 // Increment this version whenever curriculum structure or lesson properties change
 // This forces Firebase to update cached curriculum data
-const CURRICULUM_VERSION = 13;
+const CURRICULUM_VERSION = 14;
 
 // Bump when the manual or recipe defaults change and must OVERWRITE cloud
 // copies (deliberate source-of-truth refresh — e.g. a new Ops Manual /
-// Recipe Book release). v5 = food 86 / leftover / waste close procedure.
-const CONTENT_DEFAULTS_VERSION = 5;
+// Recipe Book release). v6 = Playbook V2 §21/§22 food close wording.
+const CONTENT_DEFAULTS_VERSION = 6;
 
 const DOC_KEYS = {
   USERS: 'users',

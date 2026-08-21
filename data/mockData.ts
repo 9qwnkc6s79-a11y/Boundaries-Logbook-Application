@@ -345,9 +345,10 @@ Flavor syrup scales with cup size. This table is the single source for syrup vol
 - Expo verifies all food before handing off.
 
 ### Toast food counts (open → 86 → close)
+Matches Current Playbook V2 §19 / §21 / §22.
 - **At open:** GMs enter starting qty in Toast inventory for every food SKU they count.
 - **When qty hits 0:** Toast marks the item sold out / 86. Last-sold time from orders is the check — both times are shown in Manager Hub.
-- **At close:** Enter leftover qty and waste qty on the food list in the logbook Closing Checklist. Not the syrup catalog.`
+- **At close:** Enter leftover qty and waste qty on the food list in the logbook Closing Checklist every night. Replaces the old Tuesday / Thursday / Saturday Toast POS waste log. Not the syrup catalog.`
   },
   {
     id: 's-13',
@@ -448,10 +449,10 @@ Brief the incoming lead on 86’d food, low qty, and anything the closer must wa
 ### Closing
 A thorough close means an easy open. Complete every item on the Closing Checklist, including the frozen machine nightly close in **Section 15.1**.
 
-**Food leftover and waste (required):**
-1. At open, GMs entered starting qty in Toast.
+**Food leftover and waste (required — Playbook V2 §22):**
+1. At open, GMs entered starting qty in Toast (V2 §21 Step 9).
 2. When a food qty hits 0, Toast 86s it. BrewShift keeps the 86 time. Last-sold time from orders is the check — Owen sees both.
-3. At close, on the logbook Closing Checklist, enter **leftover qty** and **waste qty** on the **food list** (Toast food SKUs only).
+3. At close, on the logbook Closing Checklist, enter **leftover qty** and **waste qty** on the **food list** (Toast food SKUs only). Every close — this replaces the old Tuesday / Thursday / Saturday Toast POS waste log.
 
 Leftover = still good. Waste = discarded. If the item 86’d earlier, leftover is 0 and waste is whatever you threw away.
 
@@ -628,10 +629,10 @@ If you have any questions about which site to use or need help with the process,
         moduleId: 'm-morning',
         title: 'Food counts at open (Toast)',
         type: 'CONTENT',
-        content: `<h3>FOOD COUNTS AT OPEN</h3>
+        content: `<h3>FOOD COUNTS AT OPEN — Playbook V2 §21</h3>
 <p>GMs enter <strong>starting qty in Toast inventory</strong> for every food SKU they count (Main Street Bistro, Lisa Cordero tacos, Sysco food, pastry). Those items stay on Toast QUANTITY tracking through the day.</p>
 <p>When qty hits <strong>0</strong>, Toast marks the item sold out / 86. Last-sold time from orders is the check — Manager Hub shows both times.</p>
-<p>At close, leftover qty and waste qty go on the <strong>food list in the logbook Closing Checklist</strong>. Not the syrup catalog. Not Sortly.</p>`
+<p>Playbook V2 §22: at close, leftover qty and waste qty go on the <strong>food list in the logbook Closing Checklist</strong> every night. Not the syrup catalog. Not Sortly. Not the old Tuesday / Thursday / Saturday Toast waste log.</p>`
       },
       {
         id: 'l-cleaning-fundamentals',
@@ -688,7 +689,7 @@ If you have any questions about which site to use or need help with the process,
           { id: 'cl8', type: 'MULTIPLE_CHOICE', question: 'Where does the sanitizer cloth live between wipes?', options: ['On the counter', 'In your apron', 'In the sanitizer bucket', 'By the register'], correctAnswers: ['In the sanitizer bucket'], explanation: 'A cloth left on the counter grows bacteria. It goes back in the bucket every time.' },
           { id: 'cl9', type: 'MULTIPLE_CHOICE', question: 'How do you get streak-free glass?', options: ['Paper towels and lots of spray', 'Microfiber or squeegee, top-to-bottom overlapping passes, dry the edges', 'Circular scrubbing', 'Hot water only'], correctAnswers: ['Microfiber or squeegee, top-to-bottom overlapping passes, dry the edges'], explanation: 'Microfiber doesn\'t lint; overlapping top-to-bottom passes and dry edges are the professional finish.' },
           { id: 'cl10', type: 'MULTIPLE_CHOICE', question: '"If you have time to lean..."', options: ['...take a break', '...you have time to clean', '...check your phone', '...ask for a task'], correctAnswers: ['...you have time to clean'], explanation: 'Clean as you go — wipe the wand, rinse the pitcher, catch drips when they happen.' },
-          { id: 'cl11', type: 'MULTIPLE_CHOICE', question: 'At close, leftover qty and waste qty for food go where?', options: ['The syrup inventory catalog', 'The food list on the logbook Closing Checklist', 'Toast sales pacing', 'A text to Owen only'], correctAnswers: ['The food list on the logbook Closing Checklist'], explanation: 'GMs enter starting qty in Toast at open. Toast 86s at 0. Closers enter leftover and waste on the logbook food list.' }
+          { id: 'cl11', type: 'MULTIPLE_CHOICE', question: 'At close, leftover qty and waste qty for food go where?', options: ['The syrup inventory catalog', 'The food list on the logbook Closing Checklist', 'Toast sales pacing', 'A text to Owen only'], correctAnswers: ['The food list on the logbook Closing Checklist'], explanation: 'Playbook V2 §22: leftover and waste go on the logbook food list every close — not a Tue/Thu/Sat Toast waste log.' }
         ]
       }
     ]
@@ -1943,9 +1944,10 @@ Great hospitality is about anticipating needs, clear communication, and making g
         title: 'Food qty, 86, and close-out',
         type: 'CONTENT',
         content: `<h3>TOAST FOOD QTY, 86, AND CLOSE-OUT</h3>
-<p><strong>At open:</strong> GMs enter starting qty in Toast inventory for every food SKU they count.</p>
+<p>Matches Current Playbook V2 §21 Opening and §22 Closing.</p>
+<p><strong>At open (V2 §21 Step 9):</strong> GMs enter starting qty in Toast inventory for every food SKU they count.</p>
 <p><strong>When qty hits 0:</strong> Toast marks the item sold out / 86. BrewShift records the 86 time. Last-sold time from orders is the check — both are shown in Manager Hub. Do not pick one.</p>
-<p><strong>At close:</strong> On the logbook Closing Checklist, enter leftover qty and waste qty on the food list (Toast food SKUs). Not the syrup catalog.</p>
+<p><strong>At close (V2 §22 Step 6 replacement):</strong> Every close, on the logbook Closing Checklist, enter leftover qty and waste qty on the food list (Toast food SKUs). Not the syrup catalog. Not Tuesday / Thursday / Saturday Toast waste log only.</p>
 <p>If Toast stock:read is missing, the food list will say so. Do not invent numbers.</p>`
       }
     ]

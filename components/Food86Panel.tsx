@@ -150,7 +150,7 @@ const Food86Panel: React.FC<Food86PanelProps> = ({ storeId, storeName, user, mod
   const scopeMissing = payload && !payload.stockScopeOk;
   const title = mode === 'closing' ? 'Food leftover & waste' : 'Food 86 / last sold';
   const subtitle = mode === 'closing'
-    ? 'At open GMs enter starting qty in Toast. When it hits 0, Toast 86s. At close enter leftover qty and waste qty here — Toast food SKUs only, not the syrup catalog.'
+    ? 'Playbook V2 §22: leftover qty + waste qty here every close (Toast food SKUs, not syrups). Open: GM enters starting qty in Toast. Toast 86s at 0.'
     : `${storeName || 'This store'} · today (America/Chicago). 86 time and last-sold time are both shown. Leftover and waste come from the closing food list.`;
 
   return (

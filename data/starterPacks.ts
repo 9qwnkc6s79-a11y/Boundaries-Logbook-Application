@@ -404,11 +404,11 @@ Start winding down operations 30–60 minutes before close:
 10. **POS** — close out the register, count the till
 11. **Food leftover & waste** — on the logbook Closing Checklist food list, enter leftover qty and waste qty for Toast food SKUs
 
-### Food counts (written close)
+### Food counts (written close — Playbook V2 §21–22)
 
 - **At open:** GMs enter starting qty in Toast inventory for every food SKU they count.
 - **When qty hits 0:** Toast marks the item sold out / 86. Last-sold time from orders is the check — both times are shown.
-- **At close:** Enter leftover qty and waste qty on the food list in the logbook. Not the syrup catalog.
+- **At close:** Enter leftover qty and waste qty on the food list in the logbook every night. Replaces the old Tuesday / Thursday / Saturday Toast POS waste log. Not the syrup catalog.
 
 ### The Closing Checklist
 
@@ -1285,7 +1285,7 @@ The closer is responsible for leaving the shop ready for tomorrow:
 - Enter leftover qty and waste qty on the logbook food list (Toast food SKUs)
 - Secure the building
 
-At open, GMs enter starting qty in Toast. When qty hits 0, Toast 86s. At close, leftover and waste go on the logbook food list — not the syrup catalog.
+Playbook V2 §21–22: at open, GMs enter starting qty in Toast. When qty hits 0, Toast 86s. At close, leftover and waste go on the logbook food list every night — not the syrup catalog, not a Tue/Thu/Sat Toast waste log.
 
 ### Shift Changes
 
