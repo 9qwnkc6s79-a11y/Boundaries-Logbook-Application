@@ -344,7 +344,7 @@ Flavor syrup scales with cup size. This table is the single source for syrup vol
 - Food held only at safe temps; discard per health code. For Toast-counted food SKUs, that discard is recorded as **leftover qty** and **waste qty** on the **food list in the logbook** Closing Checklist — not a new discard rule, and not the syrup catalog.
 - Expo verifies all food before handing off.
 
-At open, GMs enter starting qty in Toast for those same SKUs. When qty hits 0, Toast 86s. The written close for leftover + waste is **Section 16**.
+At open, GMs enter starting qty in Toast for those same SKUs. When qty hits 0, Toast 86s. The written close for leftover + waste is **Section 16**.`
   },
   {
     id: 's-13',
