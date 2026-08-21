@@ -1,5 +1,7 @@
 /**
- * Current Toast QUANTITY + OUT_OF_STOCK (+ IN_STOCK-with-qty) items.
+ * Current Toast QUANTITY + OUT_OF_STOCK (+ IN_STOCK-with-qty) items,
+ * unioned with named Bakery menu items (and taco keepers) so an 86'd
+ * SKU stays listed after Toast drops the stock row. No invented qty.
  * Self-contained — Vercel ESM (`package.json` "type": "module") cannot
  * resolve extensionless `./_lib/*` imports and crashes at boot.
  *
@@ -146,6 +148,75 @@ function includeStockRow(row: any): boolean {
   return row.status === 'IN_STOCK' && parseQuantity(row.quantity) !== null;
 }
 
+function food86IdentityKeys(item: any): string[] {
+  const keys: string[] = [];
+  if (item?.itemGuid) keys.push(`g:${item.itemGuid}`);
+  if (item?.guid && item.guid !== item.itemGuid) keys.push(`g:${item.guid}`);
+  if (item?.multiLocationId) keys.push(`m:${item.multiLocationId}`);
+  return keys;
+}
+
+/** Named Bakery + taco keepers from Toast menus. quantity is always null. */
+export function collectNamedFood86MenuItems(lookup: { byGuid: Map<string, any>; byMl: Map<string, any> }) {
+  const seen = new Set<string>();
+  const items: any[] = [];
+
+  const consider = (meta: any) => {
+    if (!meta) return;
+    const guid = meta.guid || '';
+    const ml = meta.multiLocationId;
+    const identity = guid || ml;
+    if (!identity) return;
+    const keys = food86IdentityKeys({ guid, itemGuid: guid || ml, multiLocationId: ml });
+    if (keys.some(k => seen.has(k))) return;
+    if (isUnresolvedStockName(meta.name)) return;
+    if (!isFood86VisibleItem({
+      name: meta.name,
+      menuName: meta.menuName,
+      menuGroup: meta.menuGroup,
+    })) return;
+    keys.forEach(k => seen.add(k));
+    items.push({
+      guid: guid || ml,
+      itemGuid: guid || ml,
+      status: 'UNKNOWN',
+      quantity: null,
+      multiLocationId: ml,
+      name: meta.name,
+      menuName: meta.menuName,
+      menuGroup: meta.menuGroup,
+      categoryHint: 'food' as const,
+      includeInFoodView: true,
+    });
+  };
+
+  for (const meta of lookup.byGuid.values()) consider(meta);
+  for (const meta of lookup.byMl.values()) consider(meta);
+  return items;
+}
+
+/** Stock rows win (qty / status / last-sold overlay later). Menu-only rows keep quantity null. */
+export function unionFood86StockAndMenu(stockItems: any[], menuItems: any[]) {
+  const seen = new Set<string>();
+  const out: any[] = [];
+
+  const remember = (item: any) => {
+    for (const k of food86IdentityKeys(item)) seen.add(k);
+  };
+  const already = (item: any) => food86IdentityKeys(item).some(k => seen.has(k));
+
+  for (const item of stockItems) {
+    out.push(item);
+    remember(item);
+  }
+  for (const item of menuItems) {
+    if (already(item) || food86IdentityKeys(item).length === 0) continue;
+    out.push(item);
+    remember(item);
+  }
+  return out;
+}
+
 function remember(byGuid: Map<string, any>, byMl: Map<string, any>, entry: any) {
   if (entry.guid) byGuid.set(entry.guid, entry);
   if (entry.multiLocationId) byMl.set(entry.multiLocationId, entry);
@@ -245,6 +316,16 @@ function resolveStockItems(stockRows: any[], lookup: { byGuid: Map<string, any>;
   });
 }
 
+export function buildFood86Items(stockRows: any[], lookup: { byGuid: Map<string, any>; byMl: Map<string, any> }) {
+  const resolved = resolveStockItems(stockRows, lookup);
+  const fromStock = resolved.filter(keepFood86Item);
+  const fromMenu = collectNamedFood86MenuItems(lookup);
+  return {
+    items: unionFood86StockAndMenu(fromStock, fromMenu),
+    excludedNonBakeryCount: resolved.length - fromStock.length,
+  };
+}
+
 async function fetchToastStock(token: string, restaurantGuid: string) {
   const response = await fetch(`${TOAST_API}/stock/v1/inventory`, {
     headers: { Authorization: `Bearer ${token}`, 'Toast-Restaurant-External-ID': restaurantGuid },
@@ -283,13 +364,12 @@ async function fetchToastStock(token: string, restaurantGuid: string) {
   const rows = await response.json();
   const list = Array.isArray(rows) ? rows : [];
   const lookup = await loadMenuLookup(token, restaurantGuid);
-  const resolved = resolveStockItems(list, lookup);
-  const items = resolved.filter(keepFood86Item);
+  const built = buildFood86Items(list, lookup);
   return {
     ok: true,
     status: 200,
-    items,
-    excludedNonBakeryCount: resolved.length - items.length,
+    items: built.items,
+    excludedNonBakeryCount: built.excludedNonBakeryCount,
     scopeMissing: false,
     menusForbidden: lookup.menusForbidden,
     rawCount: list.length,

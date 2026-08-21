@@ -26,6 +26,7 @@ function formatChicagoTime(iso: string | null | undefined): string {
 
 function qtyLabel(item: FoodSkuDay): string {
   if (item.status === 'OUT_OF_STOCK') return '0';
+  // Menu-only bakery (Toast dropped the stock row) stays listed with no invented count.
   if (item.quantity === null || item.quantity === undefined) return '—';
   return String(item.quantity);
 }
@@ -212,7 +213,7 @@ const Food86Panel: React.FC<Food86PanelProps> = ({ storeId, storeName, user, mod
         <p className="text-xs text-neutral-400 font-medium">
           {scopeMissing
             ? 'No food SKUs to list while Toast stock is unavailable. Remaining / 86 / last-sold are not invented. Refresh when stock:read is back, then any closer can enter leftover qty and waste qty here.'
-            : 'No bakery or taco items to list right now. Named Toast Bakery SKUs and taco types (including bacon / chorizo modifiers) appear here. Any closer can enter leftover qty and waste qty once items appear.'}
+            : 'No bakery or taco items to list right now. Named Toast Bakery SKUs stay listed even after they 86 (remaining shows — if Toast dropped the stock row). Taco types (including bacon / chorizo modifiers) appear here too. Any closer can enter leftover qty and waste qty once items appear.'}
         </p>
       )}
 

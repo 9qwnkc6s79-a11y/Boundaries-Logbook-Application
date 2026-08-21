@@ -48,6 +48,7 @@ const keep = [
   { name: 'Almond Croissant', menuGroup: 'Bakery', menuName: 'Menu', includeInFoodView: true },
   { name: 'Blueberry Muffin', menuGroup: 'bakery', includeInFoodView: true },
   { name: 'Chocolate Croissant', menuGroup: 'Bakery', status: 'OUT_OF_STOCK', quantity: 0, includeInFoodView: true },
+  { name: 'Chocolate Croissant', menuGroup: 'Bakery', status: 'UNKNOWN', quantity: null, includeInFoodView: true },
   { name: 'Kolache (Sausage/Cheese)', menuName: 'Weekend Bakery', includeInFoodView: true },
   { name: 'Bacon Egg and Cheese', menuGroup: 'Modifier', includeInFoodView: true },
   { name: 'Chorizo (Beef) Egg and Cheese', menuGroup: 'Modifier', includeInFoodView: true },
@@ -102,11 +103,54 @@ const loader = spawnSync(
       if (typeof sold.default !== 'function') throw new Error('toast-food-sold default export missing');
       const bacon = { name: 'Bacon Egg and Cheese', menuGroup: 'Modifier' };
       const hex = { name: 'Item 8a142d5c', menuGroup: 'Bakery' };
+      const menuOnly = { name: 'Chocolate Croissant', menuGroup: 'Bakery', quantity: null, includeInFoodView: true };
       if (!filter.isBakeryFoodItem(bacon)) throw new Error('util should keep bacon taco modifier');
       if (filter.isBakeryFoodItem(hex)) throw new Error('util should drop unnamed hex');
+      if (!filter.isBakeryFoodItem(menuOnly)) throw new Error('util should keep bakery with no stock qty');
+
+      const lookup = {
+        byGuid: new Map([
+          ['cc-guid', { guid: 'cc-guid', name: 'Chocolate Croissant', menuName: 'All Day', menuGroup: 'Bakery' }],
+          ['hex-guid', { guid: 'hex-guid', name: 'Item 8a142d5c', menuName: 'All Day', menuGroup: 'Bakery' }],
+          ['almond-guid', { guid: 'almond-guid', name: 'Almond Croissant', menuName: 'All Day', menuGroup: 'Bakery' }],
+          ['muffin-guid', { guid: 'muffin-guid', name: 'Blueberry Muffin', menuName: 'All Day', menuGroup: 'Bakery' }],
+          ['drip-guid', { guid: 'drip-guid', name: 'House Drip', menuName: 'Drinks', menuGroup: 'Drip Coffee' }],
+          ['bacon-guid', { guid: 'bacon-guid', name: 'Bacon Egg and Cheese', menuName: 'Tacos', menuGroup: 'Modifier' }],
+          ['chorizo-guid', { guid: 'chorizo-guid', name: 'Chorizo (Beef) Egg and Cheese', menuName: 'Tacos', menuGroup: 'Modifier' }],
+        ]),
+        byMl: new Map(),
+      };
+      const stockRows = [
+        { guid: 'almond-guid', status: 'QUANTITY', quantity: 3 },
+        { guid: 'muffin-guid', status: 'OUT_OF_STOCK', quantity: 0 },
+        { guid: 'hex-guid', status: 'QUANTITY', quantity: 1 },
+        { guid: 'drip-guid', status: 'QUANTITY', quantity: 10 },
+        { guid: 'bacon-guid', status: 'QUANTITY', quantity: 2 },
+      ];
+
+      for (const mod of [stock, sold]) {
+        const src = mod === stock ? 'toast-stock' : 'toast-food-sold';
+        if (typeof mod.buildFood86Items !== 'function') throw new Error(src + ' buildFood86Items missing');
+        const built = mod.buildFood86Items(stockRows, lookup);
+        const byName = Object.fromEntries(built.items.map((i) => [i.name, i]));
+        if (!byName['Chocolate Croissant']) throw new Error(src + ' should keep bakery menu item with no stock row');
+        if (byName['Chocolate Croissant'].quantity !== null) throw new Error(src + ' must not invent qty for menu-only bakery');
+        if (byName['Chocolate Croissant'].status !== 'UNKNOWN') throw new Error(src + ' menu-only bakery status should be UNKNOWN');
+        if (!byName['Almond Croissant'] || byName['Almond Croissant'].quantity !== 3) throw new Error(src + ' should overlay stock qty on bakery');
+        if (!byName['Blueberry Muffin'] || byName['Blueberry Muffin'].quantity !== 0) throw new Error(src + ' should keep OUT_OF_STOCK bakery qty 0');
+        if (!byName['Bacon Egg and Cheese'] || byName['Bacon Egg and Cheese'].quantity !== 2) throw new Error(src + ' should keep taco modifier from stock');
+        if (!byName['Chorizo (Beef) Egg and Cheese'] || byName['Chorizo (Beef) Egg and Cheese'].quantity !== null) {
+          throw new Error(src + ' should keep taco keeper from menu with no invented qty');
+        }
+        if (byName['Item 8a142d5c'] || built.items.some((i) => /^Item\\s+[0-9a-f]/i.test(i.name))) {
+          throw new Error(src + ' should drop unnamed hex rows');
+        }
+        if (byName['House Drip']) throw new Error(src + ' should drop drinks');
+      }
       console.log('module load api/toast-stock.ts: ok');
       console.log('module load api/toast-food-sold.ts: ok');
       console.log('module load utils/food86Bakery.ts: ok');
+      console.log('menu-only bakery union: ok');
     `,
   ],
   { encoding: 'utf8' }
