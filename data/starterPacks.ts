@@ -398,7 +398,7 @@ Start winding down operations 30–60 minutes before close:
 4. **Grinders** — empty hoppers, wipe out, run brush through burrs
 5. **Dishes** — wash, dry, and put away everything
 6. **Restock** — prepare tomorrow's opener for success
-7. **Refrigeration** — store all perishables, check dates, discard expired items
+7. **Refrigeration** — store all perishables, check dates, discard expired items. Toast-counted food: leftover qty + waste qty on the logbook food list (same discard — not a paper slip)
 8. **Trash** — empty all bins, replace liners, take trash out
 9. **Floors** — sweep thoroughly, then mop
 10. **POS** — close out the register, count the till

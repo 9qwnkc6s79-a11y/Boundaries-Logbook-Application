@@ -2,6 +2,7 @@
 // No imports needed - Firebase is loaded globally via CDN script tags in index.html
 import { User, UserProgress, ChecklistSubmission, ChecklistTemplate, TrainingModule, ManualSection, Recipe, CashDeposit, GoogleReviewsData, Organization, Store, AttributedOrder, ArchivedLeaderboard, AuditFeedback, InventoryItem, InventoryCount, WarehouseItem, WarehouseTransaction, Food86Event, FoodClosingWasteEntry } from '../types';
 import { isHashed } from '../utils/passwordUtils';
+import { applyFoodCloseTemplatePatch, patchFoodCloseManualSections } from '../data/foodCloseTasks';
 
 declare const firebase: any;
 
@@ -39,12 +40,13 @@ if (typeof firebase !== 'undefined') {
 
 // Increment this version whenever curriculum structure or lesson properties change
 // This forces Firebase to update cached curriculum data
-const CURRICULUM_VERSION = 14;
+const CURRICULUM_VERSION = 15;
 
 // Bump when the manual or recipe defaults change and must OVERWRITE cloud
 // copies (deliberate source-of-truth refresh — e.g. a new Ops Manual /
-// Recipe Book release). v6 = Playbook V2 §21/§22 food close wording.
-const CONTENT_DEFAULTS_VERSION = 6;
+// Recipe Book release). v7 = patch live §12 / §14 / §16 food close only;
+// do not overwrite the Recipe Book.
+const CONTENT_DEFAULTS_VERSION = 7;
 
 const DOC_KEYS = {
   USERS: 'users',
@@ -332,6 +334,7 @@ class CloudAPI {
         this.remoteSet(DOC_KEYS.SUBMISSIONS, []),
         this.remoteSet(DOC_KEYS.PROGRESS, []),
         this.remoteSet(DOC_KEYS.CURRICULUM_VERSION, CURRICULUM_VERSION),
+        this.remoteSet('content_version', CONTENT_DEFAULTS_VERSION),
       ]);
 
       console.log(`[Firestore] seedOrgData(${orgId}): Seeding complete`);
@@ -1437,23 +1440,23 @@ class CloudAPI {
       this.remoteSet(RECIPES_POPULATED_KEY, { populated: true, at: new Date().toISOString() });
     }
 
-    // Content version force-refresh: when the source-of-truth documents
-    // (Ops Manual / Recipe Book) are re-released, the code defaults must
-    // OVERWRITE the cloud manual and recipes. This is a deliberate,
-    // version-gated overwrite — unlike the seed-on-empty paths, it runs
-    // exactly once per version bump.
+    // Content version: Ops Manual / Recipe Book refresh. v7+ patches
+    // leftover/waste close into live §12 / §14 / §16 only — never wipe
+    // a live Recipe Book or other manual sections managers have edited.
     let finalManual = manual;
     let mergedRecipes = recipes;
     const cloudContentVersion = await this.remoteGet<number>('content_version', 0);
     if (cloudContentVersion < CONTENT_DEFAULTS_VERSION) {
-      console.log(`[Firestore] globalSync: Content version ${cloudContentVersion} → ${CONTENT_DEFAULTS_VERSION}, refreshing manual + recipes from defaults`);
-      finalManual = defaults.manual;
-      mergedRecipes = defaults.recipes;
-      await Promise.all([
-        this.remoteSet(DOC_KEYS.MANUAL, finalManual),
-        this.remoteSet(DOC_KEYS.RECIPES, mergedRecipes),
-        this.remoteSet('content_version', CONTENT_DEFAULTS_VERSION),
-      ]);
+      if (Array.isArray(manual) && manual.length > 0) {
+        finalManual = patchFoodCloseManualSections(manual, defaults.manual);
+        console.log(`[Firestore] globalSync: Content version ${cloudContentVersion} → ${CONTENT_DEFAULTS_VERSION}, patched Ops Manual §12 / §14 / §16`);
+        await Promise.all([
+          this.remoteSet(DOC_KEYS.MANUAL, finalManual),
+          this.remoteSet('content_version', CONTENT_DEFAULTS_VERSION),
+        ]);
+      } else {
+        console.warn('[Firestore] globalSync: Manual read empty — REFUSING to seed food-close sections');
+      }
     } else {
       // Merge new recipes from defaults that don't exist in cloud
       // This ensures new recipes added to the seed appear in the app
@@ -1667,31 +1670,12 @@ class CloudAPI {
     }
 
     // Additive: leftover/waste + Toast starting-qty tasks on live checklists.
+    // Live Firestore templates already differ from seed — append only.
     let syncedTemplates = templates;
     if (Array.isArray(templates) && templates.length > 0) {
-      const foodWasteTask = {
-        id: 'c-food-waste',
-        title: 'Enter leftover qty + waste qty on the food list (Toast food SKUs)',
-        requiresPhoto: false,
-      };
-      const toastQtyTask = {
-        id: 'o-food-toast-qty',
-        title: 'GM: enter starting food qty in Toast inventory',
-        requiresPhoto: false,
-      };
-      let mutated = false;
-      syncedTemplates = templates.map(t => {
-        if (t.type === 'CLOSING' && !t.tasks.some(task => task.id === 'c-food-waste' || task.id === 'ct-food-waste')) {
-          mutated = true;
-          return { ...t, tasks: [...t.tasks, foodWasteTask] };
-        }
-        if (t.type === 'OPENING' && !t.tasks.some(task => task.id === 'o-food-toast-qty' || task.id === 'ot-food-toast-qty')) {
-          mutated = true;
-          return { ...t, tasks: [...t.tasks, toastQtyTask] };
-        }
-        return t;
-      });
-      if (mutated) {
+      const patched = applyFoodCloseTemplatePatch(templates);
+      syncedTemplates = patched.next;
+      if (patched.mutated) {
         console.log('[Firestore] globalSync: Added food leftover/waste + Toast starting-qty tasks to checklists');
         await this.remoteSet(DOC_KEYS.TEMPLATES, syncedTemplates);
       }

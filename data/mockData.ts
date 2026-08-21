@@ -341,14 +341,10 @@ Flavor syrup scales with cup size. This table is the single source for syrup vol
 - Follow **FIFO** (first in, first out) rotation.
 - Label and date all prepped items.
 - Maintain **TurboChef** cleanliness and run crumb tray wipe downs hourly.
-- Food held only at safe temps; discard per health code.
+- Food held only at safe temps; discard per health code. For Toast-counted food SKUs, that discard is recorded as **leftover qty** and **waste qty** on the **food list in the logbook** Closing Checklist — not a new discard rule, and not the syrup catalog.
 - Expo verifies all food before handing off.
 
-### Toast food counts (open → 86 → close)
-Matches Current Playbook V2 §19 / §21 / §22.
-- **At open:** GMs enter starting qty in Toast inventory for every food SKU they count.
-- **When qty hits 0:** Toast marks the item sold out / 86. Last-sold time from orders is the check — both times are shown in Manager Hub.
-- **At close:** Enter leftover qty and waste qty on the food list in the logbook Closing Checklist every night. Replaces the old Tuesday / Thursday / Saturday Toast POS waste log. Not the syrup catalog.`
+At open, GMs enter starting qty in Toast for those same SKUs. When qty hits 0, Toast 86s. The written close for leftover + waste is **Section 16**.
   },
   {
     id: 's-13',
@@ -377,9 +373,10 @@ Matches Current Playbook V2 §19 / §21 / §22.
     content: `Zone-specific checklists for Coffee Bar, Not Coffee Bar, Expo / Window, Walk-In Cooler, and Lobby / Exterior. Daily versus end-of-day tasks to be defined in the next version.
 
 ### Closing Cross-Reference
-The frozen machine nightly close is in **Section 15.1**. It is required at every close with no exceptions and should be pulled into the closing checklist when this section is built.
+When those end-of-day checklists are written, they include:
 
-Food leftover and waste at close are in **Section 16** and on the logbook Closing Checklist food list (Toast QUANTITY food SKUs).`
+- Frozen machine nightly close — **Section 15.1**. Required at every close with no exceptions. Pull it into the closing checklist.
+- **Leftover qty + waste qty** on the **food list in the logbook** (Toast QUANTITY food SKUs). Required at every close. Written procedure is **Section 16**. Not the syrup catalog.`
   },
   {
     id: 's-15',
@@ -440,21 +437,25 @@ Full teardown runs every other day, but the WASH-cycle sanitize at every close s
     id: 's-16',
     number: 16,
     title: 'Opening / Shift Change / Closing',
-    content: `### Opening
+    content: `Opening checklists, shift handoff, and closing / lock-up. This section is no longer a placeholder.
+
+### Opening
 Complete the Opening Checklist before doors. GMs enter **starting qty in Toast inventory** for every food SKU they count (tacos, Main Street, pastry, Sysco food). Those items stay on Toast QUANTITY tracking. Do not put food counts into the syrup / coffee inventory catalog.
 
 ### Shift change
-Brief the incoming lead on 86’d food, low qty, and anything the closer must waste or leftover-count.
+Brief the incoming lead on 86’d food, low qty, and anything the closer must leftover-count or waste.
 
 ### Closing
 A thorough close means an easy open. Complete every item on the Closing Checklist, including the frozen machine nightly close in **Section 15.1**.
 
-**Food leftover and waste (required — Playbook V2 §22):**
-1. At open, GMs entered starting qty in Toast (V2 §21 Step 9).
-2. When a food qty hits 0, Toast 86s it. BrewShift keeps the 86 time. Last-sold time from orders is the check — Owen sees both.
-3. At close, on the logbook Closing Checklist, enter **leftover qty** and **waste qty** on the **food list** (Toast food SKUs only). Every close — this replaces the old Tuesday / Thursday / Saturday Toast POS waste log.
+**Food leftover and waste (required every close):**
+1. At open, GMs entered starting qty in Toast.
+2. When a food qty hits 0, Toast 86s it. BrewShift keeps the 86 time. Last-sold time from that day’s tickets is the check — Owen sees both.
+3. At close, on the logbook Closing Checklist, enter **leftover qty** and **waste qty** on the **food list** (Toast-counted food SKUs only).
 
-Leftover = still good. Waste = discarded. If the item 86’d earlier, leftover is 0 and waste is whatever you threw away.
+Leftover = still good. Waste = discarded (same health-code discard as **Section 12**). If the item 86’d earlier, leftover is 0 and waste is whatever you threw away.
+
+This replaces the old Tuesday / Thursday / Saturday Toast POS waste log. Do not put leftover or waste on the syrup catalog.
 
 ### Lock-up
 All doors and windows locked. Required equipment off. Photo of the clean bar. Security as posted.`

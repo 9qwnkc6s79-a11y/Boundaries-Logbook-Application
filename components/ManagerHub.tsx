@@ -17,6 +17,7 @@ import WeeklyReport from './WeeklyReport';
 import NotificationBanner from './NotificationBanner';
 import { checkLateSubmissions, checkHighTurnTime, getTodayDate } from '../services/notificationTriggers';
 import { showLocalNotification, isAnyStoreManager, getNotificationConfig } from '../services/notifications';
+import { insertFoodWasteTask, templateHasFoodWasteTask } from '../data/foodCloseTasks';
 
 /**
  * Fuzzy name matching for Toast employees to database users.
@@ -2852,6 +2853,15 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                       const newTask: ChecklistTask = { id: `t-${Date.now()}`, title: 'New Task Standard', requiresPhoto: false, isCritical: false };
                       handleUpdateTemplateLocal(tpl.id, { tasks: [...tpl.tasks, newTask] });
                     }} className="w-full py-6 border-2 border-dashed border-neutral-200 rounded-xl text-neutral-400 font-black uppercase text-[10px] tracking-[0.2em] hover:bg-neutral-50 hover:text-[#0F2B3C] hover:border-[#0F2B3C] transition-all flex items-center justify-center gap-2"><Plus size={18}/> Append Standard</button>
+                    {tpl.type === 'CLOSING' && !templateHasFoodWasteTask(tpl) && (
+                      <button
+                        type="button"
+                        onClick={() => handleUpdateTemplateLocal(tpl.id, { tasks: insertFoodWasteTask(tpl.tasks) })}
+                        className="w-full py-4 border-2 border-dashed border-amber-200 bg-amber-50/50 rounded-xl text-amber-800 font-black uppercase text-[10px] tracking-[0.2em] hover:bg-amber-50 hover:border-amber-400 transition-all flex items-center justify-center gap-2"
+                      >
+                        <UtensilsCrossed size={18}/> Add leftover qty + waste qty (Toast food SKUs)
+                      </button>
+                    )}
                   </div>
                   )}
                 </div>

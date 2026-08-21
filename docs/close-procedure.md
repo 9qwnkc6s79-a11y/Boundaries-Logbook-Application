@@ -96,10 +96,15 @@ Replace that row with:
 
 ## Already live in BrewShift (this PR — no deploy)
 
+The in-app Ops Manual (`BOUNDARIES_MANUAL`) is the live BrewShift ops book. Drive copies are Amy’s job from this markdown.
+
 | Place | What staff see |
 | :--- | :--- |
+| In-app Ops Manual §16 | Written leftover + waste close (no longer a placeholder) |
+| In-app Ops Manual §14 | Closing cross-reference includes leftover + waste on EOD checklists |
+| In-app Ops Manual §12 | Same health-code discard, recorded as leftover qty + waste qty on the logbook food list |
 | Logbook → Closing Checklist | Help text + leftover qty / waste qty on the food list |
 | Logbook → Opening Checklist | GM: enter starting food qty in Toast inventory |
+| Manager Hub → Protocols | Add leftover qty + waste qty if a live closing template is missing it |
 | Manager Hub → Food 86 | Name, remaining, 86 at, last sold at, leftover, waste |
-| Academy → Closing Duties: Food Counts | Same written close + quiz |
-| In-app Ops Manual §12 / §16 | Same open → 86 → leftover + waste (aligned to v1.8) |
+| Academy → Closing Duties: Food Counts + `sp-l-closing` | Same written close + quiz |

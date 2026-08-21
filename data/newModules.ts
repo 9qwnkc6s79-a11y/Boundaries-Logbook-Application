@@ -2334,7 +2334,7 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
 <li>Waste = discarded</li>
 <li>If it 86’d earlier, leftover is 0 and waste is what you threw away</li>
 </ul>
-<p>This is not Sortly and not the 31-syrup count. Spaceman teardown stays in Process Manual v1.8 §15 — do not skip it, and do not mix it up with food counts.</p>`
+<p>This is not Sortly and not the 31-syrup count. The in-app Ops Manual writes this in <strong>§16 Opening / Shift Change / Closing</strong>. Spaceman teardown stays in §15.1 — do not skip it, and do not mix it up with food counts.</p>`
       },
       {
         id: 'l-food-close-quiz',
