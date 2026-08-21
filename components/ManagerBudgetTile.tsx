@@ -1,7 +1,20 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { AlertTriangle, DollarSign, RefreshCw, Target } from 'lucide-react';
 import { toastAPI } from '../services/toast';
-import { ManagerBudget, ManagerStoreBudget } from '../types';
+import { ManagerBudget, ManagerStoreBudget, MissingWagePunch } from '../types';
+
+function punchLabel(punch: MissingWagePunch): string {
+  const who = punch.nameUnknown
+    ? `Name unknown (${punch.employeeGuid || punch.employeeName || 'no employee id'})`
+    : punch.employeeName || punch.employeeGuid;
+  const job = punch.jobName || punch.jobGuid || 'job unknown';
+  const when = punch.inDateChicago || punch.inDate || 'time unknown';
+  const until = punch.outDateChicago || punch.outDate;
+  const hours = punch.hours === null ? 'hours unknown' : `${punch.hours} hrs`;
+  const missing =
+    punch.missing === 'both' ? 'hourlyWage and hours' : punch.missing;
+  return `${who} · ${job} · ${when}${until ? `–${until}` : ''} · missing ${missing} · ${hours}`;
+}
 
 function money(n: number | null): string {
   if (n === null) return '—';
@@ -62,9 +75,23 @@ function StoreRow({ store, target }: { store: ManagerStoreBudget; target: number
       {store.laborStatus === 'incomplete' && (
         <div className="mb-3 flex items-start gap-2 p-2.5 rounded-xl bg-amber-50 border border-amber-100">
           <AlertTriangle size={14} className="text-amber-600 shrink-0 mt-0.5" />
-          <p className="text-xs text-amber-800 font-medium">
-            {store.laborMessage || 'Incomplete — some punches are missing a wage. Not shown as $0 labor.'}
-          </p>
+          <div className="min-w-0">
+            <p className="text-xs text-amber-800 font-medium">
+              {store.laborMessage || 'Incomplete — some punches are missing a wage. Not shown as $0 labor.'}
+            </p>
+            {store.missingWagePunches && store.missingWagePunches.length > 0 && (
+              <ul className="mt-2 space-y-1">
+                {store.missingWagePunches.map((punch, index) => (
+                  <li
+                    key={`${punch.employeeGuid}-${punch.inDate || index}`}
+                    className="text-[11px] text-amber-900 font-medium leading-snug break-words"
+                  >
+                    {punchLabel(punch)}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
       )}
 

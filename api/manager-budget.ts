@@ -18,7 +18,9 @@
  *
  * Labor: prefer Analytics POST /era/v1/labor → totalCost. If that 403s (this
  * machine client is blocked), fall back to /labor/v1/timeEntries hours ×
- * hourlyWage. Any punch with hourlyWage null → Incomplete, never $0.
+ * hourlyWage. Any punch with hourlyWage or hours null → Incomplete, never $0.
+ * Incomplete stores list those punches (name or Toast guid, job, in/out).
+ * Wages are never invented or returned on the missing-punch objects.
  *
  * Dates: America/Chicago business dates, not UTC calendar dates / UTC-6.
  */
@@ -52,6 +54,25 @@ const TIME_BUDGET_MS = 48_000;
 export type LaborCostStatus = 'ok' | 'blocked' | 'incomplete' | 'unavailable';
 export type LaborVsTarget = 'under' | 'over' | 'unavailable';
 export type LaborCostSource = 'era.labor.totalCost' | 'timeEntries.hourlyWage' | null;
+export type MissingWageField = 'hourlyWage' | 'hours' | 'both';
+
+/** Punch that made a store Incomplete. Never includes a wage amount. */
+export interface MissingWagePunch {
+  store: string;
+  /** Toast name when one exists; otherwise employeeGuid / entityId. Never invented. */
+  employeeName: string | null;
+  employeeGuid: string;
+  nameUnknown: boolean;
+  jobName: string;
+  jobGuid: string;
+  /** ISO string as Toast sent it. */
+  inDate: string | null;
+  outDate: string | null;
+  inDateChicago: string | null;
+  outDateChicago: string | null;
+  hours: number | null;
+  missing: MissingWageField;
+}
 
 export interface LaborEndpointProbe {
   method: string;
@@ -73,6 +94,7 @@ export interface StoreBudget {
   laborStatus: LaborCostStatus;
   laborVsTarget: LaborVsTarget;
   laborMessage: string;
+  missingWagePunches: MissingWagePunch[];
 }
 
 export interface ManagerBudget {
@@ -90,6 +112,7 @@ export interface ManagerBudget {
     source: LaborCostSource;
     message: string;
     probes: LaborEndpointProbe[];
+    missingWagePunches: MissingWagePunch[];
   };
 }
 
@@ -121,6 +144,13 @@ export interface TimeEntryLabor {
   hours: number;
   usedCostField: boolean;
   usedHoursTimesWage: boolean;
+  missingWagePunches: MissingWagePunch[];
+}
+
+export interface SummariseTimeEntriesOptions {
+  store?: string;
+  employeeNames?: Map<string, string>;
+  jobNames?: Map<string, string>;
 }
 
 export interface ChicagoDate {
@@ -135,6 +165,7 @@ interface StoreLaborCost {
   days: number;
   punches?: number;
   punchesMissingWage?: number;
+  missingWagePunches: MissingWagePunch[];
   source: LaborCostSource;
   message: string;
 }
@@ -544,6 +575,134 @@ export function pickLaborCostAmount(row: Record<string, unknown>): number | null
   return null;
 }
 
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === 'object' ? (value as Record<string, unknown>) : null;
+}
+
+function firstNonEmpty(...values: unknown[]): string | null {
+  for (const value of values) {
+    if (typeof value === 'string' && value.trim()) return value.trim();
+    if (typeof value === 'number' && Number.isFinite(value)) return String(value);
+  }
+  return null;
+}
+
+export function chicagoDateTimeDisplay(iso: unknown): string | null {
+  if (typeof iso !== 'string' || !iso.trim()) return null;
+  const ms = Date.parse(iso);
+  if (!Number.isFinite(ms)) return null;
+  return new Date(ms).toLocaleString('en-US', {
+    timeZone: CHICAGO_TZ,
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
+}
+
+function toastIsoString(value: unknown): string | null {
+  return typeof value === 'string' && value ? value : null;
+}
+
+export function missingWageKind(wage: number | null, hours: number | null): MissingWageField {
+  if (wage === null && hours === null) return 'both';
+  if (wage === null) return 'hourlyWage';
+  return 'hours';
+}
+
+function punchEmployeeGuid(entry: Record<string, unknown>): string {
+  const emp = asRecord(entry.employee);
+  const ref = asRecord(entry.employeeReference);
+  return (
+    firstNonEmpty(
+      emp?.guid,
+      ref?.guid,
+      entry.employeeGuid,
+      typeof entry.employee === 'string' ? entry.employee : null,
+      emp?.id,
+      ref?.id
+    ) || ''
+  );
+}
+
+function punchEmployeeEntityId(entry: Record<string, unknown>): string | null {
+  const emp = asRecord(entry.employee);
+  const ref = asRecord(entry.employeeReference);
+  return firstNonEmpty(ref?.entityId, emp?.entityId, entry.entityId);
+}
+
+/** Toast-provided name only. Never "Unknown" and never a guessed wage-adjacent label. */
+export function punchInlineEmployeeName(entry: Record<string, unknown>): string | null {
+  const emp = asRecord(entry.employee);
+  const ref = asRecord(entry.employeeReference);
+  const chosen = firstNonEmpty(emp?.chosenName, ref?.chosenName);
+  if (chosen) return chosen;
+  const first = firstNonEmpty(emp?.firstName, ref?.firstName);
+  const last = firstNonEmpty(emp?.lastName, ref?.lastName);
+  if (first && last) return `${first} ${last}`;
+  if (first) return first;
+  return null;
+}
+
+function resolveEmployeeIdentity(
+  entry: Record<string, unknown>,
+  employeeNames?: Map<string, string>
+): { employeeName: string | null; employeeGuid: string; nameUnknown: boolean } {
+  const guid = punchEmployeeGuid(entry);
+  const entityId = punchEmployeeEntityId(entry);
+  const mapped = guid && employeeNames ? employeeNames.get(guid) ?? null : null;
+  const name = mapped || punchInlineEmployeeName(entry);
+  if (name) {
+    return { employeeName: name, employeeGuid: guid || entityId || '', nameUnknown: false };
+  }
+  // No Toast name — return the id Toast gave us and mark name unknown.
+  return {
+    employeeName: guid || entityId || null,
+    employeeGuid: guid || entityId || '',
+    nameUnknown: true,
+  };
+}
+
+function resolveJobIdentity(
+  entry: Record<string, unknown>,
+  jobNames?: Map<string, string>
+): { jobName: string; jobGuid: string } {
+  const job = asRecord(entry.job);
+  const ref = asRecord(entry.jobReference);
+  const jobGuid = firstNonEmpty(job?.guid, ref?.guid, entry.jobGuid, job?.id, ref?.id) || '';
+  const inline = firstNonEmpty(job?.title, job?.name, ref?.name, ref?.title);
+  const mapped = jobGuid && jobNames ? jobNames.get(jobGuid) ?? null : null;
+  return { jobGuid, jobName: mapped || inline || jobGuid };
+}
+
+function describeMissingWagePunch(
+  entry: Record<string, unknown>,
+  hours: number | null,
+  wage: number | null,
+  opts: SummariseTimeEntriesOptions
+): MissingWagePunch {
+  const identity = resolveEmployeeIdentity(entry, opts.employeeNames);
+  const job = resolveJobIdentity(entry, opts.jobNames);
+  const inDate = toastIsoString(entry.inDate);
+  const outDate = toastIsoString(entry.outDate);
+  return {
+    store: opts.store || '',
+    employeeName: identity.employeeName,
+    employeeGuid: identity.employeeGuid,
+    nameUnknown: identity.nameUnknown,
+    jobName: job.jobName,
+    jobGuid: job.jobGuid,
+    inDate,
+    outDate,
+    inDateChicago: chicagoDateTimeDisplay(inDate),
+    outDateChicago: chicagoDateTimeDisplay(outDate),
+    hours: hours === null ? null : roundMoney(hours),
+    missing: missingWageKind(wage, hours),
+  };
+}
+
 export function timeEntryHours(entry: Record<string, unknown>, asOfMs = Date.now()): number | null {
   const regular = asNumber(entry.regularHours) ?? 0;
   const overtime = asNumber(entry.overtimeHours) ?? 0;
@@ -567,7 +726,11 @@ export function timeEntryHours(entry: Record<string, unknown>, asOfMs = Date.now
   return Math.max(0, (outMs - inMs - unpaidMs) / 3_600_000);
 }
 
-export function summariseTimeEntries(entries: unknown[], asOfMs = Date.now()): TimeEntryLabor {
+export function summariseTimeEntries(
+  entries: unknown[],
+  asOfMs = Date.now(),
+  opts: SummariseTimeEntriesOptions = {}
+): TimeEntryLabor {
   let dollars = 0;
   let punches = 0;
   let punchesWithWage = 0;
@@ -575,6 +738,7 @@ export function summariseTimeEntries(entries: unknown[], asOfMs = Date.now()): T
   let hours = 0;
   let usedCostField = false;
   let usedHoursTimesWage = false;
+  const missingWagePunches: MissingWagePunch[] = [];
 
   for (const raw of entries) {
     if (!raw || typeof raw !== 'object') continue;
@@ -596,6 +760,7 @@ export function summariseTimeEntries(entries: unknown[], asOfMs = Date.now()): T
 
     if (wage === null || punchHours === null) {
       punchesMissingWage++;
+      missingWagePunches.push(describeMissingWagePunch(entry, punchHours, wage, opts));
       continue;
     }
 
@@ -614,6 +779,7 @@ export function summariseTimeEntries(entries: unknown[], asOfMs = Date.now()): T
       hours: roundMoney(hours),
       usedCostField,
       usedHoursTimesWage,
+      missingWagePunches,
     };
   }
 
@@ -626,6 +792,7 @@ export function summariseTimeEntries(entries: unknown[], asOfMs = Date.now()): T
     hours: roundMoney(hours),
     usedCostField,
     usedHoursTimesWage,
+    missingWagePunches,
   };
 }
 
@@ -752,6 +919,7 @@ function okStore(
     status: 'ok',
     mtdLaborDollars: dollars,
     days,
+    missingWagePunches: extra.missingWagePunches ?? [],
     source,
     message: `Toast ${source}`,
     ...extra,
@@ -859,6 +1027,115 @@ async function fetchTimeEntriesForStore(
   return { status: got.status, entries: null };
 }
 
+function employeeNameFromToast(emp: Record<string, unknown>): string | null {
+  const chosen = firstNonEmpty(emp.chosenName);
+  if (chosen) return chosen;
+  const first = firstNonEmpty(emp.firstName);
+  const last = firstNonEmpty(emp.lastName);
+  if (first && last) return `${first} ${last}`;
+  if (first) return first;
+  return null;
+}
+
+function jobNameFromToast(job: Record<string, unknown>): string | null {
+  return firstNonEmpty(job.title, job.name);
+}
+
+async function fetchEmployeeNameMap(
+  accessToken: string,
+  restaurantGuid: string,
+  probes: LaborEndpointProbe[]
+): Promise<Map<string, string>> {
+  const path = '/labor/v1/employees';
+  const got = await toastCall({
+    token: accessToken,
+    method: 'GET',
+    path,
+    restaurantGuid,
+  });
+  probes.push({
+    method: 'GET',
+    path,
+    status: got.status,
+    ...toastErrorBits(got.data, got.text),
+  });
+
+  const map = new Map<string, string>();
+  if (got.status !== 200) return map;
+
+  const data = got.data;
+  const employees = Array.isArray(data)
+    ? data
+    : asRecord(data)?.employees;
+  if (!Array.isArray(employees)) return map;
+
+  for (const raw of employees) {
+    const emp = asRecord(raw);
+    if (!emp) continue;
+    const guid = firstNonEmpty(emp.guid, emp.id);
+    const name = employeeNameFromToast(emp);
+    if (guid && name) map.set(guid, name);
+  }
+  return map;
+}
+
+async function fetchJobNameMap(
+  accessToken: string,
+  restaurantGuid: string,
+  probes: LaborEndpointProbe[]
+): Promise<Map<string, string>> {
+  const path = '/labor/v1/jobs';
+  const got = await toastCall({
+    token: accessToken,
+    method: 'GET',
+    path,
+    restaurantGuid,
+  });
+  probes.push({
+    method: 'GET',
+    path,
+    status: got.status,
+    ...toastErrorBits(got.data, got.text),
+  });
+
+  const map = new Map<string, string>();
+  if (got.status !== 200) return map;
+
+  const data = got.data;
+  const jobs = Array.isArray(data) ? data : asRecord(data)?.jobs;
+  if (!Array.isArray(jobs)) return map;
+
+  for (const raw of jobs) {
+    const job = asRecord(raw);
+    if (!job) continue;
+    const guid = firstNonEmpty(job.guid, job.id);
+    const name = jobNameFromToast(job);
+    if (guid && name) map.set(guid, name);
+  }
+  return map;
+}
+
+async function summariseStoreTimeEntries(opts: {
+  store: string;
+  entries: unknown[];
+  accessToken: string;
+  restaurantGuid: string;
+  probes: LaborEndpointProbe[];
+}): Promise<TimeEntryLabor> {
+  const first = summariseTimeEntries(opts.entries, Date.now(), { store: opts.store });
+  if (first.status !== 'incomplete') return first;
+
+  const [employeeNames, jobNames] = await Promise.all([
+    fetchEmployeeNameMap(opts.accessToken, opts.restaurantGuid, opts.probes),
+    fetchJobNameMap(opts.accessToken, opts.restaurantGuid, opts.probes),
+  ]);
+  return summariseTimeEntries(opts.entries, Date.now(), {
+    store: opts.store,
+    employeeNames,
+    jobNames,
+  });
+}
+
 function storeFromTimeEntries(name: string, summary: TimeEntryLabor, days: number): StoreLaborCost {
   if (summary.status === 'incomplete') {
     return {
@@ -867,6 +1144,7 @@ function storeFromTimeEntries(name: string, summary: TimeEntryLabor, days: numbe
       days,
       punches: summary.punches,
       punchesMissingWage: summary.punchesMissingWage,
+      missingWagePunches: summary.missingWagePunches,
       source: 'timeEntries.hourlyWage',
       message:
         `Incomplete — ${summary.punchesMissingWage} of ${summary.punches} ${name} ` +
@@ -876,6 +1154,7 @@ function storeFromTimeEntries(name: string, summary: TimeEntryLabor, days: numbe
   return okStore(summary.dollars ?? 0, days, 'timeEntries.hourlyWage', {
     punches: summary.punches,
     punchesMissingWage: 0,
+    missingWagePunches: [],
     message:
       `Analytics labor 403; fallback /labor/v1/timeEntries ` +
       `(${summary.punches} punches, hours × hourlyWage; OT at base rate)`,
@@ -902,15 +1181,37 @@ async function fetchTimeEntryFallback(opts: {
     status: status === 403 || status === 401 ? 'blocked' : 'unavailable',
     mtdLaborDollars: null,
     days: 0,
+    missingWagePunches: [],
     source: null,
     message: `${store} /labor/v1/timeEntries failed (HTTP ${status})`,
   });
 
-  const littleElm = leRaw.entries
-    ? storeFromTimeEntries('Little Elm', summariseTimeEntries(leRaw.entries), Math.round(days))
+  const [littleElmSummary, prosperSummary] = await Promise.all([
+    leRaw.entries
+      ? summariseStoreTimeEntries({
+          store: 'Little Elm',
+          entries: leRaw.entries,
+          accessToken: opts.accessToken,
+          restaurantGuid: opts.littleElmGuid,
+          probes: opts.probes,
+        })
+      : null,
+    prRaw.entries
+      ? summariseStoreTimeEntries({
+          store: 'Prosper / Celina',
+          entries: prRaw.entries,
+          accessToken: opts.accessToken,
+          restaurantGuid: opts.prosperGuid,
+          probes: opts.probes,
+        })
+      : null,
+  ]);
+
+  const littleElm = littleElmSummary
+    ? storeFromTimeEntries('Little Elm', littleElmSummary, Math.round(days))
     : blocked('Little Elm', leRaw.status);
-  const prosper = prRaw.entries
-    ? storeFromTimeEntries('Prosper / Celina', summariseTimeEntries(prRaw.entries), Math.round(days))
+  const prosper = prosperSummary
+    ? storeFromTimeEntries('Prosper / Celina', prosperSummary, Math.round(days))
     : blocked('Prosper / Celina', prRaw.status);
 
   const status = rollupStatus(littleElm.status, prosper.status);
@@ -1275,6 +1576,7 @@ export async function getManagerBudget(
       laborStatus: labor.littleElm.status,
       laborVsTarget: laborVsTarget(lePct),
       laborMessage: labor.littleElm.message,
+      missingWagePunches: labor.littleElm.missingWagePunches,
     },
     prosper: {
       name: 'Prosper / Celina',
@@ -1287,12 +1589,17 @@ export async function getManagerBudget(
       laborStatus: labor.prosper.status,
       laborVsTarget: laborVsTarget(prPct),
       laborMessage: labor.prosper.message,
+      missingWagePunches: labor.prosper.missingWagePunches,
     },
     labor: {
       status: labor.status,
       source: labor.source,
       message: labor.message,
       probes: labor.probes,
+      missingWagePunches: [
+        ...labor.littleElm.missingWagePunches,
+        ...labor.prosper.missingWagePunches,
+      ],
     },
   };
 }
