@@ -2304,5 +2304,76 @@ export const NEW_TRAINING_MODULES: TrainingModule[] = [
         ]
       }
     ]
+  },
+  {
+    id: 'm-food-close',
+    title: 'Closing Duties: Food Counts',
+    description: 'Toast starting qty at open, 86 when qty hits 0, leftover and waste on the logbook food list at close.',
+    category: 'ONBOARDING',
+    lessons: [
+      {
+        id: 'l-food-close',
+        moduleId: 'm-food-close',
+        title: 'Open, 86, leftover, and waste',
+        type: 'CONTENT',
+        content: `<h3>THE WRITTEN CLOSE — FOOD</h3>
+<p>Owen orders food from these numbers. Do it the same way every day.</p>
+<hr>
+<h3>AT OPEN</h3>
+<p>GMs enter <strong>starting qty in Toast inventory</strong> for every food SKU they count (Main Street Bistro, Lisa Cordero tacos, Sysco food, pastry). Those items stay on Toast QUANTITY tracking.</p>
+<p>Do not put food into the syrup / coffee inventory catalog.</p>
+<hr>
+<h3>WHEN QTY HITS 0</h3>
+<p>Toast marks the item <strong>sold out / 86</strong>. BrewShift records the 86 time. <strong>Last-sold time</strong> from orders is the check — Manager Hub shows both. Do not pick one.</p>
+<hr>
+<h3>AT CLOSE</h3>
+<p>On the <strong>logbook Closing Checklist</strong>, enter <strong>leftover qty</strong> and <strong>waste qty</strong> on the <strong>food list</strong> (Toast food SKUs only).</p>
+<ul>
+<li>Leftover = still good</li>
+<li>Waste = discarded</li>
+<li>If it 86’d earlier, leftover is 0 and waste is what you threw away</li>
+</ul>
+<p>This is not Sortly and not the 31-syrup count.</p>`
+      },
+      {
+        id: 'l-food-close-quiz',
+        moduleId: 'm-food-close',
+        title: 'Food counts knowledge check',
+        type: 'QUIZ',
+        quizQuestions: [
+          {
+            id: 'fc1',
+            type: 'MULTIPLE_CHOICE',
+            question: 'Where do GMs enter starting food qty at open?',
+            options: ['Toast inventory', 'The syrup catalog in the logbook', 'Sortly', 'Owen’s text thread'],
+            correctAnswers: ['Toast inventory'],
+            explanation: 'GMs enter starting qty in Toast at every open.'
+          },
+          {
+            id: 'fc2',
+            type: 'MULTIPLE_CHOICE',
+            question: 'What does Toast do when a counted food qty hits 0?',
+            options: ['Emails Owen', 'Marks the item sold out / 86', 'Zeros the syrup catalog', 'Locks the register'],
+            correctAnswers: ['Marks the item sold out / 86'],
+            explanation: 'Toast 86s the item. Last-sold time from orders is the check — both times are shown.'
+          },
+          {
+            id: 'fc3',
+            type: 'MULTIPLE_CHOICE',
+            question: 'At close, leftover qty and waste qty are entered where?',
+            options: ['Toast sales pacing', 'The food list on the logbook Closing Checklist', 'The coffee bag par sheet', 'A paper waste log only'],
+            correctAnswers: ['The food list on the logbook Closing Checklist'],
+            explanation: 'Closers enter leftover and waste on the logbook food list — Toast food SKUs, not syrups.'
+          },
+          {
+            id: 'fc4',
+            type: 'TRUE_FALSE',
+            question: 'Last-sold time replaces 86 time. You only need one of the two.',
+            correctAnswers: ['False'],
+            explanation: 'Both times are required. Last-sold is the check, not a substitute.'
+          }
+        ]
+      }
+    ]
   }
 ];

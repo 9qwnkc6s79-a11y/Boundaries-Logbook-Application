@@ -152,6 +152,14 @@ If you need help:
 2. Contact Toast support for API access issues
 3. Review error messages in browser console (F12 > Console tab)
 
+## Written close (OpsBook / Drive)
+
+OpsBook and the Manager Playbook are **not** in this repo. The ship-ready close copy for Amy to paste into Drive is:
+
+`docs/close-procedure.md`
+
+Same procedure is in Ops Manual §16, Academy “Closing Duties: Food Counts”, and the logbook closing food list.
+
 ## Food 86 / last-sold webhook
 
 Owen’s food view uses Toast **stock:read** plus **ordersBulk** last-sold times. The stock webhook is optional: the app also **polls** `/stock/v1/inventory` and records the first QUANTITY→OUT_OF_STOCK time it sees (America/Chicago business date).

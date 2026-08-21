@@ -29,6 +29,7 @@ function openingChecklist(storeId: string): ChecklistTemplate {
       { id: 'ot-5', title: 'Wipe down all counters and surfaces', requiresPhoto: true },
       { id: 'ot-6', title: 'Stock cups, lids, sleeves, and napkins', requiresPhoto: false },
       { id: 'ot-7', title: 'Check milk and ingredient levels — restock as needed', requiresPhoto: false },
+      { id: 'ot-food-toast-qty', title: 'GM: enter starting food qty in Toast inventory', requiresPhoto: false },
       { id: 'ot-8', title: 'Brew first batch of drip coffee', requiresPhoto: false },
       { id: 'ot-9', title: 'Set up POS system and verify till count', requiresPhoto: false, isCritical: true },
       { id: 'ot-10', title: 'Put out signage and set menu boards', requiresPhoto: false },
@@ -51,6 +52,7 @@ function closingChecklist(storeId: string): ChecklistTemplate {
       { id: 'ct-4', title: 'Empty all trash cans and replace liners', requiresPhoto: false },
       { id: 'ct-5', title: 'Sweep and mop all floors', requiresPhoto: true },
       { id: 'ct-6', title: 'Restock for tomorrow (cups, lids, syrups)', requiresPhoto: false },
+      { id: 'ct-food-waste', title: 'Enter leftover qty + waste qty on the food list (Toast food SKUs)', requiresPhoto: false },
       { id: 'ct-7', title: 'Close out POS and count till', requiresPhoto: false, isCritical: true },
       { id: 'ct-8', title: 'Store perishables properly — check temps', requiresPhoto: false },
       { id: 'ct-9', title: 'Turn off lights and equipment', requiresPhoto: false },
@@ -353,7 +355,10 @@ Your espresso is the foundation. Before serving any drinks:
 - Cups, lids, sleeves — front-facing stock full
 - Syrups and sauces — check levels, refill if low
 - Pastry case — stock fresh items, remove expired
+- **GM:** enter starting food qty in Toast inventory for every food SKU you count
 - Brew first batch of drip coffee
+
+When a food qty hits 0, Toast 86s it. At close, leftover and waste go on the logbook food list — not the syrup catalog.
 
 ### The Opening Checklist
 
@@ -397,10 +402,17 @@ Start winding down operations 30–60 minutes before close:
 8. **Trash** — empty all bins, replace liners, take trash out
 9. **Floors** — sweep thoroughly, then mop
 10. **POS** — close out the register, count the till
+11. **Food leftover & waste** — on the logbook Closing Checklist food list, enter leftover qty and waste qty for Toast food SKUs
+
+### Food counts (written close)
+
+- **At open:** GMs enter starting qty in Toast inventory for every food SKU they count.
+- **When qty hits 0:** Toast marks the item sold out / 86. Last-sold time from orders is the check — both times are shown.
+- **At close:** Enter leftover qty and waste qty on the food list in the logbook. Not the syrup catalog.
 
 ### The Closing Checklist
 
-Complete every item on the closing checklist before leaving. Have a second person verify if possible.
+Complete every item on the closing checklist before leaving, including leftover and waste on the food list. Have a second person verify if possible.
 
 ### Security
 
@@ -1270,7 +1282,10 @@ The closer is responsible for leaving the shop ready for tomorrow:
 - Clean all equipment thoroughly
 - Restock for the morning opener
 - Complete the closing checklist
+- Enter leftover qty and waste qty on the logbook food list (Toast food SKUs)
 - Secure the building
+
+At open, GMs enter starting qty in Toast. When qty hits 0, Toast 86s. At close, leftover and waste go on the logbook food list — not the syrup catalog.
 
 ### Shift Changes
 

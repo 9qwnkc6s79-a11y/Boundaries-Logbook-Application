@@ -663,6 +663,16 @@ const OpsView: React.FC<OpsViewProps> = ({ user, storeId, allUsers, templates, e
           <div className="flex items-center justify-between gap-4">
             <div>
               <h2 className="text-2xl sm:text-4xl font-[900] text-[#0F2B3C] tracking-tighter uppercase leading-none">{activeTemplate.name}</h2>
+              {activeTemplate.type === 'CLOSING' && (
+                <p className="text-[11px] sm:text-xs text-neutral-500 font-semibold mt-2 max-w-xl leading-snug">
+                  At open GMs enter starting qty in Toast. When it hits 0, Toast 86s. At close enter leftover qty and waste qty on the food list below (Toast food SKUs — not syrups).
+                </p>
+              )}
+              {activeTemplate.type === 'OPENING' && (
+                <p className="text-[11px] sm:text-xs text-neutral-500 font-semibold mt-2 max-w-xl leading-snug">
+                  GMs: enter starting food qty in Toast inventory for every food SKU you count. Toast 86s when qty hits 0. Closers enter leftover and waste on the logbook food list.
+                </p>
+              )}
               <div className="text-xs sm:text-sm text-neutral-400 font-bold mt-1 flex items-center gap-2 flex-wrap">
                 <span className="bg-neutral-50 px-2 py-0.5 rounded-full border border-neutral-100">{displayDate}</span>
                 {isReadOnly && (
@@ -982,7 +992,7 @@ const OpsView: React.FC<OpsViewProps> = ({ user, storeId, allUsers, templates, e
     <div className="space-y-12 sm:space-y-16 animate-in fade-in duration-700">
       <header className="max-w-2xl">
         <h1 className="text-4xl sm:text-6xl font-[900] text-[#0F2B3C] tracking-tighter mb-2 leading-none uppercase">Logbook</h1>
-        <p className="text-neutral-500 font-medium text-base sm:text-lg">Collaborative shift standards.</p>
+        <p className="text-neutral-500 font-medium text-base sm:text-lg">Collaborative shift standards. Closing: leftover qty + waste qty go on the food list (Toast food SKUs). GMs enter starting qty in Toast at open; Toast 86s at 0.</p>
       </header>
 
       <div className="space-y-16">

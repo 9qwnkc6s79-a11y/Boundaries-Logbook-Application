@@ -342,7 +342,12 @@ Flavor syrup scales with cup size. This table is the single source for syrup vol
 - Label and date all prepped items.
 - Maintain **TurboChef** cleanliness and run crumb tray wipe downs hourly.
 - Food held only at safe temps; discard per health code.
-- Expo verifies all food before handing off.`
+- Expo verifies all food before handing off.
+
+### Toast food counts (open → 86 → close)
+- **At open:** GMs enter starting qty in Toast inventory for every food SKU they count.
+- **When qty hits 0:** Toast marks the item sold out / 86. Last-sold time from orders is the check — both times are shown in Manager Hub.
+- **At close:** Enter leftover qty and waste qty on the food list in the logbook Closing Checklist. Not the syrup catalog.`
   },
   {
     id: 's-13',
@@ -371,7 +376,9 @@ Flavor syrup scales with cup size. This table is the single source for syrup vol
     content: `Zone-specific checklists for Coffee Bar, Not Coffee Bar, Expo / Window, Walk-In Cooler, and Lobby / Exterior. Daily versus end-of-day tasks to be defined in the next version.
 
 ### Closing Cross-Reference
-The frozen machine nightly close is in **Section 15.1**. It is required at every close with no exceptions and should be pulled into the closing checklist when this section is built.`
+The frozen machine nightly close is in **Section 15.1**. It is required at every close with no exceptions and should be pulled into the closing checklist when this section is built.
+
+Food leftover and waste at close are in **Section 16** and on the logbook Closing Checklist food list (Toast QUANTITY food SKUs).`
   },
   {
     id: 's-15',
@@ -432,7 +439,24 @@ Full teardown runs every other day, but the WASH-cycle sanitize at every close s
     id: 's-16',
     number: 16,
     title: 'Opening / Shift Change / Closing',
-    content: `Defines opening checklists, shift handoff responsibilities, and closing and lock-up procedures. To be completed in the next version.`
+    content: `### Opening
+Complete the Opening Checklist before doors. GMs enter **starting qty in Toast inventory** for every food SKU they count (tacos, Main Street, pastry, Sysco food). Those items stay on Toast QUANTITY tracking. Do not put food counts into the syrup / coffee inventory catalog.
+
+### Shift change
+Brief the incoming lead on 86’d food, low qty, and anything the closer must waste or leftover-count.
+
+### Closing
+A thorough close means an easy open. Complete every item on the Closing Checklist, including the frozen machine nightly close in **Section 15.1**.
+
+**Food leftover and waste (required):**
+1. At open, GMs entered starting qty in Toast.
+2. When a food qty hits 0, Toast 86s it. BrewShift keeps the 86 time. Last-sold time from orders is the check — Owen sees both.
+3. At close, on the logbook Closing Checklist, enter **leftover qty** and **waste qty** on the **food list** (Toast food SKUs only).
+
+Leftover = still good. Waste = discarded. If the item 86’d earlier, leftover is 0 and waste is whatever you threw away.
+
+### Lock-up
+All doors and windows locked. Required equipment off. Photo of the clean bar. Security as posted.`
   },
   {
     id: 's-17',
@@ -595,8 +619,19 @@ If you have any questions about which site to use or need help with the process,
           { id: 'q40', type: 'MULTIPLE_CHOICE', question: 'When dialing in espresso, what two key measurements are you trying to achieve?', options: ['Temperature and pressure', 'Dose (input weight) and yield (output weight)', 'Grind size and water volume', 'Brew time and cup size'], correctAnswers: ['Dose (input weight) and yield (output weight)'] },
           { id: 'q41', type: 'MULTIPLE_CHOICE', question: 'If the espresso tastes sour during the dial-in process, what adjustment should typically be made?', options: ['Use a coarser grind to speed up extraction', 'Use a finer grind to slow down extraction and increase sweetness', 'Add more water to the shot', 'Reduce the dose amount'], correctAnswers: ['Use a finer grind to slow down extraction and increase sweetness'] },
           { id: 'q42', type: 'MULTIPLE_CHOICE', question: 'Why is restocking supplies before opening important for the flow of service?', options: ['It gives baristas something to do while waiting for customers', 'It ensures you won\'t run out of essential items during the rush, which would slow down service', 'It\'s not important - you can restock during slow periods', 'It\'s mainly for appearance when the manager arrives'], correctAnswers: ['It ensures you won\'t run out of essential items during the rush, which would slow down service'] },
-          { id: 'q43', type: 'MULTIPLE_CHOICE', question: 'What is the purpose of purging the espresso group head before pulling a shot?', options: ['To cool down the machine', 'To flush out old grounds and ensure fresh, clean water for extraction', 'To make a noise that signals you\'re ready', 'It\'s not necessary if the machine is already on'], correctAnswers: ['To flush out old grounds and ensure fresh, clean water for extraction'] }
+          { id: 'q43', type: 'MULTIPLE_CHOICE', question: 'What is the purpose of purging the espresso group head before pulling a shot?', options: ['To cool down the machine', 'To flush out old grounds and ensure fresh, clean water for extraction', 'To make a noise that signals you\'re ready', 'It\'s not necessary if the machine is already on'], correctAnswers: ['To flush out old grounds and ensure fresh, clean water for extraction'] },
+          { id: 'q44', type: 'MULTIPLE_CHOICE', question: 'Where do GMs enter starting food qty at open?', options: ['The syrup inventory catalog', 'Sortly', 'Toast inventory', 'A paper clipboard only'], correctAnswers: ['Toast inventory'], explanation: 'GMs enter starting qty in Toast at every open. When qty hits 0, Toast 86s. Leftover and waste are entered on the logbook food list at close.' }
         ]
+      },
+      {
+        id: 'l-morning-food-qty',
+        moduleId: 'm-morning',
+        title: 'Food counts at open (Toast)',
+        type: 'CONTENT',
+        content: `<h3>FOOD COUNTS AT OPEN</h3>
+<p>GMs enter <strong>starting qty in Toast inventory</strong> for every food SKU they count (Main Street Bistro, Lisa Cordero tacos, Sysco food, pastry). Those items stay on Toast QUANTITY tracking through the day.</p>
+<p>When qty hits <strong>0</strong>, Toast marks the item sold out / 86. Last-sold time from orders is the check — Manager Hub shows both times.</p>
+<p>At close, leftover qty and waste qty go on the <strong>food list in the logbook Closing Checklist</strong>. Not the syrup catalog. Not Sortly.</p>`
       },
       {
         id: 'l-cleaning-fundamentals',
@@ -634,7 +669,8 @@ If you have any questions about which site to use or need help with the process,
 </ul>
 
 <h3>The habit that matters most</h3>
-<p><strong>Clean as you go.</strong> Wipe the wand after every steam. Rinse the pitcher when you set it down. Wipe drips when they happen. A closing shift is easy when the whole day was clean.</p>`
+<p><strong>Clean as you go.</strong> Wipe the wand after every steam. Rinse the pitcher when you set it down. Wipe drips when they happen. A closing shift is easy when the whole day was clean.</p>
+<p>At close, leftover qty and waste qty for Toast food SKUs go on the logbook Closing Checklist food list — not the syrup catalog. GMs entered starting qty in Toast at open; when qty hits 0, Toast 86s.</p>`
       },
       {
         id: 'l-cleaning-quiz',
@@ -651,7 +687,8 @@ If you have any questions about which site to use or need help with the process,
           { id: 'cl7', type: 'MULTIPLE_CHOICE', question: 'After sanitizing a food-contact surface, you should:', options: ['Towel it dry immediately', 'Let it air-dry', 'Rinse it with water', 'Wipe it with a dry paper towel'], correctAnswers: ['Let it air-dry'], explanation: 'Toweling it off wipes away the sanitizer before it finishes working.' },
           { id: 'cl8', type: 'MULTIPLE_CHOICE', question: 'Where does the sanitizer cloth live between wipes?', options: ['On the counter', 'In your apron', 'In the sanitizer bucket', 'By the register'], correctAnswers: ['In the sanitizer bucket'], explanation: 'A cloth left on the counter grows bacteria. It goes back in the bucket every time.' },
           { id: 'cl9', type: 'MULTIPLE_CHOICE', question: 'How do you get streak-free glass?', options: ['Paper towels and lots of spray', 'Microfiber or squeegee, top-to-bottom overlapping passes, dry the edges', 'Circular scrubbing', 'Hot water only'], correctAnswers: ['Microfiber or squeegee, top-to-bottom overlapping passes, dry the edges'], explanation: 'Microfiber doesn\'t lint; overlapping top-to-bottom passes and dry edges are the professional finish.' },
-          { id: 'cl10', type: 'MULTIPLE_CHOICE', question: '"If you have time to lean..."', options: ['...take a break', '...you have time to clean', '...check your phone', '...ask for a task'], correctAnswers: ['...you have time to clean'], explanation: 'Clean as you go — wipe the wand, rinse the pitcher, catch drips when they happen.' }
+          { id: 'cl10', type: 'MULTIPLE_CHOICE', question: '"If you have time to lean..."', options: ['...take a break', '...you have time to clean', '...check your phone', '...ask for a task'], correctAnswers: ['...you have time to clean'], explanation: 'Clean as you go — wipe the wand, rinse the pitcher, catch drips when they happen.' },
+          { id: 'cl11', type: 'MULTIPLE_CHOICE', question: 'At close, leftover qty and waste qty for food go where?', options: ['The syrup inventory catalog', 'The food list on the logbook Closing Checklist', 'Toast sales pacing', 'A text to Owen only'], correctAnswers: ['The food list on the logbook Closing Checklist'], explanation: 'GMs enter starting qty in Toast at open. Toast 86s at 0. Closers enter leftover and waste on the logbook food list.' }
         ]
       }
     ]
@@ -1896,8 +1933,20 @@ Great hospitality is about anticipating needs, clear communication, and making g
           { id: 'tp17', type: 'MULTIPLE_CHOICE', question: 'What should you do if a guest changes their order?', options: ['Start over completely', 'Tap to edit or swipe left to delete items', 'Ask them to order again at the window', 'Call a manager'], correctAnswers: ['Tap to edit or swipe left to delete items'] },
           { id: 'tp18', type: 'MULTIPLE_CHOICE', question: 'Where is the Toast handheld stored when taking orders outside?', options: ['In your pocket', 'In the Boundaries satchel', 'On a lanyard', 'At the register'], correctAnswers: ['In the Boundaries satchel'] },
           { id: 'tp19', type: 'MULTIPLE_CHOICE', question: 'What temperature options are available for drinks?', options: ['Warm, Room Temp, Cold', 'Hot, Iced, Frozen', 'Hot, Cold', 'Steaming, Lukewarm, Chilled'], correctAnswers: ['Hot, Iced, Frozen'] },
-          { id: 'tp20', type: 'MULTIPLE_CHOICE', question: 'Why is it important to use Gift Card for Boundaries App payments?', options: ['It\'s faster', 'The app generates a digital gift card QR code', 'Credit Card doesn\'t work', 'It gives bonus points'], correctAnswers: ['The app generates a digital gift card QR code'] }
+          { id: 'tp20', type: 'MULTIPLE_CHOICE', question: 'Why is it important to use Gift Card for Boundaries App payments?', options: ['It\'s faster', 'The app generates a digital gift card QR code', 'Credit Card doesn\'t work', 'It gives bonus points'], correctAnswers: ['The app generates a digital gift card QR code'] },
+          { id: 'tp21', type: 'MULTIPLE_CHOICE', question: 'What happens in Toast when a counted food qty hits 0?', options: ['Nothing — tell Owen in Slack', 'Toast marks it sold out / 86', 'The syrup catalog zeros out', 'The logbook auto-wastes it'], correctAnswers: ['Toast marks it sold out / 86'], explanation: 'GMs enter starting qty in Toast at open. At 0, Toast 86s. At close, leftover and waste are entered on the logbook food list.' }
         ]
+      },
+      {
+        id: 'l-toast-food-86',
+        moduleId: 'm-toast-pos',
+        title: 'Food qty, 86, and close-out',
+        type: 'CONTENT',
+        content: `<h3>TOAST FOOD QTY, 86, AND CLOSE-OUT</h3>
+<p><strong>At open:</strong> GMs enter starting qty in Toast inventory for every food SKU they count.</p>
+<p><strong>When qty hits 0:</strong> Toast marks the item sold out / 86. BrewShift records the 86 time. Last-sold time from orders is the check — both are shown in Manager Hub. Do not pick one.</p>
+<p><strong>At close:</strong> On the logbook Closing Checklist, enter leftover qty and waste qty on the food list (Toast food SKUs). Not the syrup catalog.</p>
+<p>If Toast stock:read is missing, the food list will say so. Do not invent numbers.</p>`
       }
     ]
   },
@@ -2015,6 +2064,7 @@ const baseTemplates = [
       { id: 'o-4', title: 'Brew first 1-gallon batch of coffee', requiresPhoto: false },
       { id: 'o-5', title: 'Prepare Matcha base (30g powder + 300ml water)', requiresPhoto: false },
       { id: 'o-6', title: 'Stock milk fridges and rotate FIFO', requiresPhoto: false },
+      { id: 'o-food-toast-qty', title: 'GM: enter starting food qty in Toast inventory', requiresPhoto: false },
       { id: 'o-7', title: 'Set up pastry case and record inventory', requiresPhoto: true },
       { id: 'o-8', title: 'Prepare Sweet Cream batches (labeled and dated)', requiresPhoto: false },
       { id: 'o-10', title: 'Final shop walk-through & wipe down', requiresPhoto: true },
@@ -2033,6 +2083,7 @@ const baseTemplates = [
       { id: 'c-3', title: 'Clean & purge steam wands (no residue)', requiresPhoto: false, isCritical: true },
       { id: 'c-4', title: 'Empty and wipe out grinder hoppers', requiresPhoto: false },
       { id: 'c-7', title: 'Empty and clean pastry case', requiresPhoto: true },
+      { id: 'c-food-waste', title: 'Enter leftover qty + waste qty on the food list (Toast food SKUs)', requiresPhoto: false },
       { id: 'c-8', title: 'Take out all trash and reline bins', requiresPhoto: false },
       { id: 'c-9', title: 'Sweep and mop FOH and BOH floors', requiresPhoto: true },
       { id: 'c-10', title: 'Ensure all doors and windows are locked', requiresPhoto: false, isCritical: true },

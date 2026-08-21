@@ -150,8 +150,8 @@ const Food86Panel: React.FC<Food86PanelProps> = ({ storeId, storeName, user, mod
   const scopeMissing = payload && !payload.stockScopeOk;
   const title = mode === 'closing' ? 'Food leftover & waste' : 'Food 86 / last sold';
   const subtitle = mode === 'closing'
-    ? 'Toast food SKUs counted at open — leftover and waste at close. Not the syrup catalog.'
-    : `${storeName || 'This store'} · today (America/Chicago). 86 time and last sold are both shown.`;
+    ? 'At open GMs enter starting qty in Toast. When it hits 0, Toast 86s. At close enter leftover qty and waste qty here — Toast food SKUs only, not the syrup catalog.'
+    : `${storeName || 'This store'} · today (America/Chicago). 86 time and last-sold time are both shown. Leftover and waste come from the closing food list.`;
 
   return (
     <section className={`rounded-xl border shadow-sm ${mode === 'closing' ? 'border-amber-100 bg-amber-50/20' : 'border-neutral-100 bg-white'} p-4 sm:p-6`}>
@@ -216,8 +216,8 @@ const Food86Panel: React.FC<Food86PanelProps> = ({ storeId, storeName, user, mod
                 <th className="py-2 pr-3">Remaining</th>
                 <th className="py-2 pr-3">86 at</th>
                 <th className="py-2 pr-3">Last sold at</th>
-                <th className="py-2 pr-3">Leftover</th>
-                <th className="py-2">Waste</th>
+                <th className="py-2 pr-3">{mode === 'closing' ? 'Leftover qty' : 'Leftover'}</th>
+                <th className="py-2">{mode === 'closing' ? 'Waste qty' : 'Waste'}</th>
               </tr>
             </thead>
             <tbody>

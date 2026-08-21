@@ -39,12 +39,12 @@ if (typeof firebase !== 'undefined') {
 
 // Increment this version whenever curriculum structure or lesson properties change
 // This forces Firebase to update cached curriculum data
-const CURRICULUM_VERSION = 12;
+const CURRICULUM_VERSION = 13;
 
 // Bump when the manual or recipe defaults change and must OVERWRITE cloud
 // copies (deliberate source-of-truth refresh — e.g. a new Ops Manual /
-// Recipe Book release). v4 = cold brew bag-setup clarifications.
-const CONTENT_DEFAULTS_VERSION = 4;
+// Recipe Book release). v5 = food 86 / leftover / waste close procedure.
+const CONTENT_DEFAULTS_VERSION = 5;
 
 const DOC_KEYS = {
   USERS: 'users',
@@ -1666,7 +1666,38 @@ class CloudAPI {
       }
     }
 
-    return { users, submissions, progress, templates, curriculum, manual: finalManual, recipes: mergedRecipes };
+    // Additive: leftover/waste + Toast starting-qty tasks on live checklists.
+    let syncedTemplates = templates;
+    if (Array.isArray(templates) && templates.length > 0) {
+      const foodWasteTask = {
+        id: 'c-food-waste',
+        title: 'Enter leftover qty + waste qty on the food list (Toast food SKUs)',
+        requiresPhoto: false,
+      };
+      const toastQtyTask = {
+        id: 'o-food-toast-qty',
+        title: 'GM: enter starting food qty in Toast inventory',
+        requiresPhoto: false,
+      };
+      let mutated = false;
+      syncedTemplates = templates.map(t => {
+        if (t.type === 'CLOSING' && !t.tasks.some(task => task.id === 'c-food-waste' || task.id === 'ct-food-waste')) {
+          mutated = true;
+          return { ...t, tasks: [...t.tasks, foodWasteTask] };
+        }
+        if (t.type === 'OPENING' && !t.tasks.some(task => task.id === 'o-food-toast-qty' || task.id === 'ot-food-toast-qty')) {
+          mutated = true;
+          return { ...t, tasks: [...t.tasks, toastQtyTask] };
+        }
+        return t;
+      });
+      if (mutated) {
+        console.log('[Firestore] globalSync: Added food leftover/waste + Toast starting-qty tasks to checklists');
+        await this.remoteSet(DOC_KEYS.TEMPLATES, syncedTemplates);
+      }
+    }
+
+    return { users, submissions, progress, templates: syncedTemplates, curriculum, manual: finalManual, recipes: mergedRecipes };
   }
 }
 
