@@ -112,6 +112,7 @@ const UNSTOCKED_FOOD86_NAMES = [
   'muffin for mwm',
   'plain croissant',
   'taco toppings',
+  'taco toppngs', // live Toast typo (missing i)
 ];
 
 type Food86Meta = { name?: string; menuName?: string; menuGroup?: string; includeInFoodView?: boolean };
