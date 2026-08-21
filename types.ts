@@ -554,6 +554,67 @@ export interface InventoryCount {
   counts: Record<string, number>;
 }
 
+// ── Toast food 86 / last-sold / closing waste ──
+// QUANTITY + OUT_OF_STOCK items GMs count in Toast at open (not the syrup catalog).
+
+export type FoodCategoryHint = 'food' | 'drink' | 'unknown';
+export type Food86Source = 'webhook' | 'poll';
+
+export interface FoodSkuStatus {
+  itemGuid: string;
+  multiLocationId?: string;
+  name: string;
+  menuName?: string;
+  menuGroup?: string;
+  status: 'QUANTITY' | 'OUT_OF_STOCK' | string;
+  quantity: number | null;
+  categoryHint: FoodCategoryHint;
+  includeInFoodView: boolean;
+}
+
+export interface FoodSkuDay extends FoodSkuStatus {
+  lastSoldAt: string | null;
+  soldCount: number;
+  soldOutAt: string | null;
+}
+
+export interface Food86Event {
+  storeId: string;
+  location: string;
+  businessDate: string; // America/Chicago YYYY-MM-DD
+  itemGuid: string;
+  itemName?: string;
+  soldOutAt: string; // ISO
+  source: Food86Source;
+}
+
+export interface FoodClosingWasteEntry {
+  storeId: string;
+  businessDate: string;
+  itemGuid: string;
+  itemName?: string;
+  leftoverQty: number | null;
+  wasteQty: number | null;
+  updatedAt: string;
+  updatedBy: string;
+  updatedByName?: string;
+}
+
+export interface FoodSoldResponse {
+  ok: boolean;
+  location: string;
+  storeId: string;
+  businessDate: string;
+  stockScopeOk: boolean;
+  code?: string;
+  error?: string;
+  hint?: string;
+  status?: number;
+  items: FoodSkuDay[];
+  excludedDrinkCount: number;
+  persisted86Count?: number;
+}
+
 // Archived monthly leaderboard results
 export interface ArchivedLeaderboard {
   id: string; // Format: "YYYY-MM" (e.g., "2025-01")

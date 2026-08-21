@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { ChecklistTemplate, User, ChecklistSubmission, UserRole } from '../types';
 import { Camera, Check, AlertCircle, Info, Send, ChevronRight, X, Clock, User as UserIcon, MessageSquare, Save, RotateCcw, Users, RefreshCw, Trash2, CheckCircle2, ShieldCheck, AlertTriangle, Sunrise, Sunset, ClipboardList, CalendarCheck, CloudCheck, CalendarDays, Timer, Lock, Eye, Sparkles, Zap, Unlock, Loader2 } from 'lucide-react';
 import { db } from '../services/db';
+import Food86Panel from './Food86Panel';
 
 interface CameraModalProps {
   isOpen: boolean;
@@ -178,6 +179,7 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onCapture })
 
 interface OpsViewProps {
   user: User;
+  storeId?: string;
   allUsers: User[];
   templates: ChecklistTemplate[];
   existingSubmissions: ChecklistSubmission[];
@@ -185,7 +187,8 @@ interface OpsViewProps {
   onResetSubmission?: (id: string) => void;
 }
 
-const OpsView: React.FC<OpsViewProps> = ({ user, allUsers, templates, existingSubmissions, onUpdate, onResetSubmission }) => {
+const OpsView: React.FC<OpsViewProps> = ({ user, storeId, allUsers, templates, existingSubmissions, onUpdate, onResetSubmission }) => {
+  const activeStoreId = storeId || user.storeId;
   const [activeTemplate, setActiveTemplate] = useState<ChecklistTemplate | null>(() => {
     const saved = localStorage.getItem('boundaries_active_template_id');
     return saved ? templates.find(t => t.id === saved) || null : null;
@@ -874,6 +877,15 @@ const OpsView: React.FC<OpsViewProps> = ({ user, allUsers, templates, existingSu
             );
           })}
         </div>
+
+        {activeTemplate.type === 'CLOSING' && (
+          <Food86Panel
+            storeId={activeStoreId}
+            user={user}
+            mode="closing"
+            readOnly={isReadOnly}
+          />
+        )}
 
         {!isReadOnly && (
           <div className="pb-24">

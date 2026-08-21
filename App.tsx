@@ -1081,7 +1081,8 @@ const App: React.FC = () => {
         )}
         {activeTab === 'ops' && (
           <OpsView 
-            user={currentUser} 
+            user={currentUser}
+            storeId={currentStoreId}
             allUsers={allUsers} 
             templates={storeTemplates} 
             existingSubmissions={storeSubmissions} 

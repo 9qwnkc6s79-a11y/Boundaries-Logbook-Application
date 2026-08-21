@@ -4,10 +4,11 @@ import {
   CheckCircle2, AlertCircle, Eye, User as UserIcon, Calendar, Check, X,
   Settings, Plus, Trash2, Edit3, BarChart3, ListTodo, BrainCircuit, Clock, TrendingDown, TrendingUp,
   ArrowRight, MessageSquare, Save, Users, LayoutDashboard, Flag, Activity, GraduationCap, Award, FileText, MoveUp, MoveDown, Coffee, Camera, Hash, AlertTriangle, ExternalLink, FileText as FileIcon, Image as ImageIcon, Search, ShieldCheck,
-  RefreshCw, RotateCcw, CalendarDays, Timer, Store as StoreIcon, MapPin, GripVertical, AlertOctagon, Info, Zap, Gauge, History, SearchCheck, ChevronUp, ChevronDown, ClipboardList, DollarSign, TrendingUp as TrendingUpIcon, UserCheck, Target, Trophy, Star, Palette, Building2
+  RefreshCw, RotateCcw, CalendarDays, Timer, Store as StoreIcon, MapPin, GripVertical, AlertOctagon, Info, Zap, Gauge, History, SearchCheck, ChevronUp, ChevronDown, ClipboardList, DollarSign, TrendingUp as TrendingUpIcon, UserCheck, Target, Trophy, Star, Palette, Building2, UtensilsCrossed
 } from 'lucide-react';
 import { toastAPI } from '../services/toast';
 import { db } from '../services/db';
+import Food86Panel from './Food86Panel';
 import { detectLeaders, calculateTimelinessScore, calculateTurnTimeScore, calculateSalesScore, calculateAvgTicketScore, calculateLeaderboard, determineShiftOwnership } from '../utils/leadershipTracking';
 import { syncOrderAttributions } from '../utils/orderAttribution';
 import TeamManagement from './TeamManagement';
@@ -97,7 +98,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
   org, onSaveOrg, onSyncToastEmployees
 }) => {
   const [activeSubTab, setActiveSubTab] = useState<'dashboard' | 'operations' | 'settings'>('dashboard');
-  const [operationsSubTab, setOperationsSubTab] = useState<'compliance' | 'gallery' | 'cash-audit' | 'training'>('compliance');
+  const [operationsSubTab, setOperationsSubTab] = useState<'compliance' | 'gallery' | 'cash-audit' | 'training' | 'food'>('compliance');
   const [settingsSubTab, setSettingsSubTab] = useState<'editor' | 'team' | 'manual' | 'branding' | 'stores'>('editor');
   const [auditFilter, setAuditFilter] = useState<'pending' | 'approved' | 'all'>('pending');
   const [overrideFeedback, setOverrideFeedback] = useState<Record<string, string>>({});
@@ -1637,6 +1638,13 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
               </div>
             </section>
 
+            <Food86Panel
+              storeId={currentStoreId}
+              storeName={currentStoreName}
+              user={currentUser}
+              mode="report"
+            />
+
             {/* Action Items Grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
               {/* Pending Checklists */}
@@ -2144,6 +2152,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                   { id: 'gallery', label: 'Photo Audit', icon: ImageIcon },
                   { id: 'cash-audit', label: 'Cash Audit', icon: DollarSign },
                   { id: 'training', label: 'Training Export', icon: GraduationCap },
+                  { id: 'food', label: 'Food 86', icon: UtensilsCrossed },
                 ].map(tab => (
                   <button
                     key={tab.id}
@@ -2155,6 +2164,15 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                 ))}
               </div>
             </div>
+
+            {operationsSubTab === 'food' && (
+              <Food86Panel
+                storeId={currentStoreId}
+                storeName={currentStoreName}
+                user={currentUser}
+                mode="report"
+              />
+            )}
 
             {operationsSubTab === 'gallery' && (
               <section className="animate-in fade-in space-y-6">
