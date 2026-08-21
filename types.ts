@@ -286,6 +286,23 @@ export interface ToastSalesData {
 /** Manager Hub labor vs sales tile. Port of dashboard /api/manager/budget @ 274056b. */
 export type LaborCostStatus = 'ok' | 'blocked' | 'incomplete' | 'unavailable';
 export type LaborVsTarget = 'under' | 'over' | 'unavailable';
+export type MissingWageField = 'hourlyWage' | 'hours' | 'both';
+
+/** Punch that made a store Incomplete. API never includes a wage amount. */
+export interface MissingWagePunch {
+  store: string;
+  employeeName: string | null;
+  employeeGuid: string;
+  nameUnknown: boolean;
+  jobName: string;
+  jobGuid: string;
+  inDate: string | null;
+  outDate: string | null;
+  inDateChicago: string | null;
+  outDateChicago: string | null;
+  hours: number | null;
+  missing: MissingWageField;
+}
 
 export interface ManagerStoreBudget {
   name: string;
@@ -298,6 +315,7 @@ export interface ManagerStoreBudget {
   laborStatus: LaborCostStatus;
   laborVsTarget: LaborVsTarget;
   laborMessage: string;
+  missingWagePunches?: MissingWagePunch[];
 }
 
 export interface ManagerBudget {
@@ -314,6 +332,7 @@ export interface ManagerBudget {
     status: LaborCostStatus;
     source: 'era.labor.totalCost' | 'timeEntries.hourlyWage' | null;
     message: string;
+    missingWagePunches?: MissingWagePunch[];
   };
 }
 
