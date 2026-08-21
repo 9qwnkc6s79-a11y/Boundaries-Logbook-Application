@@ -64,7 +64,7 @@ assert(almost(sales.salesDiscounts, 2), `salesDiscounts expected 2, got ${sales.
 assert(almost(sales.salesRefunds, 3.41), `salesRefunds expected 3.41, got ${sales.salesRefunds}`);
 assert(almost(sales.grossSales, 27), `gross expected 27, got ${sales.grossSales}`);
 
-// --- Labor: hours × wage; null wage is Incomplete, not $0 -----------------
+// --- Labor: hours × wage; null wage = not hourly, excluded (not Incomplete) ---
 const complete = summariseTimeEntries([
   { regularHours: 8, overtimeHours: 1, hourlyWage: 15 },
   { regularHours: 4, overtimeHours: 0, hourlyWage: 12 },
@@ -72,8 +72,9 @@ const complete = summariseTimeEntries([
 assert(complete.status === 'ok', 'complete punches should be ok');
 assert(complete.dollars === 183, `8*15 + 1*15 + 4*12 = 183, got ${complete.dollars}`);
 assert(complete.missingWagePunches.length === 0, 'complete labor lists no missing punches');
+assert(complete.punchesExcluded === 0, 'complete labor excludes nothing');
 
-const incomplete = summariseTimeEntries(
+const excludedNullWage = summariseTimeEntries(
   [
     { regularHours: 8, overtimeHours: 0, hourlyWage: 15 },
     {
@@ -82,31 +83,21 @@ const incomplete = summariseTimeEntries(
       hourlyWage: null,
       inDate: '2026-08-21T14:00:00.000+0000',
       outDate: '2026-08-21T20:00:00.000+0000',
-      employeeReference: { guid: 'emp-missing-wage', firstName: 'Avery', lastName: 'Nguyen' },
-      jobReference: { guid: 'job-barista', name: 'Barista' },
+      employeeReference: { guid: 'emp-owner', firstName: 'Avery', lastName: 'Nguyen' },
+      jobReference: { guid: 'job-owner', name: 'Owner' },
     },
   ],
   Date.parse('2026-08-21T21:00:00.000Z'),
   { store: 'Prosper / Celina' }
 );
-assert(incomplete.status === 'incomplete', 'null hourlyWage must be incomplete');
-assert(incomplete.dollars === null, 'Incomplete labor must be null, never $0');
-assert(incomplete.punchesMissingWage === 1, 'expected one punch missing wage');
-assert(incomplete.missingWagePunches.length === 1, 'must list the Incomplete punch');
-const listed = incomplete.missingWagePunches[0];
-assert(listed.store === 'Prosper / Celina', `store ${listed.store}`);
-assert(listed.employeeName === 'Avery Nguyen', `name ${listed.employeeName}`);
-assert(listed.employeeGuid === 'emp-missing-wage', `guid ${listed.employeeGuid}`);
-assert(listed.nameUnknown === false, 'Toast supplied a name');
-assert(listed.jobName === 'Barista', `job ${listed.jobName}`);
-assert(listed.inDate === '2026-08-21T14:00:00.000+0000', 'keep Toast ISO inDate');
-assert(listed.outDate === '2026-08-21T20:00:00.000+0000', 'keep Toast ISO outDate');
-assert(listed.inDateChicago !== null, 'Chicago display for inDate');
-assert(listed.hours === 6, `hours ${listed.hours}`);
-assert(listed.missing === 'hourlyWage', `missing ${listed.missing}`);
-assert(!('hourlyWage' in listed) && !('wage' in listed), 'do not include a wage amount');
+assert(excludedNullWage.status === 'ok', 'null hourlyWage is excluded, not Incomplete');
+assert(excludedNullWage.dollars === 120, `remaining hourly punch 8*15 = 120, got ${excludedNullWage.dollars}`);
+assert(excludedNullWage.punchesExcluded === 1, 'Owner punch counted as excluded');
+assert(excludedNullWage.punchesMissingWage === 0, 'null wage is not a missing-hours problem');
+assert(excludedNullWage.missingWagePunches.length === 0, 'do not list excluded punches as Incomplete');
+assert(!('hourlyWage' in excludedNullWage) && !('wage' in excludedNullWage), 'do not invent a wage');
 
-assert(missingWageKind(null, 6) === 'hourlyWage', 'wage-only gap');
+assert(missingWageKind(null, 6) === 'hourlyWage', 'wage-only gap helper');
 assert(missingWageKind(15, null) === 'hours', 'hours-only gap');
 assert(missingWageKind(null, null) === 'both', 'both gap');
 
@@ -124,7 +115,7 @@ const hoursMissing = summariseTimeEntries(
     jobNames: new Map([['job-shift-lead', 'Shift Lead']]),
   }
 );
-assert(hoursMissing.status === 'incomplete' && hoursMissing.dollars === null, 'null hours is Incomplete');
+assert(hoursMissing.status === 'incomplete' && hoursMissing.dollars === null, 'hourly punch with null hours is Incomplete');
 assert(hoursMissing.missingWagePunches[0].missing === 'hours', 'hours-only missing');
 assert(hoursMissing.missingWagePunches[0].hours === null, 'hours stay null');
 assert(hoursMissing.missingWagePunches[0].nameUnknown === true, 'no Toast name');
@@ -133,15 +124,17 @@ assert(
   'use guid when name is unknown, do not invent one'
 );
 assert(hoursMissing.missingWagePunches[0].jobName === 'Shift Lead', 'job lookup from /labor/v1/jobs map');
+assert(!('hourlyWage' in hoursMissing.missingWagePunches[0]), 'do not include a wage amount');
 
 const bothMissing = summariseTimeEntries(
   [{ employeeReference: { guid: 'emp-both' } }],
   Date.parse('2026-08-21T21:00:00.000Z'),
   { store: 'Prosper / Celina' }
 );
-assert(bothMissing.missingWagePunches[0].missing === 'both', 'both hourlyWage and hours');
-assert(bothMissing.missingWagePunches[0].employeeName === 'emp-both', 'guid fallback');
-assert(bothMissing.dollars === null, 'both-missing still not $0');
+assert(bothMissing.status === 'ok', 'null wage + null hours is excluded (not hourly)');
+assert(bothMissing.punchesExcluded === 1, 'both-missing punch is excluded');
+assert(bothMissing.missingWagePunches.length === 0, 'excluded punches are not listed as Incomplete');
+assert(bothMissing.dollars === 0, 'no remaining hourly punches → $0 from hourly jobs, not Incomplete');
 
 const namedFromMap = summariseTimeEntries(
   [
@@ -151,6 +144,7 @@ const namedFromMap = summariseTimeEntries(
       employeeReference: { guid: 'guid-from-employees' },
       jobReference: { guid: 'job-from-jobs' },
     },
+    { regularHours: 2, overtimeHours: 0, hourlyWage: 18 },
   ],
   Date.now(),
   {
@@ -159,9 +153,70 @@ const namedFromMap = summariseTimeEntries(
     jobNames: new Map([['job-from-jobs', 'Trainer']]),
   }
 );
-assert(namedFromMap.missingWagePunches[0].employeeName === 'Jordan Cole', 'employees API name');
-assert(namedFromMap.missingWagePunches[0].jobName === 'Trainer', 'jobs API name');
-assert(namedFromMap.missingWagePunches[0].nameUnknown === false, 'mapped name is known');
+assert(namedFromMap.status === 'ok', 'mapped null-wage punch is excluded');
+assert(namedFromMap.punchesExcluded === 1, 'mapped null-wage punch counted as excluded');
+assert(namedFromMap.missingWagePunches.length === 0, 'do not list excluded punches');
+assert(namedFromMap.dollars === 36, `remaining hourly 2*18 = 36, got ${namedFromMap.dollars}`);
+
+// Live Prosper shape: Owner + Manager punches with no hourlyWage must not
+// mark the store Incomplete. Remaining hourly jobs (GM On Bar, Team Member)
+// still produce labor dollars. Never invent Owner/Manager rates.
+const prosperLiveShape = summariseTimeEntries(
+  [
+    {
+      regularHours: 0,
+      overtimeHours: 0,
+      hourlyWage: null,
+      inDate: '2026-08-03T10:31:00.000+0000',
+      outDate: '2026-08-03T10:31:08.000+0000',
+      employeeReference: { guid: 'emp-daniel', firstName: 'Daniel', lastName: 'Keene' },
+      jobReference: { guid: 'job-owner', name: 'Owner' },
+    },
+    {
+      regularHours: 0,
+      overtimeHours: 0,
+      hourlyWage: null,
+      inDate: '2026-08-05T10:35:00.000+0000',
+      outDate: '2026-08-05T10:35:06.000+0000',
+      employeeReference: { guid: 'emp-daniel', firstName: 'Daniel', lastName: 'Keene' },
+      jobReference: { guid: 'job-owner', name: 'Owner' },
+    },
+    {
+      regularHours: 3.02,
+      overtimeHours: 0,
+      hourlyWage: null,
+      inDate: '2026-08-20T12:02:00.000+0000',
+      outDate: '2026-08-20T15:03:00.000+0000',
+      employeeReference: { guid: 'emp-heath', firstName: 'Heath', lastName: 'Marcom' },
+      jobReference: { guid: 'job-manager', name: 'Manager' },
+    },
+    {
+      regularHours: 5,
+      overtimeHours: 0,
+      hourlyWage: 16.5,
+      employeeReference: { guid: 'emp-gm', firstName: 'Alex', lastName: 'Rivera' },
+      jobReference: { guid: 'job-gm-bar', name: 'GM (On Bar)' },
+    },
+    {
+      regularHours: 4,
+      overtimeHours: 0,
+      hourlyWage: 12,
+      employeeReference: { guid: 'emp-tm', firstName: 'Sam', lastName: 'Lee' },
+      jobReference: { guid: 'job-tm', name: 'Team Member' },
+    },
+  ],
+  Date.parse('2026-08-21T21:00:00.000Z'),
+  { store: 'Prosper / Celina' }
+);
+assert(prosperLiveShape.status === 'ok', 'Prosper Owner/Manager punches must not mark Incomplete');
+assert(prosperLiveShape.punchesExcluded === 3, `expected 3 excluded, got ${prosperLiveShape.punchesExcluded}`);
+assert(prosperLiveShape.punchesMissingWage === 0, 'no hourly punch missing hours');
+assert(prosperLiveShape.missingWagePunches.length === 0, 'do not banner Owner/Manager as a problem');
+assert(
+  prosperLiveShape.dollars === 130.5,
+  `GM 5*16.5 + TM 4*12 = 130.50, got ${prosperLiveShape.dollars}`
+);
+assert(prosperLiveShape.punchesWithWage === 2, 'only GM and Team Member count toward labor $');
 
 const chicago = chicagoDateTimeDisplay('2026-08-21T14:00:00.000+0000');
 assert(typeof chicago === 'string' && chicago.includes('2026'), `Chicago display ${chicago}`);
@@ -190,7 +245,7 @@ assert(mtd.length === 21, `August 1–21 is 21 days, got ${mtd.length}`);
 
 console.log('verify-manager-budget: ok');
 console.log('  sales: Gross = Net + sales discounts + sales refunds; gift cards / waste excluded');
-console.log('  labor: hours × hourlyWage; null wage → Incomplete (not $0)');
-console.log('  punches: Incomplete stores list name-or-guid, job, in/out; no invented wages');
-console.log('  target: 26%; 21.64 under; missing wage → no percent');
+console.log('  labor: hours × hourlyWage; null wage = not hourly = excluded (not Incomplete)');
+console.log('  punches: Incomplete only when an hourly punch is missing hours; no invented wages');
+console.log('  target: 26%; 21.64 under; missing hours on hourly punch → no percent');
 console.log('  dates: America/Chicago business month 20260801–20260821');

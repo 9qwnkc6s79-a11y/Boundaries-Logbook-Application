@@ -77,7 +77,7 @@ function StoreRow({ store, target }: { store: ManagerStoreBudget; target: number
           <AlertTriangle size={14} className="text-amber-600 shrink-0 mt-0.5" />
           <div className="min-w-0">
             <p className="text-xs text-amber-800 font-medium">
-              {store.laborMessage || 'Incomplete — some punches are missing a wage. Not shown as $0 labor.'}
+              {store.laborMessage || 'Incomplete — some hourly punches are missing hours. Not shown as $0 labor.'}
             </p>
             {store.missingWagePunches && store.missingWagePunches.length > 0 && (
               <ul className="mt-2 space-y-1">
@@ -113,6 +113,11 @@ function StoreRow({ store, target }: { store: ManagerStoreBudget; target: number
           <dd className={`text-sm font-black ${laborTone}`}>{pct(store.mtdLaborPercent)}</dd>
         </div>
       </dl>
+      {store.laborStatus === 'ok' && (store.punchesExcluded ?? 0) > 0 && (
+        <p className="mt-2 text-[10px] font-medium text-neutral-400">
+          {store.punchesExcluded} non-hourly punch{store.punchesExcluded === 1 ? '' : 'es'} excluded
+        </p>
+      )}
     </div>
   );
 }

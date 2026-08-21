@@ -316,6 +316,8 @@ export interface ManagerStoreBudget {
   laborVsTarget: LaborVsTarget;
   laborMessage: string;
   missingWagePunches?: MissingWagePunch[];
+  /** Non-hourly punches (null hourlyWage). Excluded from labor $, not Incomplete. */
+  punchesExcluded?: number;
 }
 
 export interface ManagerBudget {
