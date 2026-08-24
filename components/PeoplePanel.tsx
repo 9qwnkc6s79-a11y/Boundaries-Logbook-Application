@@ -267,7 +267,10 @@ const PeoplePanel: React.FC<PeoplePanelProps> = ({
         <div className="space-y-3">
           <button
             type="button"
-            onClick={() => setSelectedId(null)}
+            onClick={() => {
+              setSelectedId(null);
+              setFormTarget(null);
+            }}
             className="text-[9px] font-black uppercase tracking-widest text-neutral-500 hover:text-[#0F2B3C] flex items-center gap-1"
           >
             <ArrowLeft size={12} /> Back to roster
