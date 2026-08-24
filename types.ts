@@ -699,3 +699,27 @@ export interface ArchivedLeaderboard {
     fiveStarReviewCount: number;
   }[];
 }
+
+// Monthly two-way performance reviews (manager↔employee). Not practice
+// managerFeedback and not aiAuditFeedback.
+export type ReviewDirection = 'DOWN' | 'UP';
+export type ReviewStatus = 'DRAFT' | 'SUBMITTED';
+
+export interface PerformanceReview {
+  id: string;
+  reviewerId: string;
+  reviewerName: string;
+  subjectId: string;
+  subjectName: string;
+  storeId: string;
+  period: string; // YYYY-MM in America/Chicago
+  direction: ReviewDirection;
+  status: ReviewStatus;
+  overall: number; // 1-5
+  keepDoing?: string;
+  startDoing?: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+  submittedAt?: string;
+}
