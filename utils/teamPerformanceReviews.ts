@@ -239,6 +239,7 @@ export const SOP_SECTIONS: SopSectionDef[] = [
 export const SOP_DISCIPLINARY_LABELS: Record<SopDisciplinaryStatus, string> = {
   NO_CONCERNS: 'No concerns at this time',
   ACTIVE_STRIKE: 'Active strike on record. Strike # + Date',
+  TARDY_NO_SHOW: 'Tardy / no-show',
   PIP_REQUIRED: 'PIP required — to be prepared by Daniel. Date.',
 };
 
@@ -268,8 +269,61 @@ export function chicagoQuarter(now: Date = new Date()): { id: string; year: numb
   };
 }
 
+export function chicagoMonth(now: Date = new Date()): { id: string; year: number; month: number; end: string } {
+  const ymd = chicagoYmd(now);
+  const [year, month] = ymd.split('-').map(Number);
+  const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  return {
+    id: `${year}-${String(month).padStart(2, '0')}`,
+    year,
+    month,
+    end: `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`,
+  };
+}
+
+export function chicagoYear(now: Date = new Date()): { id: string; end: string } {
+  const year = Number(chicagoYmd(now).slice(0, 4));
+  return { id: String(year), end: `${year}-12-31` };
+}
+
+/** Cadence starts when People SOP shipped. Do not invent earlier monthly / checkpoint dues. */
+export const MONTHLY_CADENCE_START = '2026-08';
+export const QUARTERLY_CADENCE_START = '2026-Q3';
+export const ANNUAL_CADENCE_START = '2026';
+
+export function previousMonthPeriod(id: string): { id: string; end: string } {
+  const [year, month] = id.split('-').map(Number);
+  const prev = month === 1 ? { year: year - 1, month: 12 } : { year, month: month - 1 };
+  const lastDay = new Date(Date.UTC(prev.year, prev.month, 0)).getUTCDate();
+  const nextId = `${prev.year}-${String(prev.month).padStart(2, '0')}`;
+  return { id: nextId, end: `${nextId}-${String(lastDay).padStart(2, '0')}` };
+}
+
+export function previousQuarterPeriod(id: string): { id: string; end: string } {
+  const match = id.match(/^(\d{4})-Q([1-4])$/);
+  if (!match) return { id, end: '' };
+  let year = Number(match[1]);
+  let quarter = Number(match[2]) - 1;
+  if (quarter < 1) {
+    quarter = 4;
+    year -= 1;
+  }
+  const endMonth = quarter * 3;
+  const lastDay = new Date(Date.UTC(year, endMonth, 0)).getUTCDate();
+  return {
+    id: `${year}-Q${quarter}`,
+    end: `${year}-${String(endMonth).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`,
+  };
+}
+
+export function previousYearPeriod(id: string): { id: string; end: string } {
+  const year = Number(id) - 1;
+  return { id: String(year), end: `${year}-12-31` };
+}
+
 export function periodForReviewType(reviewType: SopReviewType, reviewDate: string): string {
   const [year, month] = reviewDate.split('-').map(Number);
+  if (reviewType === 'MONTHLY') return `${year}-${String(month).padStart(2, '0')}`;
   if (reviewType === 'ANNUAL') return String(year);
   if (reviewType === 'PIP') return `PIP-${reviewDate}`;
   const quarter = Math.ceil(month / 3);
@@ -277,11 +331,176 @@ export function periodForReviewType(reviewType: SopReviewType, reviewDate: strin
 }
 
 export function formatSopPeriod(period: string): string {
+  const month = period.match(/^(\d{4})-(\d{2})$/);
+  if (month) {
+    return new Date(Number(month[1]), Number(month[2]) - 1, 1).toLocaleDateString('en-US', {
+      month: 'short',
+      year: 'numeric',
+    });
+  }
   const q = period.match(/^(\d{4})-Q([1-4])$/);
   if (q) return `Q${q[2]} ${q[1]}`;
   if (/^\d{4}$/.test(period)) return period;
   if (period.startsWith('PIP-')) return `PIP · ${period.slice(4)}`;
   return period;
+}
+
+export function formatSopReviewType(reviewType: SopReviewType): string {
+  if (reviewType === 'MONTHLY') return 'Monthly';
+  if (reviewType === 'QUARTERLY') return 'Quarterly checkpoint';
+  if (reviewType === 'ANNUAL') return 'Annual checkpoint';
+  return 'PIP';
+}
+
+export function isSopCheckpointSubmitted(
+  reviews: TeamPerformanceReview[],
+  subjectId: string,
+  period: string,
+  reviewType: SopReviewType
+): boolean {
+  return findSopReview(reviews, subjectId, period, reviewType)?.status === 'SUBMITTED';
+}
+
+export interface SopCheckpoint {
+  cadence: 'MONTHLY' | 'QUARTERLY' | 'ANNUAL';
+  reviewType: SopReviewType;
+  period: string;
+  label: string;
+  dueYmd: string;
+  submitted: boolean;
+  overdue: boolean;
+  dueToday: boolean;
+}
+
+function checkpointFromDef(
+  subjectId: string,
+  reviews: TeamPerformanceReview[],
+  today: string,
+  def: Pick<SopCheckpoint, 'cadence' | 'reviewType' | 'period' | 'label' | 'dueYmd'>
+): SopCheckpoint {
+  const submitted = isSopCheckpointSubmitted(reviews, subjectId, def.period, def.reviewType);
+  return {
+    ...def,
+    submitted,
+    overdue: !submitted && today > def.dueYmd,
+    dueToday: !submitted && today === def.dueYmd,
+  };
+}
+
+export function sopCheckpoints(
+  subjectId: string,
+  reviews: TeamPerformanceReview[],
+  now: Date = new Date()
+): SopCheckpoint[] {
+  const today = chicagoYmd(now);
+  const month = chicagoMonth(now);
+  const quarter = chicagoQuarter(now);
+  const year = chicagoYear(now);
+  const current: Array<Pick<SopCheckpoint, 'cadence' | 'reviewType' | 'period' | 'label' | 'dueYmd'>> = [
+    {
+      cadence: 'MONTHLY',
+      reviewType: 'MONTHLY',
+      period: month.id,
+      label: `Monthly · ${formatSopPeriod(month.id)}`,
+      dueYmd: month.end,
+    },
+    {
+      cadence: 'QUARTERLY',
+      reviewType: 'QUARTERLY',
+      period: quarter.id,
+      label: `Quarterly checkpoint · ${formatSopPeriod(quarter.id)}`,
+      dueYmd: quarter.end,
+    },
+    {
+      cadence: 'ANNUAL',
+      reviewType: 'ANNUAL',
+      period: year.id,
+      label: `Annual checkpoint · ${year.id}`,
+      dueYmd: year.end,
+    },
+  ];
+
+  const extras: Array<Pick<SopCheckpoint, 'cadence' | 'reviewType' | 'period' | 'label' | 'dueYmd'>> = [];
+  const prevMonth = previousMonthPeriod(month.id);
+  if (prevMonth.id >= MONTHLY_CADENCE_START && today > prevMonth.end) {
+    extras.push({
+      cadence: 'MONTHLY',
+      reviewType: 'MONTHLY',
+      period: prevMonth.id,
+      label: `Monthly · ${formatSopPeriod(prevMonth.id)}`,
+      dueYmd: prevMonth.end,
+    });
+  }
+  const prevQuarter = previousQuarterPeriod(quarter.id);
+  if (prevQuarter.end && prevQuarter.id >= QUARTERLY_CADENCE_START && today > prevQuarter.end) {
+    extras.push({
+      cadence: 'QUARTERLY',
+      reviewType: 'QUARTERLY',
+      period: prevQuarter.id,
+      label: `Quarterly checkpoint · ${formatSopPeriod(prevQuarter.id)}`,
+      dueYmd: prevQuarter.end,
+    });
+  }
+  const prevYear = previousYearPeriod(year.id);
+  if (prevYear.id >= ANNUAL_CADENCE_START && today > prevYear.end) {
+    extras.push({
+      cadence: 'ANNUAL',
+      reviewType: 'ANNUAL',
+      period: prevYear.id,
+      label: `Annual checkpoint · ${prevYear.id}`,
+      dueYmd: prevYear.end,
+    });
+  }
+
+  const seen = new Set<string>();
+  return [...extras, ...current]
+    .map(def => checkpointFromDef(subjectId, reviews, today, def))
+    .filter(point => {
+      const key = `${point.reviewType}:${point.period}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .filter(point => point.cadence === 'MONTHLY' || point.cadence === 'ANNUAL' || point.cadence === 'QUARTERLY')
+    .filter(point => {
+      if (point.period === month.id || point.period === quarter.id || point.period === year.id) return true;
+      return !point.submitted;
+    });
+}
+
+export function nextMonthEnd(now: Date = new Date()): { id: string; end: string } {
+  const month = chicagoMonth(now);
+  const nextMonth = month.month === 12 ? { year: month.year + 1, month: 1 } : { year: month.year, month: month.month + 1 };
+  const lastDay = new Date(Date.UTC(nextMonth.year, nextMonth.month, 0)).getUTCDate();
+  const id = `${nextMonth.year}-${String(nextMonth.month).padStart(2, '0')}`;
+  return { id, end: `${id}-${String(lastDay).padStart(2, '0')}` };
+}
+
+export function primarySopDue(
+  user: User,
+  reviews: TeamPerformanceReview[],
+  now: Date = new Date()
+): { dueYmd: string; overdue: boolean; label: string } {
+  const today = chicagoYmd(now);
+  const hire = existingHireOrStartDate(user);
+  if (hire && !latestSubmittedSop(reviews, user.id)) {
+    const windows = [30, 60, 90].map(days => addCalendarDays(hire, days));
+    const upcoming = windows.find(ymd => today <= ymd);
+    if (upcoming) {
+      return { dueYmd: upcoming, overdue: false, label: 'New-hire check-in' };
+    }
+  }
+
+  const checkpoints = sopCheckpoints(user.id, reviews, now);
+  const open = checkpoints.filter(c => !c.submitted);
+  if (open.length === 0) {
+    const next = nextMonthEnd(now);
+    return { dueYmd: next.end, overdue: false, label: `Monthly · ${formatSopPeriod(next.id)}` };
+  }
+  const overdue = open.filter(c => c.overdue).sort((a, b) => a.dueYmd.localeCompare(b.dueYmd));
+  if (overdue[0]) return { dueYmd: overdue[0].dueYmd, overdue: true, label: overdue[0].label };
+  const soonest = [...open].sort((a, b) => a.dueYmd.localeCompare(b.dueYmd))[0];
+  return { dueYmd: soonest.dueYmd, overdue: false, label: soonest.label };
 }
 
 export function defaultSubjectRole(user: User): SopSubjectRole {
@@ -420,26 +639,7 @@ export function nextSopDueDate(
   reviews: TeamPerformanceReview[],
   now: Date = new Date()
 ): string {
-  const today = chicagoYmd(now);
-  const hire = existingHireOrStartDate(user);
-  if (hire) {
-    const d30 = addCalendarDays(hire, 30);
-    const d60 = addCalendarDays(hire, 60);
-    const d90 = addCalendarDays(hire, 90);
-    if (today <= d30) return d30;
-    if (today <= d60) return d60;
-    if (today <= d90) return d90;
-  }
-
-  const last = latestSubmittedSop(reviews, user.id);
-  if (last) {
-    const submittedYmd = (last.submittedAt || last.reviewDate || last.updatedAt).slice(0, 10);
-    if (/^\d{4}-\d{2}-\d{2}$/.test(submittedYmd)) {
-      return addCalendarDays(submittedYmd, 90);
-    }
-  }
-
-  return chicagoQuarter(now).end;
+  return primarySopDue(user, reviews, now).dueYmd;
 }
 
 export function isSopOverdue(dueYmd: string, now: Date = new Date()): boolean {
@@ -483,6 +683,7 @@ export function normalizeSopReview(
     keyThemes: trimOptional(review.keyThemes),
     strikeNumber: review.disciplinaryStatus === 'ACTIVE_STRIKE' ? review.strikeNumber : undefined,
     strikeDate: review.disciplinaryStatus === 'ACTIVE_STRIKE' ? trimOptional(review.strikeDate) : undefined,
+    tardyDate: review.disciplinaryStatus === 'TARDY_NO_SHOW' ? trimOptional(review.tardyDate) : undefined,
     pipDate: review.disciplinaryStatus === 'PIP_REQUIRED' ? trimOptional(review.pipDate) : undefined,
     managerPrintName: trimOptional(review.managerPrintName),
     managerSignedDate: trimOptional(review.managerSignedDate),
@@ -502,7 +703,12 @@ export function upsertTeamPerformanceReview(
   if (!incoming.subjectId || !incoming.period || !incoming.reviewType || !incoming.reviewerId) {
     return null;
   }
-  if (incoming.reviewType !== 'QUARTERLY' && incoming.reviewType !== 'ANNUAL' && incoming.reviewType !== 'PIP') {
+  if (
+    incoming.reviewType !== 'MONTHLY'
+    && incoming.reviewType !== 'QUARTERLY'
+    && incoming.reviewType !== 'ANNUAL'
+    && incoming.reviewType !== 'PIP'
+  ) {
     return null;
   }
   if (incoming.subjectRole !== 'TEAM_MEMBER' && incoming.subjectRole !== 'TEAM_LEADER') {
@@ -524,15 +730,29 @@ export function upsertTeamPerformanceReview(
     }
   }
 
-  const normalized = normalizeSopReview(incoming, nowIso);
-  const key = sopReviewIdentityOf(normalized);
+  const key = sopReviewIdentity(incoming.subjectId, incoming.period, incoming.reviewType);
   const idx = existing.findIndex(r => sopReviewIdentityOf(r) === key);
+  const current = idx === -1 ? undefined : existing[idx];
+  const reviewerStamp = current
+    ? {
+        reviewerId: current.reviewerId,
+        reviewerName: current.reviewerName,
+        reviewedByName: current.reviewedByName || current.reviewerName,
+      }
+    : {
+        reviewerId: actor.id,
+        reviewerName: actor.name,
+        reviewedByName: actor.name,
+      };
+  const normalized = normalizeSopReview({
+    ...incoming,
+    ...reviewerStamp,
+  }, nowIso);
 
-  if (idx === -1) {
+  if (idx === -1 || !current) {
     return [normalized, ...existing];
   }
 
-  const current = existing[idx];
   if (current.status === 'SUBMITTED' && actor.role !== UserRole.ADMIN) {
     return null;
   }

@@ -726,10 +726,11 @@ export interface PerformanceReview {
 
 // ── SOP Team Member Performance Review (Boundaries_Team_Performance_Review.docx)
 // Separate from monthly two-way PerformanceReview. Do not reuse that document.
+// Working cadence is MONTHLY; QUARTERLY / ANNUAL are checkpoint period keys on the same form.
 
-export type SopReviewType = 'QUARTERLY' | 'ANNUAL' | 'PIP';
+export type SopReviewType = 'MONTHLY' | 'QUARTERLY' | 'ANNUAL' | 'PIP';
 export type SopSubjectRole = 'TEAM_MEMBER' | 'TEAM_LEADER';
-export type SopDisciplinaryStatus = 'NO_CONCERNS' | 'ACTIVE_STRIKE' | 'PIP_REQUIRED';
+export type SopDisciplinaryStatus = 'NO_CONCERNS' | 'ACTIVE_STRIKE' | 'TARDY_NO_SHOW' | 'PIP_REQUIRED';
 
 export interface SopActionRow {
   id: string;
@@ -768,6 +769,7 @@ export interface TeamPerformanceReview {
   disciplinaryStatus: SopDisciplinaryStatus;
   strikeNumber?: number;
   strikeDate?: string;
+  tardyDate?: string;
   pipDate?: string;
   managerPrintName?: string;
   managerSignedDate?: string;

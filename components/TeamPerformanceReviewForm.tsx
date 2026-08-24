@@ -14,7 +14,6 @@ import {
   SOP_DISCIPLINARY_LABELS,
   SOP_FOOTER,
   SOP_RATING_SCALE,
-  SOP_SECTIONS,
   assessmentRows,
   canEditSopReview,
   canSetPip,
@@ -22,9 +21,9 @@ import {
   defaultSubjectRole,
   findSopReview,
   formatSopPeriod,
+  formatSopReviewType,
   isSopSubmittedLocked,
   makeSopReviewId,
-  periodForReviewType,
   roundedOverallDefault,
   visibleSopSections,
   weightedScore,
@@ -33,10 +32,10 @@ import {
 interface TeamPerformanceReviewFormProps {
   currentUser: User;
   subject: User;
-  roster: User[];
   storeId: string;
   reviews: TeamPerformanceReview[];
-  onSubjectChange: (userId: string) => void;
+  reviewType: SopReviewType;
+  period: string;
   onSaved: (reviews: TeamPerformanceReview[]) => void;
 }
 
@@ -55,9 +54,6 @@ function emptyGoal(): SopGoalRow {
 interface FormState {
   subjectRole: SopSubjectRole;
   reviewDate: string;
-  period: string;
-  reviewType: SopReviewType;
-  reviewedByName: string;
   strikesOnFile: number;
   ratings: Record<string, number>;
   sectionComments: Record<string, string>;
@@ -69,6 +65,7 @@ interface FormState {
   disciplinaryStatus: SopDisciplinaryStatus;
   strikeNumber: string;
   strikeDate: string;
+  tardyDate: string;
   pipDate: string;
   managerPrintName: string;
   managerSignedDate: string;
@@ -79,13 +76,9 @@ interface FormState {
 function formFromReview(review: TeamPerformanceReview | undefined, subject: User, currentUser: User): FormState {
   const today = chicagoYmd();
   if (!review) {
-    const reviewType: SopReviewType = 'QUARTERLY';
     return {
       subjectRole: defaultSubjectRole(subject),
       reviewDate: today,
-      period: periodForReviewType(reviewType, today),
-      reviewType,
-      reviewedByName: currentUser.name,
       strikesOnFile: 0,
       ratings: {},
       sectionComments: {},
@@ -97,6 +90,7 @@ function formFromReview(review: TeamPerformanceReview | undefined, subject: User
       disciplinaryStatus: 'NO_CONCERNS',
       strikeNumber: '',
       strikeDate: '',
+      tardyDate: '',
       pipDate: '',
       managerPrintName: currentUser.name,
       managerSignedDate: today,
@@ -107,9 +101,6 @@ function formFromReview(review: TeamPerformanceReview | undefined, subject: User
   return {
     subjectRole: review.subjectRole,
     reviewDate: review.reviewDate,
-    period: review.period,
-    reviewType: review.reviewType,
-    reviewedByName: review.reviewedByName || currentUser.name,
     strikesOnFile: review.strikesOnFile || 0,
     ratings: { ...review.ratings },
     sectionComments: { ...review.sectionComments },
@@ -121,6 +112,7 @@ function formFromReview(review: TeamPerformanceReview | undefined, subject: User
     disciplinaryStatus: review.disciplinaryStatus,
     strikeNumber: review.strikeNumber ? String(review.strikeNumber) : '',
     strikeDate: review.strikeDate || '',
+    tardyDate: review.tardyDate || '',
     pipDate: review.pipDate || '',
     managerPrintName: review.managerPrintName || currentUser.name,
     managerSignedDate: review.managerSignedDate || today,
@@ -135,16 +127,15 @@ const labelClass = 'text-[9px] font-black text-neutral-400 uppercase tracking-wi
 const TeamPerformanceReviewForm: React.FC<TeamPerformanceReviewFormProps> = ({
   currentUser,
   subject,
-  roster,
   storeId,
   reviews,
-  onSubjectChange,
+  reviewType,
+  period,
   onSaved,
 }) => {
-  const [reviewType, setReviewType] = useState<SopReviewType>('QUARTERLY');
   const existing = useMemo(
-    () => findSopReview(reviews, subject.id, periodForReviewType(reviewType, chicagoYmd()), reviewType),
-    [reviews, subject.id, reviewType]
+    () => findSopReview(reviews, subject.id, period, reviewType),
+    [reviews, subject.id, period, reviewType]
   );
 
   const [form, setForm] = useState<FormState>(() => formFromReview(existing, subject, currentUser));
@@ -152,11 +143,11 @@ const TeamPerformanceReviewForm: React.FC<TeamPerformanceReviewFormProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const match = findSopReview(reviews, subject.id, periodForReviewType(reviewType, chicagoYmd()), reviewType);
+    const match = findSopReview(reviews, subject.id, period, reviewType);
     setForm(formFromReview(match, subject, currentUser));
     setSaving('IDLE');
     setError(null);
-  }, [subject.id, reviewType, existing?.id, existing?.updatedAt, currentUser.id]);
+  }, [subject.id, period, reviewType, existing?.id, existing?.updatedAt, currentUser.id]);
 
   const locked = existing ? isSopSubmittedLocked(existing, currentUser) : false;
   const editable = !existing || canEditSopReview(existing, currentUser);
@@ -198,19 +189,18 @@ const TeamPerformanceReviewForm: React.FC<TeamPerformanceReviewFormProps> = ({
     setError(null);
     setSaving(status === 'DRAFT' ? 'DRAFT' : 'SUBMIT');
     const now = new Date().toISOString();
-    const period = form.period.trim() || periodForReviewType(form.reviewType, form.reviewDate);
     const review: TeamPerformanceReview = {
-      id: makeSopReviewId(subject.id, period, form.reviewType),
+      id: makeSopReviewId(subject.id, period, reviewType),
       subjectId: subject.id,
       subjectName: subject.name,
       subjectRole: form.subjectRole,
       storeId,
       reviewerId: currentUser.id,
       reviewerName: currentUser.name,
-      reviewedByName: form.reviewedByName.trim() || currentUser.name,
+      reviewedByName: currentUser.name,
       reviewDate: form.reviewDate,
       period,
-      reviewType: form.reviewType,
+      reviewType,
       strikesOnFile: Number(form.strikesOnFile) || 0,
       ratings: form.ratings,
       sectionComments: form.sectionComments,
@@ -221,6 +211,7 @@ const TeamPerformanceReviewForm: React.FC<TeamPerformanceReviewFormProps> = ({
       disciplinaryStatus: form.disciplinaryStatus,
       strikeNumber: form.strikeNumber ? Number(form.strikeNumber) : undefined,
       strikeDate: form.strikeDate,
+      tardyDate: form.tardyDate,
       pipDate: form.pipDate,
       managerPrintName: form.managerPrintName,
       managerSignedDate: form.managerSignedDate,
@@ -300,17 +291,18 @@ const TeamPerformanceReviewForm: React.FC<TeamPerformanceReviewFormProps> = ({
         <h2 className="text-sm font-black text-[#0F2B3C] uppercase tracking-tight">Team Member Performance Review</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div>
-            <label className={labelClass}>Team Member Name</label>
-            <select
-              className={inputClass}
-              value={subject.id}
-              disabled={disabled && !!existing}
-              onChange={e => onSubjectChange(e.target.value)}
-            >
-              {roster.map(u => (
-                <option key={u.id} value={u.id}>{u.name}</option>
-              ))}
-            </select>
+            <label className={labelClass}>Team Member</label>
+            <div className={`${inputClass} bg-neutral-50`}>{subject.name}</div>
+          </div>
+          <div>
+            <label className={labelClass}>Reviewer</label>
+            <div className={`${inputClass} bg-neutral-50`}>{currentUser.name}</div>
+          </div>
+          <div>
+            <label className={labelClass}>Period</label>
+            <div className={`${inputClass} bg-neutral-50`}>
+              {formatSopReviewType(reviewType)} · {formatSopPeriod(period)}
+            </div>
           </div>
           <div>
             <label className={labelClass}>Role</label>
@@ -325,52 +317,14 @@ const TeamPerformanceReviewForm: React.FC<TeamPerformanceReviewFormProps> = ({
             </select>
           </div>
           <div>
-            <label className={labelClass}>Review Date / Period</label>
-            <div className="flex gap-2">
-              <input
-                type="date"
-                className={inputClass}
-                disabled={disabled}
-                value={form.reviewDate}
-                onChange={e => {
-                  const reviewDate = e.target.value;
-                  patch({ reviewDate, period: periodForReviewType(form.reviewType, reviewDate) });
-                }}
-              />
-              <input
-                className={inputClass}
-                disabled={disabled}
-                value={form.period}
-                onChange={e => patch({ period: e.target.value })}
-                aria-label="Period"
-              />
-            </div>
-          </div>
-          <div>
-            <label className={labelClass}>Reviewed By</label>
+            <label className={labelClass}>Review Date</label>
             <input
+              type="date"
               className={inputClass}
               disabled={disabled}
-              value={form.reviewedByName}
-              onChange={e => patch({ reviewedByName: e.target.value })}
+              value={form.reviewDate}
+              onChange={e => patch({ reviewDate: e.target.value })}
             />
-          </div>
-          <div>
-            <label className={labelClass}>Review Type</label>
-            <select
-              className={inputClass}
-              disabled={disabled && !!existing}
-              value={form.reviewType}
-              onChange={e => {
-                const nextType = e.target.value as SopReviewType;
-                setReviewType(nextType);
-                patch({ reviewType: nextType, period: periodForReviewType(nextType, form.reviewDate) });
-              }}
-            >
-              <option value="QUARTERLY">Quarterly</option>
-              <option value="ANNUAL">Annual</option>
-              <option value="PIP">PIP</option>
-            </select>
           </div>
           <div>
             <label className={labelClass}>Strikes on File</label>
@@ -441,7 +395,7 @@ const TeamPerformanceReviewForm: React.FC<TeamPerformanceReviewFormProps> = ({
             </div>
           ))}
           <div>
-            <label className={labelClass}>Comments / Notes</label>
+            <label className={labelClass}>Comments / Notes (optional)</label>
             <textarea
               className={`${inputClass} min-h-[72px] font-medium`}
               disabled={disabled}
@@ -489,7 +443,7 @@ const TeamPerformanceReviewForm: React.FC<TeamPerformanceReviewFormProps> = ({
       </section>
 
       <section className="bg-white border border-neutral-100 rounded-xl shadow-sm p-4 md:p-5">
-        <label className={labelClass}>Summary — Key Themes</label>
+        <label className={labelClass}>Summary — Key Themes (optional)</label>
         <textarea
           className={`${inputClass} min-h-[96px] font-medium`}
           disabled={disabled}
@@ -500,6 +454,7 @@ const TeamPerformanceReviewForm: React.FC<TeamPerformanceReviewFormProps> = ({
 
       <section className="bg-white border border-neutral-100 rounded-xl shadow-sm p-4 md:p-5 space-y-3">
         <h3 className="text-sm font-black text-[#0F2B3C] uppercase tracking-tight">Development & Action Plan</h3>
+        <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">Optional — leave blank to submit</p>
         {form.developmentPlan.map((row, idx) => (
           <div key={row.id} className="grid grid-cols-1 md:grid-cols-7 gap-2">
             <input className={`${inputClass} md:col-span-3`} disabled={disabled} placeholder="Area for Improvement" value={row.area} onChange={e => {
@@ -526,6 +481,7 @@ const TeamPerformanceReviewForm: React.FC<TeamPerformanceReviewFormProps> = ({
 
       <section className="bg-white border border-neutral-100 rounded-xl shadow-sm p-4 md:p-5 space-y-3">
         <h3 className="text-sm font-black text-[#0F2B3C] uppercase tracking-tight">Goals for Next Period</h3>
+        <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">Optional — leave blank to submit</p>
         {form.goals.map((row, idx) => (
           <div key={row.id} className="grid grid-cols-1 md:grid-cols-7 gap-2">
             <input className={`${inputClass} md:col-span-3`} disabled={disabled} placeholder="Goal" value={row.goal} onChange={e => {
@@ -552,7 +508,7 @@ const TeamPerformanceReviewForm: React.FC<TeamPerformanceReviewFormProps> = ({
 
       <section className="bg-white border border-neutral-100 rounded-xl shadow-sm p-4 md:p-5 space-y-3">
         <h3 className="text-sm font-black text-[#0F2B3C] uppercase tracking-tight">Disciplinary Status</h3>
-        {(['NO_CONCERNS', 'ACTIVE_STRIKE', 'PIP_REQUIRED'] as SopDisciplinaryStatus[]).map(status => {
+        {(['NO_CONCERNS', 'ACTIVE_STRIKE', 'TARDY_NO_SHOW', 'PIP_REQUIRED'] as SopDisciplinaryStatus[]).map(status => {
           const pipBlocked = status === 'PIP_REQUIRED' && !canSetPip(currentUser);
           return (
             <label key={status} className={`flex items-start gap-2 text-sm ${pipBlocked ? 'opacity-50' : ''}`}>
@@ -578,6 +534,12 @@ const TeamPerformanceReviewForm: React.FC<TeamPerformanceReviewFormProps> = ({
               <label className={labelClass}>Date</label>
               <input type="date" className={inputClass} disabled={disabled} value={form.strikeDate} onChange={e => patch({ strikeDate: e.target.value })} />
             </div>
+          </div>
+        )}
+        {form.disciplinaryStatus === 'TARDY_NO_SHOW' && (
+          <div className="pl-6 max-w-xs">
+            <label className={labelClass}>Date</label>
+            <input type="date" className={inputClass} disabled={disabled} value={form.tardyDate} onChange={e => patch({ tardyDate: e.target.value })} />
           </div>
         )}
         {form.disciplinaryStatus === 'PIP_REQUIRED' && (
