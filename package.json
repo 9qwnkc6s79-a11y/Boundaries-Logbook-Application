@@ -10,7 +10,8 @@
     "verify:manager-budget": "npx --yes tsx scripts/verify-manager-budget.ts",
     "verify:checklist-order": "npx --yes tsx scripts/verify-checklist-order.ts",
     "verify:midshift-rematch": "npx --yes tsx scripts/verify-midshift-rematch.ts",
-    "verify:performance-reviews": "npx --yes tsx scripts/verify-performance-reviews.ts"
+    "verify:performance-reviews": "npx --yes tsx scripts/verify-performance-reviews.ts",
+    "verify:fall-menu": "npx --yes tsx scripts/verify-fall-menu.ts"
   },
   "dependencies": {
     "@google/genai": "^1.35.0",

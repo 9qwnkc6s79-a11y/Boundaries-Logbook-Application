@@ -9,6 +9,7 @@ import {
   STORE_ELM,
 } from '../utils/midshiftTemplateRematch';
 import { currentReviewPeriod, prunePerformanceReviews, upsertPerformanceReview } from '../utils/performanceReviews';
+import { appendFallAvailableFlavors } from '../utils/fallMenuRematch';
 
 declare const firebase: any;
 
@@ -1582,18 +1583,30 @@ class CloudAPI {
         console.warn('[Firestore] globalSync: Manual read empty — REFUSING to seed food-close sections');
       }
     } else {
-      // Merge new recipes from defaults that don't exist in cloud
-      // This ensures new recipes added to the seed appear in the app
-      const cloudRecipeIds = new Set(recipes.map((r: Recipe) => r.id));
-      const newRecipes = defaults.recipes.filter(r => !cloudRecipeIds.has(r.id));
-
-      if (newRecipes.length > 0 && !(recipes.length === 0 && recipesPopulated.populated)) {
-        console.log(`[Firestore] globalSync: Found ${newRecipes.length} new recipe(s), merging...`);
-        mergedRecipes = [...recipes, ...newRecipes];
-        // Push merged recipes back to cloud
-        await this.remoteSet(DOC_KEYS.RECIPES, mergedRecipes);
-      } else if (recipes.length === 0 && recipesPopulated.populated) {
+      // Merge-by-id: append seed recipes missing in cloud. Never overwrite existing cards.
+      const refuseEmptyRecipes = recipes.length === 0 && recipesPopulated.populated;
+      if (refuseEmptyRecipes) {
         console.warn('[Firestore] globalSync: Recipes read empty but marker set — REFUSING to write defaults');
+      } else {
+        const cloudRecipeIds = new Set(recipes.map((r: Recipe) => r.id));
+        const newRecipes = defaults.recipes.filter(r => !cloudRecipeIds.has(r.id));
+        let next = recipes;
+        let recipesMutated = false;
+        if (newRecipes.length > 0) {
+          console.log(`[Firestore] globalSync: Found ${newRecipes.length} new recipe(s), merging...`);
+          next = [...recipes, ...newRecipes];
+          recipesMutated = true;
+        }
+        const flavored = appendFallAvailableFlavors(next);
+        if (flavored.mutated) {
+          console.log('[Firestore] globalSync: Appended fall flavors to Available Flavors (existing card otherwise unchanged)');
+          next = flavored.recipes;
+          recipesMutated = true;
+        }
+        mergedRecipes = next;
+        if (recipesMutated) {
+          await this.remoteSet(DOC_KEYS.RECIPES, mergedRecipes);
+        }
       }
     }
 
@@ -1659,7 +1672,7 @@ class CloudAPI {
           const newItemParOverrides: Record<string, number> = {
             'inv-syrup-cupcake': 4,
           };
-          for (const newId of ['inv-frappe-powder', 'inv-dairy-sweetcream', 'inv-syrup-macadamia', 'inv-seasonal-coconut-shavings', 'inv-syrup-cupcake']) {
+          for (const newId of ['inv-frappe-powder', 'inv-dairy-sweetcream', 'inv-syrup-macadamia', 'inv-seasonal-coconut-shavings', 'inv-syrup-cupcake', 'inv-seasonal-pumpkin-spice', 'inv-seasonal-pumpkin-spice-zero', 'inv-sauce-pumpkin-pie']) {
             if (!migrated.some(i => i.id === newId)) {
               const fromSeed = seedById.get(newId);
               if (fromSeed) {

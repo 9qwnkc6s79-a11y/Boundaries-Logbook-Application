@@ -108,6 +108,8 @@ const DEFS: SeedDef[] = [
   { id: 'inv-seasonal-gingerbread', name: 'Gingerbread (Monin)', category: 'Seasonal Syrups', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 6, brand: 'Monin', unit: 'bottles' },
   { id: 'inv-seasonal-peanutbutter', name: 'Peanut Butter (Monin)', category: 'Seasonal Syrups', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 6, brand: 'Monin', unit: 'bottles' },
   { id: 'inv-seasonal-peppermint', name: 'Peppermint (1883)', category: 'Seasonal Syrups', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 6, brand: '1883', unit: 'bottles' },
+  { id: 'inv-seasonal-pumpkin-spice', name: 'Pumpkin Spice (1883)', category: 'Seasonal Syrups', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 0, brand: '1883', unit: 'bottles' },
+  { id: 'inv-seasonal-pumpkin-spice-zero', name: 'Pumpkin Spice Zero (Monin)', category: 'Seasonal Syrups', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 0, brand: 'Monin', unit: 'bottles' },
 
   // Seasonal Toppings
   { id: 'inv-seasonal-coconut-shavings', name: 'Coconut Shavings', category: 'Seasonal Toppings', storageLocation: 'Dry Storage', vendor: 'Amazon', parProsper: 0 },
@@ -116,6 +118,7 @@ const DEFS: SeedDef[] = [
   { id: 'inv-sauce-caramel', name: 'Caramel (Hollinder)', category: 'Sauces', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 8, brand: 'Hollinder', unit: 'bottles' },
   { id: 'inv-sauce-chocolate', name: 'Chocolate (Hollinder)', category: 'Sauces', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 8, brand: 'Hollinder', unit: 'bottles' },
   { id: 'inv-sauce-whitechoc', name: 'White Chocolate (Hollinder)', category: 'Sauces', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 8, brand: 'Hollinder', unit: 'bottles' },
+  { id: 'inv-sauce-pumpkin-pie', name: 'Pumpkin Pie (Hollander)', category: 'Sauces', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 0, brand: 'Hollander', unit: 'bottles' },
 
   // Lotus
   { id: 'inv-lotus-gold', name: 'Gold Concentrate', category: 'Lotus', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 8, brand: 'Lotus', unit: 'bottles' },
