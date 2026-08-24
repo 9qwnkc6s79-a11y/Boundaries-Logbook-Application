@@ -285,7 +285,7 @@ const PerformanceReviewsPanel: React.FC<PerformanceReviewsPanelProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [currentUser]);
+  }, [currentUser.id, currentUser.role]);
 
   useEffect(() => {
     load();
@@ -318,10 +318,11 @@ const PerformanceReviewsPanel: React.FC<PerformanceReviewsPanelProps> = ({
   }, [allUsers, currentUser, storeId]);
 
   useEffect(() => {
-    if (!selectedId && workspaceSubjects[0]) {
-      setSelectedId(workspaceSubjects[0].id);
-    }
-  }, [selectedId, workspaceSubjects]);
+    setSelectedId(prev => {
+      if (prev && workspaceSubjects.some(u => u.id === prev)) return prev;
+      return workspaceSubjects[0]?.id || '';
+    });
+  }, [storeId, currentUser.id, workspaceSubjects]);
 
   const selected = workspaceSubjects.find(u => u.id === selectedId);
   const formDirection: ReviewDirection = canWriteDown(currentUser) ? 'DOWN' : 'UP';
