@@ -22,6 +22,7 @@ import { insertFoodWasteTask, templateHasFoodWasteTask } from '../data/foodClose
 import { indexLiveReviewLocations, livePayloadsArePinned, rematchStoredReviewLocation } from '../utils/googleReviewRematch';
 import { sortChecklistsByStoreDay } from '../utils/checklistOrder';
 import PerformanceReviewsPanel from './PerformanceReviewsPanel';
+import PeoplePanel from './PeoplePanel';
 
 /**
  * Fuzzy name matching for Toast employees to database users.
@@ -171,7 +172,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
   currentStoreId, stores = [], currentUser, onUserUpdated, onToastSalesUpdate, onToastClockedInUpdate, onSalesComparisonUpdate,
   org, onSaveOrg, onSyncToastEmployees
 }) => {
-  const [activeSubTab, setActiveSubTab] = useState<'dashboard' | 'operations' | 'settings' | 'reviews'>('dashboard');
+  const [activeSubTab, setActiveSubTab] = useState<'dashboard' | 'operations' | 'settings' | 'reviews' | 'people'>('dashboard');
   const [operationsSubTab, setOperationsSubTab] = useState<'compliance' | 'gallery' | 'cash-audit' | 'training' | 'food'>('compliance');
   const [settingsSubTab, setSettingsSubTab] = useState<'editor' | 'team' | 'manual' | 'branding' | 'stores'>('editor');
   const [auditFilter, setAuditFilter] = useState<'pending' | 'approved' | 'all'>('pending');
@@ -1644,10 +1645,11 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
             {[
               { id: 'dashboard', label: 'DASHBOARD', icon: LayoutDashboard },
               { id: 'operations', label: 'OPS', icon: ClipboardList },
+              { id: 'people', label: 'PEOPLE', icon: Users },
               { id: 'reviews', label: 'REVIEWS', icon: UserCheck },
               { id: 'settings', label: 'SETTINGS', icon: Settings },
             ].map(tab => (
-              <button key={tab.id} onClick={() => setActiveSubTab(tab.id as any)} className={`flex-1 md:flex-none px-3 md:px-6 py-2.5 md:py-3 text-[9px] md:text-[10px] font-black rounded-xl transition-all flex items-center justify-center gap-1.5 md:gap-2 whitespace-nowrap tracking-widest border-2 ${activeSubTab === tab.id ? 'bg-[#0F2B3C] text-white border-[#0F2B3C] shadow-lg' : 'bg-white text-neutral-500 border-neutral-200 hover:border-[#0F2B3C] hover:text-[#0F2B3C]'}`}>
+              <button key={tab.id} onClick={() => setActiveSubTab(tab.id as any)} className={`flex-1 md:flex-none px-2 md:px-4 py-2.5 md:py-3 text-[9px] md:text-[10px] font-black rounded-xl transition-all flex items-center justify-center gap-1.5 md:gap-2 whitespace-nowrap tracking-widest border-2 ${activeSubTab === tab.id ? 'bg-[#0F2B3C] text-white border-[#0F2B3C] shadow-lg' : 'bg-white text-neutral-500 border-neutral-200 hover:border-[#0F2B3C] hover:text-[#0F2B3C]'}`}>
                 <tab.icon size={14} className="md:hidden" /><tab.icon size={16} className="hidden md:block" /> {tab.label}
               </button>
             ))}
@@ -3436,6 +3438,15 @@ ${curriculum.map((mod, mi) => {
               </p>
             </div>
           </section>
+        )}
+
+        {activeSubTab === 'people' && currentUser && (
+          <PeoplePanel
+            currentUser={currentUser}
+            allUsers={allUsers}
+            storeId={currentStoreId}
+            stores={stores}
+          />
         )}
 
         {activeSubTab === 'reviews' && currentUser && (

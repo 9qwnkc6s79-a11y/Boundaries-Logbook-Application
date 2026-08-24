@@ -1,6 +1,6 @@
 
 // No imports needed - Firebase is loaded globally via CDN script tags in index.html
-import { User, UserProgress, ChecklistSubmission, ChecklistTemplate, TrainingModule, ManualSection, Recipe, CashDeposit, GoogleReviewsData, Organization, Store, AttributedOrder, ArchivedLeaderboard, AuditFeedback, InventoryItem, InventoryCount, WarehouseItem, WarehouseTransaction, Food86Event, FoodClosingWasteEntry, PerformanceReview } from '../types';
+import { User, UserProgress, ChecklistSubmission, ChecklistTemplate, TrainingModule, ManualSection, Recipe, CashDeposit, GoogleReviewsData, Organization, Store, AttributedOrder, ArchivedLeaderboard, AuditFeedback, InventoryItem, InventoryCount, WarehouseItem, WarehouseTransaction, Food86Event, FoodClosingWasteEntry, PerformanceReview, TeamPerformanceReview } from '../types';
 import { isHashed } from '../utils/passwordUtils';
 import { applyFoodCloseTemplatePatch, patchFoodCloseManualSections } from '../data/foodCloseTasks';
 import {
@@ -10,6 +10,7 @@ import {
 } from '../utils/midshiftTemplateRematch';
 import { currentReviewPeriod, prunePerformanceReviews, upsertPerformanceReview } from '../utils/performanceReviews';
 import { appendFallAvailableFlavors } from '../utils/fallMenuRematch';
+import { pruneTeamPerformanceReviews, upsertTeamPerformanceReview } from '../utils/teamPerformanceReviews';
 
 declare const firebase: any;
 
@@ -77,6 +78,7 @@ const DOC_KEYS = {
   FOOD_86_EVENTS: 'food86Events',
   FOOD_CLOSING_WASTE: 'foodClosingWaste',
   PERFORMANCE_REVIEWS: 'performanceReviews',
+  TEAM_PERFORMANCE_REVIEWS: 'teamPerformanceReviews',
 };
 
 function removeUndefined(obj: any): any {
@@ -745,6 +747,54 @@ class CloudAPI {
     }
 
     console.log(`[DB] pushPerformanceReview END: ${pruned.length} reviews`);
+    return pruned;
+  }
+
+  // ── SOP team performance reviews (People tab). Not performanceReviews. ──
+
+  async fetchTeamPerformanceReviews(): Promise<TeamPerformanceReview[]> {
+    const rows = await this.remoteGet<TeamPerformanceReview[]>(DOC_KEYS.TEAM_PERFORMANCE_REVIEWS, []);
+    return Array.isArray(rows) ? rows : [];
+  }
+
+  private async fetchTeamPerformanceReviewsForWrite(): Promise<TeamPerformanceReview[] | null> {
+    const POPULATED_KEY = 'teamPerformanceReviewsPopulated';
+    let existing = await this.fetchTeamPerformanceReviews();
+    const marker = await this.remoteGet<{ populated: boolean }>(POPULATED_KEY, { populated: false });
+    if (existing.length === 0 && marker.populated) {
+      await new Promise(r => setTimeout(r, 500));
+      existing = await this.fetchTeamPerformanceReviews();
+      if (existing.length === 0) {
+        console.error('[Firestore] pushTeamPerformanceReview REFUSED: reviews read empty but marker set');
+        return null;
+      }
+    }
+    return existing;
+  }
+
+  async pushTeamPerformanceReview(review: TeamPerformanceReview, actor: User): Promise<TeamPerformanceReview[] | null> {
+    console.log(`[DB] pushTeamPerformanceReview START: id=${review.id}, status=${review.status}, ${review.reviewType} ${review.period}`);
+
+    const existing = await this.fetchTeamPerformanceReviewsForWrite();
+    if (existing === null) {
+      return null;
+    }
+
+    const merged = upsertTeamPerformanceReview(existing, review, actor);
+    if (!merged) {
+      console.error('[Firestore] pushTeamPerformanceReview REFUSED: invalid, locked, or unauthorized');
+      return null;
+    }
+
+    const pruned = pruneTeamPerformanceReviews(merged);
+    const ok = await this.remoteSet(DOC_KEYS.TEAM_PERFORMANCE_REVIEWS, pruned);
+    if (!ok) return null;
+
+    if (pruned.length > 0) {
+      this.remoteSet('teamPerformanceReviewsPopulated', { populated: true, at: new Date().toISOString() });
+    }
+
+    console.log(`[DB] pushTeamPerformanceReview END: ${pruned.length} reviews`);
     return pruned;
   }
 
