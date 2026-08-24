@@ -36,13 +36,18 @@ export function isActiveUser(user: User): boolean {
   return user.active !== false;
 }
 
-/** Match App.tsx storeUsers: assigned to this store, or no storeId yet. */
+/** Assigned to this store. Unassigned accounts do not appear on every roster. */
 export function userOnStore(user: User, storeId: string): boolean {
-  return user.storeId === storeId || !user.storeId;
+  return !!user.storeId && user.storeId === storeId;
 }
 
 export function usersOnStore(users: User[], storeId: string): User[] {
   return users.filter(u => userOnStore(u, storeId));
+}
+
+/** Hub / Team / Training / People roster: this store, and not deactivated. */
+export function storeRosterUsers(users: User[], storeId: string): User[] {
+  return users.filter(u => isActiveUser(u) && userOnStore(u, storeId));
 }
 
 export function canWriteDown(user: User): boolean {

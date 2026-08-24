@@ -53,12 +53,16 @@ assert(!canWriteDown(barista), 'employees do not write DOWN');
 assert(canWriteUp(barista) && canWriteUp(elmGm), 'non-admin employees (including GM) may write UP');
 assert(!canWriteUp(daniel), 'ADMIN does not write UP');
 
-const down = dueDownSubjects(users, [], elmGm, 'store-elm', '2026-08');
+const floater = user({ id: 'u-float', name: 'No Store', role: UserRole.TRAINEE, storeId: '' });
+const usersWithFloater = [...users, floater];
+
+const down = dueDownSubjects(usersWithFloater, [], elmGm, 'store-elm', '2026-08');
 assert(down.some(u => u.id === barista.id), 'DOWN includes active store employee');
 assert(down.some(u => u.id === daniel.id), 'DOWN can include ADMIN at the store (reviewer excluded only)');
 assert(!down.some(u => u.id === elmGm.id), 'DOWN excludes the reviewer');
 assert(!down.some(u => u.id === inactive.id), 'DOWN excludes inactive');
 assert(!down.some(u => u.id === otherBarista.id), 'DOWN stays on current store (store-elm), not store-prosper');
+assert(!down.some(u => u.id === floater.id), 'DOWN excludes users with no storeId');
 
 const up = dueUpSubjects(users, [], barista, 'store-elm', '2026-08');
 assert(up.length === 1 && up[0].id === elmGm.id, 'UP targets the store MANAGER only');

@@ -126,10 +126,10 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
 
       // Auto-create user accounts for Toast employees who don't have accounts yet
       if (onSyncToastEmployees) {
-        const newUsersCount = await onSyncToastEmployees(employees);
-        if (newUsersCount > 0) {
-          console.log(`[TeamManagement] Auto-created ${newUsersCount} user accounts from Toast`);
-          onUserUpdated(); // Refresh the user list
+        const rosterChanges = await onSyncToastEmployees(employees);
+        if (rosterChanges > 0) {
+          console.log(`[TeamManagement] Toast roster applied ${rosterChanges} change(s)`);
+          onUserUpdated(); // Refresh the user list (creates, links, deactivations)
         }
       }
     } catch (err: any) {

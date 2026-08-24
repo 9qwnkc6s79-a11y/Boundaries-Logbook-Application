@@ -26,6 +26,7 @@ import {
   periodForReviewType,
   primarySopDue,
   roundedOverallDefault,
+  storeRoster,
   sectionScore,
   sopCheckpoints,
   upsertTeamPerformanceReview,
@@ -297,5 +298,11 @@ const tardyFile = upsertTeamPerformanceReview([], {
 assert(tardyFile?.[0].disciplinaryStatus === 'TARDY_NO_SHOW' && tardyFile[0].tardyDate === '2026-08-12', 'GM can file tardy / no-show');
 
 assert(staff.id && leader.id, 'roster fixtures exist');
+
+const inactiveElm = user({ id: 'u-old', name: 'Former', role: UserRole.TRAINEE, storeId: 'store-elm', active: false });
+const unassigned = user({ id: 'u-none', name: 'Unassigned', role: UserRole.TRAINEE, storeId: '' });
+const peopleRoster = storeRoster([heath, rafael, barista, inactiveElm, unassigned], 'store-elm');
+assert(peopleRoster.every(u => u.storeId === 'store-elm' && u.active !== false), 'People roster is active + this store only');
+assert(!peopleRoster.some(u => u.id === inactiveElm.id || u.id === unassigned.id || u.id === barista.id), 'People hides inactive, unassigned, and other stores');
 
 console.log('verify-team-performance-reviews: ok');
