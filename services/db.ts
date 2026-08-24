@@ -1,8 +1,9 @@
 
 // No imports needed - Firebase is loaded globally via CDN script tags in index.html
-import { User, UserProgress, ChecklistSubmission, ChecklistTemplate, TrainingModule, ManualSection, Recipe, CashDeposit, GoogleReviewsData, Organization, Store, AttributedOrder, ArchivedLeaderboard, AuditFeedback, InventoryItem, InventoryCount, WarehouseItem, WarehouseTransaction, Food86Event, FoodClosingWasteEntry } from '../types';
+import { User, UserProgress, ChecklistSubmission, ChecklistTemplate, TrainingModule, ManualSection, Recipe, CashDeposit, GoogleReviewsData, Organization, Store, AttributedOrder, ArchivedLeaderboard, AuditFeedback, InventoryItem, InventoryCount, WarehouseItem, WarehouseTransaction, Food86Event, FoodClosingWasteEntry, PerformanceReview } from '../types';
 import { isHashed } from '../utils/passwordUtils';
 import { applyFoodCloseTemplatePatch, patchFoodCloseManualSections } from '../data/foodCloseTasks';
+import { currentReviewPeriod, prunePerformanceReviews, upsertPerformanceReview } from '../utils/performanceReviews';
 
 declare const firebase: any;
 
@@ -69,6 +70,7 @@ const DOC_KEYS = {
   WAREHOUSE_TRANSACTIONS: 'warehouseTransactions',
   FOOD_86_EVENTS: 'food86Events',
   FOOD_CLOSING_WASTE: 'foodClosingWaste',
+  PERFORMANCE_REVIEWS: 'performanceReviews',
 };
 
 function removeUndefined(obj: any): any {
@@ -690,6 +692,54 @@ class CloudAPI {
     // Keep last 50 entries to avoid bloating the AI prompt
     const updated = [entry, ...existing].slice(0, 50);
     await this.remoteSet(DOC_KEYS.AI_AUDIT_FEEDBACK, updated);
+  }
+
+  // ── Monthly performance reviews (not practice managerFeedback / aiAuditFeedback) ──
+
+  async fetchPerformanceReviews(): Promise<PerformanceReview[]> {
+    const rows = await this.remoteGet<PerformanceReview[]>(DOC_KEYS.PERFORMANCE_REVIEWS, []);
+    return Array.isArray(rows) ? rows : [];
+  }
+
+  private async fetchPerformanceReviewsForWrite(): Promise<PerformanceReview[] | null> {
+    const POPULATED_KEY = 'performanceReviewsPopulated';
+    let existing = await this.fetchPerformanceReviews();
+    const marker = await this.remoteGet<{ populated: boolean }>(POPULATED_KEY, { populated: false });
+    if (existing.length === 0 && marker.populated) {
+      await new Promise(r => setTimeout(r, 500));
+      existing = await this.fetchPerformanceReviews();
+      if (existing.length === 0) {
+        console.error('[Firestore] pushPerformanceReview REFUSED: reviews read empty but marker set');
+        return null;
+      }
+    }
+    return existing;
+  }
+
+  async pushPerformanceReview(review: PerformanceReview): Promise<PerformanceReview[] | null> {
+    console.log(`[DB] pushPerformanceReview START: id=${review.id}, status=${review.status}, ${review.direction} ${review.period}`);
+
+    const existing = await this.fetchPerformanceReviewsForWrite();
+    if (existing === null) {
+      return null;
+    }
+
+    const merged = upsertPerformanceReview(existing, review);
+    if (!merged) {
+      console.error('[Firestore] pushPerformanceReview REFUSED: invalid or locked submitted review');
+      return null;
+    }
+
+    const pruned = prunePerformanceReviews(merged, currentReviewPeriod());
+    const ok = await this.remoteSet(DOC_KEYS.PERFORMANCE_REVIEWS, pruned);
+    if (!ok) return null;
+
+    if (pruned.length > 0) {
+      this.remoteSet('performanceReviewsPopulated', { populated: true, at: new Date().toISOString() });
+    }
+
+    console.log(`[DB] pushPerformanceReview END: ${pruned.length} reviews`);
+    return pruned;
   }
 
   async fetchProgress(): Promise<UserProgress[]> {

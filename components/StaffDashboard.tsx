@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { detectLeaders, calculateLeaderboard, LeaderLeaderboardEntry } from '../utils/leadershipTracking';
 import { db } from '../services/db';
+import PerformanceReviewsPanel from './PerformanceReviewsPanel';
 
 interface StaffDashboardProps {
   currentUser: User;
@@ -234,6 +235,13 @@ const StaffDashboard: React.FC<StaffDashboardProps> = ({
           </div>
         </div>
       </section>
+
+      <PerformanceReviewsPanel
+        currentUser={currentUser}
+        allUsers={allUsers}
+        storeId={currentUser.storeId}
+        variant="staff"
+      />
 
       {/* Badges/Achievements */}
       {badges.length > 0 && (

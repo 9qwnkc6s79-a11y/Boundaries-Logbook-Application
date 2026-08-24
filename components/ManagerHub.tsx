@@ -21,6 +21,7 @@ import { showLocalNotification, isAnyStoreManager, getNotificationConfig } from 
 import { insertFoodWasteTask, templateHasFoodWasteTask } from '../data/foodCloseTasks';
 import { indexLiveReviewLocations, livePayloadsArePinned, rematchStoredReviewLocation } from '../utils/googleReviewRematch';
 import { sortChecklistsByStoreDay } from '../utils/checklistOrder';
+import PerformanceReviewsPanel from './PerformanceReviewsPanel';
 
 /**
  * Fuzzy name matching for Toast employees to database users.
@@ -170,7 +171,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
   currentStoreId, stores = [], currentUser, onUserUpdated, onToastSalesUpdate, onToastClockedInUpdate, onSalesComparisonUpdate,
   org, onSaveOrg, onSyncToastEmployees
 }) => {
-  const [activeSubTab, setActiveSubTab] = useState<'dashboard' | 'operations' | 'settings'>('dashboard');
+  const [activeSubTab, setActiveSubTab] = useState<'dashboard' | 'operations' | 'settings' | 'reviews'>('dashboard');
   const [operationsSubTab, setOperationsSubTab] = useState<'compliance' | 'gallery' | 'cash-audit' | 'training' | 'food'>('compliance');
   const [settingsSubTab, setSettingsSubTab] = useState<'editor' | 'team' | 'manual' | 'branding' | 'stores'>('editor');
   const [auditFilter, setAuditFilter] = useState<'pending' | 'approved' | 'all'>('pending');
@@ -1643,6 +1644,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
             {[
               { id: 'dashboard', label: 'DASHBOARD', icon: LayoutDashboard },
               { id: 'operations', label: 'OPS', icon: ClipboardList },
+              { id: 'reviews', label: 'REVIEWS', icon: UserCheck },
               { id: 'settings', label: 'SETTINGS', icon: Settings },
             ].map(tab => (
               <button key={tab.id} onClick={() => setActiveSubTab(tab.id as any)} className={`flex-1 md:flex-none px-3 md:px-6 py-2.5 md:py-3 text-[9px] md:text-[10px] font-black rounded-xl transition-all flex items-center justify-center gap-1.5 md:gap-2 whitespace-nowrap tracking-widest border-2 ${activeSubTab === tab.id ? 'bg-[#0F2B3C] text-white border-[#0F2B3C] shadow-lg' : 'bg-white text-neutral-500 border-neutral-200 hover:border-[#0F2B3C] hover:text-[#0F2B3C]'}`}>
@@ -1848,6 +1850,17 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                 </button>
               </div>
             </section>
+
+            {currentUser && (
+              <PerformanceReviewsPanel
+                currentUser={currentUser}
+                allUsers={allUsers}
+                storeId={currentStoreId}
+                stores={stores}
+                variant="due-card"
+                onOpenWorkspace={() => setActiveSubTab('reviews')}
+              />
+            )}
 
             {/* Live Cameras */}
             <CameraSection
@@ -3423,6 +3436,16 @@ ${curriculum.map((mod, mi) => {
               </p>
             </div>
           </section>
+        )}
+
+        {activeSubTab === 'reviews' && currentUser && (
+          <PerformanceReviewsPanel
+            currentUser={currentUser}
+            allUsers={allUsers}
+            storeId={currentStoreId}
+            stores={stores}
+            variant="workspace"
+          />
         )}
 
         {activeSubTab === 'settings' && settingsSubTab === 'team' && currentUser?.role === UserRole.ADMIN && (
