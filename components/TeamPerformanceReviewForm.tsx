@@ -255,23 +255,18 @@ const TeamPerformanceReviewForm: React.FC<TeamPerformanceReviewFormProps> = ({
         </div>
         <div>
           <div className="text-[9px] font-black text-neutral-400 uppercase tracking-widest mb-1">Overall Rating</div>
-          <div className="flex gap-1">
-            {[1, 2, 3, 4, 5].map(n => (
-              <button
-                key={n}
-                type="button"
-                disabled={disabled}
-                onClick={() => patch({ overallRating: n, overallTouched: true })}
-                className={`w-8 h-8 rounded-lg text-xs font-black border-2 ${
-                  displayOverall === n
-                    ? 'bg-[#0F2B3C] text-white border-[#0F2B3C]'
-                    : 'bg-white text-neutral-500 border-neutral-200 hover:border-[#0F2B3C]'
-                }`}
-              >
-                {n}
-              </button>
+          <select
+            disabled={disabled}
+            aria-label="Overall Rating 1–5"
+            className={`${inputClass} w-56`}
+            value={displayOverall || ''}
+            onChange={e => patch({ overallRating: e.target.value ? Number(e.target.value) : 0, overallTouched: true })}
+          >
+            <option value="">Confirm 1–5</option>
+            {SOP_RATING_SCALE.map(opt => (
+              <option key={opt.value} value={opt.value}>{opt.value} {opt.label}</option>
             ))}
-          </div>
+          </select>
         </div>
         <div className="flex gap-2 md:ml-auto">
           <button
@@ -427,22 +422,20 @@ const TeamPerformanceReviewForm: React.FC<TeamPerformanceReviewFormProps> = ({
                     {item.low} → {item.high}
                   </p>
                 </div>
-                <div className="flex gap-1 shrink-0">
-                  {[1, 2, 3, 4, 5].map(n => (
-                    <button
-                      key={n}
-                      type="button"
-                      disabled={disabled}
-                      onClick={() => setRating(item.id, form.ratings[item.id] === n ? null : n)}
-                      className={`w-8 h-8 rounded-lg text-xs font-black border-2 ${
-                        form.ratings[item.id] === n
-                          ? 'bg-[#0F2B3C] text-white border-[#0F2B3C]'
-                          : 'bg-white text-neutral-500 border-neutral-200 hover:border-[#0F2B3C]'
-                      }`}
-                    >
-                      {n}
-                    </button>
-                  ))}
+                <div className="shrink-0 w-full md:w-56">
+                  <label className="sr-only" htmlFor={`rating-${item.id}`}>{item.title} rating 1–5</label>
+                  <select
+                    id={`rating-${item.id}`}
+                    disabled={disabled}
+                    className={inputClass}
+                    value={form.ratings[item.id] || ''}
+                    onChange={e => setRating(item.id, e.target.value ? Number(e.target.value) : null)}
+                  >
+                    <option value="">—</option>
+                    {SOP_RATING_SCALE.map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.value} {opt.label}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
             </div>
