@@ -18,6 +18,7 @@ import {
   chicagoYmd,
   existingHireOrStartDate,
   formatSopPeriod,
+  isSopCheckpointSubmitted,
   isSopOverdue,
   latestSubmittedSop,
   makeSopReviewId,
@@ -186,6 +187,8 @@ const monthlyDone: TeamPerformanceReview = {
   reviewType: 'MONTHLY',
   reviewDate: '2026-08-20',
 };
+assert(isSopCheckpointSubmitted([monthlyDone], barista.id, '2026-08', 'MONTHLY'), 'current month submitted lookup');
+assert(!isSopCheckpointSubmitted([monthlyDone], barista.id, '2026-09', 'MONTHLY'), 'other month is not submitted');
 assert(sopCheckpoints(barista.id, [monthlyDone], now)[0].submitted, 'monthly checkpoint complete');
 assert(primarySopDue(barista, [monthlyDone], now).dueYmd === '2026-09-30', 'after monthly, next open due is Q3 end');
 

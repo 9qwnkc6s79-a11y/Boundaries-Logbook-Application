@@ -6,9 +6,12 @@ import {
   SOP_DISCIPLINARY_LABELS,
   canWriteSopReview,
   chicagoMonth,
+  chicagoQuarter,
+  chicagoYear,
   chicagoYmd,
   formatSopPeriod,
   formatSopReviewType,
+  isSopCheckpointSubmitted,
   latestSubmittedSop,
   primarySopDue,
   rosterRoleLabel,
@@ -83,6 +86,8 @@ const PeoplePanel: React.FC<PeoplePanelProps> = ({
   const selected = roster.find(u => u.id === selectedId) || null;
   const allowed = canWriteSopReview(currentUser);
   const month = useMemo(() => chicagoMonth(), []);
+  const quarter = useMemo(() => chicagoQuarter(), []);
+  const year = useMemo(() => chicagoYear(), []);
 
   const rows = useMemo(() => {
     const today = chicagoYmd();
@@ -105,22 +110,16 @@ const PeoplePanel: React.FC<PeoplePanelProps> = ({
   }, [roster, reviews]);
 
   const monthlyDue = useMemo(
-    () => rows.filter(row => !row.checkpoints.find(c => c.cadence === 'MONTHLY')?.submitted),
-    [rows]
+    () => rows.filter(row => !isSopCheckpointSubmitted(reviews, row.user.id, month.id, 'MONTHLY')),
+    [rows, reviews, month.id]
   );
   const quarterlyDue = useMemo(
-    () => rows.filter(row => {
-      const q = row.checkpoints.find(c => c.cadence === 'QUARTERLY');
-      return q && !q.submitted;
-    }),
-    [rows]
+    () => rows.filter(row => !isSopCheckpointSubmitted(reviews, row.user.id, quarter.id, 'QUARTERLY')),
+    [rows, reviews, quarter.id]
   );
   const annualDue = useMemo(
-    () => rows.filter(row => {
-      const a = row.checkpoints.find(c => c.cadence === 'ANNUAL');
-      return a && !a.submitted;
-    }),
-    [rows]
+    () => rows.filter(row => !isSopCheckpointSubmitted(reviews, row.user.id, year.id, 'ANNUAL')),
+    [rows, reviews, year.id]
   );
   const overdueCount = useMemo(
     () => rows.filter(row => row.checkpoints.some(c => c.overdue)).length,
