@@ -413,11 +413,11 @@ const PeoplePanel: React.FC<PeoplePanelProps> = ({
                           {row.overdue ? ' · Overdue' : ''}
                         </div>
                         <div className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest">{row.dueLabel}</div>
-                        {row.checkpoints.some(c => c.cadence !== 'MONTHLY' && !c.submitted) && (
-                          <div className="text-[9px] font-bold text-amber-700 uppercase tracking-widest mt-0.5">
+                        {row.checkpoints.some(c => c.cadence !== 'MONTHLY' && c.overdue) && (
+                          <div className="text-[9px] font-bold text-red-600 uppercase tracking-widest mt-0.5">
                             {row.checkpoints
-                              .filter(c => c.cadence !== 'MONTHLY' && !c.submitted)
-                              .map(c => `${c.cadence === 'QUARTERLY' ? 'Q' : 'Annual'}${c.overdue ? ' overdue' : ' due'}`)
+                              .filter(c => c.cadence !== 'MONTHLY' && c.overdue)
+                              .map(c => `${c.cadence === 'QUARTERLY' ? 'Q' : 'Annual'} overdue`)
                               .join(' · ')}
                           </div>
                         )}
