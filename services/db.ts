@@ -3,6 +3,11 @@
 import { User, UserProgress, ChecklistSubmission, ChecklistTemplate, TrainingModule, ManualSection, Recipe, CashDeposit, GoogleReviewsData, Organization, Store, AttributedOrder, ArchivedLeaderboard, AuditFeedback, InventoryItem, InventoryCount, WarehouseItem, WarehouseTransaction, Food86Event, FoodClosingWasteEntry, PerformanceReview } from '../types';
 import { isHashed } from '../utils/passwordUtils';
 import { applyFoodCloseTemplatePatch, patchFoodCloseManualSections } from '../data/foodCloseTasks';
+import {
+  decideProsperMidshiftRematch,
+  PROSPER_MIDSHIFT_REMATCH_KEY,
+  STORE_ELM,
+} from '../utils/midshiftTemplateRematch';
 import { currentReviewPeriod, prunePerformanceReviews, upsertPerformanceReview } from '../utils/performanceReviews';
 
 declare const firebase: any;
@@ -826,6 +831,75 @@ class CloudAPI {
     const next = current.filter(t => t.id !== templateId);
     console.log(`[DB] deleteTemplate: Removing ${templateId}, ${current.length} → ${next.length} templates`);
     return this.remoteSet(DOC_KEYS.TEMPLATES, next);
+  }
+
+  /**
+   * One-time: if Prosper has no SHIFT_CHANGE, clone Little Elm's live
+   * Mid-Shift template (same name, hours, tasks). Marker-guarded.
+   * Does not invent tasks when Little Elm has no SHIFT_CHANGE.
+   */
+  private async ensureProsperMidshiftFromElm(
+    templates: ChecklistTemplate[],
+  ): Promise<ChecklistTemplate[]> {
+    try {
+      const marker = await this.remoteGet<{ done: boolean }>(
+        PROSPER_MIDSHIFT_REMATCH_KEY,
+        { done: false },
+      );
+      if (marker.done) return templates;
+
+      const decision = decideProsperMidshiftRematch(templates);
+      if (decision.kind === 'skip-empty' || decision.kind === 'no-source') {
+        return templates;
+      }
+      if (decision.kind === 'already-has') {
+        await this.remoteSet(PROSPER_MIDSHIFT_REMATCH_KEY, {
+          done: true,
+          at: new Date().toISOString(),
+          reason: 'already-has',
+        });
+        return templates;
+      }
+
+      // Fetch-merge-save (same path as updateTemplate). Refuse an empty
+      // re-read — that is almost always transient and would wipe live lists.
+      const current = await this.fetchTemplates();
+      if (current.length === 0) {
+        console.warn('[Firestore] globalSync: Prosper midshift rematch REFUSED — empty template re-read');
+        return templates;
+      }
+      const latest = decideProsperMidshiftRematch(current);
+      if (latest.kind === 'already-has') {
+        await this.remoteSet(PROSPER_MIDSHIFT_REMATCH_KEY, {
+          done: true,
+          at: new Date().toISOString(),
+          reason: 'already-has',
+        });
+        return current;
+      }
+      if (latest.kind !== 'clone') {
+        return current;
+      }
+
+      const next = [...current, latest.template];
+      const saved = await this.remoteSet(DOC_KEYS.TEMPLATES, next);
+      if (!saved) {
+        console.warn('[Firestore] globalSync: Prosper midshift clone write failed — will retry on next full sync');
+        return templates;
+      }
+      await this.remoteSet(PROSPER_MIDSHIFT_REMATCH_KEY, {
+        done: true,
+        at: new Date().toISOString(),
+        reason: 'cloned',
+        sourceId: current.find(t => t.storeId === STORE_ELM && t.type === 'SHIFT_CHANGE')?.id,
+        cloneId: latest.template.id,
+      });
+      console.log(`[Firestore] globalSync: Cloned Little Elm SHIFT_CHANGE → Prosper (${latest.template.id})`);
+      return next;
+    } catch (e) {
+      console.warn('[Firestore] globalSync: Prosper midshift rematch failed:', e);
+      return templates;
+    }
   }
 
   // ── Curriculum (with fetch-merge-save) ──
@@ -1723,7 +1797,8 @@ class CloudAPI {
     // Live Firestore templates already differ from seed — append only.
     let syncedTemplates = templates;
     if (Array.isArray(templates) && templates.length > 0) {
-      const patched = applyFoodCloseTemplatePatch(templates);
+      syncedTemplates = await this.ensureProsperMidshiftFromElm(syncedTemplates);
+      const patched = applyFoodCloseTemplatePatch(syncedTemplates);
       syncedTemplates = patched.next;
       if (patched.mutated) {
         console.log('[Firestore] globalSync: Added food leftover/waste + Toast starting-qty tasks to checklists');
