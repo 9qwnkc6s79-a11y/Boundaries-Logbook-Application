@@ -4,7 +4,7 @@ import {
   CheckCircle2, AlertCircle, Eye, User as UserIcon, Calendar, Check, X,
   Settings, Plus, Trash2, Edit3, BarChart3, ListTodo, BrainCircuit, Clock, TrendingDown, TrendingUp,
   ArrowRight, MessageSquare, Save, Users, LayoutDashboard, Flag, Activity, GraduationCap, Award, FileText, MoveUp, MoveDown, Coffee, Camera, Hash, AlertTriangle, ExternalLink, FileText as FileIcon, Image as ImageIcon, Search, ShieldCheck,
-  RefreshCw, RotateCcw, CalendarDays, Timer, Store as StoreIcon, MapPin, GripVertical, AlertOctagon, Info, Zap, Gauge, History, SearchCheck, ChevronUp, ChevronDown, ClipboardList, DollarSign, TrendingUp as TrendingUpIcon, UserCheck, Target, Trophy, Star, Palette, Building2, UtensilsCrossed
+  RefreshCw, RotateCcw, CalendarDays, Timer, Store as StoreIcon, MapPin, GripVertical, AlertOctagon, Info, Zap, Gauge, History, SearchCheck, ChevronUp, ChevronDown, ClipboardList, DollarSign, TrendingUp as TrendingUpIcon, Target, Trophy, Star, Palette, Building2, UtensilsCrossed
 } from 'lucide-react';
 import { toastAPI } from '../services/toast';
 import { db } from '../services/db';
@@ -21,7 +21,6 @@ import { showLocalNotification, isAnyStoreManager, getNotificationConfig } from 
 import { insertFoodWasteTask, templateHasFoodWasteTask } from '../data/foodCloseTasks';
 import { indexLiveReviewLocations, livePayloadsArePinned, rematchStoredReviewLocation } from '../utils/googleReviewRematch';
 import { sortChecklistsByStoreDay } from '../utils/checklistOrder';
-import PerformanceReviewsPanel from './PerformanceReviewsPanel';
 import PeoplePanel from './PeoplePanel';
 
 /**
@@ -172,7 +171,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
   currentStoreId, stores = [], currentUser, onUserUpdated, onToastSalesUpdate, onToastClockedInUpdate, onSalesComparisonUpdate,
   org, onSaveOrg, onSyncToastEmployees
 }) => {
-  const [activeSubTab, setActiveSubTab] = useState<'dashboard' | 'operations' | 'settings' | 'reviews' | 'people'>('dashboard');
+  const [activeSubTab, setActiveSubTab] = useState<'dashboard' | 'operations' | 'settings' | 'people'>('dashboard');
   const [operationsSubTab, setOperationsSubTab] = useState<'compliance' | 'gallery' | 'cash-audit' | 'training' | 'food'>('compliance');
   const [settingsSubTab, setSettingsSubTab] = useState<'editor' | 'team' | 'manual' | 'branding' | 'stores'>('editor');
   const [auditFilter, setAuditFilter] = useState<'pending' | 'approved' | 'all'>('pending');
@@ -1646,7 +1645,6 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
               { id: 'dashboard', label: 'DASHBOARD', icon: LayoutDashboard },
               { id: 'operations', label: 'OPS', icon: ClipboardList },
               { id: 'people', label: 'PEOPLE', icon: Users },
-              { id: 'reviews', label: 'REVIEWS', icon: UserCheck },
               { id: 'settings', label: 'SETTINGS', icon: Settings },
             ].map(tab => (
               <button key={tab.id} onClick={() => setActiveSubTab(tab.id as any)} className={`flex-1 md:flex-none px-2 md:px-4 py-2.5 md:py-3 text-[9px] md:text-[10px] font-black rounded-xl transition-all flex items-center justify-center gap-1.5 md:gap-2 whitespace-nowrap tracking-widest border-2 ${activeSubTab === tab.id ? 'bg-[#0F2B3C] text-white border-[#0F2B3C] shadow-lg' : 'bg-white text-neutral-500 border-neutral-200 hover:border-[#0F2B3C] hover:text-[#0F2B3C]'}`}>
@@ -1854,13 +1852,13 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
             </section>
 
             {currentUser && (
-              <PerformanceReviewsPanel
+              <PeoplePanel
                 currentUser={currentUser}
                 allUsers={allUsers}
                 storeId={currentStoreId}
                 stores={stores}
                 variant="due-card"
-                onOpenWorkspace={() => setActiveSubTab('reviews')}
+                onOpenWorkspace={() => setActiveSubTab('people')}
               />
             )}
 
@@ -3446,16 +3444,6 @@ ${curriculum.map((mod, mi) => {
             allUsers={allUsers}
             storeId={currentStoreId}
             stores={stores}
-          />
-        )}
-
-        {activeSubTab === 'reviews' && currentUser && (
-          <PerformanceReviewsPanel
-            currentUser={currentUser}
-            allUsers={allUsers}
-            storeId={currentStoreId}
-            stores={stores}
-            variant="workspace"
           />
         )}
 

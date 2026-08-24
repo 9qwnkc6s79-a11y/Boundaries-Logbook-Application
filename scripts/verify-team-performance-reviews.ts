@@ -13,16 +13,20 @@ import {
   canEditSopReview,
   canSetPip,
   canWriteSopReview,
+  chicagoMonth,
   chicagoQuarter,
   chicagoYmd,
   existingHireOrStartDate,
+  formatSopPeriod,
   isSopOverdue,
   latestSubmittedSop,
   makeSopReviewId,
   nextSopDueDate,
   periodForReviewType,
+  primarySopDue,
   roundedOverallDefault,
   sectionScore,
+  sopCheckpoints,
   upsertTeamPerformanceReview,
   visibleSopSections,
   weightedScore,
@@ -71,6 +75,7 @@ assert(SOP_SECTIONS[1].items[0].low === 'Disengaged, doesn’t care about the cr
 assert(SOP_SECTIONS[4].items[0].high === 'Drives team to hit 3.5 min target every shift', 'floor leadership high');
 assert(SOP_DISCIPLINARY_LABELS.NO_CONCERNS === 'No concerns at this time', 'disc 1');
 assert(SOP_DISCIPLINARY_LABELS.ACTIVE_STRIKE === 'Active strike on record. Strike # + Date', 'disc 2');
+assert(SOP_DISCIPLINARY_LABELS.TARDY_NO_SHOW === 'Tardy / no-show', 'disc tardy');
 assert(SOP_DISCIPLINARY_LABELS.PIP_REQUIRED === 'PIP required — to be prepared by Daniel. Date.', 'disc 3');
 assert(SOP_FOOTER === 'BOUNDARIES COFFEE — CONFIDENTIAL INTERNAL USE ONLY', 'footer');
 
@@ -110,18 +115,23 @@ assert(rows.find(r => r.sectionId === 'leadership')?.score === null, 'TM leaders
 assert(rows.find(r => r.sectionId === 'appearance')?.tmWeight === 20, 'table TM weight');
 assert(rows.find(r => r.sectionId === 'appearance')?.tlWeight === 15, 'table TL weight');
 
-// --- Chicago quarter / due dates ----------------------------------------
+// --- Chicago month / quarter / due dates --------------------------------
 assert(chicagoYmd(new Date('2026-09-01T04:00:00Z')) === '2026-08-31', '04:00 UTC Sep 1 is still Aug 31 Chicago');
+assert(chicagoMonth(new Date('2026-08-24T18:00:00Z')).id === '2026-08', 'Aug Chicago month');
+assert(chicagoMonth(new Date('2026-08-24T18:00:00Z')).end === '2026-08-31', 'Aug ends 31');
+assert(chicagoMonth(new Date('2026-09-01T04:00:00Z')).id === '2026-08', '04:00 UTC Sep 1 still Aug Chicago');
 assert(chicagoQuarter(new Date('2026-08-24T18:00:00Z')).id === '2026-Q3', 'Aug is Q3');
 assert(chicagoQuarter(new Date('2026-08-24T18:00:00Z')).end === '2026-09-30', 'Q3 ends Sep 30');
 assert(chicagoQuarter(new Date('2026-10-01T04:00:00Z')).id === '2026-Q3', '04:00 UTC Oct 1 still Q3 Chicago');
 assert(chicagoQuarter(new Date('2026-10-01T06:00:00Z')).id === '2026-Q4', '06:00 UTC Oct 1 is Q4 Chicago');
+assert(periodForReviewType('MONTHLY', '2026-08-24') === '2026-08', 'monthly period is YYYY-MM');
 assert(periodForReviewType('QUARTERLY', '2026-08-24') === '2026-Q3', 'quarter period');
 assert(periodForReviewType('ANNUAL', '2026-08-24') === '2026', 'annual period');
 assert(periodForReviewType('PIP', '2026-08-24') === 'PIP-2026-08-24', 'pip period');
+assert(formatSopPeriod('2026-08') === 'Aug 2026', 'format monthly period');
 
 const now = new Date('2026-08-24T18:00:00Z');
-assert(nextSopDueDate(barista, [], now) === '2026-09-30', 'no hire + no review → end of current quarter');
+assert(nextSopDueDate(barista, [], now) === '2026-08-31', 'no hire + no review → end of current Chicago month');
 assert(!existingHireOrStartDate(barista), 'do not invent hireDate');
 
 const withHire = { ...barista, hireDate: '2026-08-01' } as User;
@@ -155,10 +165,29 @@ const submitted: TeamPerformanceReview = {
   updatedAt: '2026-06-15T12:00:00Z',
   submittedAt: '2026-06-15T12:00:00Z',
 };
-assert(nextSopDueDate(barista, [submitted], now) === '2026-09-13', '90 days after last SUBMITTED SOP');
+assert(nextSopDueDate(barista, [submitted], now) === '2026-08-31', 'prior quarter submit does not clear current monthly');
 assert(isSopOverdue('2026-08-23', now), 'yesterday is overdue');
 assert(!isSopOverdue('2026-08-24', now), 'due today is not overdue');
 assert(latestSubmittedSop([submitted], barista.id)?.period === '2026-Q2', 'latest submitted lookup');
+
+const points = sopCheckpoints(barista.id, [], now);
+assert(points[0].period === '2026-08' && points[0].reviewType === 'MONTHLY' && !points[0].submitted, 'monthly checkpoint open');
+assert(points[1].period === '2026-Q3' && points[1].reviewType === 'QUARTERLY' && !points[1].overdue, 'Q3 checkpoint not overdue in Aug');
+assert(points[2].period === '2026' && points[2].reviewType === 'ANNUAL', 'annual checkpoint 2026');
+const oct = new Date('2026-10-15T18:00:00Z');
+const octPoints = sopCheckpoints(barista.id, [], oct);
+assert(octPoints.some(p => p.period === '2026-Q3' && p.overdue), 'Q3 checkpoint overdue stays visible in October');
+assert(octPoints.some(p => p.period === '2026-09' && p.overdue), 'September monthly overdue stays visible in October');
+assert(!octPoints.some(p => p.period === '2026-07'), 'do not invent monthly dues before cadence start');
+const monthlyDone: TeamPerformanceReview = {
+  ...submitted,
+  id: makeSopReviewId(barista.id, '2026-08', 'MONTHLY'),
+  period: '2026-08',
+  reviewType: 'MONTHLY',
+  reviewDate: '2026-08-20',
+};
+assert(sopCheckpoints(barista.id, [monthlyDone], now)[0].submitted, 'monthly checkpoint complete');
+assert(primarySopDue(barista, [monthlyDone], now).dueYmd === '2026-09-30', 'after monthly, next open due is Q3 end');
 
 // --- Who can write / PIP / lock ------------------------------------------
 assert(canWriteSopReview(heath) && canWriteSopReview(rafael) && canWriteSopReview(daniel), 'GM + ADMIN write SOP');
@@ -228,6 +257,41 @@ const duplicate = upsertTeamPerformanceReview(adminUnlock!, {
   disciplinaryStatus: 'NO_CONCERNS',
 }, heath, '2026-08-24T20:00:00Z');
 assert(duplicate === null, 'second SUBMITTED for same subject/period/type refused');
+
+const monthlyBlank: TeamPerformanceReview = {
+  ...draft,
+  id: makeSopReviewId(staff.id, '2026-08', 'MONTHLY'),
+  subjectId: staff.id,
+  subjectName: staff.name,
+  storeId: 'store-elm',
+  reviewerId: 'spoofed',
+  reviewerName: 'Not Heath',
+  reviewedByName: 'Not Heath',
+  period: '2026-08',
+  reviewType: 'MONTHLY',
+  overallRating: 3,
+  keyThemes: '',
+  developmentPlan: [],
+  goals: [],
+  sectionComments: {},
+  ratings: { attire: 3 },
+  status: 'SUBMITTED',
+};
+const monthlySaved = upsertTeamPerformanceReview([], monthlyBlank, heath, '2026-08-24T21:00:00Z');
+assert(monthlySaved?.[0].reviewType === 'MONTHLY' && monthlySaved[0].period === '2026-08', 'monthly SOP persists');
+assert(monthlySaved?.[0].reviewerId === heath.id && monthlySaved[0].reviewerName === heath.name, 'reviewer is signed-in user');
+assert(monthlySaved?.[0].reviewedByName === heath.name, 'reviewedByName mirrors signed-in user');
+assert(monthlySaved?.[0].developmentPlan.length === 0 && !monthlySaved[0].keyThemes, 'DAP and essays may be blank');
+
+const tardyFile = upsertTeamPerformanceReview([], {
+  ...monthlyBlank,
+  id: makeSopReviewId(leader.id, '2026-08', 'MONTHLY'),
+  subjectId: leader.id,
+  subjectName: leader.name,
+  disciplinaryStatus: 'TARDY_NO_SHOW',
+  tardyDate: '2026-08-12',
+}, rafael, '2026-08-24T21:30:00Z');
+assert(tardyFile?.[0].disciplinaryStatus === 'TARDY_NO_SHOW' && tardyFile[0].tardyDate === '2026-08-12', 'GM can file tardy / no-show');
 
 assert(staff.id && leader.id, 'roster fixtures exist');
 
