@@ -13,8 +13,6 @@ export const MOCK_STORES: Store[] = [
 // Users must use the signup or password-reset flow to set credentials.
 export const MOCK_USERS: User[] = [
   { id: 'u-admin-1', name: 'Daniel', email: 'Daniel@boundariescoffee.com', role: UserRole.ADMIN, storeId: 'store-elm' },
-  { id: 'u-admin-2', name: 'Kate', email: 'Kate@BoundariesCoffee.com', role: UserRole.ADMIN, storeId: 'store-prosper' },
-  { id: 'u-itzel-1', name: 'Itzel Garcia', email: 'itzelgarcia120101@gmail.com', role: UserRole.TRAINEE, storeId: 'store-elm', mustChangePassword: true },
 ];
 
 export const BOUNDARIES_MANUAL: ManualSection[] = [

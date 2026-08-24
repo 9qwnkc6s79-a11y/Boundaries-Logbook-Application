@@ -2635,7 +2635,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
              </div>
 
              {(() => {
-               const trackerStaff = (currentUser?.role === UserRole.ADMIN ? allUsers.filter(u => u.id !== currentUser?.id) : staff).filter(u => u.active !== false);
+               const trackerStaff = staff.filter(u => u.id !== currentUser?.id && u.active !== false);
                return (
                  <>
             {/* Training Tracker — where everyone is at a glance */}

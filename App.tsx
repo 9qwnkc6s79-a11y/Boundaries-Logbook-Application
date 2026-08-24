@@ -15,6 +15,8 @@ import Onboarding, { OnboardingData } from './components/Onboarding';
 import { getStarterPack } from './data/starterPacks';
 import { GoogleGenAI } from "@google/genai";
 import { hashPassword, verifyPassword, isHashed } from './utils/passwordUtils';
+import { storeRosterUsers } from './utils/performanceReviews';
+import { buildToastSyncedUser, decideToastRosterSync } from './utils/toastRosterSync';
 import { Lock, ShieldCheck } from 'lucide-react';
 
 const APP_VERSION = '3.6.0';
@@ -270,6 +272,18 @@ const App: React.FC = () => {
     }, 30000);
     return () => clearInterval(heartbeat);
   }, [currentUser, performCloudSync]);
+
+  // Toast offboard (active: false) should end an already-open session.
+  useEffect(() => {
+    if (!currentUser || allUsers.length === 0) return;
+    const latest = allUsers.find(
+      u => u.id === currentUser.id || u.email.toLowerCase() === currentUser.email.toLowerCase()
+    );
+    if (latest && latest.active === false) {
+      localStorage.removeItem(SESSION_STORAGE_KEY);
+      setCurrentUser(null);
+    }
+  }, [allUsers, currentUser]);
 
   // Listen for cross-tab storage changes
   useEffect(() => {
@@ -862,72 +876,59 @@ const App: React.FC = () => {
     return success;
   }, []);
 
-  // Sync Toast employees as app users
+  // Sync Toast employees as app users. Toast is the source of truth for who
+  // is active (except Daniel). Failed / empty pulls are a no-op.
   const handleSyncToastEmployees = useCallback(async (toastEmployees: ToastSyncEmployee[]) => {
     console.log('[App] Syncing Toast employees as users...', toastEmployees.length);
 
-    let newCount = 0;
+    const decision = decideToastRosterSync(allUsers, toastEmployees);
+    if (decision.kind === 'skip-empty') {
+      console.log('[App] Toast roster sync skipped: empty, error, or junk-only list');
+      return 0;
+    }
 
-    for (const emp of toastEmployees) {
-      // Skip deleted employees
-      if (emp.deleted) continue;
+    let changeCount = 0;
 
-      // Skip POS-internal/system entries — these are not real staff and were
-      // filling the roster with junk accounts ("Default", "TDS", etc.).
-      const empName = (emp.name || '').trim().toLowerCase();
-      if (!empName || ['default', 'tds', 'test', 'training'].includes(empName)) continue;
-      if (emp.email && emp.email.toLowerCase().endsWith('@toasttab.com')) continue;
+    for (const { user, guid } of decision.link) {
+      const shouldReactivate = decision.reactivate.some(u => u.id === user.id);
+      await db.syncUser({
+        ...user,
+        toastEmployeeGuid: guid,
+        ...(shouldReactivate ? { active: true } : {}),
+      });
+      changeCount++;
+      console.log(`[App] Linked existing user ${user.email} to Toast guid ${guid}`);
+    }
 
-      // Compute the final email BEFORE the dedup check — when emp.email is
-      // missing we construct firstname.lastname@boundariescoffee.com, which
-      // collides with real staff accounts that follow the same convention.
-      const finalEmail = (emp.email || `${emp.firstName.toLowerCase()}.${emp.lastName.toLowerCase()}@boundariescoffee.com`).toLowerCase();
+    for (const user of decision.reactivate) {
+      if (decision.link.some(l => l.user.id === user.id)) continue;
+      await db.syncUser({ ...user, active: true });
+      changeCount++;
+      console.log(`[App] Reactivated ${user.email} from Toast`);
+    }
 
-      const existingByGuid = allUsers.find(u => u.toastEmployeeGuid === emp.guid);
-      const existingByEmail = allUsers.find(u => u.email.toLowerCase() === finalEmail);
-      const existing = existingByGuid || existingByEmail;
-
-      if (existing) {
-        // Existing user found. If they don't yet have a Toast GUID linked,
-        // attach it without touching their role, password, or progress link.
-        if (!existing.toastEmployeeGuid) {
-          await db.syncUser({ ...existing, toastEmployeeGuid: emp.guid });
-          console.log(`[App] Linked existing user ${existing.email} to Toast guid ${emp.guid}`);
-        } else {
-          console.log(`[App] User already exists for ${emp.name} (${emp.guid})`);
-        }
-        continue;
-      }
-
-      // Hash the temp password before storing
+    for (const { emp, email } of decision.create) {
       const hashedTempPw = await hashPassword('temp123');
-
-      const newUser: User = {
-        id: `toast-${emp.guid}`,
-        name: emp.name,
-        email: finalEmail,
-        password: hashedTempPw,
-        role: UserRole.TRAINEE,
-        storeId: emp.storeId,
-        toastEmployeeGuid: emp.guid,
-        active: true,
-        orgId: currentOrg?.id
-      };
-
+      const newUser = buildToastSyncedUser(emp, email, hashedTempPw, currentOrg?.id);
       // Use syncUser (read-modify-write) to avoid overwriting other users' data
       await db.syncUser(newUser, { changePassword: true });
-      newCount++;
-      console.log(`[App] Created user account for ${emp.name} (${finalEmail})`);
+      changeCount++;
+      console.log(`[App] Created user account for ${emp.name} (${email})`);
     }
 
-    if (newCount > 0) {
-      // Refresh state from DB to get the canonical user list
+    for (const user of decision.deactivate) {
+      await db.syncUser({ ...user, active: false });
+      changeCount++;
+      console.log(`[App] Deactivated ${user.email} — not on current Toast roster`);
+    }
+
+    if (changeCount > 0) {
       await performCloudSync(true);
-      console.log(`[App] Synced ${newCount} new users from Toast`);
-      return newCount;
+      console.log(`[App] Toast roster sync applied ${changeCount} change(s)`);
+      return changeCount;
     }
 
-    console.log('[App] No new users to sync from Toast');
+    console.log('[App] Toast roster already in sync');
     return 0;
   }, [allUsers, currentOrg?.id, performCloudSync]);
 
@@ -979,8 +980,7 @@ const App: React.FC = () => {
 
   const storeTemplates = templates.filter(t => t.storeId === currentStoreId);
   const storeSubmissions = submissions.filter(s => s.storeId === currentStoreId);
-  // Include users assigned to this store OR users without a storeId (show in all stores until assigned)
-  const storeUsers = allUsers.filter(u => u.storeId === currentStoreId || !u.storeId);
+  const storeUsers = storeRosterUsers(allUsers, currentStoreId);
   const storeProgress = progress.filter(p => storeUsers.some(u => u.id === p.userId));
   const isManager = currentUser.role === UserRole.MANAGER || currentUser.role === UserRole.ADMIN;
   const activeStores = orgStores;
