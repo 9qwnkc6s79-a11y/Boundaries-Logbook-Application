@@ -606,8 +606,144 @@ export const BOUNDARIES_RECIPES: Recipe[] = [
       { name: 'Orange', quantity: '' },
       { name: 'Pineapple', quantity: '' },
       { name: 'Speculoos', quantity: '' },
-      { name: 'Seasonal Offerings', quantity: '' }
+      { name: 'Seasonal Offerings', quantity: '' },
+      { name: 'Pumpkin Spice (SF)', quantity: '' },
+      { name: 'Pumpkin Pie', quantity: '' }
     ],
     notes: '(SF) = Sugar-Free available. Seasonal offerings rotate.'
+  },
+
+  // ── 18. FALL 2026 (Thursday Sept 4) ──
+  {
+    id: 'r-fall-pumpkin-spice-sweet-cream',
+    title: 'Pumpkin Spice Sweet Cream',
+    category: 'Seasonal',
+    type: 'STANDARD',
+    ingredients: [
+      { name: 'Sweet cream (standard)', quantity: '3 oz' },
+      { name: 'Pumpkin spice (1883)', quantity: '0.5 oz' }
+    ],
+    steps: [
+      'This is a topping, not a vendor SKU',
+      'Reuse Sweet Cream Standards: 3 oz cream + 0.5 oz flavor',
+      'Flavor is pumpkin spice (1883)',
+      'SF: sub Monin Pumpkin Spice Zero for the 0.5 oz flavor'
+    ],
+    notes: 'Iced latte / matcha topping only. Reuses the existing sweet-cream standard — do not batch a flavored gallon. Pumpkin spice (1883 / Monin zero) is for lattes and matcha only. Do not use pumpkin pie sauce.'
+  },
+  {
+    id: 'r-fall-maple-brown-sugar-sweet-cream',
+    title: 'Maple Brown Sugar Sweet Cream',
+    category: 'Seasonal',
+    type: 'STANDARD',
+    ingredients: [
+      { name: 'Sweet cream (standard)', quantity: '3 oz' },
+      { name: 'Maple brown sugar flavor', quantity: '0.5 oz' }
+    ],
+    steps: [
+      'This is a topping, not a vendor SKU',
+      'Reuse Sweet Cream Standards: 3 oz cream + 0.5 oz flavor',
+      'Flavor is 0.5 oz maple brown sugar flavor'
+    ],
+    notes: 'Nitro topping only. Reuses the existing sweet-cream standard — do not batch a flavored gallon. Maple / brown-sugar split is unset pending taste test.'
+  },
+  {
+    id: 'r-fall-maple-pumpkin-spice-latte',
+    title: 'Maple Pumpkin Spice Latte',
+    category: 'Seasonal',
+    type: 'STANDARD',
+    steps: [
+      'Equal parts pumpkin spice (1883) + maple (1883), same ratio hot and iced',
+      'Hot: 1/2 pumpkin spice, 1/2 maple, dash cinnamon on top',
+      'Iced: 1/2 pumpkin spice, 1/2 maple, topped with pumpkin spice sweet cream, dash cinnamon'
+    ],
+    notes: 'Equal-parts ratio only — total ounce pours pending taste test. Do not invent 12/16/20 oz columns. SF: sub Monin Pumpkin Spice Zero for pumpkin spice (1883). No Toast SF modifier in this book; note SF on the ticket. Pumpkin spice is for lattes and matcha only. Do not use pumpkin pie sauce.'
+  },
+  {
+    id: 'r-fall-maple-pumpkin-matcha',
+    title: 'Maple Pumpkin Matcha',
+    category: 'Seasonal',
+    type: 'STANDARD',
+    steps: [
+      'Same build as Maple Pumpkin Spice Latte, matcha concentrate instead of espresso',
+      'Equal parts pumpkin spice (1883) + maple (1883), same ratio hot and iced',
+      'Hot: 1/2 pumpkin spice, 1/2 maple, dash cinnamon on top',
+      'Iced: 1/2 pumpkin spice, 1/2 maple, topped with pumpkin spice sweet cream, dash cinnamon'
+    ],
+    notes: 'Equal-parts ratio only — total ounce pours pending taste test. Do not invent 12/16/20 oz columns. SF: sub Monin Pumpkin Spice Zero for pumpkin spice (1883). Pumpkin spice is for lattes and matcha only. Do not use pumpkin pie sauce.'
+  },
+  {
+    id: 'r-fall-maple-brown-sugar-nitro',
+    title: 'Maple Brown Sugar Nitro',
+    category: 'Seasonal',
+    type: 'STANDARD',
+    steps: [
+      'Pour unsweetened nitro plain',
+      'Top with maple brown sugar sweet cream',
+      'Do not add the standard nitro 0.5 oz syrup on top of that'
+    ],
+    notes: 'Flavor is in the maple brown sugar sweet cream only. Do not also add the standard nitro 0.5 oz syrup.'
+  },
+  {
+    id: 'r-fall-pumpkin-pie-chai',
+    title: 'Pumpkin Pie Chai',
+    category: 'Seasonal',
+    type: 'STANDARD',
+    steps: [
+      'Hollander pumpkin pie sauce only — not pumpkin spice',
+      'Iced: 20g Hollander pumpkin pie sauce, topped with Texas Delight sweet cream',
+      'Hot: 30g Hollander pumpkin pie sauce + 1/4 oz Texas Delight',
+      'Dirty Pumpkin Pie Chai: add a shot'
+    ],
+    notes: 'Pumpkin pie (Hollander) is for chai and frozen only. Do not use pumpkin spice (1883 / Monin zero).'
+  },
+  {
+    id: 'r-fall-frozen-pumpkin-pie',
+    title: 'Frozen Pumpkin Pie',
+    category: 'Seasonal',
+    type: 'STANDARD',
+    ingredients: [
+      { name: 'Hollander pumpkin pie sauce', quantity: '30g' },
+      { name: 'White chocolate sauce', quantity: '10g' }
+    ],
+    steps: [
+      'Frozen coffee base',
+      '3 parts pumpkin pie sauce : 1 part white chocolate',
+      '30g Hollander pumpkin pie sauce + 10g white chocolate sauce',
+      'Dash cinnamon',
+      'No whip'
+    ],
+    notes: 'Pumpkin pie (Hollander) is for chai and frozen only. Do not use pumpkin spice. Contains dairy — cannot be oat or almond.'
+  },
+  {
+    id: 'r-fall-caramel-apple-energy',
+    title: 'Caramel Apple Energy',
+    category: 'Seasonal',
+    type: 'GRID',
+    gridColumns: ['Size', 'Green Apple', 'Caramel Sauce'],
+    gridRows: [
+      { label: '16oz', values: ['1/2 oz', '30g'] },
+      { label: '20oz', values: ['1/2 oz', '30g'] },
+      { label: '24oz', values: ['3/4 oz', '40g'] }
+    ],
+    notes: 'Energy base. Stir caramel fully BEFORE apple. Not offered in 12oz.'
+  },
+  {
+    id: 'r-fall-cinnamon-roll',
+    title: 'Cinnamon Roll Steamer / Cinnamon Roll Milk',
+    category: 'Seasonal',
+    type: 'STANDARD',
+    ingredients: [
+      { name: 'Brown sugar', quantity: '1/3 oz' },
+      { name: 'Cinnamon', quantity: '1/3 oz' },
+      { name: 'Vanilla', quantity: '1/3 oz' }
+    ],
+    steps: [
+      'Kids drink, 8oz only',
+      'Hot or iced: same dose',
+      '1/3 oz brown sugar + 1/3 oz cinnamon + 1/3 oz vanilla',
+      'Dash cinnamon on top'
+    ],
+    notes: 'Deviates from the standard pour. 8oz only.'
   }
 ];
