@@ -723,3 +723,58 @@ export interface PerformanceReview {
   updatedAt: string;
   submittedAt?: string;
 }
+
+// ── SOP Team Member Performance Review (Boundaries_Team_Performance_Review.docx)
+// Separate from monthly two-way PerformanceReview. Do not reuse that document.
+
+export type SopReviewType = 'QUARTERLY' | 'ANNUAL' | 'PIP';
+export type SopSubjectRole = 'TEAM_MEMBER' | 'TEAM_LEADER';
+export type SopDisciplinaryStatus = 'NO_CONCERNS' | 'ACTIVE_STRIKE' | 'PIP_REQUIRED';
+
+export interface SopActionRow {
+  id: string;
+  area: string;
+  action: string;
+  targetDate: string;
+}
+
+export interface SopGoalRow {
+  id: string;
+  goal: string;
+  measure: string;
+  targetDate: string;
+}
+
+export interface TeamPerformanceReview {
+  id: string;
+  subjectId: string;
+  subjectName: string;
+  subjectRole: SopSubjectRole;
+  storeId: string;
+  reviewerId: string;
+  reviewerName: string;
+  reviewedByName: string;
+  reviewDate: string; // YYYY-MM-DD America/Chicago
+  period: string;
+  reviewType: SopReviewType;
+  strikesOnFile: number;
+  ratings: Record<string, number>; // item id → 1–5 (omit blank)
+  sectionComments: Record<string, string>;
+  overallRating: number; // 1–5; 0 until manager confirms
+  weightedScore?: number;
+  keyThemes?: string;
+  developmentPlan: SopActionRow[];
+  goals: SopGoalRow[];
+  disciplinaryStatus: SopDisciplinaryStatus;
+  strikeNumber?: number;
+  strikeDate?: string;
+  pipDate?: string;
+  managerPrintName?: string;
+  managerSignedDate?: string;
+  teamMemberPrintName?: string;
+  teamMemberSignedDate?: string;
+  status: ReviewStatus;
+  createdAt: string;
+  updatedAt: string;
+  submittedAt?: string;
+}
