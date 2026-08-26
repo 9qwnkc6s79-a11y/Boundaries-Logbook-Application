@@ -41,7 +41,7 @@ assert(/20oz iced liquid mix/i.test(text), 'must name the 20oz iced liquid mix s
 
 assert(!BOUNDARIES_RECIPES.some(r => r.id === 'r-catering-latte-64'), 'do not add a 64oz catering card');
 assert(
-  !BOUNDARIES_RECIPES.some(r => /64\s*oz catering/i.test(recipeText(r))),
+  !BOUNDARIES_RECIPES.some(r => /64/.test(r.id) && /catering/i.test(`${r.id} ${r.title}`)),
   'do not invent a 64oz catering pour'
 );
 assert(

@@ -113,7 +113,7 @@ export const BOUNDARIES_RECIPES: Recipe[] = [
       '75 oz milk',
       'No ice — 96 oz liquid in the jug'
     ],
-    notes: 'Locked catering pour. Regular cup-size lattes stay 2 oz espresso and 1 oz syrup. No 64oz catering size.'
+    notes: 'Locked catering pour. Regular cup-size lattes stay 2 oz espresso and 1 oz syrup.'
   },
 
   // ── 3. MATCHAS ──
