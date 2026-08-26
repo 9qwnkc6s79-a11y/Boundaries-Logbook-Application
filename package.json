@@ -14,7 +14,8 @@
     "verify:fall-menu": "npx --yes tsx scripts/verify-fall-menu.ts",
     "verify:catering-latte": "npx --yes tsx scripts/verify-catering-latte.ts",
     "verify:team-performance-reviews": "npx --yes tsx scripts/verify-team-performance-reviews.ts",
-    "verify:toast-roster-sync": "npx --yes tsx scripts/verify-toast-roster-sync.ts"
+    "verify:toast-roster-sync": "npx --yes tsx scripts/verify-toast-roster-sync.ts",
+    "verify:closing-waste-complete": "npx --yes tsx scripts/verify-closing-waste-complete.ts"
   },
   "dependencies": {
     "@google/genai": "^1.35.0",

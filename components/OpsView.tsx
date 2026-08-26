@@ -4,6 +4,11 @@ import { Camera, Check, AlertCircle, Info, Send, ChevronRight, X, Clock, User as
 import { db } from '../services/db';
 import Food86Panel from './Food86Panel';
 import { sortChecklistsByStoreDay } from '../utils/checklistOrder';
+import {
+  ClosingWasteGate,
+  closingWasteBlocksSubmit,
+  formatIncompleteWasteMessage,
+} from '../utils/closingWasteComplete';
 
 interface CameraModalProps {
   isOpen: boolean;
@@ -202,9 +207,14 @@ const OpsView: React.FC<OpsViewProps> = ({ user, storeId, allUsers, templates, e
   const [uploadingTaskId, setUploadingTaskId] = useState<string | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [showReopenConfirm, setShowReopenConfirm] = useState(false);
+  const [wasteGate, setWasteGate] = useState<ClosingWasteGate | null>(null);
   
   const interactionLock = useRef<Record<string, number>>({});
   const lastSyncedSubmissionRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (activeTemplate?.type !== 'CLOSING') setWasteGate(null);
+  }, [activeTemplate]);
 
   const dailyProtocols = useMemo(
     () => sortChecklistsByStoreDay(templates.filter(t => ['OPENING', 'CLOSING', 'SHIFT_CHANGE'].includes(t.type))),
@@ -589,6 +599,14 @@ const OpsView: React.FC<OpsViewProps> = ({ user, storeId, allUsers, templates, e
         alert(`Verification missing! ${missingPhotos.length} standards require more photo proof.`);
         return;
       }
+      if (activeTemplate?.type === 'CLOSING' && closingWasteBlocksSubmit(wasteGate)) {
+        if (!wasteGate || !wasteGate.ready) {
+          alert('Food leftover & waste is still loading. Wait for the bakery/taco list, then enter leftover qty and waste qty on every item (0 is OK). If the list is empty after it loads, you can finalize.');
+          return;
+        }
+        alert(formatIncompleteWasteMessage(wasteGate.incomplete));
+        return;
+      }
       const isAllDone = activeTemplate?.tasks.every(t => responses[t.id]?.completed);
       if (!isAllDone && !confirm('Incomplete standards detected. Authorize final submission?')) return;
     }
@@ -900,11 +918,29 @@ const OpsView: React.FC<OpsViewProps> = ({ user, storeId, allUsers, templates, e
             storeId={activeStoreId}
             user={user}
             mode="closing"
+            onWasteCompletenessChange={setWasteGate}
           />
         )}
 
         {!isReadOnly && (
           <div className="pb-24">
+            {activeTemplate.type === 'CLOSING' && closingWasteBlocksSubmit(wasteGate) && (
+              <div className="mb-3 flex items-start gap-2 p-3 rounded-xl bg-amber-50 border border-amber-200">
+                <AlertTriangle size={16} className="text-amber-600 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-xs font-black text-amber-800 uppercase tracking-widest">
+                    {!wasteGate || !wasteGate.ready
+                      ? 'Waiting for leftover & waste list'
+                      : 'Leftover + waste required before close'}
+                  </p>
+                  <p className="text-xs text-amber-800 mt-1 font-medium whitespace-pre-line">
+                    {!wasteGate || !wasteGate.ready
+                      ? 'Wait for the bakery/taco list. If it stays empty (Toast stock failed), you can finalize. If items appear, enter leftover qty and waste qty on every row (0 is OK).'
+                      : formatIncompleteWasteMessage(wasteGate.incomplete)}
+                  </p>
+                </div>
+              </div>
+            )}
             <button 
               onClick={() => handleAction(true)}
               className="w-full py-6 text-white bg-[#0F2B3C] rounded-xl font-black flex items-center justify-center gap-3 transition-all shadow-xl uppercase tracking-widest text-xs"
