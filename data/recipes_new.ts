@@ -91,6 +91,30 @@ export const BOUNDARIES_RECIPES: Recipe[] = [
     ],
     notes: 'All Originals: 1 oz total syrup/sauce, 2 oz espresso, fill with milk to line.'
   },
+  {
+    id: 'r-catering-latte-96',
+    title: '96oz Catering Latte',
+    category: 'Lattes',
+    type: 'STANDARD',
+    ingredients: [
+      { name: 'Espresso', quantity: '14 oz (7 doubles)' },
+      { name: 'Syrup', quantity: '7 oz' },
+      { name: 'Milk', quantity: '75 oz' },
+      { name: 'Ice', quantity: 'None' },
+      { name: 'Liquid in jug', quantity: '96 oz' },
+      { name: 'Split flavor', quantity: '3.5 oz + 3.5 oz' },
+      { name: 'Sauce instead of syrup', quantity: '280 g' }
+    ],
+    steps: [
+      'This is the 20oz iced liquid mix (2 oz espresso, 1 oz syrup, 11 oz milk = 14 oz, no ice) scaled to 96 oz of liquid, whole numbers',
+      '14 oz espresso (7 doubles)',
+      '7 oz syrup — split flavor is 3.5 oz + 3.5 oz',
+      'Sauce instead of syrup is 280 g',
+      '75 oz milk',
+      'No ice — 96 oz liquid in the jug'
+    ],
+    notes: 'Locked catering pour. Regular cup-size lattes stay 2 oz espresso and 1 oz syrup. No 64oz catering size.'
+  },
 
   // ── 3. MATCHAS ──
   {
