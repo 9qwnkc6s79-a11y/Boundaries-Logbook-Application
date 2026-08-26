@@ -378,12 +378,14 @@ const App: React.FC = () => {
     // Build a single updated user object for any needed migrations
     let migratedUser = { ...found };
     let needsMigration = false;
+    let passwordReHashed = false;
 
     // Auto-migrate plaintext password to hashed on successful login
     if (!isHashed(found.password)) {
       try {
         migratedUser.password = await hashPassword(pass);
         needsMigration = true;
+        passwordReHashed = true;
         console.log(`[Auth] Will migrate password hash for ${found.email}`);
       } catch (e) {
         console.warn('[Auth] Password hash failed:', e);
@@ -396,11 +398,15 @@ const App: React.FC = () => {
       needsMigration = true;
     }
 
-    // Save all migrations in a single write to avoid overwriting the hash
+    // Save all migrations in a single write. Pass changePassword ONLY when we
+    // actually re-hashed the password — otherwise (e.g. an orgId-only backfill)
+    // the write would carry the stale in-memory hash and, with changePassword
+    // set, bypass the DB's password-preservation guard, silently reverting a
+    // password that was reset concurrently in another tab or by an admin.
     if (needsMigration) {
       try {
-        await db.syncUser(migratedUser, { changePassword: true });
-        console.log(`[Auth] Migrated user ${found.email} (hash=${!isHashed(found.password)}, orgId=${!found.orgId})`);
+        await db.syncUser(migratedUser, { changePassword: passwordReHashed });
+        console.log(`[Auth] Migrated user ${found.email} (rehashed=${passwordReHashed}, orgIdSet=${!found.orgId})`);
       } catch (e) {
         console.warn('[Auth] User migration failed:', e);
       }
