@@ -4,6 +4,11 @@ import { db } from '../services/db';
 import { toastAPI } from '../services/toast';
 import { Food86Event, FoodClosingWasteEntry, FoodSkuDay, FoodSoldResponse, User } from '../types';
 import { isBakeryFoodItem } from '../utils/food86Bakery';
+import {
+  ClosingWasteGate,
+  incompleteClosingWasteRows,
+  isEnteredWasteQty,
+} from '../utils/closingWasteComplete';
 
 function locationForStore(storeId: string): string {
   return storeId === 'store-prosper' ? 'prosper' : 'littleelm';
@@ -42,9 +47,11 @@ interface Food86PanelProps {
   /** Dashboard only: collapse the extensive last-sold table. OPS / closing stay expanded. */
   collapsible?: boolean;
   defaultCollapsed?: boolean;
+  /** Closing only: leftover + waste completeness for the close-submit gate. Hub report omits this. */
+  onWasteCompletenessChange?: (gate: ClosingWasteGate | null) => void;
 }
 
-const Food86Panel: React.FC<Food86PanelProps> = ({ storeId, storeName, user, mode, readOnly, collapsible = false, defaultCollapsed = false }) => {
+const Food86Panel: React.FC<Food86PanelProps> = ({ storeId, storeName, user, mode, readOnly, collapsible = false, defaultCollapsed = false, onWasteCompletenessChange }) => {
   const [payload, setPayload] = useState<FoodSoldResponse | null>(null);
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
   const [wasteByGuid, setWasteByGuid] = useState<Record<string, FoodClosingWasteEntry>>({});
@@ -129,6 +136,35 @@ const Food86Panel: React.FC<Food86PanelProps> = ({ storeId, storeName, user, mod
     // toppings), Item-hex, drip, tea, milk modifiers, retail stay hidden.
     return (payload?.items || []).filter(isBakeryFoodItem);
   }, [payload]);
+
+  const qtyForRow = useCallback((itemGuid: string) => {
+    const saved = wasteByGuid[itemGuid];
+    return {
+      leftover: draft[itemGuid]?.leftover ?? (saved?.leftoverQty ?? ''),
+      waste: draft[itemGuid]?.waste ?? (saved?.wasteQty ?? ''),
+    };
+  }, [draft, wasteByGuid]);
+
+  const incompleteWaste = useMemo(
+    () => incompleteClosingWasteRows(rows, qtyForRow),
+    [rows, qtyForRow]
+  );
+
+  useEffect(() => {
+    if (mode !== 'closing') {
+      onWasteCompletenessChange?.(null);
+      return;
+    }
+    onWasteCompletenessChange?.({
+      ready: !loading || !!payload,
+      rowCount: rows.length,
+      incomplete: incompleteWaste,
+    });
+  }, [mode, loading, payload, rows.length, incompleteWaste, onWasteCompletenessChange]);
+
+  useEffect(() => {
+    return () => onWasteCompletenessChange?.(null);
+  }, [onWasteCompletenessChange]);
 
   const persistWaste = async (item: FoodSkuDay, leftover: string, waste: string) => {
     // Waste log = any signed-in employee. Do not check UserRole / manager.
@@ -269,6 +305,8 @@ const Food86Panel: React.FC<Food86PanelProps> = ({ storeId, storeName, user, mod
                 const saved = wasteByGuid[item.itemGuid];
                 const leftover = draft[item.itemGuid]?.leftover ?? (saved?.leftoverQty ?? '');
                 const waste = draft[item.itemGuid]?.waste ?? (saved?.wasteQty ?? '');
+                const leftoverComplete = isEnteredWasteQty(leftover);
+                const wasteComplete = isEnteredWasteQty(waste);
                 const editable = mode === 'closing' && !!user;
                 return (
                   <tr key={item.itemGuid} className="border-b border-neutral-50 last:border-0">
@@ -299,8 +337,10 @@ const Food86Panel: React.FC<Food86PanelProps> = ({ storeId, storeName, user, mod
                             [item.itemGuid]: { leftover: e.target.value, waste: String(draft[item.itemGuid]?.waste ?? waste ?? '') },
                           }))}
                           onBlur={e => persistWaste(item, e.target.value, String(draft[item.itemGuid]?.waste ?? waste ?? ''))}
-                          className="w-20 border border-neutral-100 rounded-lg px-2 py-1.5 text-sm font-bold bg-neutral-50 focus:bg-white outline-none"
+                          className={`w-20 border rounded-lg px-2 py-1.5 text-sm font-bold focus:bg-white outline-none ${leftoverComplete ? 'border-neutral-100 bg-neutral-50' : 'border-amber-400 bg-amber-50'}`}
                           placeholder="—"
+                          aria-invalid={!leftoverComplete}
+                          aria-label={`${item.name} leftover qty`}
                         />
                       ) : (
                         <span className="text-sm font-bold text-neutral-700">
@@ -321,8 +361,10 @@ const Food86Panel: React.FC<Food86PanelProps> = ({ storeId, storeName, user, mod
                             [item.itemGuid]: { leftover: String(draft[item.itemGuid]?.leftover ?? leftover ?? ''), waste: e.target.value },
                           }))}
                           onBlur={e => persistWaste(item, String(draft[item.itemGuid]?.leftover ?? leftover ?? ''), e.target.value)}
-                          className="w-20 border border-neutral-100 rounded-lg px-2 py-1.5 text-sm font-bold bg-neutral-50 focus:bg-white outline-none"
+                          className={`w-20 border rounded-lg px-2 py-1.5 text-sm font-bold focus:bg-white outline-none ${wasteComplete ? 'border-neutral-100 bg-neutral-50' : 'border-amber-400 bg-amber-50'}`}
                           placeholder="—"
+                          aria-invalid={!wasteComplete}
+                          aria-label={`${item.name} waste qty`}
                         />
                       ) : (
                         <span className="text-sm font-bold text-neutral-700">
@@ -336,6 +378,27 @@ const Food86Panel: React.FC<Food86PanelProps> = ({ storeId, storeName, user, mod
               })}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {mode === 'closing' && rows.length > 0 && incompleteWaste.length > 0 && (
+        <div className="mt-4 flex items-start gap-2 p-3 rounded-xl bg-amber-50 border border-amber-200">
+          <AlertTriangle size={16} className="text-amber-600 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-xs font-black text-amber-800 uppercase tracking-widest">Leftover + waste required</p>
+            <p className="text-xs text-amber-800 mt-1 font-medium">
+              Enter a number for leftover qty and waste qty on every item. 0 is required if you have none. Blank does not count. Close cannot be submitted until this list is complete.
+            </p>
+            <ul className="mt-2 space-y-0.5">
+              {incompleteWaste.map(row => (
+                <li key={row.itemGuid} className="text-xs font-bold text-amber-900">
+                  {row.name}
+                  {' — '}
+                  {[row.missingLeftover ? 'leftover qty' : null, row.missingWaste ? 'waste qty' : null].filter(Boolean).join(', ')}
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
       )}
 
