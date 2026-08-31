@@ -49,9 +49,11 @@ interface Food86PanelProps {
   defaultCollapsed?: boolean;
   /** Closing only: leftover + waste completeness for the close-submit gate. Hub report omits this. */
   onWasteCompletenessChange?: (gate: ClosingWasteGate | null) => void;
+  /** Closing only: leftover/waste keystrokes count as form activity (do not wipe the logbook). */
+  onWasteActivity?: () => void;
 }
 
-const Food86Panel: React.FC<Food86PanelProps> = ({ storeId, storeName, user, mode, readOnly, collapsible = false, defaultCollapsed = false, onWasteCompletenessChange }) => {
+const Food86Panel: React.FC<Food86PanelProps> = ({ storeId, storeName, user, mode, readOnly, collapsible = false, defaultCollapsed = false, onWasteCompletenessChange, onWasteActivity }) => {
   const [payload, setPayload] = useState<FoodSoldResponse | null>(null);
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
   const [wasteByGuid, setWasteByGuid] = useState<Record<string, FoodClosingWasteEntry>>({});
@@ -170,6 +172,7 @@ const Food86Panel: React.FC<Food86PanelProps> = ({ storeId, storeName, user, mod
     // Waste log = any signed-in employee. Do not check UserRole / manager.
     // Do not inherit checklist archive readOnly — leftover/waste is not Manager Hub.
     if (mode !== 'closing' || !user) return;
+    onWasteActivity?.();
     setSavingGuid(item.itemGuid);
     const parse = (raw: string): number | null => {
       const trimmed = raw.trim();
@@ -332,10 +335,13 @@ const Food86Panel: React.FC<Food86PanelProps> = ({ storeId, storeName, user, mod
                           min="0"
                           step="1"
                           value={typeof leftover === 'number' ? String(leftover) : leftover}
-                          onChange={e => setDraft(prev => ({
-                            ...prev,
-                            [item.itemGuid]: { leftover: e.target.value, waste: String(draft[item.itemGuid]?.waste ?? waste ?? '') },
-                          }))}
+                          onChange={e => {
+                            onWasteActivity?.();
+                            setDraft(prev => ({
+                              ...prev,
+                              [item.itemGuid]: { leftover: e.target.value, waste: String(draft[item.itemGuid]?.waste ?? waste ?? '') },
+                            }));
+                          }}
                           onBlur={e => persistWaste(item, e.target.value, String(draft[item.itemGuid]?.waste ?? waste ?? ''))}
                           className={`w-20 border rounded-lg px-2 py-1.5 text-sm font-bold focus:bg-white outline-none ${leftoverComplete ? 'border-neutral-100 bg-neutral-50' : 'border-amber-400 bg-amber-50'}`}
                           placeholder="—"
@@ -356,10 +362,13 @@ const Food86Panel: React.FC<Food86PanelProps> = ({ storeId, storeName, user, mod
                           min="0"
                           step="1"
                           value={typeof waste === 'number' ? String(waste) : waste}
-                          onChange={e => setDraft(prev => ({
-                            ...prev,
-                            [item.itemGuid]: { leftover: String(draft[item.itemGuid]?.leftover ?? leftover ?? ''), waste: e.target.value },
-                          }))}
+                          onChange={e => {
+                            onWasteActivity?.();
+                            setDraft(prev => ({
+                              ...prev,
+                              [item.itemGuid]: { leftover: String(draft[item.itemGuid]?.leftover ?? leftover ?? ''), waste: e.target.value },
+                            }));
+                          }}
                           onBlur={e => persistWaste(item, String(draft[item.itemGuid]?.leftover ?? leftover ?? ''), e.target.value)}
                           className={`w-20 border rounded-lg px-2 py-1.5 text-sm font-bold focus:bg-white outline-none ${wasteComplete ? 'border-neutral-100 bg-neutral-50' : 'border-amber-400 bg-amber-50'}`}
                           placeholder="—"

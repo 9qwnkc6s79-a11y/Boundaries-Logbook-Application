@@ -635,6 +635,28 @@ class CloudAPI {
     return pruned;
   }
 
+  // DATA LOSS PREVENTION: pushSubmission is read-modify-write on a single
+  // submissions doc. A transient empty read would make remoteSet([this])
+  // wipe every store's history. Once submissions have been seen non-empty
+  // (marker), an empty read retries once then refuses.
+  private async fetchSubmissionsForWrite(): Promise<ChecklistSubmission[] | null> {
+    const SUBMISSIONS_POPULATED_KEY = 'submissionsPopulated';
+    let existing = await this.fetchSubmissions();
+    const marker = await this.remoteGet<{ populated: boolean }>(SUBMISSIONS_POPULATED_KEY, { populated: false });
+    if (existing.length === 0 && marker.populated) {
+      await new Promise(r => setTimeout(r, 500));
+      existing = await this.fetchSubmissions();
+      if (existing.length === 0) {
+        console.error('[Firestore] pushSubmission REFUSED: submissions read empty but marker set');
+        return null;
+      }
+    }
+    if (existing.length > 0 && !marker.populated) {
+      this.remoteSet(SUBMISSIONS_POPULATED_KEY, { populated: true, at: new Date().toISOString() });
+    }
+    return existing;
+  }
+
   async pushSubmission(submission: ChecklistSubmission): Promise<boolean> {
     console.log(`[DB] pushSubmission START: id=${submission.id}, status=${submission.status}`);
 
@@ -647,7 +669,11 @@ class CloudAPI {
       console.log(`[DB] pushSubmission: ${totalPhotoCount} photo URLs`);
     }
 
-    const all = await this.fetchSubmissions();
+    const all = await this.fetchSubmissionsForWrite();
+    if (all === null) {
+      console.error('[DB] pushSubmission END: success=false (empty-read refuse)');
+      return false;
+    }
     console.log(`[DB] pushSubmission: Fetched ${all.length} existing submissions`);
 
     const existingIdx = all.findIndex(s => s.id === submission.id);
@@ -687,6 +713,9 @@ class CloudAPI {
 
     console.log(`[DB] pushSubmission: Saving ${next.length} total submissions`);
     const success = await this.remoteSet(DOC_KEYS.SUBMISSIONS, next);
+    if (success && next.length > 0) {
+      this.remoteSet('submissionsPopulated', { populated: true, at: new Date().toISOString() });
+    }
     console.log(`[DB] pushSubmission END: success=${success}`);
     return success;
   }
