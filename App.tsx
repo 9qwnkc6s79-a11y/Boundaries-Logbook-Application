@@ -17,6 +17,7 @@ import { GoogleGenAI } from "@google/genai";
 import { hashPassword, verifyPassword, isHashed } from './utils/passwordUtils';
 import { storeRosterUsers } from './utils/performanceReviews';
 import { buildToastSyncedUser, decideToastRosterSync } from './utils/toastRosterSync';
+import { shouldReplaceLocalSubmissions } from './utils/logbookSubmitGuard';
 import { Lock, ShieldCheck } from 'lucide-react';
 
 const APP_VERSION = '3.6.0';
@@ -208,7 +209,12 @@ const App: React.FC = () => {
       // OPTIMISTIC UI PROTECTION:
       // If we recently updated a submission, don't overwrite the state with
       // potentially stale data from the server for 7 seconds.
-      if (data.submissions && Date.now() - lastSubmissionUpdateRef.current > 7000) {
+      // Never apply an empty cloud list — [] is truthy and a quota flake
+      // would blank the in-memory logbook. Same rule as users/progress.
+      if (
+        shouldReplaceLocalSubmissions(data.submissions) &&
+        Date.now() - lastSubmissionUpdateRef.current > 7000
+      ) {
         setSubmissions(data.submissions);
       }
 
@@ -634,11 +640,13 @@ const App: React.FC = () => {
     }
   };
 
-  const handleChecklistUpdate = async (data: { id?: string, templateId: string, responses: any, isFinal: boolean, targetDate: string }) => {
-    // Mark the timestamp to protect against stale sync heartbeat
+  const handleChecklistUpdate = async (data: { id?: string, templateId: string, responses: any, isFinal: boolean, targetDate: string }): Promise<boolean> => {
+    // Protect against the heartbeat before AND after the write. Persist first;
+    // photo re-upload + Gemini audit are a follow-up write so a long AI pass
+    // cannot expire the 7s window and restore a pre-submit cloud snapshot.
     lastSubmissionUpdateRef.current = Date.now();
 
-    let taskResults = Object.entries(data.responses).map(([taskId, res]: any) => ({
+    const taskResults = Object.entries(data.responses).map(([taskId, res]: any) => ({
       taskId,
       completed: res.completed,
       photoUrl: res.photo, // Keep for backwards compatibility
@@ -657,51 +665,6 @@ const App: React.FC = () => {
       const totalPhotos = photoTasks.reduce((sum, r) => sum + (r.photoUrls?.length || 0), 0);
       const totalPhotoSize = photoTasks.reduce((sum, r) => sum + (r.photoUrls?.reduce((s: number, p: string) => s + (p?.length || 0), 0) || 0), 0);
       console.log(`[Checklist] ${photoTasks.length} task(s) with ${totalPhotos} total photo(s), size: ${Math.round(totalPhotoSize / 1024)}KB`);
-    }
-
-    if (data.isFinal) {
-      // Re-upload any photos still stored as inline base64 (their original
-      // upload to Firebase Storage failed). Inline photos bloat the
-      // submissions doc and get stripped by size-limit pruning later — which
-      // made AI-flagged photos vanish from the manager's audit queue.
-      taskResults = await Promise.all(taskResults.map(async (res) => {
-        const photos = res.photoUrls || [];
-        if (!photos.some(p => p?.startsWith('data:image/'))) return res;
-        const uploaded = await Promise.all(photos.map(async (p, idx) => {
-          if (!p?.startsWith('data:image/')) return p;
-          try {
-            const path = `photos/${currentStoreId}/${data.targetDate}/${data.id || `sub-${data.templateId}`}/${res.taskId}-${idx}-retry.jpg`;
-            const url = await db.uploadPhoto(p, path);
-            console.log(`[Checklist] Recovered base64 photo to Storage: ${res.taskId}-${idx}`);
-            return url;
-          } catch (e) {
-            console.warn(`[Checklist] Photo re-upload failed for ${res.taskId}-${idx}, keeping inline:`, e);
-            return p; // keep base64 as last resort
-          }
-        }));
-        return { ...res, photoUrls: uploaded, photoUrl: uploaded[0] || res.photoUrl };
-      }));
-
-      const template = templates.find(t => t.id === data.templateId);
-      const auditPromises = taskResults.map(async (res) => {
-        const photos = res.photoUrls || (res.photoUrl ? [res.photoUrl] : []);
-        if (photos.length > 0 && !res.aiFlagged) {
-          const task = template?.tasks.find(t => t.id === res.taskId);
-          // Audit each photo, flag the task if ANY photo is flagged
-          for (const url of photos) {
-            if (!url) continue;
-            console.log(`[AI Audit] Auditing photo for task: ${task?.title}`);
-            const audit = await auditPhotoWithAI(url, task?.title || 'Unknown Task');
-            console.log(`[AI Audit] Result: flagged=${audit.flagged}, reason="${audit.reason}"`);
-            if (audit.flagged) {
-              return { ...res, aiFlagged: true, aiReason: audit.reason };
-            }
-          }
-          return { ...res, aiFlagged: false, aiReason: '' };
-        }
-        return res;
-      });
-      taskResults = await Promise.all(auditPromises);
     }
 
     const existing = data.id 
@@ -740,16 +703,87 @@ const App: React.FC = () => {
       return [submission, ...filtered];
     });
 
-    const success = await db.pushSubmission(submission);
+    let success = false;
+    try {
+      success = await db.pushSubmission(submission);
+    } catch (err) {
+      console.error('[App] Failed to save submission:', submission.id, err);
+      success = false;
+    }
+    lastSubmissionUpdateRef.current = Date.now();
+
     if (!success) {
       setSaveError('Failed to save logbook entry. Please check your connection and try again.');
       console.error('[App] Failed to save submission:', submission.id);
       // Don't trigger sync after failed save — it would overwrite the local
       // optimistic update once the 7-second protection window expires.
+      return false;
+    }
+
+    setSaveError(null);
+
+    if (data.isFinal) {
+      void (async () => {
+        lastSubmissionUpdateRef.current = Date.now();
+        try {
+          // Re-upload any photos still stored as inline base64 (their original
+          // upload to Firebase Storage failed). Inline photos bloat the
+          // submissions doc and get stripped by size-limit pruning later — which
+          // made AI-flagged photos vanish from the manager's audit queue.
+          let audited = await Promise.all(submission.taskResults.map(async (res) => {
+            const photos = res.photoUrls || [];
+            if (!photos.some(p => p?.startsWith('data:image/'))) return res;
+            const uploaded = await Promise.all(photos.map(async (p, idx) => {
+              if (!p?.startsWith('data:image/')) return p;
+              try {
+                const path = `photos/${currentStoreId}/${data.targetDate}/${submission.id}/${res.taskId}-${idx}-retry.jpg`;
+                const url = await db.uploadPhoto(p, path);
+                console.log(`[Checklist] Recovered base64 photo to Storage: ${res.taskId}-${idx}`);
+                return url;
+              } catch (e) {
+                console.warn(`[Checklist] Photo re-upload failed for ${res.taskId}-${idx}, keeping inline:`, e);
+                return p; // keep base64 as last resort
+              }
+            }));
+            return { ...res, photoUrls: uploaded, photoUrl: uploaded[0] || res.photoUrl };
+          }));
+
+          const template = templates.find(t => t.id === data.templateId);
+          audited = await Promise.all(audited.map(async (res) => {
+            const photos = res.photoUrls || (res.photoUrl ? [res.photoUrl] : []);
+            if (photos.length > 0 && !res.aiFlagged) {
+              const task = template?.tasks.find(t => t.id === res.taskId);
+              for (const url of photos) {
+                if (!url) continue;
+                console.log(`[AI Audit] Auditing photo for task: ${task?.title}`);
+                const audit = await auditPhotoWithAI(url, task?.title || 'Unknown Task');
+                console.log(`[AI Audit] Result: flagged=${audit.flagged}, reason="${audit.reason}"`);
+                if (audit.flagged) {
+                  return { ...res, aiFlagged: true, aiReason: audit.reason };
+                }
+              }
+              return { ...res, aiFlagged: false, aiReason: '' };
+            }
+            return res;
+          }));
+
+          const updated = { ...submission, taskResults: audited };
+          setSubmissions(prev => prev.map(s => s.id === updated.id ? { ...s, taskResults: audited } : s));
+          lastSubmissionUpdateRef.current = Date.now();
+          await db.pushSubmission(updated);
+          lastSubmissionUpdateRef.current = Date.now();
+        } catch (err) {
+          console.error('[App] Follow-up photo audit failed (work already saved):', err);
+        } finally {
+          lastSubmissionUpdateRef.current = Date.now();
+          performCloudSync(true);
+        }
+      })();
     } else {
-      setSaveError(null);
       performCloudSync(true);
     }
+
+    return true;
   };
 
   const handleReview = async (id: string, approved: boolean) => {

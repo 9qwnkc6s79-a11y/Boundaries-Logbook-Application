@@ -9,6 +9,12 @@ import {
   closingWasteBlocksSubmit,
   formatIncompleteWasteMessage,
 } from '../utils/closingWasteComplete';
+import {
+  computeChecklistTargetDate,
+  resolveSessionTargetDate,
+  shouldClearLocalResponsesForMissingDraft,
+  toLocalYYYYMMDD,
+} from '../utils/logbookSubmitGuard';
 
 interface CameraModalProps {
   isOpen: boolean;
@@ -189,7 +195,7 @@ interface OpsViewProps {
   allUsers: User[];
   templates: ChecklistTemplate[];
   existingSubmissions: ChecklistSubmission[];
-  onUpdate: (data: { id?: string; templateId: string; responses: any; isFinal: boolean; targetDate: string }) => void;
+  onUpdate: (data: { id?: string; templateId: string; responses: any; isFinal: boolean; targetDate: string }) => void | Promise<boolean>;
   onResetSubmission?: (id: string) => void;
 }
 
@@ -208,9 +214,14 @@ const OpsView: React.FC<OpsViewProps> = ({ user, storeId, allUsers, templates, e
   const [validationError, setValidationError] = useState<string | null>(null);
   const [showReopenConfirm, setShowReopenConfirm] = useState(false);
   const [wasteGate, setWasteGate] = useState<ClosingWasteGate | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   
   const interactionLock = useRef<Record<string, number>>({});
   const lastSyncedSubmissionRef = useRef<string | null>(null);
+  const sessionTargetDateRef = useRef<string | null>(null);
+  const responsesRef = useRef(responses);
+  responsesRef.current = responses;
 
   useEffect(() => {
     if (activeTemplate?.type !== 'CLOSING') setWasteGate(null);
@@ -227,40 +238,22 @@ const OpsView: React.FC<OpsViewProps> = ({ user, storeId, allUsers, templates, e
 
   const isManager = user.role === UserRole.MANAGER || user.role === UserRole.ADMIN;
 
-  const getLocalYYYYMMDD = useCallback((d: Date) => {
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  }, []);
+  const getLocalYYYYMMDD = useCallback((d: Date) => toLocalYYYYMMDD(d), []);
 
   const getTargetDate = useCallback((template: ChecklistTemplate) => {
-    const now = new Date();
-    const localHour = now.getHours();
-
-    const todayStr = getLocalYYYYMMDD(now);
-
-    if (localHour < (template.unlockHour ?? 0)) {
-      const yesterday = new Date(now);
-      yesterday.setDate(now.getDate() - 1);
-      return getLocalYYYYMMDD(yesterday);
+    const computed = computeChecklistTargetDate(new Date(), template, getLocalYYYYMMDD);
+    // Pin while this form is open so a 9pm close that runs past midnight /
+    // unlockHour does not rematch to a different day and lose today's draft.
+    // Rematch only after they leave (activeTemplate cleared) and reopen.
+    if (activeTemplate && template.id === activeTemplate.id && sessionTargetDateRef.current) {
+      return resolveSessionTargetDate({
+        computedDate: computed,
+        pinnedDate: sessionTargetDateRef.current,
+        sessionOpen: true,
+      });
     }
-
-    const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    const dayNameInTemplate = daysOfWeek.find(d => template.name.includes(d));
-
-    if (template.type === 'WEEKLY' && dayNameInTemplate) {
-      const targetDayIndex = daysOfWeek.indexOf(dayNameInTemplate);
-      const currentDayIndex = now.getDay();
-      let diff = currentDayIndex - targetDayIndex;
-      if (diff < 0) diff += 7;
-      const targetDateObj = new Date(now);
-      targetDateObj.setDate(now.getDate() - diff);
-      return getLocalYYYYMMDD(targetDateObj);
-    }
-
-    return todayStr;
-  }, [getLocalYYYYMMDD]);
+    return computed;
+  }, [activeTemplate, getLocalYYYYMMDD]);
 
   // Calculate when a submission should unlock based on template type
   // Uses submittedAt (when user actually submitted) not date (the target date)
@@ -326,12 +319,30 @@ const OpsView: React.FC<OpsViewProps> = ({ user, storeId, allUsers, templates, e
   }, []);
 
   useEffect(() => {
+    const SESSION_DATE_KEY = 'boundaries_session_target_date';
     if (activeTemplate) {
       localStorage.setItem('boundaries_active_template_id', activeTemplate.id);
+      if (!sessionTargetDateRef.current) {
+        const saved = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(SESSION_DATE_KEY) : null;
+        const sep = saved ? saved.lastIndexOf('|') : -1;
+        const savedId = sep > 0 ? saved.slice(0, sep) : '';
+        const savedDate = sep > 0 ? saved.slice(sep + 1) : '';
+        sessionTargetDateRef.current =
+          savedId === activeTemplate.id && savedDate
+            ? savedDate
+            : computeChecklistTargetDate(new Date(), activeTemplate, getLocalYYYYMMDD);
+        try {
+          sessionStorage.setItem(SESSION_DATE_KEY, `${activeTemplate.id}|${sessionTargetDateRef.current}`);
+        } catch { /* ignore quota / private mode */ }
+      }
     } else {
       localStorage.removeItem('boundaries_active_template_id');
+      sessionTargetDateRef.current = null;
+      try { sessionStorage.removeItem(SESSION_DATE_KEY); } catch { /* ignore */ }
+      setIsSaving(false);
+      setSubmitError(null);
     }
-  }, [activeTemplate]);
+  }, [activeTemplate, getLocalYYYYMMDD]);
 
   useEffect(() => {
     if (!activeTemplate) return;
@@ -408,6 +419,16 @@ const OpsView: React.FC<OpsViewProps> = ({ user, storeId, allUsers, templates, e
         return next;
       });
     } else {
+      const localResponseCount = Object.keys(responsesRef.current).length;
+      // Never wipe typed work just because the cloud has no matching draft
+      // (empty heartbeat, midnight rematch, waste-only activity).
+      if (!shouldClearLocalResponsesForMissingDraft({
+        localResponseCount,
+        hasMatchingSubmission: false,
+      })) {
+        return;
+      }
+
       const anyRecentInteraction = Object.values(interactionLock.current).some(
         time => Date.now() - time < 6000
       );
@@ -421,7 +442,7 @@ const OpsView: React.FC<OpsViewProps> = ({ user, storeId, allUsers, templates, e
   }, [existingSubmissions, activeTemplate, getTargetDate, getLockedSubmission]);
 
   const handleToggle = (taskId: string) => {
-    if (isReadOnly) return;
+    if (isReadOnly || isSaving) return;
     markInteraction(taskId);
     const task = activeTemplate?.tasks.find(t => t.id === taskId);
 
@@ -468,7 +489,7 @@ const OpsView: React.FC<OpsViewProps> = ({ user, storeId, allUsers, templates, e
   };
 
   const handleValueChange = (taskId: string, val: string) => {
-    if (isReadOnly) return;
+    if (isReadOnly || isSaving) return;
     markInteraction(taskId);
     setResponses(prev => {
       const updated = { 
@@ -492,7 +513,7 @@ const OpsView: React.FC<OpsViewProps> = ({ user, storeId, allUsers, templates, e
   };
 
   const handleCommentChange = (taskId: string, comment: string) => {
-    if (isReadOnly) return;
+    if (isReadOnly || isSaving) return;
     markInteraction(taskId);
     setResponses(prev => {
       const updated = { ...prev, [taskId]: { ...prev[taskId], comment } };
@@ -508,7 +529,7 @@ const OpsView: React.FC<OpsViewProps> = ({ user, storeId, allUsers, templates, e
   };
 
   const openCamera = (taskId: string) => {
-    if (isReadOnly) return;
+    if (isReadOnly || isSaving) return;
     markInteraction(taskId); 
     setCapturingTaskId(taskId);
     setIsCameraOpen(true);
@@ -585,8 +606,8 @@ const OpsView: React.FC<OpsViewProps> = ({ user, storeId, allUsers, templates, e
     }
   };
 
-  const handleAction = (isFinal: boolean) => {
-    if (isReadOnly) return;
+  const handleAction = async (isFinal: boolean) => {
+    if (isReadOnly || isSaving) return;
     if (isFinal) {
       const missingPhotos = activeTemplate?.tasks.filter(t => {
         const requiredPhotos = t.requiredPhotos || (t.requiresPhoto ? 1 : 0);
@@ -611,15 +632,40 @@ const OpsView: React.FC<OpsViewProps> = ({ user, storeId, allUsers, templates, e
       if (!isAllDone && !confirm('Incomplete standards detected. Authorize final submission?')) return;
     }
 
-    onUpdate({
+    const payload = {
       id: activeSubmissionId || undefined,
       templateId: activeTemplate!.id,
       responses,
       isFinal,
       targetDate: getTargetDate(activeTemplate!)
-    });
+    };
 
-    if (isFinal) setActiveTemplate(null);
+    if (!isFinal) {
+      onUpdate(payload);
+      return;
+    }
+
+    setIsSaving(true);
+    setSubmitError(null);
+    let ok = false;
+    try {
+      ok = (await onUpdate(payload)) === true;
+    } catch (err) {
+      console.error('[OpsView] Finalize save failed:', err);
+      ok = false;
+    }
+    setIsSaving(false);
+
+    if (ok) {
+      setActiveTemplate(null);
+      setResponses({});
+      setActiveSubmissionId(null);
+      lastSyncedSubmissionRef.current = null;
+      sessionTargetDateRef.current = null;
+      setSubmitError(null);
+    } else {
+      setSubmitError('Failed to save logbook entry. Your work is still here — check your connection and try again.');
+    }
   };
 
   const executeReopen = async () => {
@@ -723,8 +769,9 @@ const OpsView: React.FC<OpsViewProps> = ({ user, storeId, allUsers, templates, e
               </div>
             </div>
             <button 
-              onClick={() => setActiveTemplate(null)}
-              className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-neutral-100 text-neutral-500 flex items-center justify-center"
+              onClick={() => { if (!isSaving) setActiveTemplate(null); }}
+              disabled={isSaving}
+              className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-neutral-100 text-neutral-500 flex items-center justify-center disabled:opacity-50"
             >
               <X size={18} strokeWidth={3} />
             </button>
@@ -919,6 +966,7 @@ const OpsView: React.FC<OpsViewProps> = ({ user, storeId, allUsers, templates, e
             user={user}
             mode="closing"
             onWasteCompletenessChange={setWasteGate}
+            onWasteActivity={() => markInteraction('__leftover_waste__')}
           />
         )}
 
@@ -941,11 +989,22 @@ const OpsView: React.FC<OpsViewProps> = ({ user, storeId, allUsers, templates, e
                 </div>
               </div>
             )}
+            {submitError && (
+              <div className="mb-3 flex items-start gap-2 p-3 rounded-xl bg-red-50 border border-red-200">
+                <AlertTriangle size={16} className="text-red-600 shrink-0 mt-0.5" />
+                <p className="text-xs font-bold text-red-800">{submitError}</p>
+              </div>
+            )}
             <button 
               onClick={() => handleAction(true)}
-              className="w-full py-6 text-white bg-[#0F2B3C] rounded-xl font-black flex items-center justify-center gap-3 transition-all shadow-xl uppercase tracking-widest text-xs"
+              disabled={isSaving}
+              className="w-full py-6 text-white bg-[#0F2B3C] rounded-xl font-black flex items-center justify-center gap-3 transition-all shadow-xl uppercase tracking-widest text-xs disabled:opacity-70 disabled:cursor-wait"
             >
-              <Send size={18} strokeWidth={3} /> Finalize Protocol for {targetDate}
+              {isSaving ? (
+                <><Loader2 size={18} className="animate-spin" /> Saving…</>
+              ) : (
+                <><Send size={18} strokeWidth={3} /> Finalize Protocol for {targetDate}</>
+              )}
             </button>
           </div>
         )}
