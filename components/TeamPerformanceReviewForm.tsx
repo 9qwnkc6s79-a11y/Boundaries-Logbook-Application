@@ -22,10 +22,11 @@ import {
   findSopReview,
   formatSopPeriod,
   formatSopReviewType,
+  isSlimMonthlyReview,
   isSopSubmittedLocked,
   makeSopReviewId,
   roundedOverallDefault,
-  visibleSopSections,
+  sopSectionsForReviewType,
   weightedScore,
 } from '../utils/teamPerformanceReviews';
 
@@ -124,6 +125,33 @@ function formFromReview(review: TeamPerformanceReview | undefined, subject: User
 const inputClass = 'w-full border border-neutral-200 rounded-lg px-3 py-2 text-sm text-[#0F2B3C] font-semibold bg-white outline-none focus:ring-2 focus:ring-[#0F2B3C]/20 focus:border-[#0F2B3C]';
 const labelClass = 'text-[9px] font-black text-neutral-400 uppercase tracking-widest block mb-1';
 
+function OptionalSopBlock({
+  title,
+  collapsed,
+  children,
+}: {
+  title: string;
+  collapsed: boolean;
+  children: React.ReactNode;
+}) {
+  if (collapsed) {
+    return (
+      <details className="bg-white border border-neutral-100 rounded-xl shadow-sm p-4 md:p-5">
+        <summary className="cursor-pointer text-sm font-black text-[#0F2B3C] uppercase tracking-tight">
+          {title} <span className="text-neutral-400 font-bold normal-case tracking-normal">(optional)</span>
+        </summary>
+        <div className="space-y-3 mt-3">{children}</div>
+      </details>
+    );
+  }
+  return (
+    <section className="bg-white border border-neutral-100 rounded-xl shadow-sm p-4 md:p-5 space-y-3">
+      <h3 className="text-sm font-black text-[#0F2B3C] uppercase tracking-tight">{title}</h3>
+      {children}
+    </section>
+  );
+}
+
 const TeamPerformanceReviewForm: React.FC<TeamPerformanceReviewFormProps> = ({
   currentUser,
   subject,
@@ -157,7 +185,8 @@ const TeamPerformanceReviewForm: React.FC<TeamPerformanceReviewFormProps> = ({
   const suggestedOverall = roundedOverallDefault(score);
   const displayOverall = form.overallTouched ? form.overallRating : suggestedOverall;
   const rows = useMemo(() => assessmentRows(form.subjectRole, form.ratings), [form.subjectRole, form.ratings]);
-  const sections = visibleSopSections(form.subjectRole);
+  const sections = sopSectionsForReviewType(reviewType, form.subjectRole);
+  const slimMonthly = isSlimMonthlyReview(reviewType);
 
   const patch = (partial: Partial<FormState>) => setForm(prev => ({ ...prev, ...partial }));
 
@@ -357,6 +386,12 @@ const TeamPerformanceReviewForm: React.FC<TeamPerformanceReviewFormProps> = ({
         </div>
       </section>
 
+      {slimMonthly && (
+        <p className="text-xs font-semibold text-neutral-600 bg-neutral-50 border border-neutral-100 rounded-xl px-3 py-2">
+          Monthly check-in: one 1–5 rating per section (optional commentary). Full SOP items, DAP, and goals stay on quarterly and annual.
+        </p>
+      )}
+
       {sections.map(section => (
         <section key={section.id} className="bg-white border border-neutral-100 rounded-xl shadow-sm p-4 md:p-5 space-y-4">
           <div>
@@ -452,8 +487,7 @@ const TeamPerformanceReviewForm: React.FC<TeamPerformanceReviewFormProps> = ({
         />
       </section>
 
-      <section className="bg-white border border-neutral-100 rounded-xl shadow-sm p-4 md:p-5 space-y-3">
-        <h3 className="text-sm font-black text-[#0F2B3C] uppercase tracking-tight">Development & Action Plan</h3>
+      <OptionalSopBlock title="Development & Action Plan" collapsed={slimMonthly}>
         <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">Optional — leave blank to submit</p>
         {form.developmentPlan.map((row, idx) => (
           <div key={row.id} className="grid grid-cols-1 md:grid-cols-7 gap-2">
@@ -477,10 +511,9 @@ const TeamPerformanceReviewForm: React.FC<TeamPerformanceReviewFormProps> = ({
         <button type="button" disabled={disabled} onClick={() => patch({ developmentPlan: [...form.developmentPlan, emptyAction()] })} className="text-[9px] font-black uppercase tracking-widest text-[#0F2B3C] flex items-center gap-1">
           <Plus size={12} /> Add row
         </button>
-      </section>
+      </OptionalSopBlock>
 
-      <section className="bg-white border border-neutral-100 rounded-xl shadow-sm p-4 md:p-5 space-y-3">
-        <h3 className="text-sm font-black text-[#0F2B3C] uppercase tracking-tight">Goals for Next Period</h3>
+      <OptionalSopBlock title="Goals for Next Period" collapsed={slimMonthly}>
         <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">Optional — leave blank to submit</p>
         {form.goals.map((row, idx) => (
           <div key={row.id} className="grid grid-cols-1 md:grid-cols-7 gap-2">
@@ -504,7 +537,7 @@ const TeamPerformanceReviewForm: React.FC<TeamPerformanceReviewFormProps> = ({
         <button type="button" disabled={disabled} onClick={() => patch({ goals: [...form.goals, emptyGoal()] })} className="text-[9px] font-black uppercase tracking-widest text-[#0F2B3C] flex items-center gap-1">
           <Plus size={12} /> Add row
         </button>
-      </section>
+      </OptionalSopBlock>
 
       <section className="bg-white border border-neutral-100 rounded-xl shadow-sm p-4 md:p-5 space-y-3">
         <h3 className="text-sm font-black text-[#0F2B3C] uppercase tracking-tight">Disciplinary Status</h3>
@@ -550,8 +583,7 @@ const TeamPerformanceReviewForm: React.FC<TeamPerformanceReviewFormProps> = ({
         )}
       </section>
 
-      <section className="bg-white border border-neutral-100 rounded-xl shadow-sm p-4 md:p-5 space-y-3">
-        <h3 className="text-sm font-black text-[#0F2B3C] uppercase tracking-tight">Signatures</h3>
+      <OptionalSopBlock title="Signatures" collapsed={slimMonthly}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
             <label className={labelClass}>Manager print name</label>
@@ -571,7 +603,7 @@ const TeamPerformanceReviewForm: React.FC<TeamPerformanceReviewFormProps> = ({
           </div>
         </div>
         <p className="text-[9px] font-black text-neutral-400 uppercase tracking-widest text-center pt-2">{SOP_FOOTER}</p>
-      </section>
+      </OptionalSopBlock>
     </div>
   );
 };

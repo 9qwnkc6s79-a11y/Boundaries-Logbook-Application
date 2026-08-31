@@ -167,6 +167,93 @@ export function incomingSubmittedReviews(reviews: PerformanceReview[], subjectId
     .sort((a, b) => (b.submittedAt || b.updatedAt).localeCompare(a.submittedAt || a.updatedAt));
 }
 
+/** SUBMITTED staff→manager reviews the viewer is allowed to see for this store (newest first). */
+export function submittedUpReviewsForStore(
+  reviews: PerformanceReview[],
+  viewer: User,
+  storeId: string
+): PerformanceReview[] {
+  return visibleReviews(reviews, viewer)
+    .filter(r => r.direction === 'UP' && r.status === 'SUBMITTED' && r.storeId === storeId)
+    .sort((a, b) => (b.submittedAt || b.updatedAt).localeCompare(a.submittedAt || a.updatedAt));
+}
+
+/** ADMIN sees every submitted UP. Managers only see UP about themselves (via visibleReviews). */
+export function adminCanSeeSubmittedUp(viewer: User, review: PerformanceReview): boolean {
+  if (review.direction !== 'UP' || review.status !== 'SUBMITTED') return false;
+  return visibleReviews([review], viewer).some(r => r.id === review.id);
+}
+
+export interface OwnerReviewNotifyPayload {
+  storeName: string;
+  managerName: string;
+  reviewerName: string;
+  period: string;
+  overall: number;
+  keepDoing?: string;
+  startDoing?: string;
+  notes?: string;
+}
+
+export function ownerReviewNotifyPayload(
+  review: Pick<PerformanceReview, 'subjectName' | 'reviewerName' | 'period' | 'overall' | 'keepDoing' | 'startDoing' | 'notes'>,
+  storeName: string
+): OwnerReviewNotifyPayload {
+  return {
+    storeName,
+    managerName: review.subjectName,
+    reviewerName: review.reviewerName,
+    period: review.period,
+    overall: review.overall,
+    keepDoing: review.keepDoing,
+    startDoing: review.startDoing,
+    notes: review.notes,
+  };
+}
+
+const UP_INBOX_SEEN_KEY = 'peopleUpInboxSeenAt';
+
+export function readUpInboxSeenAt(): string | null {
+  try {
+    if (typeof localStorage === 'undefined') return null;
+    return localStorage.getItem(UP_INBOX_SEEN_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function writeUpInboxSeenAt(iso: string = new Date().toISOString()): void {
+  try {
+    if (typeof localStorage === 'undefined') return;
+    localStorage.setItem(UP_INBOX_SEEN_KEY, iso);
+  } catch {
+    // quota / private mode
+  }
+}
+
+export function unreadSubmittedUp(
+  reviews: PerformanceReview[],
+  lastSeenAt: string | null
+): PerformanceReview[] {
+  return reviews.filter(r => {
+    const stamp = r.submittedAt || r.updatedAt;
+    return !lastSeenAt || stamp > lastSeenAt;
+  });
+}
+
+/** Fire-and-forget. Never throws; review save must not wait on email. */
+export function notifyOwnerOfSubmittedUp(payload: OwnerReviewNotifyPayload): void {
+  try {
+    void fetch('/api/notify-owner-review', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    }).catch(() => undefined);
+  } catch {
+    // ignore
+  }
+}
+
 export function writtenReviews(reviews: PerformanceReview[], reviewerId: string): PerformanceReview[] {
   return reviews
     .filter(r => r.reviewerId === reviewerId)

@@ -16,6 +16,8 @@ import {
   incomingSubmittedReviews,
   isSubmittedLocked,
   makeReviewId,
+  notifyOwnerOfSubmittedUp,
+  ownerReviewNotifyPayload,
   storeLabel,
   upSubjects,
   visibleReviews,
@@ -132,6 +134,7 @@ function ReviewForm({
   direction,
   period,
   disabled,
+  stores,
   onSaved,
 }: {
   subject: User;
@@ -141,6 +144,7 @@ function ReviewForm({
   direction: ReviewDirection;
   period: string;
   disabled?: boolean;
+  stores?: Store[];
   onSaved: (reviews: PerformanceReview[]) => void;
 }) {
   const locked = existing ? isSubmittedLocked(existing) : false;
@@ -192,6 +196,9 @@ function ReviewForm({
     }
     onSaved(next);
     setSaving('SAVED');
+    if (status === 'SUBMITTED' && direction === 'UP') {
+      notifyOwnerOfSubmittedUp(ownerReviewNotifyPayload(review, storeLabel(stores, storeId)));
+    }
   };
 
   return (
@@ -411,6 +418,7 @@ const PerformanceReviewsPanel: React.FC<PerformanceReviewsPanelProps> = ({
   const emptyHint = formDirection === 'UP'
     ? 'No store manager to review this month. ADMIN accounts are not review targets.'
     : 'No active employees on this store.';
+  const staffHint = 'Named (not anonymous). Submitted reviews go to Daniel.';
 
   return (
     <section className="bg-white p-4 md:p-6 rounded-xl border border-neutral-100 shadow-sm space-y-5">
@@ -423,6 +431,9 @@ const PerformanceReviewsPanel: React.FC<PerformanceReviewsPanelProps> = ({
           <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">
             {monthLabel} · named, not anonymous · {formDirection === 'DOWN' ? 'you review staff' : 'you review your GM'}
           </p>
+          {variant === 'staff' && (
+            <p className="text-[11px] font-semibold text-neutral-500 mt-1">{staffHint}</p>
+          )}
         </div>
       </div>
 
@@ -468,6 +479,7 @@ const PerformanceReviewsPanel: React.FC<PerformanceReviewsPanelProps> = ({
               storeId={storeId}
               direction={formDirection}
               period={period}
+              stores={stores}
               onSaved={next => setReviews(visibleReviews(next, currentUser))}
             />
           )}

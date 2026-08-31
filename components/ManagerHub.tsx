@@ -172,6 +172,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
   org, onSaveOrg, onSyncToastEmployees
 }) => {
   const [activeSubTab, setActiveSubTab] = useState<'dashboard' | 'operations' | 'settings' | 'people'>('dashboard');
+  const [peopleUnreadUp, setPeopleUnreadUp] = useState(0);
   const [operationsSubTab, setOperationsSubTab] = useState<'compliance' | 'gallery' | 'cash-audit' | 'training' | 'food'>('compliance');
   const [settingsSubTab, setSettingsSubTab] = useState<'editor' | 'team' | 'manual' | 'branding' | 'stores'>('editor');
   const [auditFilter, setAuditFilter] = useState<'pending' | 'approved' | 'all'>('pending');
@@ -1649,6 +1650,11 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
             ].map(tab => (
               <button key={tab.id} onClick={() => setActiveSubTab(tab.id as any)} className={`flex-1 md:flex-none px-2 md:px-4 py-2.5 md:py-3 text-[9px] md:text-[10px] font-black rounded-xl transition-all flex items-center justify-center gap-1.5 md:gap-2 whitespace-nowrap tracking-widest border-2 ${activeSubTab === tab.id ? 'bg-[#0F2B3C] text-white border-[#0F2B3C] shadow-lg' : 'bg-white text-neutral-500 border-neutral-200 hover:border-[#0F2B3C] hover:text-[#0F2B3C]'}`}>
                 <tab.icon size={14} className="md:hidden" /><tab.icon size={16} className="hidden md:block" /> {tab.label}
+                {tab.id === 'people' && peopleUnreadUp > 0 && (
+                  <span className={`min-w-[1.15rem] h-5 px-1 rounded-full text-[9px] font-black leading-5 ${activeSubTab === 'people' ? 'bg-white text-[#0F2B3C]' : 'bg-amber-500 text-white'}`}>
+                    {peopleUnreadUp > 9 ? '9+' : peopleUnreadUp}
+                  </span>
+                )}
               </button>
             ))}
           </div>
@@ -1859,6 +1865,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                 stores={stores}
                 variant="due-card"
                 onOpenWorkspace={() => setActiveSubTab('people')}
+                onUnreadUpCount={setPeopleUnreadUp}
               />
             )}
 
@@ -3444,6 +3451,7 @@ ${curriculum.map((mod, mi) => {
             allUsers={allUsers}
             storeId={currentStoreId}
             stores={stores}
+            onUnreadUpCount={setPeopleUnreadUp}
           />
         )}
 

@@ -17,6 +17,10 @@ import {
   REVIEW_RETENTION_MONTHS,
   upsertPerformanceReview,
   visibleReviews,
+  adminCanSeeSubmittedUp,
+  ownerReviewNotifyPayload,
+  submittedUpReviewsForStore,
+  unreadSubmittedUp,
 } from '../utils/performanceReviews.ts';
 
 function assert(cond: unknown, message: string): asserts cond {
@@ -161,6 +165,20 @@ assert(!baristaSees.some(r => r.id === prosperUpReview.id), 'employee does not s
 
 const adminSees = visibleReviews([prosperUpReview], daniel);
 assert(adminSees.length === 1, 'ADMIN sees all stores');
+assert(adminCanSeeSubmittedUp(daniel, prosperUpReview), 'ADMIN can see submitted UP');
+assert(!adminCanSeeSubmittedUp(elmGm, prosperUpReview), 'other GM cannot see that submitted UP');
+assert(!adminCanSeeSubmittedUp(daniel, { ...prosperUpReview, status: 'DRAFT' }), 'draft UP is not submitted-visible as inbox');
+
+const elmInbox = submittedUpReviewsForStore([prosperUpReview, upDone[0], upDraft], daniel, 'store-elm');
+assert(elmInbox.length === 1 && elmInbox[0].id === upDone[0].id, 'People inbox is submitted UP for this store');
+assert(elmInbox.every(r => r.status === 'SUBMITTED' && r.direction === 'UP'), 'inbox never includes drafts or DOWN');
+assert(!submittedUpReviewsForStore([prosperUpReview], elmGm, 'store-prosper').length, 'manager inbox uses visibleReviews');
+
+const notify = ownerReviewNotifyPayload(prosperUpReview, 'Prosper');
+assert(notify.managerName === prosperGm.name && notify.reviewerName === otherBarista.name, 'notify names');
+assert(notify.storeName === 'Prosper' && notify.overall === 3 && notify.period === period, 'notify store/rating/period');
+assert(unreadSubmittedUp([prosperUpReview], null).length === 1, 'unseen submitted UP is unread');
+assert(unreadSubmittedUp([prosperUpReview], '2026-08-09T00:00:00Z').length === 0, 'seen after submit is read');
 
 const prosperGmSees = visibleReviews([prosperUpReview, upDone[0]], prosperGm);
 assert(prosperGmSees.some(r => r.id === prosperUpReview.id), 'Prosper GM sees UP about themselves');
