@@ -520,12 +520,47 @@ export function visibleSopSections(role: SopSubjectRole): SopSectionDef[] {
   return SOP_SECTIONS.filter(section => !section.teamLeaderOnly || role === 'TEAM_LEADER');
 }
 
+/**
+ * MONTHLY: one rating per SOP section (item id = section.id). TEAM_MEMBER skips leadership.
+ * QUARTERLY / ANNUAL / PIP: full SOP_SECTIONS items (unchanged titles and 1–5 scale).
+ */
+export function sopSectionsForReviewType(reviewType: SopReviewType, role: SopSubjectRole): SopSectionDef[] {
+  const sections = visibleSopSections(role);
+  if (reviewType !== 'MONTHLY') return sections;
+  return sections.map(section => {
+    const first = section.items[0];
+    const last = section.items[section.items.length - 1];
+    return {
+      ...section,
+      items: [
+        {
+          id: section.id,
+          title: section.title,
+          low: first?.low || section.title,
+          high: last?.high || section.title,
+        },
+      ],
+    };
+  });
+}
+
+export function isSlimMonthlyReview(reviewType: SopReviewType): boolean {
+  return reviewType === 'MONTHLY';
+}
+
 export function sectionScore(section: SopSectionDef, ratings: Record<string, number>): number | null {
   const values = section.items
     .map(item => ratings[item.id])
     .filter((n): n is number => typeof n === 'number' && n >= 1 && n <= 5);
-  if (values.length === 0) return null;
-  return values.reduce((sum, n) => sum + n, 0) / values.length;
+  if (values.length > 0) {
+    return values.reduce((sum, n) => sum + n, 0) / values.length;
+  }
+  // MONTHLY writes section ids (appearance, culture, …). Item-level keys still win when present.
+  const sectionLevel = ratings[section.id];
+  if (typeof sectionLevel === 'number' && sectionLevel >= 1 && sectionLevel <= 5) {
+    return sectionLevel;
+  }
+  return null;
 }
 
 export interface SopAssessmentRow {

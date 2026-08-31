@@ -29,6 +29,7 @@ import {
   storeRoster,
   sectionScore,
   sopCheckpoints,
+  sopSectionsForReviewType,
   upsertTeamPerformanceReview,
   visibleSopSections,
   weightedScore,
@@ -298,6 +299,48 @@ const tardyFile = upsertTeamPerformanceReview([], {
 assert(tardyFile?.[0].disciplinaryStatus === 'TARDY_NO_SHOW' && tardyFile[0].tardyDate === '2026-08-12', 'GM can file tardy / no-show');
 
 assert(staff.id && leader.id, 'roster fixtures exist');
+
+// --- Slim monthly SOP (one rating per section) ----------------------------
+const monthlyTmSections = sopSectionsForReviewType('MONTHLY', 'TEAM_MEMBER');
+const monthlyTmItems = monthlyTmSections.flatMap(s => s.items);
+assert(monthlyTmItems.length <= 6, `MONTHLY TM has ${monthlyTmItems.length} rating items (max 6)`);
+assert(monthlyTmItems.length === 4, 'MONTHLY TM is 4 section ratings');
+assert(!monthlyTmSections.some(s => s.id === 'leadership'), 'MONTHLY TM skips leadership');
+assert(monthlyTmItems.every(item => monthlyTmSections.some(s => s.id === item.id)), 'MONTHLY item ids are section ids');
+assert(monthlyTmSections.map(s => s.title).join('|') === [
+  'Appearance & Professionalism',
+  'Cultural Values',
+  'Reliability & Timeliness',
+  'Job Performance',
+].join('|'), 'MONTHLY keeps existing section titles');
+
+const monthlyTlSections = sopSectionsForReviewType('MONTHLY', 'TEAM_LEADER');
+const monthlyTlItems = monthlyTlSections.flatMap(s => s.items);
+assert(monthlyTlItems.length <= 6, `MONTHLY TL has ${monthlyTlItems.length} rating items (max 6)`);
+assert(monthlyTlItems.length === 5, 'MONTHLY TL is 5 section ratings');
+assert(monthlyTlSections.some(s => s.id === 'leadership'), 'MONTHLY TL includes leadership');
+assert(monthlyTlItems.some(i => i.id === 'leadership'), 'MONTHLY TL leadership item id is section id');
+
+const quarterlyTlItems = sopSectionsForReviewType('QUARTERLY', 'TEAM_LEADER').flatMap(s => s.items);
+const annualTmItems = sopSectionsForReviewType('ANNUAL', 'TEAM_MEMBER').flatMap(s => s.items);
+const pipTlItems = sopSectionsForReviewType('PIP', 'TEAM_LEADER').flatMap(s => s.items);
+assert(quarterlyTlItems.length === 22, 'QUARTERLY TL is the full SOP item set');
+assert(quarterlyTlItems.length > monthlyTlItems.length, 'QUARTERLY has more ratings than monthly');
+assert(annualTmItems.length === 17, 'ANNUAL TM is the full non-leadership item set');
+assert(pipTlItems.length === quarterlyTlItems.length, 'PIP uses the full SOP item set');
+assert(quarterlyTlItems[0].id === 'attire', 'full SOP still uses item-level ids');
+
+assert(sectionScore(appearance, { appearance: 4 }) === 4, 'monthly section-id rating scores the section');
+assert(sectionScore(appearance, { attire: 4, conductTeam: 2, appearance: 5 }) === 3, 'item-level keys still win when present');
+assert(weightedScore('TEAM_MEMBER', { appearance: 4, culture: 5, reliability: 3, job: 4 }) !== null, 'monthly section ratings produce a weighted score');
+
+const monthlySectionSaved = upsertTeamPerformanceReview([], {
+  ...monthlyBlank,
+  ratings: { appearance: 4, culture: 3, reliability: 4, job: 5 },
+  sectionComments: { appearance: 'Neat' },
+}, heath, '2026-08-24T22:00:00Z');
+assert(monthlySectionSaved?.[0].ratings.appearance === 4 && monthlySectionSaved[0].sectionComments.appearance === 'Neat', 'monthly persist section ids');
+assert(monthlySectionSaved?.[0].ratings.attire === undefined, 'new monthly write does not invent item-level keys');
 
 const inactiveElm = user({ id: 'u-old', name: 'Former', role: UserRole.TRAINEE, storeId: 'store-elm', active: false });
 const unassigned = user({ id: 'u-none', name: 'Unassigned', role: UserRole.TRAINEE, storeId: '' });

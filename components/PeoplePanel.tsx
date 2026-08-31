@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Users } from 'lucide-react';
-import { PerformanceReview, SopReviewType, Store, TeamPerformanceReview, User } from '../types';
+import { ArrowLeft, MessageSquare, Star, Users } from 'lucide-react';
+import { PerformanceReview, SopReviewType, Store, TeamPerformanceReview, User, UserRole } from '../types';
 import { db } from '../services/db';
 import {
   SOP_DISCIPLINARY_LABELS,
@@ -18,7 +18,14 @@ import {
   sopCheckpoints,
   storeRoster,
 } from '../utils/teamPerformanceReviews';
-import { formatReviewPeriod, storeLabel } from '../utils/performanceReviews';
+import {
+  formatReviewPeriod,
+  readUpInboxSeenAt,
+  storeLabel,
+  submittedUpReviewsForStore,
+  unreadSubmittedUp,
+  writeUpInboxSeenAt,
+} from '../utils/performanceReviews';
 import TeamPerformanceReviewForm from './TeamPerformanceReviewForm';
 
 interface PeoplePanelProps {
@@ -28,6 +35,7 @@ interface PeoplePanelProps {
   stores?: Store[];
   variant?: 'workspace' | 'due-card';
   onOpenWorkspace?: () => void;
+  onUnreadUpCount?: (count: number) => void;
 }
 
 interface FormTarget {
@@ -49,6 +57,7 @@ const PeoplePanel: React.FC<PeoplePanelProps> = ({
   stores,
   variant = 'workspace',
   onOpenWorkspace,
+  onUnreadUpCount,
 }) => {
   const [reviews, setReviews] = useState<TeamPerformanceReview[]>([]);
   const [legacyReviews, setLegacyReviews] = useState<PerformanceReview[]>([]);
@@ -60,9 +69,7 @@ const PeoplePanel: React.FC<PeoplePanelProps> = ({
     try {
       const [all, legacy] = await Promise.all([
         db.fetchTeamPerformanceReviews(),
-        variant === 'workspace'
-          ? db.fetchPerformanceReviews().catch(() => [] as PerformanceReview[])
-          : Promise.resolve([] as PerformanceReview[]),
+        db.fetchPerformanceReviews().catch(() => [] as PerformanceReview[]),
       ]);
       setReviews(Array.isArray(all) ? all : []);
       setLegacyReviews(Array.isArray(legacy) ? legacy : []);
@@ -71,7 +78,7 @@ const PeoplePanel: React.FC<PeoplePanelProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [variant]);
+  }, []);
 
   useEffect(() => {
     load();
@@ -125,6 +132,34 @@ const PeoplePanel: React.FC<PeoplePanelProps> = ({
     () => rows.filter(row => row.checkpoints.some(c => c.overdue)).length,
     [rows]
   );
+
+  const staffFeedback = useMemo(
+    () => submittedUpReviewsForStore(legacyReviews, currentUser, storeId),
+    [legacyReviews, currentUser.id, currentUser.role, storeId]
+  );
+  const feedbackStamp = staffFeedback.map(r => `${r.id}:${r.submittedAt || r.updatedAt}`).join('|');
+  const [seenAt, setSeenAt] = useState<string | null>(() => readUpInboxSeenAt());
+  const [sessionNewIds, setSessionNewIds] = useState<Set<string>>(() => new Set());
+  const unreadUp = useMemo(() => unreadSubmittedUp(staffFeedback, seenAt), [staffFeedback, seenAt]);
+
+  useEffect(() => {
+    onUnreadUpCount?.(currentUser.role === UserRole.ADMIN ? unreadUp.length : 0);
+  }, [currentUser.role, unreadUp.length, onUnreadUpCount]);
+
+  useEffect(() => {
+    if (variant !== 'workspace' || currentUser.role !== UserRole.ADMIN || !feedbackStamp) return;
+    const fresh = unreadSubmittedUp(staffFeedback, readUpInboxSeenAt());
+    if (fresh.length > 0) {
+      setSessionNewIds(prev => {
+        const next = new Set(prev);
+        fresh.forEach(r => next.add(r.id));
+        return next;
+      });
+    }
+    const now = new Date().toISOString();
+    writeUpInboxSeenAt(now);
+    setSeenAt(now);
+  }, [variant, currentUser.role, storeId, feedbackStamp]);
 
   const openAccount = (userId: string) => {
     setSelectedId(userId);
@@ -184,6 +219,15 @@ const PeoplePanel: React.FC<PeoplePanelProps> = ({
           <p className="text-xs font-black text-red-600 mb-3">{overdueCount} overdue</p>
         )}
 
+        {currentUser.role === UserRole.ADMIN && unreadUp.length > 0 && (
+          <div className="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2">
+            <p className="text-xs font-black text-amber-800">
+              {unreadUp.length} new staff review{unreadUp.length === 1 ? '' : 's'} of managers
+            </p>
+            <p className="text-[10px] font-bold text-amber-700 uppercase tracking-widest">Open People to read</p>
+          </div>
+        )}
+
         <div className="mb-3">
           <div className="text-[9px] font-black text-neutral-400 uppercase tracking-widest mb-2">
             Still due this month
@@ -238,6 +282,16 @@ const PeoplePanel: React.FC<PeoplePanelProps> = ({
               {storeLabel(stores, storeId)} · Roster accounts
             </p>
           </div>
+          {currentUser.role === UserRole.ADMIN && (sessionNewIds.size > 0 || staffFeedback.length > 0) && (
+            <div className="ml-auto text-right">
+              <div className={`text-lg font-black ${sessionNewIds.size > 0 ? 'text-amber-600' : 'text-[#0F2B3C]'}`}>
+                {sessionNewIds.size > 0 ? sessionNewIds.size : staffFeedback.length}
+              </div>
+              <div className="text-[9px] font-black text-neutral-400 uppercase tracking-widest">
+                {sessionNewIds.size > 0 ? 'New manager reviews' : 'Staff → manager'}
+              </div>
+            </div>
+          )}
         </div>
       </section>
 
@@ -381,6 +435,77 @@ const PeoplePanel: React.FC<PeoplePanelProps> = ({
           </section>
         </div>
       ) : (
+        <section className="bg-white rounded-xl border border-neutral-100 shadow-sm p-4 md:p-5 space-y-3">
+          <div className="flex items-center gap-2">
+            <div className="p-2 bg-[#0F2B3C] text-white rounded-xl">
+              <MessageSquare size={14} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="text-sm font-black text-[#0F2B3C] uppercase tracking-tight">Staff feedback on managers</h3>
+              <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">
+                Submitted UP · this store · newest first
+              </p>
+            </div>
+            {currentUser.role === UserRole.ADMIN && sessionNewIds.size > 0 && (
+              <span className="px-2 py-1 rounded-lg bg-amber-100 text-amber-800 text-[9px] font-black uppercase tracking-widest">
+                {sessionNewIds.size} new
+              </span>
+            )}
+          </div>
+          {staffFeedback.length === 0 ? (
+            <p className="text-xs font-medium text-neutral-500">
+              No submitted staff-to-manager reviews for this store yet.
+            </p>
+          ) : (
+            <ul className="space-y-2">
+              {staffFeedback.map(review => {
+                const isNew = sessionNewIds.has(review.id);
+                return (
+                  <li
+                    key={review.id}
+                    className={`rounded-xl border px-3 py-3 space-y-1.5 ${isNew ? 'border-amber-200 bg-amber-50/70' : 'border-neutral-100 bg-neutral-50/40'}`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="text-sm font-black text-[#0F2B3C]">
+                          {review.reviewerName} → {review.subjectName}
+                        </div>
+                        <div className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">
+                          {formatReviewPeriod(review.period)}
+                          {isNew ? ' · New' : ''}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-0.5 shrink-0" aria-label={`${review.overall} out of 5`}>
+                        {[1, 2, 3, 4, 5].map(n => (
+                          <Star key={n} size={12} className={n <= review.overall ? 'text-amber-500 fill-amber-500' : 'text-neutral-200'} />
+                        ))}
+                      </div>
+                    </div>
+                    {review.keepDoing && (
+                      <p className="text-xs text-neutral-600">
+                        <span className="font-black text-[#0F2B3C] uppercase tracking-widest text-[9px]">Keep doing · </span>
+                        {review.keepDoing}
+                      </p>
+                    )}
+                    {review.startDoing && (
+                      <p className="text-xs text-neutral-600">
+                        <span className="font-black text-[#0F2B3C] uppercase tracking-widest text-[9px]">Start doing · </span>
+                        {review.startDoing}
+                      </p>
+                    )}
+                    {review.notes && (
+                      <p className="text-xs text-neutral-600">
+                        <span className="font-black text-[#0F2B3C] uppercase tracking-widest text-[9px]">Notes · </span>
+                        {review.notes}
+                      </p>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
+
         <section className="bg-white rounded-xl border border-neutral-100 shadow-sm overflow-hidden">
           {loading ? (
             <div className="p-6 text-xs font-bold text-neutral-400 uppercase tracking-widest">Loading roster…</div>

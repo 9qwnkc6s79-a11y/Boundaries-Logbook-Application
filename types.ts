@@ -759,7 +759,7 @@ export interface TeamPerformanceReview {
   period: string;
   reviewType: SopReviewType;
   strikesOnFile: number;
-  ratings: Record<string, number>; // item id → 1–5 (omit blank)
+  ratings: Record<string, number>; // item id → 1–5 (omit blank); MONTHLY uses section ids
   sectionComments: Record<string, string>;
   overallRating: number; // 1–5; 0 until manager confirms
   weightedScore?: number;
