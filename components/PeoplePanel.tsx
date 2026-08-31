@@ -435,6 +435,7 @@ const PeoplePanel: React.FC<PeoplePanelProps> = ({
           </section>
         </div>
       ) : (
+        <>
         <section className="bg-white rounded-xl border border-neutral-100 shadow-sm p-4 md:p-5 space-y-3">
           <div className="flex items-center gap-2">
             <div className="p-2 bg-[#0F2B3C] text-white rounded-xl">
@@ -563,6 +564,7 @@ const PeoplePanel: React.FC<PeoplePanelProps> = ({
             </div>
           )}
         </section>
+        </>
       )}
     </div>
   );
