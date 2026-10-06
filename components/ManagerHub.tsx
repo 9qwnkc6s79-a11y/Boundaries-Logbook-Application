@@ -21,6 +21,7 @@ import { showLocalNotification, isAnyStoreManager, getNotificationConfig } from 
 import { insertFoodWasteTask, templateHasFoodWasteTask } from '../data/foodCloseTasks';
 import { indexLiveReviewLocations, livePayloadsArePinned, rematchStoredReviewLocation } from '../utils/googleReviewRematch';
 import { sortChecklistsByStoreDay } from '../utils/checklistOrder';
+import { effectiveUnlockHour } from '../utils/logbookSubmitGuard';
 import PeoplePanel from './PeoplePanel';
 
 /**
@@ -659,7 +660,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
     );
     
     return todayTemplates.map(tpl => {
-      const effectiveDate = (localHour < (tpl.unlockHour ?? 0)) ? yesterdayStr : todayStr;
+      const effectiveDate = (localHour < effectiveUnlockHour(tpl.unlockHour)) ? yesterdayStr : todayStr;
       const sub = submissions.find(s => s.templateId === tpl.id && s.date === effectiveDate);
       const tasksCompleted = sub?.taskResults?.filter(tr => tr.completed).length || 0;
       const totalTasks = tpl.tasks?.length || 1;

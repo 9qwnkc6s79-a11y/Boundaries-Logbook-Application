@@ -9,6 +9,8 @@ import handler, {
   chicagoDeadlineMs,
   parseArchivePayload as parseArchiveFromApi,
   parseExportQuery,
+  reportedBusinessDate,
+  taskProgress,
   tokenMatches,
 } from '../api/logbook-export.ts';
 import {
@@ -207,6 +209,67 @@ const january = buildLogbookDays({
 });
 assert(january.days[0].checklists[0].onTime === true, '12:59Z is on time for a 7:00 CST deadline');
 assert(january.days[0].checklists[0].submittedBy === null, 'unknown user id does not become submittedBy');
+
+// Prosper Opening was stored on D but submitted before the deadline on D+1.
+// 2026-10-06 06:14 America/Chicago (CDT) is 11:14Z. Do not rewrite the row;
+// report it on the 6th, on time. A submit after 7:00 stays on the stored day.
+const openingTpl = { id: 'open', name: 'Opening Checklist', storeId: 'store-prosper', type: 'OPENING', deadlineHour: 7, tasks: [{ id: 'a' }, { id: 'b' }] };
+const moved = reportedBusinessDate(
+  { id: 'p', date: '2026-10-05', submittedAt: '2026-10-06T11:14:00.000Z', templateId: 'open' },
+  openingTpl,
+);
+assert(moved === '2026-10-06', `opening before the next morning's deadline reports D+1, got ${moved}`);
+const stayed = reportedBusinessDate(
+  { id: 'p2', date: '2026-10-05', submittedAt: '2026-10-06T13:00:00.000Z', templateId: 'open' },
+  openingTpl,
+);
+assert(stayed === '2026-10-05', 'opening after the next morning deadline stays on the stored date');
+const sameDay = reportedBusinessDate(
+  { id: 'le', date: '2026-10-06', submittedAt: '2026-10-06T11:45:00.000Z', templateId: 'open' },
+  { ...openingTpl, storeId: 'store-elm' },
+);
+assert(sameDay === '2026-10-06', 'Little Elm opening already on the Chicago date is not moved');
+
+const prosperDays = buildLogbookDays({
+  dates: ['2026-10-05', '2026-10-06'],
+  storeId: 'store-prosper',
+  templates: [openingTpl],
+  users: [{ id: 'u1', name: 'Alex Manager' }],
+  deposits: [],
+  closingWaste: [],
+  inventoryCounts: [],
+  food86Events: [],
+  submissions: [{
+    id: 'prosper-open',
+    userId: 'u1',
+    storeId: 'store-prosper',
+    templateId: 'open',
+    date: '2026-10-05',
+    status: 'PENDING',
+    submittedAt: '2026-10-06T11:14:00.000Z',
+    taskResults: [{ taskId: 'a', completed: true }, { taskId: 'b', completed: true }],
+  }],
+});
+assert(prosperDays.days[0].checklists[0].status === 'MISSING', 'stored date no longer shows the moved opening');
+assert(prosperDays.days[1].checklists[0].status === 'PENDING', 'opening is reported on the morning it was submitted');
+assert(prosperDays.days[1].checklists[0].onTime === true, 'moved opening is on time against D+1 7:00');
+assert(prosperDays.days[1].date === '2026-10-06', 'reported day is Oct 6');
+const closingStay = reportedBusinessDate(
+  { id: 'c', date: '2026-10-05', submittedAt: '2026-10-06T11:14:00.000Z', templateId: 'close' },
+  { id: 'close', type: 'CLOSING', deadlineHour: 21, tasks: [] },
+);
+assert(closingStay === '2026-10-05', 'a next-morning close is not moved the way an opening is');
+
+const midTasks = Array.from({ length: 13 }, (_, i) => ({ id: `t${i + 1}` }));
+const midResults = [
+  ...midTasks.map(t => ({ taskId: t.id, completed: true })),
+  { taskId: 'removed-task', completed: true },
+];
+const progress = taskProgress(
+  { id: 'mid', taskResults: midResults },
+  { id: 'mid-tpl', type: 'SHIFT_CHANGE', tasks: midTasks },
+);
+assert(progress.tasksDone === 13 && progress.tasksTotal === 13, `tasksDone must not exceed tasksTotal, got ${progress.tasksDone}/${progress.tasksTotal}`);
 
 // --- retention archive ---
 const now = new Date('2026-10-06T18:00:00.000Z');
