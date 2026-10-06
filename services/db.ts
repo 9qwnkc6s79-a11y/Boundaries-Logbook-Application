@@ -11,6 +11,16 @@ import {
 import { currentReviewPeriod, prunePerformanceReviews, upsertPerformanceReview } from '../utils/performanceReviews';
 import { appendFallAvailableFlavors } from '../utils/fallMenuRematch';
 import { pruneTeamPerformanceReviews, upsertTeamPerformanceReview } from '../utils/teamPerformanceReviews';
+import {
+  ARCHIVE_MAX_BYTES,
+  ARCHIVE_MAX_SHARDS,
+  archiveDocId,
+  groupRemovedByMonth,
+  mergeSubmissionsById,
+  parseArchivePayload,
+  partitionSubmissionsForRetention,
+  shardSubmissionRows,
+} from '../utils/submissionArchive';
 
 declare const firebase: any;
 
@@ -154,6 +164,29 @@ class CloudAPI {
     } catch (error) {
       console.error(`[Firestore] remoteGet(${collectionPath}/${docId}): Error:`, error);
       return defaultValue;
+    }
+  }
+
+  /** Distinguish a missing doc from a failed read. Archive merges must not treat an error as empty. */
+  private async remoteGetStrict<T>(docId: string): Promise<
+    | { ok: true; missing: true; data: null }
+    | { ok: true; missing: false; data: T | null }
+    | { ok: false }
+  > {
+    if (!firestore) return { ok: false };
+    const collectionPath = this.getCollectionPath();
+    try {
+      const docRef = collectionPath.includes('/')
+        ? firestore.doc(`${collectionPath}/${docId}`)
+        : firestore.collection(collectionPath).doc(docId);
+      const snap = await docRef.get();
+      if (!snap.exists) return { ok: true, missing: true, data: null };
+      const raw = snap.data();
+      const data = raw && Object.prototype.hasOwnProperty.call(raw, 'data') ? raw.data : null;
+      return { ok: true, missing: false, data };
+    } catch (error) {
+      console.error(`[Firestore] remoteGetStrict(${collectionPath}/${docId}) failed:`, error);
+      return { ok: false };
     }
   }
 
@@ -588,51 +621,77 @@ class CloudAPI {
   }
 
   /**
-   * Prune old submissions to keep the document under Firestore's 1MB limit.
-   * Returns the pruned array sorted newest-first.
+   * Read one month of submission archives. A failed read is not an empty month:
+   * callers must refuse to overwrite when ok is false.
    */
-  private pruneSubmissions(submissions: ChecklistSubmission[], maxSizeBytes = 900000, currentSubmissionId?: string): ChecklistSubmission[] {
-    // Sort newest first by date then submittedAt
-    let pruned = [...submissions].sort((a, b) => {
-      const dateCompare = b.date.localeCompare(a.date);
-      if (dateCompare !== 0) return dateCompare;
-      return (b.submittedAt || '').localeCompare(a.submittedAt || '');
-    });
+  private async readArchiveMonth(month: string): Promise<{ ok: true; rows: ChecklistSubmission[] } | { ok: false }> {
+    const first = await this.remoteGetStrict<unknown>(archiveDocId(month, 1));
+    if (!first.ok) return { ok: false };
+    if (first.missing) return { ok: true, rows: [] };
 
-    // Step 1: Strip base64 photos from older submissions, preserve current
-    pruned = pruned.map(s => this.stripBase64Photos(s, s.id === currentSubmissionId));
-
-    // Step 2: Remove submissions older than 90 days
-    const cutoff90 = new Date();
-    cutoff90.setDate(cutoff90.getDate() - 90);
-    const cutoff90Str = cutoff90.toISOString().split('T')[0];
-    const beforeCount = pruned.length;
-    pruned = pruned.filter(s => s.date >= cutoff90Str);
-    if (pruned.length < beforeCount) {
-      console.log(`[DB] pruneSubmissions: Removed ${beforeCount - pruned.length} submissions older than 90 days`);
+    const parsed = parseArchivePayload(first.data);
+    if (!parsed.recognized) {
+      console.error(`[DB] archiveSubmissions: unrecognized shape for ${month}`);
+      return { ok: false };
     }
 
-    // Step 3: If still too large, prune to 60 days
-    let size = JSON.stringify(pruned).length;
-    if (size > maxSizeBytes) {
-      const cutoff60 = new Date();
-      cutoff60.setDate(cutoff60.getDate() - 60);
-      const cutoff60Str = cutoff60.toISOString().split('T')[0];
-      pruned = pruned.filter(s => s.date >= cutoff60Str);
-      console.log(`[DB] pruneSubmissions: Still ${Math.round(size / 1024)}KB, pruned to 60 days (${pruned.length} submissions)`);
+    const rows = [...parsed.rows] as ChecklistSubmission[];
+    for (let shard = 2; shard <= parsed.shardCount; shard++) {
+      const part = await this.remoteGetStrict<unknown>(archiveDocId(month, shard));
+      if (!part.ok || part.missing) {
+        console.error(`[DB] archiveSubmissions: missing shard ${archiveDocId(month, shard)}`);
+        return { ok: false };
+      }
+      const partParsed = parseArchivePayload(part.data);
+      if (!partParsed.recognized) return { ok: false };
+      rows.push(...(partParsed.rows as ChecklistSubmission[]));
     }
+    return { ok: true, rows };
+  }
 
-    // Step 4: If still too large, prune to 30 days
-    size = JSON.stringify(pruned).length;
-    if (size > maxSizeBytes) {
-      const cutoff30 = new Date();
-      cutoff30.setDate(cutoff30.getDate() - 30);
-      const cutoff30Str = cutoff30.toISOString().split('T')[0];
-      pruned = pruned.filter(s => s.date >= cutoff30Str);
-      console.log(`[DB] pruneSubmissions: Still ${Math.round(size / 1024)}KB, pruned to 30 days (${pruned.length} submissions)`);
+  /**
+   * Merge rows that retention is about to drop into per-month archive docs.
+   * Returns true only when every incoming id is readable back from the archive.
+   * Does not modify the live submissions doc.
+   */
+  private async archiveRemovedSubmissions(removed: ChecklistSubmission[]): Promise<boolean> {
+    const { byMonth } = groupRemovedByMonth(removed);
+    for (const [month, incoming] of byMonth) {
+      const loaded = await this.readArchiveMonth(month);
+      if (!loaded.ok) return false;
+
+      const merged = mergeSubmissionsById(loaded.rows, incoming).sort((a, b) =>
+        (a.date || '').localeCompare(b.date || '') ||
+        (a.submittedAt || '').localeCompare(b.submittedAt || '') ||
+        a.id.localeCompare(b.id)
+      );
+      const shards = shardSubmissionRows(merged, ARCHIVE_MAX_BYTES);
+      if (shards.length === 0 || shards.length > ARCHIVE_MAX_SHARDS) {
+        console.error(`[DB] archiveSubmissions: ${month} produced ${shards.length} shards; refusing`);
+        return false;
+      }
+
+      for (let shard = shards.length; shard >= 2; shard--) {
+        const ok = await this.remoteSet(archiveDocId(month, shard), { rows: shards[shard - 1] });
+        if (!ok) return false;
+      }
+      const firstOk = await this.remoteSet(archiveDocId(month, 1), {
+        rows: shards[0],
+        shardCount: shards.length,
+      });
+      if (!firstOk) return false;
+
+      const verify = await this.readArchiveMonth(month);
+      if (!verify.ok) return false;
+      const ids = new Set(verify.rows.map(row => row.id));
+      for (const row of incoming) {
+        if (!ids.has(row.id)) {
+          console.error(`[DB] archiveSubmissions: ${row.id} missing after write for ${month}`);
+          return false;
+        }
+      }
     }
-
-    return pruned;
+    return true;
   }
 
   // DATA LOSS PREVENTION: pushSubmission is read-modify-write on a single
@@ -697,23 +756,47 @@ class CloudAPI {
       next = [submission, ...all];
     }
 
-    // Prune old submissions and strip base64 data to stay under Firestore's 1MB limit
-    // Preserve base64 photos in the current submission (they may be the only copy if Storage upload failed)
-    next = this.pruneSubmissions(next, 900000, submission.id);
+    // Strip base64 from older rows first (same as before), then split retention.
+    // Rows the 90/60/30 prune would drop are archived into
+    // submissionsArchive-YYYY-MM (and -p2, -p3, …) before they leave the live doc.
+    // The logbook still reads only `submissions`. If the archive cannot be
+    // verified, fall back to the old prune so a store can still submit.
+    const stripped = next.map(s => this.stripBase64Photos(s, s.id === submission.id));
+    const partitioned = partitionSubmissionsForRetention<ChecklistSubmission>(stripped, 900000, new Date());
+    const { byMonth, undated } = groupRemovedByMonth<ChecklistSubmission>(partitioned.removed);
+    const removed = Array.from(byMonth.values()).flat();
+    let toSave = partitioned.kept;
+    if (undated.length > 0) {
+      console.warn(`[DB] pushSubmission: keeping ${undated.length} submissions with no YYYY-MM date in the live doc`);
+      toSave = [...toSave, ...undated];
+    }
+    if (removed.length > 0) {
+      console.log(`[DB] pushSubmission: archiving ${removed.length} submissions before prune (kept ${toSave.length})`);
+      let archived = await this.archiveRemovedSubmissions(removed);
+      if (!archived) {
+        await new Promise(r => setTimeout(r, 400));
+        archived = await this.archiveRemovedSubmissions(removed);
+      }
+      if (!archived) {
+        console.error(`[DB] pushSubmission: archive failed for ${removed.length} submissions; pruning the live doc anyway so the checklist can save`);
+      } else {
+        console.log(`[DB] pushSubmission: archived ${removed.length} submissions`);
+      }
+    }
 
-    let jsonSize = JSON.stringify(next).length;
-    console.log(`[DB] pushSubmission: Document size after pruning: ${Math.round(jsonSize / 1024)}KB (${next.length} submissions)`);
+    let jsonSize = JSON.stringify(toSave).length;
+    console.log(`[DB] pushSubmission: Document size after retention: ${Math.round(jsonSize / 1024)}KB (${toSave.length} submissions)`);
 
     // Safety valve: if still over limit after preserving current, strip current too
     if (jsonSize > 900000) {
       console.warn(`[DB] pushSubmission: Document still ${Math.round(jsonSize / 1024)}KB — stripping base64 from current submission too`);
-      next = next.map(s => this.stripBase64Photos(s, false));
-      jsonSize = JSON.stringify(next).length;
+      toSave = toSave.map(s => this.stripBase64Photos(s, false));
+      jsonSize = JSON.stringify(toSave).length;
     }
 
-    console.log(`[DB] pushSubmission: Saving ${next.length} total submissions`);
-    const success = await this.remoteSet(DOC_KEYS.SUBMISSIONS, next);
-    if (success && next.length > 0) {
+    console.log(`[DB] pushSubmission: Saving ${toSave.length} total submissions`);
+    const success = await this.remoteSet(DOC_KEYS.SUBMISSIONS, toSave);
+    if (success && toSave.length > 0) {
       this.remoteSet('submissionsPopulated', { populated: true, at: new Date().toISOString() });
     }
     console.log(`[DB] pushSubmission END: success=${success}`);
