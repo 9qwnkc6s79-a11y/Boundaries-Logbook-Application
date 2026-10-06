@@ -12,7 +12,11 @@ import {
   buildToastSyncedUser,
   decideToastRosterSync,
   findExistingUserForToastEmployee,
+  hasActiveToastHold,
   isJunkToastEmployee,
+  localISODate,
+  maxToastHoldDate,
+  validateToastHoldUntil,
   isProtectedOwner,
   resolvedToastEmail,
 } from '../utils/toastRosterSync.ts';
@@ -223,5 +227,57 @@ assert(
   storeRosterUsers([daniel, kate], 'store-prosper').every(u => u.id === kate.id),
   'Prosper roster does not include Little Elm Daniel'
 );
+
+// Pre-start hire not in Toast yet: an unexpired hold keeps them active.
+const TODAY = '2026-10-05';
+const prestart = user({
+  id: 'u-prestart',
+  name: 'New Manager',
+  email: 'new.manager@example.com',
+  role: UserRole.MANAGER,
+  storeId: 'store-prosper',
+  active: true,
+  toastHoldUntil: '2026-10-31',
+});
+assert(hasActiveToastHold(prestart, TODAY), 'hold through a future date is active');
+assert(hasActiveToastHold({ toastHoldUntil: TODAY }, TODAY), 'hold is inclusive of the end date');
+assert(!hasActiveToastHold({ toastHoldUntil: '2026-10-04' }, TODAY), 'expired hold is not active');
+assert(!hasActiveToastHold({ toastHoldUntil: 'soon' }, TODAY), 'malformed hold is not active');
+assert(!hasActiveToastHold({}, TODAY), 'no hold is not active');
+
+const held = decideToastRosterSync([daniel, kate, prestart], [toastRafael, toastDaniel], TODAY);
+assert(held.kind === 'apply', 'pull with pre-start hire applies');
+if (held.kind === 'apply') {
+  assert(!held.deactivate.some(u => u.id === prestart.id), 'pre-start hire with active hold is not deactivated');
+  assert(held.deactivate.some(u => u.id === kate.id), 'stale Prosper account is still deactivated alongside the hold');
+}
+
+const expired = decideToastRosterSync([daniel, prestart], [toastRafael, toastDaniel], '2026-11-01');
+assert(expired.kind === 'apply', 'pull after hold expiry applies');
+if (expired.kind === 'apply') {
+  assert(expired.deactivate.some(u => u.id === prestart.id), 'once the hold expires, a non-Toast account comes off');
+}
+
+const toastPrestart = emp({
+  guid: 'guid-prestart',
+  name: 'New Manager',
+  email: 'new.manager@example.com',
+  storeId: 'store-prosper',
+});
+const caughtUp = decideToastRosterSync([daniel, prestart], [toastPrestart, toastDaniel], TODAY);
+assert(caughtUp.kind === 'apply', 'pull once hire is in Toast applies');
+if (caughtUp.kind === 'apply') {
+  assert(caughtUp.create.length === 0, 'held hire is linked by email, not duplicated');
+  assert(caughtUp.link.some(l => l.user.id === prestart.id && l.guid === 'guid-prestart'), 'held hire gets Toast GUID linked');
+}
+
+const today = new Date(2026, 9, 5);
+assert(localISODate(today) === '2026-10-05', 'localISODate formats local date');
+assert(maxToastHoldDate(today) === '2026-11-19', 'max hold is 45 days out');
+assert(validateToastHoldUntil('', today) === null, 'blank hold is valid');
+assert(validateToastHoldUntil('2026-10-31', today) === null, 'in-range hold is valid');
+assert(validateToastHoldUntil('2026-10-04', today) !== null, 'past hold is rejected');
+assert(validateToastHoldUntil('2026-12-31', today) !== null, 'hold beyond max is rejected');
+assert(validateToastHoldUntil('10/31/2026', today) !== null, 'non-ISO hold is rejected');
 
 console.log('verify-toast-roster-sync: ok');

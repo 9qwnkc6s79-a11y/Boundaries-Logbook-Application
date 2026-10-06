@@ -18,6 +18,12 @@ export interface User {
   orgId?: string;
   mustChangePassword?: boolean;
   trainerId?: string;  // user id of the trainer responsible for overseeing this person's training
+  /**
+   * YYYY-MM-DD. Pre-start hire who is not in Toast yet: the Toast roster sync
+   * keeps this account active through this date. Expires on its own, so a
+   * stale manual account still comes off once the date passes.
+   */
+  toastHoldUntil?: string;
 }
 
 // Employee data returned from Toast sync endpoint (api/toast-employees)

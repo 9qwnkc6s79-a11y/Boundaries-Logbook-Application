@@ -928,6 +928,8 @@ const App: React.FC = () => {
       await db.syncUser({
         ...user,
         toastEmployeeGuid: guid,
+        // Now on Toast — the pre-start hold is no longer needed.
+        toastHoldUntil: undefined,
         ...(shouldReactivate ? { active: true } : {}),
       });
       changeCount++;
