@@ -25,6 +25,8 @@
  *
  * Dates are America/Chicago business dates already stored on the records
  * (YYYY-MM-DD). On-time compares submittedAt to deadlineHour in that timezone.
+ * An Opening stored on day D but submitted before its deadline on Chicago
+ * day D+1 is reported on D+1 (stored rows are not rewritten).
  */
 
 import { createHash, timingSafeEqual } from 'crypto';
@@ -57,7 +59,7 @@ export interface ExportSubmission {
   date?: string;
   status?: string;
   submittedAt?: string;
-  taskResults?: { completed?: boolean }[];
+  taskResults?: { completed?: boolean; taskId?: string }[];
 }
 
 export interface ExportTemplate {
@@ -66,7 +68,7 @@ export interface ExportTemplate {
   storeId?: string;
   type?: string;
   deadlineHour?: number;
-  tasks?: unknown[];
+  tasks?: { id?: string }[];
 }
 
 export interface ExportUser {
@@ -242,6 +244,66 @@ export function chicagoDeadlineMs(ymd: string, hour: number): number {
   return utc;
 }
 
+export function addCalendarDays(ymd: string, days: number): string {
+  const [y, m, d] = ymd.split('-').map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  dt.setUTCDate(dt.getUTCDate() + days);
+  return dt.toISOString().slice(0, 10);
+}
+
+/** America/Chicago calendar date and clock time for an ISO timestamp. */
+export function chicagoWallClock(iso: string): { ymd: string; hour: number; minute: number } | null {
+  const at = new Date(iso);
+  if (Number.isNaN(at.getTime())) return null;
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: CHICAGO_TZ,
+    hourCycle: 'h23',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).formatToParts(at);
+  const n = (type: string) => Number(parts.find(p => p.type === type)?.value || '0');
+  let hour = n('hour');
+  let day = n('day');
+  let month = n('month');
+  let year = n('year');
+  if (hour === 24) {
+    hour = 0;
+    const rolled = new Date(Date.UTC(year, month - 1, day));
+    rolled.setUTCDate(rolled.getUTCDate() + 1);
+    year = rolled.getUTCFullYear();
+    month = rolled.getUTCMonth() + 1;
+    day = rolled.getUTCDate();
+  }
+  const ymd = `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  return { ymd, hour, minute: n('minute') };
+}
+
+/**
+ * Date the export reports for a submission.
+ * Stored dates are not rewritten. The one correction: an Opening whose stored
+ * date is D, but which was submitted on Chicago day D+1 at or before
+ * deadlineHour:00, is reported on D+1. That is the Prosper Opening case
+ * (unlockHour 24 booked every morning open onto the previous day). Anything
+ * else, including a next-morning submit after the deadline, stays on D.
+ */
+export function reportedBusinessDate(sub: ExportSubmission, template: ExportTemplate | undefined): string | null {
+  const stored = businessDate(sub.date);
+  if (!stored) return null;
+  if (template?.type !== 'OPENING' || !sub.submittedAt || typeof template.deadlineHour !== 'number') {
+    return stored;
+  }
+  const wall = chicagoWallClock(sub.submittedAt);
+  if (!wall) return stored;
+  const nextDay = addCalendarDays(stored, 1);
+  if (wall.ymd !== nextDay) return stored;
+  const at = new Date(sub.submittedAt).getTime();
+  if (at <= chicagoDeadlineMs(nextDay, template.deadlineHour)) return nextDay;
+  return stored;
+}
+
 export function isOnTime(submittedAt: string | undefined, ymd: string, deadlineHour: number | undefined): boolean | null {
   if (!submittedAt || typeof deadlineHour !== 'number' || !Number.isFinite(deadlineHour) || !businessDate(ymd)) {
     return null;
@@ -280,14 +342,40 @@ function pickSubmission(matches: ExportSubmission[]): ExportSubmission | null {
   return [...matches].sort((a, b) => (b.submittedAt || '').localeCompare(a.submittedAt || ''))[0];
 }
 
+/** Count completed tasks that are still on the template, and never above tasksTotal. */
+export function taskProgress(
+  sub: ExportSubmission,
+  template: ExportTemplate | undefined
+): { tasksDone: number; tasksTotal: number } {
+  const results = sub.taskResults || [];
+  const templateTasks = Array.isArray(template?.tasks) ? template.tasks : null;
+  if (!templateTasks) {
+    const tasksTotal = results.length;
+    const tasksDone = results.filter(t => t?.completed === true).length;
+    return { tasksDone: Math.min(tasksDone, tasksTotal), tasksTotal };
+  }
+  const ids = new Set(templateTasks.map(t => (typeof t?.id === 'string' && t.id ? t.id : '')).filter(Boolean));
+  const tasksTotal = templateTasks.length;
+  let tasksDone: number;
+  if (ids.size > 0) {
+    const done = new Set<string>();
+    for (const result of results) {
+      if (result?.completed === true && result.taskId && ids.has(result.taskId)) done.add(result.taskId);
+    }
+    tasksDone = done.size;
+  } else {
+    tasksDone = results.filter(t => t?.completed === true).length;
+  }
+  return { tasksDone: Math.min(tasksDone, tasksTotal), tasksTotal };
+}
+
 function checklistFromSubmission(
   sub: ExportSubmission,
   template: ExportTemplate | undefined,
   users: ExportUser[],
   ymd: string
 ): ChecklistExport {
-  const tasksDone = (sub.taskResults || []).filter(t => t?.completed === true).length;
-  const templateTotal = Array.isArray(template?.tasks) ? template!.tasks!.length : null;
+  const { tasksDone, tasksTotal } = taskProgress(sub, template);
   return {
     name: template?.name || sub.templateId || null,
     type: template?.type || null,
@@ -296,7 +384,7 @@ function checklistFromSubmission(
     submittedAt: sub.submittedAt || null,
     onTime: isOnTime(sub.submittedAt, ymd, template?.deadlineHour),
     tasksDone,
-    tasksTotal: templateTotal ?? (sub.taskResults || []).length,
+    tasksTotal,
     submittedBy: humanName(users, sub.userId),
   };
 }
@@ -357,11 +445,11 @@ export function buildLogbookDays(input: {
   const templatesById = new Map(input.templates.map(t => [t.id, t]));
 
   const days: DayExport[] = input.dates.map(date => {
-    const subs = input.submissions.filter(s =>
-      s.storeId === input.storeId &&
-      businessDate(s.date) === date &&
-      s.status !== 'DRAFT'
-    );
+    const subs = input.submissions.filter(s => {
+      if (s.storeId !== input.storeId || s.status === 'DRAFT') return false;
+      const template = s.templateId ? templatesById.get(s.templateId) : undefined;
+      return reportedBusinessDate(s, template) === date;
+    });
     const used = new Set<string>();
     const checklists: ChecklistExport[] = [];
 

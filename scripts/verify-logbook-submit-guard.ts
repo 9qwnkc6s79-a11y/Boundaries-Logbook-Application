@@ -10,6 +10,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   computeChecklistTargetDate,
+  effectiveUnlockHour,
   resolveSessionTargetDate,
   shouldClearLocalResponsesForMissingDraft,
   shouldReplaceLocalSubmissions,
@@ -80,6 +81,26 @@ assert(
     sessionOpen: false,
   }) === '2026-08-31',
   'leaving and reopening may rematch to the new day',
+);
+
+// 4) Prosper Opening unlockHour 24 must not book the morning open onto yesterday.
+// getHours() is 0–23, so hour 24 matches every clock time.
+assert(effectiveUnlockHour(24) === 0, 'unlockHour 24 is midnight, not "always yesterday"');
+assert(effectiveUnlockHour(undefined) === 0, 'missing unlockHour is midnight');
+assert(effectiveUnlockHour(11) === 11, 'a real refresh hour is kept');
+const prosperOpening = { name: 'Opening Checklist', type: 'OPENING', unlockHour: 24 };
+const sixFourteen = new Date(2026, 9, 6, 6, 14, 0);
+assert(
+  computeChecklistTargetDate(sixFourteen, prosperOpening) === '2026-10-06',
+  '6:14 AM opening with unlockHour 24 is that calendar morning',
+);
+assert(
+  computeChecklistTargetDate(sixFourteen, { name: 'Opening Checklist', type: 'OPENING', unlockHour: 0 }) === '2026-10-06',
+  'Little Elm opening (unlockHour 0) at 6:14 AM stays on that morning',
+);
+assert(
+  computeChecklistTargetDate(sixFourteen, { name: 'Closing Checklist', type: 'CLOSING', unlockHour: 11 }) === '2026-10-05',
+  'closing before its refresh hour is still yesterday',
 );
 
 const dbSrc = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '../services/db.ts'), 'utf8');

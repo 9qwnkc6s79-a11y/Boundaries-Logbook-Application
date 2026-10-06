@@ -12,7 +12,18 @@ export function toLocalYYYYMMDD(d: Date): string {
 }
 
 /**
- * Target date for a checklist at `now`.
+ * Hour when this checklist rolls onto today's calendar date.
+ * `Date#getHours()` is 0–23, so a stored 24 (Prosper Opening) would make
+ * every submission yesterday. Treat that, and any other non-hour, as midnight.
+ */
+export function effectiveUnlockHour(unlockHour: number | undefined | null): number {
+  if (typeof unlockHour !== 'number' || !Number.isFinite(unlockHour)) return 0;
+  if (unlockHour <= 0 || unlockHour >= 24) return 0;
+  return unlockHour;
+}
+
+/**
+ * Target date for a checklist at `now` (device local clock; store iPads are Central).
  * Before unlockHour the form is still yesterday's book (closing unlockHour is 10).
  */
 export function computeChecklistTargetDate(
@@ -23,7 +34,7 @@ export function computeChecklistTargetDate(
   const localHour = now.getHours();
   const todayStr = formatDate(now);
 
-  if (localHour < (template.unlockHour ?? 0)) {
+  if (localHour < effectiveUnlockHour(template.unlockHour)) {
     const yesterday = new Date(now);
     yesterday.setDate(now.getDate() - 1);
     return formatDate(yesterday);
