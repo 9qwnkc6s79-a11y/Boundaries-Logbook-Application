@@ -3,6 +3,7 @@
 import { User, UserProgress, ChecklistSubmission, ChecklistTemplate, TrainingModule, ManualSection, Recipe, CashDeposit, GoogleReviewsData, Organization, Store, AttributedOrder, ArchivedLeaderboard, AuditFeedback, InventoryItem, InventoryCount, WarehouseItem, WarehouseTransaction, Food86Event, FoodClosingWasteEntry, PerformanceReview, TeamPerformanceReview } from '../types';
 import { isHashed } from '../utils/passwordUtils';
 import { applyFoodCloseTemplatePatch, patchFoodCloseManualSections } from '../data/foodCloseTasks';
+import { appendTacoReheatToManual } from '../data/tacoReheatManual';
 import {
   decideProsperMidshiftRematch,
   PROSPER_MIDSHIFT_REMATCH_KEY,
@@ -64,7 +65,7 @@ const CURRICULUM_VERSION = 15;
 // copies (deliberate source-of-truth refresh — e.g. a new Ops Manual /
 // Recipe Book release). v7 = patch live §12 / §14 / §16 food close only;
 // do not overwrite the Recipe Book.
-const CONTENT_DEFAULTS_VERSION = 7;
+const CONTENT_DEFAULTS_VERSION = 8;
 
 const DOC_KEYS = {
   USERS: 'users',
@@ -1735,8 +1736,14 @@ class CloudAPI {
     const cloudContentVersion = await this.remoteGet<number>('content_version', 0);
     if (cloudContentVersion < CONTENT_DEFAULTS_VERSION) {
       if (Array.isArray(manual) && manual.length > 0) {
-        finalManual = patchFoodCloseManualSections(manual, defaults.manual);
-        console.log(`[Firestore] globalSync: Content version ${cloudContentVersion} → ${CONTENT_DEFAULTS_VERSION}, patched Ops Manual §12 / §14 / §16`);
+        // v7: replace §12 / §14 / §16 from seed (only for clouds still below 7).
+        // v8: append-only taco reheat standard to live §12 — never replaces text.
+        let patched = cloudContentVersion < 7
+          ? patchFoodCloseManualSections(manual, defaults.manual)
+          : manual;
+        patched = appendTacoReheatToManual(patched).next;
+        finalManual = patched;
+        console.log(`[Firestore] globalSync: Content version ${cloudContentVersion} → ${CONTENT_DEFAULTS_VERSION}, patched Ops Manual`);
         await Promise.all([
           this.remoteSet(DOC_KEYS.MANUAL, finalManual),
           this.remoteSet('content_version', CONTENT_DEFAULTS_VERSION),
