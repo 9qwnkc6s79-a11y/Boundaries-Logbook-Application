@@ -3,6 +3,7 @@ import { User, UserRole, Store, ToastSyncEmployee } from '../types';
 import { db } from '../services/db';
 import { hashPassword } from '../utils/passwordUtils';
 import { toastAPI } from '../services/toast';
+import { hasActiveToastHold, localISODate, maxToastHoldDate, validateToastHoldUntil, MAX_TOAST_HOLD_DAYS } from '../utils/toastRosterSync';
 import {
   Search, Plus, Edit3, X, Copy, Check,
   ShieldCheck, Users, Mail, MapPin, Key, AlertTriangle,
@@ -64,6 +65,7 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
     role: UserRole.TRAINEE as UserRole,
     storeId: currentStoreId,
     password: '',
+    toastHoldUntil: '',
   });
 
   // Edit User Form
@@ -75,6 +77,7 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
     newPassword: '',
     toastEmployeeGuid: '' as string | undefined,
     trainerId: '' as string | undefined,
+    toastHoldUntil: '',
   });
 
   // Toast Sync State
@@ -190,6 +193,7 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
       role,
       storeId: emp.storeId,
       password: '',
+      toastHoldUntil: '',
     });
     setShowAddModal(true);
   };
@@ -233,7 +237,7 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
   };
 
   const resetAddForm = () => {
-    setAddForm({ name: '', email: '', role: UserRole.TRAINEE, storeId: currentStoreId, password: '' });
+    setAddForm({ name: '', email: '', role: UserRole.TRAINEE, storeId: currentStoreId, password: '', toastHoldUntil: '' });
     setError('');
     setShowPassword(false);
   };
@@ -247,6 +251,8 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
     if (!addForm.email.trim()) { setError('Email is required.'); return; }
     if (!addForm.password.trim()) { setError('A temporary password is required.'); return; }
     if (addForm.password.length < 6) { setError('Password must be at least 6 characters.'); return; }
+    const addHoldError = toastPrefill ? null : validateToastHoldUntil(addForm.toastHoldUntil);
+    if (addHoldError) { setError(addHoldError); return; }
 
     const emailLower = addForm.email.toLowerCase().trim();
     if (allUsers.some(u => u.email.toLowerCase() === emailLower)) {
@@ -266,6 +272,7 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
         storeId: addForm.storeId,
         active: true,
         ...(toastPrefill ? { toastEmployeeGuid: toastPrefill.guid } : {}),
+        ...(!toastPrefill && addForm.toastHoldUntil.trim() ? { toastHoldUntil: addForm.toastHoldUntil.trim() } : {}),
       };
 
       await db.syncUser(newUser, { changePassword: true });
@@ -292,6 +299,10 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
       setError('New password must be at least 6 characters.');
       return;
     }
+    // Only validate a hold the admin changed; an untouched existing hold may be older than "today".
+    const holdChanged = (editForm.toastHoldUntil || '') !== (editingUser.toastHoldUntil || '');
+    const editHoldError = holdChanged && !editForm.toastEmployeeGuid ? validateToastHoldUntil(editForm.toastHoldUntil) : null;
+    if (editHoldError) { setError(editHoldError); return; }
 
     setSaving(true);
     try {
@@ -302,6 +313,8 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
         storeId: editForm.storeId,
         toastEmployeeGuid: editForm.toastEmployeeGuid || undefined,
         trainerId: editForm.trainerId || undefined,
+        // Linked to Toast means no hold is needed.
+        toastHoldUntil: editForm.toastEmployeeGuid ? undefined : (editForm.toastHoldUntil.trim() || undefined),
       };
 
       if (editForm.resetPassword && editForm.newPassword) {
@@ -346,6 +359,7 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
       newPassword: '',
       toastEmployeeGuid: user.toastEmployeeGuid || '',
       trainerId: user.trainerId || '',
+      toastHoldUntil: user.toastHoldUntil || '',
     });
     setError('');
     setShowPassword(false);
@@ -402,6 +416,11 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
                   </span>
                 ) : null;
               })()}
+              {!isDeactivated && !user.toastEmployeeGuid && hasActiveToastHold(user) && (
+                <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest bg-amber-50 text-amber-700 border border-amber-200" title="Not in Toast yet. Toast sync keeps this account active through this date.">
+                  Pre-start · until {user.toastHoldUntil}
+                </span>
+              )}
               {isDeactivated && (
                 <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest bg-red-50 text-red-600 border border-red-200">
                   Deactivated
@@ -654,6 +673,23 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
                   </button>
                 </div>
               </div>
+              {/* Pre-start hold (not in Toast yet) */}
+              {!toastPrefill && (
+                <div className="border border-amber-100 rounded-xl p-4 bg-amber-50/40">
+                  <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest mb-2 block">Not in Toast yet? Keep active until</label>
+                  <input
+                    type="date"
+                    value={addForm.toastHoldUntil}
+                    min={localISODate()}
+                    max={maxToastHoldDate()}
+                    onChange={e => setAddForm({ ...addForm, toastHoldUntil: e.target.value })}
+                    className="w-full bg-white border border-neutral-200 rounded-xl px-4 py-3.5 focus:ring-4 focus:ring-[#0F2B3C]/10 focus:border-[#0F2B3C] transition-all outline-none font-bold text-sm"
+                  />
+                  <p className="text-[10px] text-neutral-400 mt-2 font-medium">
+                    For new hires who start before they're in Toast. Toast sync won't deactivate them until this date (max {MAX_TOAST_HOLD_DAYS} days). Leave blank for everyone else.
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Actions */}
@@ -776,6 +812,22 @@ const TeamManagement: React.FC<TeamManagementProps> = ({
                   <p className="text-[10px] text-neutral-400 mt-2 font-mono">
                     GUID: {editForm.toastEmployeeGuid}
                   </p>
+                )}
+                {!editForm.toastEmployeeGuid && (
+                  <div className="mt-4">
+                    <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest mb-2 block">Not in Toast yet? Keep active until</label>
+                    <input
+                      type="date"
+                      value={editForm.toastHoldUntil}
+                      min={localISODate()}
+                      max={maxToastHoldDate()}
+                      onChange={e => setEditForm({ ...editForm, toastHoldUntil: e.target.value })}
+                      className="w-full bg-white border border-neutral-200 rounded-xl px-4 py-3.5 focus:ring-4 focus:ring-[#0F2B3C]/10 focus:border-[#0F2B3C] transition-all outline-none font-bold text-sm"
+                    />
+                    <p className="text-[10px] text-neutral-400 mt-2 font-medium">
+                      Pre-start hire: Toast sync won't deactivate this account until this date (max {MAX_TOAST_HOLD_DAYS} days). Clear it, or link Toast above, once they're in Toast.
+                    </p>
+                  </div>
                 )}
               </div>
 

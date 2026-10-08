@@ -4,6 +4,44 @@ import { ToastSyncEmployee, User, UserRole } from '../types';
 export const DANIEL_USER_ID = 'u-admin-1';
 export const DANIEL_EMAIL = 'daniel@boundariescoffee.com';
 
+/** Longest pre-start hold an admin can set (days from today). */
+export const MAX_TOAST_HOLD_DAYS = 45;
+
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+/** Local calendar date as YYYY-MM-DD (store time, not UTC). */
+export function localISODate(d: Date = new Date()): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+export function maxToastHoldDate(today: Date = new Date()): string {
+  const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() + MAX_TOAST_HOLD_DAYS);
+  return localISODate(d);
+}
+
+/** Validate an admin-entered hold date. Empty is valid (no hold). */
+export function validateToastHoldUntil(value: string | undefined, today: Date = new Date()): string | null {
+  const v = (value || '').trim();
+  if (!v) return null;
+  if (!ISO_DATE.test(v)) return 'Hold date must be YYYY-MM-DD.';
+  if (v < localISODate(today)) return 'Hold date cannot be in the past.';
+  if (v > maxToastHoldDate(today)) return `Hold can be at most ${MAX_TOAST_HOLD_DAYS} days out. Add them in Toast instead.`;
+  return null;
+}
+
+/**
+ * Pre-start hire not in Toast yet: keep active through toastHoldUntil (inclusive).
+ * Malformed or past dates are no hold, so the normal Toast filter applies.
+ */
+export function hasActiveToastHold(user: Pick<User, 'toastHoldUntil'>, today: string = localISODate()): boolean {
+  const until = (user.toastHoldUntil || '').trim();
+  if (!ISO_DATE.test(until)) return false;
+  return until >= today;
+}
+
 const JUNK_TOAST_NAMES = new Set(['default', 'tds', 'test', 'training']);
 
 export function isProtectedOwner(user: Pick<User, 'id' | 'email'>): boolean {
@@ -60,10 +98,12 @@ export type ToastRosterDecision =
  * Toast is the source of truth for who is active (except Daniel).
  * Empty / junk-only lists are a no-op so a 429/500/partial miss cannot empty the roster.
  * Only deactivate people whose store actually appeared in this successful pull.
+ * Accounts with an unexpired toastHoldUntil (pre-start hires) are left alone.
  */
 export function decideToastRosterSync(
   users: User[],
   toastEmployees: ToastSyncEmployee[] | null | undefined,
+  today: string = localISODate(),
 ): ToastRosterDecision {
   if (!Array.isArray(toastEmployees) || toastEmployees.length === 0) {
     return { kind: 'skip-empty' };
@@ -100,6 +140,8 @@ export function decideToastRosterSync(
     if (isProtectedOwner(user)) return false;
     if (matchedIds.has(user.id)) return false;
     if (user.active === false) return false;
+    // Pre-start hire with an unexpired hold stays on until Toast catches up.
+    if (hasActiveToastHold(user, today)) return false;
     if (user.storeId && representedStores.has(user.storeId)) return true;
     // Unassigned accounts only come off when this looks like a full org pull.
     if (!user.storeId && representedStores.size >= 2) return true;
