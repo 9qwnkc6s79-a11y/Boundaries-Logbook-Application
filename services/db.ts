@@ -5,6 +5,11 @@ import { isHashed } from '../utils/passwordUtils';
 import { applyFoodCloseTemplatePatch, patchFoodCloseManualSections } from '../data/foodCloseTasks';
 import { appendTacoReheatToManual } from '../data/tacoReheatManual';
 import {
+  applyOpsManualV9,
+  pickMachineCareReference,
+  retargetMachineCareRecipes,
+} from '../data/opsManualV9';
+import {
   decideProsperMidshiftRematch,
   PROSPER_MIDSHIFT_REMATCH_KEY,
   STORE_ELM,
@@ -65,11 +70,12 @@ if (typeof firebase !== 'undefined') {
 // This forces Firebase to update cached curriculum data
 const CURRICULUM_VERSION = 15;
 
-// Bump when the manual or recipe defaults change and must OVERWRITE cloud
-// copies (deliberate source-of-truth refresh — e.g. a new Ops Manual /
-// Recipe Book release). v7 = patch live §12 / §14 / §16 food close only;
-// do not overwrite the Recipe Book.
-const CONTENT_DEFAULTS_VERSION = 8;
+// Ops Manual content stamp. v7+ is a guarded patch — bumping this must not
+// overwrite a live Recipe Book or manager-edited sections outside the patch.
+// v7 = replace live §12 / §14 / §16 food close from seed (clouds still below 7).
+// v8 = append taco reheat to live §12.
+// v9 = append §12 Supplier & menu, §7 Dirty Sodas, §7 Fall Frozen Pumpkin Pie.
+const CONTENT_DEFAULTS_VERSION = 9;
 
 const DOC_KEYS = {
   USERS: 'users',
@@ -1784,26 +1790,43 @@ class CloudAPI {
       this.remoteSet(RECIPES_POPULATED_KEY, { populated: true, at: new Date().toISOString() });
     }
 
-    // Content version: Ops Manual / Recipe Book refresh. v7+ patches
-    // leftover/waste close into live §12 / §14 / §16 only — never wipe
-    // a live Recipe Book or other manual sections managers have edited.
+    // Content version: Ops Manual refresh. v7+ never wipes a live Recipe Book
+    // or manual sections outside the guarded patch.
+    // v7: replace §12 / §14 / §16 from seed (only for clouds still below 7).
+    // v8: append-only taco reheat standard to live §12 — never replaces text.
+    // v9: append-only §12 Supplier & menu, §7 Dirty Sodas, §7 Fall Frozen
+    // Pumpkin Pie. A stale "Ops Manual v1.2 / Section 15" citation is rewritten
+    // to the live machine-care section. Recipe cards are edited only when that
+    // citation is present — the book is never replaced with defaults.
     let finalManual = manual;
     let mergedRecipes = recipes;
     const cloudContentVersion = await this.remoteGet<number>('content_version', 0);
+    const machineCareRef = pickMachineCareReference(
+      Array.isArray(manual) ? manual : [],
+      defaults.manual,
+    );
     if (cloudContentVersion < CONTENT_DEFAULTS_VERSION) {
       if (Array.isArray(manual) && manual.length > 0) {
-        // v7: replace §12 / §14 / §16 from seed (only for clouds still below 7).
-        // v8: append-only taco reheat standard to live §12 — never replaces text.
         let patched = cloudContentVersion < 7
           ? patchFoodCloseManualSections(manual, defaults.manual)
           : manual;
         patched = appendTacoReheatToManual(patched).next;
+        patched = applyOpsManualV9(patched, machineCareRef).next;
         finalManual = patched;
         console.log(`[Firestore] globalSync: Content version ${cloudContentVersion} → ${CONTENT_DEFAULTS_VERSION}, patched Ops Manual`);
-        await Promise.all([
+        const writes: Promise<boolean>[] = [
           this.remoteSet(DOC_KEYS.MANUAL, finalManual),
           this.remoteSet('content_version', CONTENT_DEFAULTS_VERSION),
-        ]);
+        ];
+        if (Array.isArray(recipes) && recipes.length > 0) {
+          const cared = retargetMachineCareRecipes(recipes, machineCareRef);
+          if (cared.mutated) {
+            mergedRecipes = cared.next;
+            console.log('[Firestore] globalSync: Retargeted stale machine-care citations in the Recipe Book');
+            writes.push(this.remoteSet(DOC_KEYS.RECIPES, mergedRecipes));
+          }
+        }
+        await Promise.all(writes);
       } else {
         console.warn('[Firestore] globalSync: Manual read empty — REFUSING to seed food-close sections');
       }
@@ -1826,6 +1849,12 @@ class CloudAPI {
         if (flavored.mutated) {
           console.log('[Firestore] globalSync: Appended fall flavors to Available Flavors (existing card otherwise unchanged)');
           next = flavored.recipes;
+          recipesMutated = true;
+        }
+        const cared = retargetMachineCareRecipes(next, machineCareRef);
+        if (cared.mutated) {
+          console.log('[Firestore] globalSync: Retargeted stale machine-care citations in the Recipe Book');
+          next = cared.next;
           recipesMutated = true;
         }
         mergedRecipes = next;

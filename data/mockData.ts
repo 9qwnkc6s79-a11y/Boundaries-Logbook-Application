@@ -1,4 +1,5 @@
 import { TACO_REHEAT_MD } from './tacoReheatManual';
+import { DIRTY_SODAS_MD, FALL_FROZEN_MD, TACO_SUPPLIER_MD } from './opsManualV9';
 
 import { TrainingModule, ChecklistTemplate, UserRole, User, Store, Recipe, ManualSection } from '../types';
 import { NEW_TRAINING_MODULES } from './newModules';
@@ -223,10 +224,14 @@ Espresso is dosed at 18 g per double shot. Pull to standard shot time, then **ch
 **Per Drink**: Draw into cup → Add flavor syrup → Lid → Serve. Frozen coffee **fills the whole cup** — it does not use the iced fill lines. Not offered in 12 oz.
 
 ### 7.2 Frozen Energy
-Frozen energy drinks and frozen lemonades are both **blended to order individually**. Neither is pre-batched and neither runs in the frozen machine. Frozen coffee is the only product on the 6455-CL.
+Frozen coffee is the only product on the Spaceman 6455-CL. Frozen energy and lemonade are blended to order. Neither is pre-batched, and neither runs in the frozen machine.
 
 ### 7.3 Sodas, Smoothies, Teas, Energy & Lemonades
-Builds are specified in the Recipe Book. Smoothie and energy builds are complete. Sodas, lemonade flavor builds, and all tea recipes are still open. Syrup volume for every category is set by **Syrup by Drink Size** in Section 10.`
+Builds are specified in the Recipe Book. Smoothie and energy builds are complete. Lemonade flavor builds and tea recipes are still open. Dirty Sodas are in 7.4. Syrup volume for every category is set by **Syrup by Drink Size** in Section 10 and the Recipe Book.
+
+${DIRTY_SODAS_MD}
+
+${FALL_FROZEN_MD}`
   },
   {
     id: 's-8',
@@ -344,6 +349,8 @@ Flavor syrup scales with cup size. This table is the single source for syrup vol
 - Expo verifies all food before handing off.
 
 At open, GMs enter starting qty in Toast for those same SKUs. When qty hits 0, Toast 86s. The written close for leftover + waste is **Section 16**.
+
+${TACO_SUPPLIER_MD}
 
 ${TACO_REHEAT_MD}`
   },
