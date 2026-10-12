@@ -1841,7 +1841,7 @@ class CloudAPI {
           const newItemParOverrides: Record<string, number> = {
             'inv-syrup-cupcake': 4,
           };
-          for (const newId of ['inv-frappe-powder', 'inv-dairy-sweetcream', 'inv-syrup-macadamia', 'inv-seasonal-coconut-shavings', 'inv-syrup-cupcake', 'inv-seasonal-pumpkin-spice', 'inv-seasonal-pumpkin-spice-zero', 'inv-sauce-pumpkin-pie']) {
+          for (const newId of ['inv-frappe-powder', 'inv-dairy-sweetcream', 'inv-syrup-macadamia', 'inv-seasonal-coconut-shavings', 'inv-syrup-cupcake', 'inv-seasonal-pumpkin-spice', 'inv-seasonal-pumpkin-spice-zero', 'inv-sauce-pumpkin-pie', 'inv-cup-carriers']) {
             if (!migrated.some(i => i.id === newId)) {
               const fromSeed = seedById.get(newId);
               if (fromSeed) {
