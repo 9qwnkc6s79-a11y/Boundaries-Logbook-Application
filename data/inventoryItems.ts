@@ -143,6 +143,9 @@ const DEFS: SeedDef[] = [
   { id: 'inv-lid-98mm-sip', name: '98mm Sip Lids', category: 'Lids', storageLocation: 'Back Stock', vendor: 'TSB', parProsper: 2, unit: 'sleeves' },
   { id: 'inv-lid-98mm-nitro', name: '98mm To-Go Nitro Lids', category: 'Lids', storageLocation: 'Back Stock', vendor: 'TSB', parProsper: 1, unit: 'sleeves' },
   { id: 'inv-lid-8oz-hot', name: '8oz Hot Lids', category: 'Lids', storageLocation: 'Back Stock', vendor: 'TSB', parProsper: 1, unit: 'sleeves' },
+
+  // To-go (grouped with Cups; appended last so existing sortOrders don't shift)
+  { id: 'inv-cup-carriers', name: 'Cup Carriers', category: 'Cups', storageLocation: 'Back Stock', vendor: 'TSB', parProsper: 0, unit: 'cases' },
 ];
 
 /** Build a store-specific inventory from the shared definitions. */
