@@ -9,6 +9,10 @@ import {
   PROSPER_MIDSHIFT_REMATCH_KEY,
   STORE_ELM,
 } from '../utils/midshiftTemplateRematch';
+import {
+  applyProsperPhotoRestore,
+  PROSPER_PHOTO_RESTORE_KEY,
+} from '../utils/prosperPhotoRestore';
 import { currentReviewPeriod, prunePerformanceReviews, upsertPerformanceReview } from '../utils/performanceReviews';
 import { appendFallAvailableFlavors } from '../utils/fallMenuRematch';
 import { pruneTeamPerformanceReviews, upsertTeamPerformanceReview } from '../utils/teamPerformanceReviews';
@@ -1066,6 +1070,58 @@ class CloudAPI {
     }
   }
 
+  /**
+   * One-time: restore photo requirements on mapped Prosper tasks that
+   * currently require none. Never lowers an existing count or adds tasks.
+   * Marker-guarded. Refuses to write when a re-read comes back empty.
+   */
+  private async ensureProsperPhotosRestored(
+    templates: ChecklistTemplate[],
+  ): Promise<ChecklistTemplate[]> {
+    try {
+      const marker = await this.remoteGet<{ done: boolean }>(
+        PROSPER_PHOTO_RESTORE_KEY,
+        { done: false },
+      );
+      if (marker.done) return templates;
+
+      const preview = applyProsperPhotoRestore(templates);
+      if (preview.changed.length === 0) {
+        await this.remoteSet(PROSPER_PHOTO_RESTORE_KEY, {
+          done: true,
+          at: new Date().toISOString(),
+          changed: [],
+        });
+        return templates;
+      }
+
+      // Fetch-merge-save. Refuse an empty re-read — that is almost always
+      // transient and would wipe live lists.
+      const current = await this.fetchTemplates();
+      if (!Array.isArray(current) || current.length === 0) {
+        console.warn('[Firestore] globalSync: Prosper photo restore REFUSED — empty template re-read');
+        return templates;
+      }
+
+      const { next, changed } = applyProsperPhotoRestore(current);
+      const saved = await this.remoteSet(DOC_KEYS.TEMPLATES, next);
+      if (!saved) {
+        console.warn('[Firestore] globalSync: Prosper photo restore write failed — will retry on next full sync');
+        return templates;
+      }
+      await this.remoteSet(PROSPER_PHOTO_RESTORE_KEY, {
+        done: true,
+        at: new Date().toISOString(),
+        changed,
+      });
+      console.log(`[Firestore] globalSync: Restored Prosper photo requirements (${changed.join(', ')})`);
+      return next;
+    } catch (e) {
+      console.warn('[Firestore] globalSync: Prosper photo restore failed:', e);
+      return templates;
+    }
+  }
+
   // ── Curriculum (with fetch-merge-save) ──
 
   async fetchCurriculum(): Promise<TrainingModule[]> {
@@ -1980,6 +2036,7 @@ class CloudAPI {
     let syncedTemplates = templates;
     if (Array.isArray(templates) && templates.length > 0) {
       syncedTemplates = await this.ensureProsperMidshiftFromElm(syncedTemplates);
+      syncedTemplates = await this.ensureProsperPhotosRestored(syncedTemplates);
       const patched = applyFoodCloseTemplatePatch(syncedTemplates);
       syncedTemplates = patched.next;
       if (patched.mutated) {
