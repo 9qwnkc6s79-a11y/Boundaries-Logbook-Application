@@ -3,11 +3,31 @@ import React, { useState, useEffect, useRef } from 'react';
 import { TrainingModule, Lesson, UserProgress, User, QuizQuestion, ChecklistItem, PracticeSubmission } from '../types';
 import { CheckCircle2, Clock, ChevronRight, Play, BookOpen, PenTool, ClipboardCheck, ArrowLeft, RefreshCw, XCircle, Video, Settings, Plus, Save, Trash2, Edit3, X, Zap, Target, Eye, EyeOff, Trash, Check, Square, CheckSquare, Circle, Dot, Upload, FileText, File as FileIcon, GripVertical, AlertTriangle, Camera, Loader2, Search, Filter, Award, Users as UsersIcon, TrendingUp, Star, MessageSquare, Image as ImageIcon, Pause, PlayCircle, History, Medal, Trophy, Activity, CloudOff, RotateCcw, Store } from 'lucide-react';
 import { db } from '../services/db';
+import { certificationStoragePath, extFromFileName, isFsDocRef, progressFileDocId } from '../utils/progressUploads';
+
+/** <img> that resolves 'fsdoc:' refs (Firestore-stored files) before rendering. */
+const ResolvedImg: React.FC<React.ImgHTMLAttributes<HTMLImageElement> & { src?: string }> = ({ src, ...rest }) => {
+  const [resolved, setResolved] = useState<string | undefined>(isFsDocRef(src) ? undefined : src);
+  useEffect(() => {
+    let alive = true;
+    if (isFsDocRef(src)) db.resolveFileUrl(src).then(u => { if (alive) setResolved(u); });
+    else setResolved(src);
+    return () => { alive = false; };
+  }, [src]);
+  return resolved ? <img src={resolved} {...rest} /> : <div className={rest.className} />;
+};
+
+const readAsDataUrl = (file: Blob) => new Promise<string>((resolve, reject) => {
+  const r = new FileReader();
+  r.onload = () => resolve(r.result as string);
+  r.onerror = () => reject(r.error);
+  r.readAsDataURL(file);
+});
 
 interface TrainingViewProps {
   curriculum: TrainingModule[];
   progress: UserProgress[];
-  onCompleteLesson: (lessonId: string, score?: number, fileData?: { url: string, name: string }, checklistCompleted?: string[], checklistPhotos?: Record<string, string>) => void;
+  onCompleteLesson: (lessonId: string, score?: number, fileData?: { url: string, name: string }, checklistCompleted?: string[], checklistPhotos?: Record<string, string>) => void | Promise<boolean>;
   canEdit?: boolean;
   onUpdateCurriculum?: (curriculum: TrainingModule[]) => void;
   onResetLessonProgress?: (lessonId: string) => void;
@@ -40,17 +60,22 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
   const checklistCameraRef = useRef<HTMLInputElement>(null);
 
   // Initialize checklist state when selecting a lesson
+  // Only re-init when the lesson changes or its SAVED entry changes — not on
+  // every 30s background sync (which hands us a new progress array and was
+  // wiping photos the trainee had just taken).
+  const savedChecklistEntry = selectedLesson ? progress.find(p => p.lessonId === selectedLesson.id) : undefined;
+  const savedChecklistKey = savedChecklistEntry ? `${savedChecklistEntry.completedAt || ''}|${savedChecklistEntry.status}` : '';
   useEffect(() => {
     if (selectedLesson?.checklistItems) {
-      const savedProgress = progress.find(p => p.lessonId === selectedLesson.id);
-      setCheckedItems(savedProgress?.checklistCompleted || []);
-      setChecklistPhotos(savedProgress?.checklistPhotos || {});
+      setCheckedItems(savedChecklistEntry?.checklistCompleted || []);
+      setChecklistPhotos(savedChecklistEntry?.checklistPhotos || {});
     } else {
       setCheckedItems([]);
       setChecklistPhotos({});
     }
     setCapturingPhotoForItem(null);
-  }, [selectedLesson, progress]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedLesson?.id, savedChecklistKey]);
 
   // Scroll to top when opening a lesson
   useEffect(() => {
@@ -233,15 +258,30 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
     if (file) setUploadingFile(file);
   };
 
-  const submitFileUpload = () => {
-    if (!uploadingFile || !selectedLesson) return;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const base64 = e.target?.result as string;
-      onCompleteLesson(selectedLesson.id, undefined, { url: base64, name: uploadingFile.name });
-      setUploadingFile(null);
-    };
-    reader.readAsDataURL(uploadingFile);
+  const [fileSubmitting, setFileSubmitting] = useState(false);
+  const submitFileUpload = async (e?: React.MouseEvent) => {
+    e?.preventDefault();
+    if (!uploadingFile || !selectedLesson || fileSubmitting) return;
+    setFileSubmitting(true);
+    try {
+      // Upload to Storage — never inline base64 into the shared progress doc.
+      const path = certificationStoragePath('upload', selectedLesson.id, extFromFileName(uploadingFile.name), Date.now());
+      const ts = Date.now();
+      let url: string;
+      try {
+        url = await db.uploadFile(uploadingFile, path);
+      } catch (storageErr) {
+        console.warn('[Training File] Storage rejected, using Firestore file doc:', storageErr);
+        url = await db.storeInlineFile(await readAsDataUrl(uploadingFile), progressFileDocId('upload', selectedLesson.id, ts));
+      }
+      const ok = await onCompleteLesson(selectedLesson.id, undefined, { url, name: uploadingFile.name });
+      if (ok !== false) setUploadingFile(null); // keep the file selected so they can retry
+    } catch (err: any) {
+      console.error('[Training File] Upload failed:', err);
+      alert(`Upload failed — your file is still selected, please try again. (${err?.message || err})`);
+    } finally {
+      setFileSubmitting(false);
+    }
   };
 
   const handleChecklistPhotoCapture = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -285,12 +325,14 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
           let photoUrl: string;
           try {
             console.log(`[Training Photo] Uploading to: ${storagePath}`);
-            photoUrl = await db.uploadPhoto(compressed, storagePath);
+            photoUrl = await db.saveTrainingFile(compressed, storagePath, progressFileDocId('photo', `${selectedLesson.id}-${itemId}`, timestamp));
             console.log(`[Training Photo] Upload successful: ${photoUrl}`);
-          } catch (uploadError) {
-            console.error(`[Training Photo] Upload failed, using base64:`, uploadError);
-            // Fallback to base64 if upload fails
-            photoUrl = compressed;
+          } catch (uploadError: any) {
+            // No base64 fallback: inline photos overflow the 1 MB progress doc
+            // and the save is then silently refused.
+            console.error(`[Training Photo] Upload failed:`, uploadError);
+            alert(`Photo upload failed — please retake it. (${uploadError?.message || uploadError})`);
+            return;
           }
 
           setChecklistPhotos(prev => ({ ...prev, [itemId]: photoUrl }));
@@ -701,7 +743,7 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
                                   const item = selectedLesson.checklistItems?.find(i => i.id === itemId);
                                   return (
                                     <div key={itemId} className="relative aspect-square rounded-lg overflow-hidden group cursor-pointer">
-                                      <img
+                                      <ResolvedImg
                                         src={photoUrl}
                                         alt={item?.title || 'Practice photo'}
                                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
@@ -813,7 +855,7 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
                               </div>
                             ) : hasPhoto ? (
                               <div className="flex items-center gap-3">
-                                <img
+                                <ResolvedImg
                                   src={checklistPhotos[item.id]}
                                   alt={item.title}
                                   className="w-16 h-16 object-cover rounded-lg border border-green-200"
@@ -857,7 +899,16 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
                     <FileCheckIcon size={48} />
                     <p className="font-black text-[#0F2B3C] uppercase tracking-tight">Certification Logged: {progressData?.fileName}</p>
                     {progressData?.fileUrl && (
-                      <button onClick={() => window.open(progressData.fileUrl)} className="text-xs font-bold text-[#0F2B3C] underline">View Copy</button>
+                      <button onClick={async () => {
+                        const w = window.open('', '_blank');
+                        const u = await db.resolveFileUrl(progressData.fileUrl);
+                        if (!u) { w?.close(); alert('Could not load the file.'); return; }
+                        if (w) {
+                          if (u.startsWith('data:')) {
+                            w.document.write(`<iframe src="${u}" style="border:0;width:100%;height:100%"></iframe>`);
+                          } else { w.location.href = u; }
+                        }
+                      }} className="text-xs font-bold text-[#0F2B3C] underline">View Copy</button>
                     )}
 
                     {/* Navigation for completed file uploads */}
@@ -919,8 +970,8 @@ const TrainingView: React.FC<TrainingViewProps> = ({ curriculum, progress, onCom
                       </div>
                     </div>
                     {uploadingFile && (
-                      <button onClick={submitFileUpload} className="w-full sm:w-auto px-10 py-4 bg-[#0F2B3C] text-white rounded-xl font-black shadow-xl hover:bg-blue-900 transition-all uppercase tracking-widest text-xs">
-                        Confirm Submission
+                      <button type="button" disabled={fileSubmitting} onClick={submitFileUpload} className="w-full sm:w-auto px-10 py-4 bg-[#0F2B3C] text-white rounded-xl font-black shadow-xl hover:bg-blue-900 transition-all uppercase tracking-widest text-xs">
+                        {fileSubmitting ? 'Uploading…' : 'Confirm Submission'}
                       </button>
                     )}
                   </div>

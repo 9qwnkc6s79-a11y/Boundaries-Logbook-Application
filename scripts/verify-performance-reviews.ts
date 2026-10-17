@@ -156,7 +156,7 @@ const prosperUpReview: PerformanceReview = {
 
 const elmSees = visibleReviews([prosperUpReview, ...upDone], elmGm);
 assert(!elmSees.some(r => r.id === prosperUpReview.id), 'Elm GM must not see Prosper staff UP of the Prosper GM');
-assert(elmSees.some(r => r.subjectId === elmGm.id), 'Elm GM sees UP about themselves');
+assert(!elmSees.some(r => r.direction === 'UP' && r.subjectId === elmGm.id && r.reviewerId !== elmGm.id), 'Elm GM must NOT see UP about themselves (Daniel only)');
 
 const baristaSees = visibleReviews([prosperUpReview, submitted![0], upDone[0]], barista);
 assert(baristaSees.some(r => r.id === submitted![0].id), 'subject sees SUBMITTED DOWN about them');
@@ -181,7 +181,7 @@ assert(unreadSubmittedUp([prosperUpReview], null).length === 1, 'unseen submitte
 assert(unreadSubmittedUp([prosperUpReview], '2026-08-09T00:00:00Z').length === 0, 'seen after submit is read');
 
 const prosperGmSees = visibleReviews([prosperUpReview, upDone[0]], prosperGm);
-assert(prosperGmSees.some(r => r.id === prosperUpReview.id), 'Prosper GM sees UP about themselves');
+assert(!prosperGmSees.some(r => r.id === prosperUpReview.id), 'Prosper GM must NOT see UP about themselves (Daniel only)');
 assert(!prosperGmSees.some(r => r.id === upDone[0].id), 'Prosper GM does not see Elm staff UP of Elm GM');
 
 // --- Prune only when oversized; keep ≥ 18 months -------------------------

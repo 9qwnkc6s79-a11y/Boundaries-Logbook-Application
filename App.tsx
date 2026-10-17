@@ -18,6 +18,7 @@ import { hashPassword, verifyPassword, isHashed } from './utils/passwordUtils';
 import { storeRosterUsers } from './utils/performanceReviews';
 import { buildToastSyncedUser, decideToastRosterSync } from './utils/toastRosterSync';
 import { shouldReplaceLocalSubmissions } from './utils/logbookSubmitGuard';
+import { mergePendingProgress } from './utils/progressUploads';
 import { Lock, ShieldCheck } from 'lucide-react';
 
 const APP_VERSION = '3.6.0';
@@ -157,6 +158,8 @@ const App: React.FC = () => {
 
   // Track the last time we updated a submission locally to avoid the "sync overwrite flicker"
   const lastSubmissionUpdateRef = useRef<number>(0);
+  // Lesson completions saved locally but not yet confirmed in the cloud.
+  const pendingProgressRef = useRef<UserProgress[]>([]);
 
   // Initialize org on first load
   const initOrg = useCallback(async () => {
@@ -222,7 +225,8 @@ const App: React.FC = () => {
       // when we have nothing yet. A transient empty read must not make
       // completed training vanish from the screen.
       if (data.progress && data.progress.length > 0) {
-        setProgress(data.progress);
+        // Keep locally-completed lessons on screen until the cloud has them.
+        setProgress(mergePendingProgress(data.progress, pendingProgressRef.current));
       }
       if (data.templates) setTemplates(data.templates);
       if (data.curriculum) setCurriculum(sortCurriculum(data.curriculum));
@@ -544,8 +548,8 @@ const App: React.FC = () => {
     console.log(`[Onboarding] Organization "${org.name}" (${orgId}) created with pack "${data.packId}"`);
   };
 
-  const handleLessonComplete = async (lessonId: string, score?: number, fileData?: { url: string, name: string }, checklistCompleted?: string[], checklistPhotos?: Record<string, string>) => {
-    if (!currentUser) return;
+  const handleLessonComplete = async (lessonId: string, score?: number, fileData?: { url: string, name: string }, checklistCompleted?: string[], checklistPhotos?: Record<string, string>): Promise<boolean> => {
+    if (!currentUser) return false;
     const entry: UserProgress = {
       userId: currentUser.id,
       lessonId,
@@ -558,7 +562,8 @@ const App: React.FC = () => {
       checklistPhotos
     };
 
-    setProgress(prev => [...prev, entry]);
+    setProgress(prev => mergePendingProgress(prev, [entry]));
+    pendingProgressRef.current = mergePendingProgress(pendingProgressRef.current, [entry]);
     // Retry the save up to 3 times, and NEVER fail silently — a lesson that
     // shows completed on screen but never persisted is how staff "lose"
     // training days later.
@@ -572,11 +577,15 @@ const App: React.FC = () => {
         console.error(`[Training] Progress save attempt ${attempt + 1} failed:`, e);
       }
     }
+    pendingProgressRef.current = pendingProgressRef.current.filter(p => !(p.userId === entry.userId && p.lessonId === entry.lessonId));
     if (!saved) {
+      // Roll back the optimistic entry so the lesson stays open to retry.
+      setProgress(prev => prev.filter(p => !(p.userId === entry.userId && p.lessonId === entry.lessonId && p.completedAt === entry.completedAt)));
       setSaveError('Your lesson completion could NOT be saved. Check your connection and redo the final step of the lesson.');
-    } else {
-      performCloudSync(true);
+      return false;
     }
+    performCloudSync(true);
+    return true;
   };
 
   const auditPhotoWithAI = async (photoUrl: string, taskTitle: string): Promise<{ flagged: boolean; reason: string }> => {
@@ -856,8 +865,10 @@ const App: React.FC = () => {
     const nextSubmissions = submissions.filter(s => s.id !== id);
     setSubmissions(nextSubmissions);
     
-    // Wipe on cloud
-    await db.pushFullSubmissionsRegistry(nextSubmissions);
+    // Delete on cloud by id from a fresh guarded read — never push the
+    // local list (an empty/stale local list wiped all stores' logbooks).
+    const ok = await db.deleteSubmission(id);
+    if (!ok) setSaveError('Could not reset that log right now. Please refresh and try again.');
     performCloudSync(true);
   };
 

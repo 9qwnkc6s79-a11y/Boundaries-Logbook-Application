@@ -13,6 +13,9 @@ import {
   applyProsperPhotoRestore,
   PROSPER_PHOTO_RESTORE_KEY,
 } from '../utils/prosperPhotoRestore';
+import { applyMigratedUrls, entryHasInlineData, extFromDataUrl, FSDOC_MAX_CHARS, FSDOC_PREFIX, fsDocIdFromRef, isDataUrl, isFsDocRef, progressFileDocId, PROGRESS_INLINE_MIGRATION_KEY, safeSegment } from '../utils/progressUploads';
+import { mergeRestoredSubmissions, SUBMISSIONS_MAX_BYTES, SUBMISSIONS_RESTORE_COUNT, SUBMISSIONS_RESTORE_KEY, SUBMISSIONS_RESTORE_URL } from '../utils/submissionsRestore';
+import { HEATH_OFFBOARD_KEY, HEATH_USER_ID, needsOffboard, offboardedUser } from '../utils/userOffboard';
 import { currentReviewPeriod, prunePerformanceReviews, upsertPerformanceReview } from '../utils/performanceReviews';
 import { appendFallAvailableFlavors } from '../utils/fallMenuRematch';
 import { pruneTeamPerformanceReviews, upsertTeamPerformanceReview } from '../utils/teamPerformanceReviews';
@@ -558,6 +561,23 @@ class CloudAPI {
   }
 
   /**
+   * Remove ONE submission by id using a fresh guarded read. Never writes the
+   * caller's local list (which can be empty/stale after a failed sync and
+   * would wipe every store's logbook).
+   */
+  async deleteSubmission(id: string): Promise<boolean> {
+    const all = await this.fetchSubmissionsForWrite();
+    if (all === null || all.length === 0) {
+      console.error('[DB] deleteSubmission REFUSED: empty submissions read');
+      return false;
+    }
+    const next = all.filter(s => s.id !== id);
+    if (next.length === all.length) return true;
+    if (next.length < all.length - 1) return false;
+    return this.remoteSet(DOC_KEYS.SUBMISSIONS, next);
+  }
+
+  /**
    * Upload photo to Firebase Storage and return download URL
    * @param dataUrl - Base64 data URL from canvas
    * @param storagePath - Full storage path (e.g., "photos/store123/2026-01-26/sub-123/task-1.jpg")
@@ -808,6 +828,70 @@ class CloudAPI {
     return success;
   }
 
+  /**
+   * One-time, marker-guarded restore of Oct 6–12 submissions. Guarded
+   * re-read (refuses empty), add-by-id only, size check, marker only after
+   * a successful save.
+   */
+  async restoreOct6to12Submissions(): Promise<void> {
+    try {
+      const marker = await this.remoteGet<{ done: boolean }>(SUBMISSIONS_RESTORE_KEY, { done: false });
+      if (marker.done) return;
+      const res = await fetch(SUBMISSIONS_RESTORE_URL, { cache: 'no-store' });
+      if (!res.ok) return;
+      const restored = (await res.json()) as ChecklistSubmission[];
+      if (!Array.isArray(restored) || restored.length !== SUBMISSIONS_RESTORE_COUNT) {
+        console.error('[Restore] snapshot file invalid; skipping');
+        return;
+      }
+      const live = await this.fetchSubmissionsForWrite();
+      if (live === null || live.length === 0) {
+        console.warn('[Restore] REFUSED — empty submissions read');
+        return;
+      }
+      const { next, added } = mergeRestoredSubmissions(live, restored);
+      if (next.length !== live.length + added) return;
+      if (JSON.stringify(next).length > SUBMISSIONS_MAX_BYTES) {
+        console.error('[Restore] REFUSED — merged submissions over size limit');
+        return;
+      }
+      if (added > 0) {
+        const ok = await this.remoteSet(DOC_KEYS.SUBMISSIONS, next);
+        if (!ok) return;
+      }
+      await this.remoteSet(SUBMISSIONS_RESTORE_KEY, {
+        done: true, at: new Date().toISOString(), added, liveBefore: live.length, after: next.length,
+      });
+      console.log(`[Restore] Added ${added} Oct 6–12 submissions (${live.length} → ${next.length})`);
+    } catch (e) {
+      console.warn('[Restore] Oct 6–12 submissions restore failed:', e);
+    }
+  }
+
+  /**
+   * One-time, marker-guarded offboard of Heath Marcom through syncUser (the
+   * same guarded read-modify-write Manager Hub uses). Marker only after save.
+   */
+  async ensureHeathOffboarded(): Promise<void> {
+    try {
+      const marker = await this.remoteGet<{ done: boolean }>(HEATH_OFFBOARD_KEY, { done: false });
+      if (marker.done) return;
+      const users = await this.remoteGet(DOC_KEYS.USERS, [] as User[]);
+      if (users.length === 0) return; // transient empty read — try next load
+      const heath = users.find(u => u.id === HEATH_USER_ID);
+      const at = new Date().toISOString();
+      if (heath && needsOffboard(heath)) {
+        await this.syncUser(offboardedUser(heath, at));
+        const after = (await this.remoteGet(DOC_KEYS.USERS, [] as User[])).find(u => u.id === HEATH_USER_ID);
+        if (!after || after.active !== false || after.role === 'ADMIN' || !after.offboarded) return;
+      }
+      await this.remoteSet(HEATH_OFFBOARD_KEY, { done: true, at, found: !!heath });
+      console.log('[Firestore] globalSync: Heath Marcom offboarded (inactive, not ADMIN)');
+    } catch (e) {
+      console.warn('[Firestore] Heath offboard failed:', e);
+    }
+  }
+
   async fetchAuditFeedback(): Promise<AuditFeedback[]> {
     return this.remoteGet(DOC_KEYS.AI_AUDIT_FEEDBACK, []);
   }
@@ -942,7 +1026,47 @@ class CloudAPI {
     return existing;
   }
 
+  /** Upload any file/blob (certificates, PDFs) to Storage; returns download URL. */
+  async uploadFile(file: Blob, storagePath: string): Promise<string> {
+    if (!storage) throw new Error('Firebase Storage not initialized');
+    const snapshot = await storage.ref(storagePath).put(file);
+    return snapshot.ref.getDownloadURL();
+  }
+
+  /**
+   * Store a data URL in its own Firestore doc (same remoteSet path as all app
+   * data). Used when Storage rejects the upload. Returns 'fsdoc:{docId}'.
+   */
+  async storeInlineFile(dataUrl: string, docId: string): Promise<string> {
+    if (!isDataUrl(dataUrl)) throw new Error('Not a data URL');
+    if (dataUrl.length > FSDOC_MAX_CHARS) throw new Error('File is too large (max ~650 KB). Please upload a smaller photo or PDF.');
+    const ok = await this.remoteSet(docId, { dataUrl });
+    if (!ok) throw new Error('Could not save file');
+    return `${FSDOC_PREFIX}${docId}`;
+  }
+
+  /** Resolve 'fsdoc:' refs to a data URL; other URLs pass through. */
+  async resolveFileUrl(url: string | undefined): Promise<string | undefined> {
+    if (!url || !isFsDocRef(url)) return url;
+    const doc = await this.remoteGet<{ dataUrl?: string }>(fsDocIdFromRef(url), {});
+    return doc.dataUrl;
+  }
+
+  /** Storage first; on any Storage error fall back to a Firestore file doc. */
+  async saveTrainingFile(dataUrl: string, storagePath: string, docId: string): Promise<string> {
+    try {
+      return await this.uploadPhoto(dataUrl, storagePath);
+    } catch (e) {
+      console.warn('[Storage] upload rejected, falling back to Firestore file doc:', e);
+      return this.storeInlineFile(dataUrl, docId);
+    }
+  }
+
   async pushProgress(progress: UserProgress[]): Promise<void> {
+    // Never put inline base64 in the shared progress doc — it hit the 1 MB cap.
+    if (progress.some(entryHasInlineData)) {
+      throw new Error('Upload did not finish — file must be uploaded to storage before saving.');
+    }
     const existing = await this.fetchProgressForWrite();
     const merged = [...existing];
     progress.forEach(p => {
@@ -950,7 +1074,55 @@ class CloudAPI {
       if (idx > -1) merged[idx] = p;
       else merged.push(p);
     });
-    await this.remoteSet(DOC_KEYS.PROGRESS, merged);
+    const ok = await this.remoteSet(DOC_KEYS.PROGRESS, merged);
+    if (!ok) {
+      // remoteSet returns false (no throw) on the 1 MB guard or a failed write.
+      throw new Error('Training progress could not be saved (storage limit or connection).');
+    }
+  }
+
+  /**
+   * One-time, marker-guarded: move inline base64 certificates/photos out of
+   * the progress doc into Storage and keep only URLs. Uses the guarded
+   * fetchProgressForWrite (refuses empty reads), re-reads before saving and
+   * only swaps values that are still the same data URL. Nothing is removed
+   * unless its upload succeeded.
+   */
+  async migrateInlineProgressFiles(): Promise<void> {
+    try {
+      const marker = await this.remoteGet<{ done: boolean }>(PROGRESS_INLINE_MIGRATION_KEY, { done: false });
+      if (marker.done) return;
+      const snapshot = await this.fetchProgressForWrite();
+      const replacements = new Map<string, string>();
+      let failed = 0;
+      for (const p of snapshot) {
+        const values: string[] = [];
+        if (isDataUrl(p.fileUrl)) values.push(p.fileUrl);
+        Object.values(p.checklistPhotos || {}).forEach(v => { if (isDataUrl(v)) values.push(v); });
+        for (const [i, v] of values.entries()) {
+          if (replacements.has(v)) continue;
+          const path = `training/migrated/${safeSegment(p.userId)}/${safeSegment(p.lessonId)}-${i}.${extFromDataUrl(v)}`;
+          try {
+            replacements.set(v, await this.saveTrainingFile(v, path, progressFileDocId(p.userId, p.lessonId, 0, i)));
+          } catch (e) {
+            failed++;
+            console.warn('[Firestore] progress migration upload failed:', path, e);
+          }
+        }
+      }
+      if (replacements.size > 0) {
+        const latest = await this.fetchProgressForWrite();
+        if (latest.length === 0) return;
+        const { next, replaced } = applyMigratedUrls(latest, replacements);
+        if (replaced > 0 && !(await this.remoteSet(DOC_KEYS.PROGRESS, next))) return;
+        console.log(`[Firestore] Moved ${replaced} inline training file(s) to Storage`);
+      }
+      if (failed === 0) {
+        await this.remoteSet(PROGRESS_INLINE_MIGRATION_KEY, { done: true, at: new Date().toISOString(), moved: replacements.size });
+      }
+    } catch (e) {
+      console.warn('[Firestore] progress inline-file migration failed:', e);
+    }
   }
 
   async deleteProgress(userId: string, lessonId: string): Promise<void> {
@@ -2037,6 +2209,9 @@ class CloudAPI {
     if (Array.isArray(templates) && templates.length > 0) {
       syncedTemplates = await this.ensureProsperMidshiftFromElm(syncedTemplates);
       syncedTemplates = await this.ensureProsperPhotosRestored(syncedTemplates);
+      void this.migrateInlineProgressFiles();
+      void this.restoreOct6to12Submissions();
+      void this.ensureHeathOffboarded();
       const patched = applyFoodCloseTemplatePatch(syncedTemplates);
       syncedTemplates = patched.next;
       if (patched.mutated) {
