@@ -94,10 +94,25 @@ export function canEditReview(review: PerformanceReview, viewer: User): boolean 
  * Reviewer sees what they wrote. Subject sees SUBMITTED about them.
  * ADMIN sees everything. A manager does not see another employee's UP of a different manager.
  */
+/** Daniel Keene's user id. Staff→manager (UP) feedback is visible ONLY to this id. */
+export const OWNER_USER_ID = 'u-admin-1';
+
+export function isOwnerViewer(viewer: Pick<User, 'id'> | null | undefined): boolean {
+  return !!viewer && viewer.id === OWNER_USER_ID;
+}
+
+/**
+ * Owner (Daniel, by id) sees everything. Everyone else — including other
+ * ADMINs and the managers being reviewed — never sees UP feedback written by
+ * someone else. Authors still see their own reviews. Other ADMINs keep
+ * DOWN (manager→staff) visibility; staff see SUBMITTED DOWN reviews about them.
+ */
 export function visibleReviews(reviews: PerformanceReview[], viewer: User): PerformanceReview[] {
-  if (viewer.role === UserRole.ADMIN) return [...reviews];
+  if (isOwnerViewer(viewer)) return [...reviews];
   return reviews.filter(r => {
     if (r.reviewerId === viewer.id) return true;
+    if (r.direction === 'UP') return false;
+    if (viewer.role === UserRole.ADMIN) return true;
     if (r.status === 'SUBMITTED' && r.subjectId === viewer.id) return true;
     return false;
   });
@@ -178,7 +193,7 @@ export function submittedUpReviewsForStore(
     .sort((a, b) => (b.submittedAt || b.updatedAt).localeCompare(a.submittedAt || a.updatedAt));
 }
 
-/** ADMIN sees every submitted UP. Managers only see UP about themselves (via visibleReviews). */
+/** Only the owner (Daniel, by id) can see submitted UP reviews written by others. */
 export function adminCanSeeSubmittedUp(viewer: User, review: PerformanceReview): boolean {
   if (review.direction !== 'UP' || review.status !== 'SUBMITTED') return false;
   return visibleReviews([review], viewer).some(r => r.id === review.id);

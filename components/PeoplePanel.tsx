@@ -22,6 +22,8 @@ import {
   formatReviewPeriod,
   readUpInboxSeenAt,
   storeLabel,
+  isOwnerViewer,
+  visibleReviews,
   submittedUpReviewsForStore,
   unreadSubmittedUp,
   writeUpInboxSeenAt,
@@ -69,7 +71,7 @@ const PeoplePanel: React.FC<PeoplePanelProps> = ({
     try {
       const [all, legacy] = await Promise.all([
         db.fetchTeamPerformanceReviews(),
-        db.fetchPerformanceReviews().catch(() => [] as PerformanceReview[]),
+        db.fetchPerformanceReviews().then(all => visibleReviews(all, currentUser)).catch(() => [] as PerformanceReview[]),
       ]);
       setReviews(Array.isArray(all) ? all : []);
       setLegacyReviews(Array.isArray(legacy) ? legacy : []);
@@ -78,7 +80,7 @@ const PeoplePanel: React.FC<PeoplePanelProps> = ({
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [currentUser.id, currentUser.role]);
 
   useEffect(() => {
     load();
@@ -134,7 +136,7 @@ const PeoplePanel: React.FC<PeoplePanelProps> = ({
   );
 
   const staffFeedback = useMemo(
-    () => submittedUpReviewsForStore(legacyReviews, currentUser, storeId),
+    () => (isOwnerViewer(currentUser) ? submittedUpReviewsForStore(legacyReviews, currentUser, storeId) : []),
     [legacyReviews, currentUser.id, currentUser.role, storeId]
   );
   const feedbackStamp = staffFeedback.map(r => `${r.id}:${r.submittedAt || r.updatedAt}`).join('|');
@@ -143,11 +145,11 @@ const PeoplePanel: React.FC<PeoplePanelProps> = ({
   const unreadUp = useMemo(() => unreadSubmittedUp(staffFeedback, seenAt), [staffFeedback, seenAt]);
 
   useEffect(() => {
-    onUnreadUpCount?.(currentUser.role === UserRole.ADMIN ? unreadUp.length : 0);
-  }, [currentUser.role, unreadUp.length, onUnreadUpCount]);
+    onUnreadUpCount?.(isOwnerViewer(currentUser) ? unreadUp.length : 0);
+  }, [currentUser.id, unreadUp.length, onUnreadUpCount]);
 
   useEffect(() => {
-    if (variant !== 'workspace' || currentUser.role !== UserRole.ADMIN || !feedbackStamp) return;
+    if (variant !== 'workspace' || !isOwnerViewer(currentUser) || !feedbackStamp) return;
     const fresh = unreadSubmittedUp(staffFeedback, readUpInboxSeenAt());
     if (fresh.length > 0) {
       setSessionNewIds(prev => {
@@ -219,7 +221,7 @@ const PeoplePanel: React.FC<PeoplePanelProps> = ({
           <p className="text-xs font-black text-red-600 mb-3">{overdueCount} overdue</p>
         )}
 
-        {currentUser.role === UserRole.ADMIN && unreadUp.length > 0 && (
+        {isOwnerViewer(currentUser) && unreadUp.length > 0 && (
           <div className="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2">
             <p className="text-xs font-black text-amber-800">
               {unreadUp.length} new staff review{unreadUp.length === 1 ? '' : 's'} of managers
@@ -282,7 +284,7 @@ const PeoplePanel: React.FC<PeoplePanelProps> = ({
               {storeLabel(stores, storeId)} · Roster accounts
             </p>
           </div>
-          {currentUser.role === UserRole.ADMIN && (sessionNewIds.size > 0 || staffFeedback.length > 0) && (
+          {isOwnerViewer(currentUser) && (sessionNewIds.size > 0 || staffFeedback.length > 0) && (
             <div className="ml-auto text-right">
               <div className={`text-lg font-black ${sessionNewIds.size > 0 ? 'text-amber-600' : 'text-[#0F2B3C]'}`}>
                 {sessionNewIds.size > 0 ? sessionNewIds.size : staffFeedback.length}
@@ -436,6 +438,7 @@ const PeoplePanel: React.FC<PeoplePanelProps> = ({
         </div>
       ) : (
         <>
+        {isOwnerViewer(currentUser) && (
         <section className="bg-white rounded-xl border border-neutral-100 shadow-sm p-4 md:p-5 space-y-3">
           <div className="flex items-center gap-2">
             <div className="p-2 bg-[#0F2B3C] text-white rounded-xl">
@@ -447,7 +450,7 @@ const PeoplePanel: React.FC<PeoplePanelProps> = ({
                 Submitted UP · this store · newest first
               </p>
             </div>
-            {currentUser.role === UserRole.ADMIN && sessionNewIds.size > 0 && (
+            {isOwnerViewer(currentUser) && sessionNewIds.size > 0 && (
               <span className="px-2 py-1 rounded-lg bg-amber-100 text-amber-800 text-[9px] font-black uppercase tracking-widest">
                 {sessionNewIds.size} new
               </span>
@@ -506,6 +509,7 @@ const PeoplePanel: React.FC<PeoplePanelProps> = ({
             </ul>
           )}
         </section>
+        )}
 
         <section className="bg-white rounded-xl border border-neutral-100 shadow-sm overflow-hidden">
           {loading ? (

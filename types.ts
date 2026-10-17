@@ -24,6 +24,9 @@ export interface User {
    * stale manual account still comes off once the date passes.
    */
   toastHoldUntil?: string;
+  /** Offboarded: stays inactive; Toast roster sync must not reactivate. */
+  offboarded?: boolean;
+  offboardedAt?: string;
 }
 
 // Employee data returned from Toast sync endpoint (api/toast-employees)

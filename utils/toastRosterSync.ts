@@ -129,7 +129,7 @@ export function decideToastRosterSync(
     if (!existing.toastEmployeeGuid) {
       link.push({ user: existing, guid: emp.guid });
     }
-    if (existing.active === false && !isProtectedOwner(existing)) {
+    if (existing.active === false && !isProtectedOwner(existing) && !existing.offboarded) {
       reactivate.push(existing);
     }
   }
