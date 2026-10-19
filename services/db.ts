@@ -29,6 +29,7 @@ import {
   partitionSubmissionsForRetention,
   shardSubmissionRows,
 } from '../utils/submissionArchive';
+import { createKeyedSerialQueue, mergeWasteEntries } from '../utils/wasteQueue';
 
 declare const firebase: any;
 
@@ -1792,8 +1793,30 @@ class CloudAPI {
     return businessDate ? list.filter(r => r.businessDate === businessDate) : list;
   }
 
+  /** One leftover/waste row. Queued per store so overlapping blurs cannot drop rows. */
   async upsertFoodClosingWaste(entry: FoodClosingWasteEntry): Promise<FoodClosingWasteEntry[] | null> {
-    const storeId = entry.storeId;
+    return this.upsertFoodClosingWasteBatch([entry]);
+  }
+
+  /**
+   * Save several leftover/waste rows in ONE read-modify-write, queued behind
+   * any save already running for this store. Used by the close submit to
+   * re-save every row so a dropped blur save cannot lose an entry.
+   */
+  async upsertFoodClosingWasteBatch(entries: FoodClosingWasteEntry[]): Promise<FoodClosingWasteEntry[] | null> {
+    const list = (entries || []).filter(e => e && e.storeId && e.businessDate && e.itemGuid);
+    if (list.length === 0) return null;
+    const storeId = list[0].storeId;
+    if (list.some(e => e.storeId !== storeId)) {
+      console.error('[Firestore] upsertFoodClosingWasteBatch REFUSED: mixed stores');
+      return null;
+    }
+    return this.enqueueWasteWrite(storeId, () => this.writeFoodClosingWasteRows(storeId, list));
+  }
+
+  private enqueueWasteWrite = createKeyedSerialQueue();
+
+  private async writeFoodClosingWasteRows(storeId: string, entries: FoodClosingWasteEntry[]): Promise<FoodClosingWasteEntry[] | null> {
     const POPULATED_KEY = `foodWastePopulated-${storeId}`;
 
     let existing = await this.fetchFoodClosingWaste(storeId);
@@ -1807,12 +1830,7 @@ class CloudAPI {
       }
     }
 
-    const key = `${entry.businessDate}:${entry.itemGuid}`;
-    const map = new Map<string, FoodClosingWasteEntry>();
-    existing.forEach(r => map.set(`${r.businessDate}:${r.itemGuid}`, r));
-    map.set(key, entry);
-
-    const next = this.pruneByBusinessDate(Array.from(map.values()));
+    const next = this.pruneByBusinessDate(mergeWasteEntries(existing, entries));
     const ok = await this.remoteSet(this.foodClosingWasteKey(storeId), next);
     if (!ok) return null;
     if (next.length > 0 && !marker.populated) {
