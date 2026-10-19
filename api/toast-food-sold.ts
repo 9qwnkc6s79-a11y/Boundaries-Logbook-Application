@@ -134,10 +134,15 @@ function isTacoNamed(item?: Food86Meta): boolean {
   return itemText(item).includes('taco');
 }
 
+/**
+ * Every option of a taco item's "Type" modifier group gets this menu group
+ * (see buildMenuLookup). Names are never matched, so a new Toast taco lineup
+ * (Oct 2026: Wagyu Barbacoa / Sausage / Potato Egg & Cheese) shows up as-is.
+ */
+export const TACO_TYPE_GROUP = 'Breakfast Taco Type';
+
 function isTacoTypeModifier(item?: Food86Meta): boolean {
-  if (!(item?.menuGroup || '').toLowerCase().includes('modifier')) return false;
-  const name = (item?.name || '').toLowerCase();
-  return (name.includes('bacon') && name.includes('egg')) || name.includes('chorizo');
+  return (item?.menuGroup || '').trim().toLowerCase() === TACO_TYPE_GROUP.toLowerCase();
 }
 
 function isExcludedNonFood(item?: Food86Meta): boolean {
@@ -165,7 +170,7 @@ function isUnstockedFood86Name(item?: Food86Meta): boolean {
   });
 }
 
-/** Named Toast Bakery SKUs + taco types (bacon/chorizo modifiers). No hardcoded GUIDs. */
+/** Named Toast Bakery SKUs + Breakfast Taco type options. No hardcoded GUIDs. */
 function isFood86VisibleItem(item?: Food86Meta): boolean {
   if (!item) return false;
   if (item.includeInFoodView === false) return false;
@@ -295,19 +300,74 @@ function walkMenuGroups(groups: any[] | undefined, menuName: string, parentGroup
   }
 }
 
-function indexModifierRefs(refs: any, byGuid: Map<string, any>, byMl: Map<string, any>) {
-  if (!refs) return;
-  const list = Array.isArray(refs) ? refs : Object.values(refs);
-  for (const ref of list) {
+function refEntries(refs: any): [string, any][] {
+  if (!refs) return [];
+  if (Array.isArray(refs)) return refs.map((ref, i) => [String(ref?.referenceId ?? i), ref]);
+  return Object.entries(refs).map(([key, ref]: [string, any]) => [String(ref?.referenceId ?? key), ref]);
+}
+
+function lookupRef(refs: any, id: any): any {
+  if (!refs || id === undefined || id === null) return undefined;
+  if (Array.isArray(refs)) return refs.find(r => String(r?.referenceId) === String(id));
+  return refs[String(id)] ?? Object.values(refs).find((r: any) => String(r?.referenceId) === String(id));
+}
+
+/**
+ * Option reference ids on the "Type" modifier group of a taco menu item
+ * (Breakfast Taco). Lunch / unstocked taco items and non-"Type" groups
+ * (Salsa, Toasted/Cold, Toppings) are skipped.
+ */
+function collectTacoTypeOptionRefs(json: any, menus: any[]): Set<string> {
+  const out = new Set<string>();
+  const groupRefs = json?.modifierGroupReferences;
+  const visit = (groups: any[] | undefined) => {
+    if (!Array.isArray(groups)) return;
+    for (const group of groups) {
+      for (const item of group?.menuItems || []) {
+        const itemName = item?.name || item?.posName || '';
+        if (!/\btacos?\b/i.test(itemName) || isUnstockedFood86Name({ name: itemName })) continue;
+        for (const gid of item?.modifierGroupReferences || []) {
+          const mg = typeof gid === 'object' && gid ? gid : lookupRef(groupRefs, gid);
+          const mgName = mg?.name || '';
+          if (!/\btype\b/i.test(mgName) || /lunch/i.test(mgName)) continue;
+          for (const oid of mg?.modifierOptionReferences || []) {
+            out.add(String(typeof oid === 'object' && oid ? oid.referenceId ?? oid.guid : oid));
+          }
+        }
+      }
+      visit(group?.menuGroups);
+    }
+  };
+  for (const menu of menus) visit(menu?.menuGroups);
+  return out;
+}
+
+function indexModifierRefs(refs: any, byGuid: Map<string, any>, byMl: Map<string, any>, tacoTypeRefs: Set<string> = new Set()) {
+  for (const [refId, ref] of refEntries(refs)) {
     if (!ref?.guid && !ref?.multiLocationId) continue;
+    const isTacoType = tacoTypeRefs.has(refId) || (!!ref.guid && tacoTypeRefs.has(String(ref.guid)));
     remember(byGuid, byMl, {
       guid: ref.guid,
       name: ref.name || ref.posName || 'Unnamed modifier',
       menuName: ref.menuName,
-      menuGroup: ref.groupName || 'Modifier',
+      menuGroup: isTacoType ? TACO_TYPE_GROUP : (ref.groupName || 'Modifier'),
       multiLocationId: ref.multiLocationId,
     });
   }
+}
+
+/** Toast menus JSON → guid / multiLocationId lookup with Food 86 menu groups. */
+export function buildMenuLookup(json: any): { byGuid: Map<string, any>; byMl: Map<string, any> } {
+  const byGuid = new Map<string, any>();
+  const byMl = new Map<string, any>();
+  const menus = Array.isArray(json) ? json : json?.menus || [];
+  for (const menu of menus) {
+    walkMenuGroups(menu?.menuGroups, menu?.name || 'Menu', undefined, byGuid, byMl);
+  }
+  const tacoTypeRefs = collectTacoTypeOptionRefs(json, menus);
+  indexModifierRefs(json?.modifierOptionReferences, byGuid, byMl, tacoTypeRefs);
+  indexModifierRefs(json?.modifierGroupReferences, byGuid, byMl);
+  return { byGuid, byMl };
 }
 
 async function loadMenuLookup(token: string, restaurantGuid: string) {
@@ -332,14 +392,7 @@ async function loadMenuLookup(token: string, restaurantGuid: string) {
     }
   }
 
-  const byGuid = new Map<string, any>();
-  const byMl = new Map<string, any>();
-  const menus = Array.isArray(json) ? json : json?.menus || [];
-  for (const menu of menus) {
-    walkMenuGroups(menu?.menuGroups, menu?.name || 'Menu', undefined, byGuid, byMl);
-  }
-  indexModifierRefs(json?.modifierOptionReferences, byGuid, byMl);
-  indexModifierRefs(json?.modifierGroupReferences, byGuid, byMl);
+  const { byGuid, byMl } = buildMenuLookup(json);
   menuCache.set(restaurantGuid, { expires: Date.now() + 15 * 60 * 1000, byGuid, byMl });
   return { byGuid, byMl, menusForbidden: false };
 }

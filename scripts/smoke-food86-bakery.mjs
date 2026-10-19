@@ -1,5 +1,7 @@
 /**
  * Local smoke: bakery + taco filter + Food 86 API modules load (no Toast call).
+ * Breakfast Taco types are kept by menu structure (options of the Breakfast
+ * Taco "Type" modifier group, tagged menuGroup 'Breakfast Taco Type'), not by name.
  */
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -35,10 +37,10 @@ function isTacoNamed(item) {
   return itemText(item).includes('taco');
 }
 
+const TACO_TYPE_GROUP = 'breakfast taco type';
+
 function isTacoTypeModifier(item) {
-  if (!(item?.menuGroup || '').toLowerCase().includes('modifier')) return false;
-  const name = (item?.name || '').toLowerCase();
-  return (name.includes('bacon') && name.includes('egg')) || name.includes('chorizo');
+  return (item?.menuGroup || '').trim().toLowerCase() === TACO_TYPE_GROUP;
 }
 
 function isExcludedNonFood(item) {
@@ -81,8 +83,10 @@ const keep = [
   { name: 'Chocolate Croissant', menuGroup: 'Bakery', status: 'OUT_OF_STOCK', quantity: 0, includeInFoodView: true },
   { name: 'Chocolate Croissant', menuGroup: 'Bakery', status: 'UNKNOWN', quantity: null, includeInFoodView: true },
   { name: 'Kolache (Sausage/Cheese)', menuName: 'Weekend Bakery', includeInFoodView: true },
-  { name: 'Bacon Egg and Cheese', menuGroup: 'Modifier', menuName: 'Tacos', includeInFoodView: true },
-  { name: 'Chorizo (Beef) Egg and Cheese', menuGroup: 'Modifier', menuName: 'Tacos', includeInFoodView: true },
+  { name: 'Wagyu Barbacoa Egg & Cheese', menuGroup: 'Breakfast Taco Type', includeInFoodView: true },
+  { name: 'Sausage Egg & Cheese', menuGroup: 'Breakfast Taco Type', includeInFoodView: true },
+  { name: 'Potato Egg & Cheese', menuGroup: 'Breakfast Taco Type', includeInFoodView: true },
+  { name: 'Some Future Taco Type', menuGroup: 'Breakfast Taco Type', includeInFoodView: true },
   { name: 'Breakfast Taco', menuGroup: 'Food', includeInFoodView: true },
 ];
 const drop = [
@@ -104,6 +108,12 @@ const drop = [
   { name: 'Half and Half', menuGroup: 'Modifier', includeInFoodView: true },
   { name: 'House Blend 5lb', menuGroup: 'Retail', includeInFoodView: true },
   { name: 'Vanilla Syrup', menuGroup: 'Modifier', includeInFoodView: true },
+  // Old name-matched keepers: no longer special once they are plain modifiers.
+  { name: 'Bacon Egg and Cheese', menuGroup: 'Modifier', includeInFoodView: true },
+  { name: 'Chorizo (Beef) Egg and Cheese', menuGroup: 'Modifier', includeInFoodView: true },
+  { name: 'Sausage Egg & Cheese', menuGroup: 'Modifier', includeInFoodView: true },
+  { name: 'Machaca', menuGroup: 'Modifier', includeInFoodView: true },
+  { name: 'Chicken Al Pastor', menuGroup: 'Modifier', includeInFoodView: true },
   { name: 'Almond Croissant', menuGroup: 'Bakery', includeInFoodView: false },
 ];
 
@@ -140,7 +150,8 @@ const loader = spawnSync(
       const filter = await import(${JSON.stringify(join(root, 'utils/food86Bakery.ts'))});
       if (typeof stock.default !== 'function') throw new Error('toast-stock default export missing');
       if (typeof sold.default !== 'function') throw new Error('toast-food-sold default export missing');
-      const bacon = { name: 'Bacon Egg and Cheese', menuGroup: 'Modifier', menuName: 'Tacos' };
+      const wagyu = { name: 'Wagyu Barbacoa Egg & Cheese', menuGroup: filter.TACO_TYPE_GROUP };
+      const plainMod = { name: 'Bacon Egg and Cheese', menuGroup: 'Modifier' };
       const hex = { name: 'Item 8a142d5c', menuGroup: 'Bakery' };
       const menuOnly = { name: 'Chocolate Croissant', menuGroup: 'Bakery', quantity: null, includeInFoodView: true };
       const blueberry = { name: 'Blueberry Muffin', menuGroup: 'Bakery' };
@@ -149,7 +160,11 @@ const loader = spawnSync(
       const muffinMwm = { name: 'Muffin for MWM', menuGroup: 'Bakery' };
       const tacoToppings = { name: 'Taco Toppings', menuGroup: 'Modifier' };
       const tacoToppngs = { name: 'Taco Toppngs', menuGroup: 'Modifier' };
-      if (!filter.isBakeryFoodItem(bacon)) throw new Error('util should keep bacon taco modifier');
+      if (filter.TACO_TYPE_GROUP !== stock.TACO_TYPE_GROUP || filter.TACO_TYPE_GROUP !== sold.TACO_TYPE_GROUP) {
+        throw new Error('TACO_TYPE_GROUP must match across utils/food86Bakery.ts and both api modules');
+      }
+      if (!filter.isBakeryFoodItem(wagyu)) throw new Error('util should keep Breakfast Taco type option');
+      if (filter.isBakeryFoodItem(plainMod)) throw new Error('util must not name-match bacon/chorizo modifiers anymore');
       if (filter.isBakeryFoodItem(hex)) throw new Error('util should drop unnamed hex');
       if (!filter.isBakeryFoodItem(menuOnly)) throw new Error('util should keep bakery with no stock qty');
       if (!filter.isBakeryFoodItem(blueberry)) throw new Error('util should keep blueberry muffin (not muffin for MWM)');
@@ -175,8 +190,9 @@ const loader = spawnSync(
           ['almond-guid', { guid: 'almond-guid', name: 'Almond Croissant', menuName: 'All Day', menuGroup: 'Bakery' }],
           ['muffin-guid', { guid: 'muffin-guid', name: 'Blueberry Muffin', menuName: 'All Day', menuGroup: 'Bakery' }],
           ['drip-guid', { guid: 'drip-guid', name: 'House Drip', menuName: 'Drinks', menuGroup: 'Drip Coffee' }],
-          ['bacon-guid', { guid: 'bacon-guid', name: 'Bacon Egg and Cheese', menuName: 'Tacos', menuGroup: 'Modifier' }],
-          ['chorizo-guid', { guid: 'chorizo-guid', name: 'Chorizo (Beef) Egg and Cheese', menuName: 'Tacos', menuGroup: 'Modifier' }],
+          ['wagyu-guid', { guid: 'wagyu-guid', name: 'Wagyu Barbacoa Egg & Cheese', menuGroup: 'Breakfast Taco Type' }],
+          ['sausage-guid', { guid: 'sausage-guid', name: 'Sausage Egg & Cheese', menuGroup: 'Breakfast Taco Type' }],
+          ['bacon-guid', { guid: 'bacon-guid', name: 'Bacon Egg and Cheese', menuGroup: 'Modifier' }],
           ['kolache-guid', { guid: 'kolache-guid', name: 'Kolache', menuName: 'All Day', menuGroup: 'Bakery' }],
           ['brownie-guid', { guid: 'brownie-guid', name: 'Brownie', menuName: 'All Day', menuGroup: 'Bakery' }],
           ['donut-guid', { guid: 'donut-guid', name: 'Donut', menuName: 'All Day', menuGroup: 'Bakery' }],
@@ -194,7 +210,8 @@ const loader = spawnSync(
         { guid: 'muffin-guid', status: 'OUT_OF_STOCK', quantity: 0 },
         { guid: 'hex-guid', status: 'QUANTITY', quantity: 1 },
         { guid: 'drip-guid', status: 'QUANTITY', quantity: 10 },
-        { guid: 'bacon-guid', status: 'QUANTITY', quantity: 2 },
+        { guid: 'wagyu-guid', status: 'QUANTITY', quantity: 2 },
+        { guid: 'bacon-guid', status: 'QUANTITY', quantity: 6 },
         { guid: 'brownie-guid', status: 'QUANTITY', quantity: 4 },
         { guid: 'lunch-guid', status: 'QUANTITY', quantity: 1 },
         { guid: 'toppngs-guid', status: 'QUANTITY', quantity: 8 },
@@ -211,10 +228,11 @@ const loader = spawnSync(
         if (byName['Chocolate Croissant'].status !== 'UNKNOWN') throw new Error(src + ' menu-only bakery status should be UNKNOWN');
         if (!byName['Almond Croissant'] || byName['Almond Croissant'].quantity !== 3) throw new Error(src + ' should overlay stock qty on bakery');
         if (!byName['Blueberry Muffin'] || byName['Blueberry Muffin'].quantity !== 0) throw new Error(src + ' should keep OUT_OF_STOCK bakery qty 0');
-        if (!byName['Bacon Egg and Cheese'] || byName['Bacon Egg and Cheese'].quantity !== 2) throw new Error(src + ' should keep taco modifier from stock');
-        if (!byName['Chorizo (Beef) Egg and Cheese'] || byName['Chorizo (Beef) Egg and Cheese'].quantity !== null) {
-          throw new Error(src + ' should keep taco keeper from menu with no invented qty');
+        if (!byName['Wagyu Barbacoa Egg & Cheese'] || byName['Wagyu Barbacoa Egg & Cheese'].quantity !== 2) throw new Error(src + ' should keep taco type from stock');
+        if (!byName['Sausage Egg & Cheese'] || byName['Sausage Egg & Cheese'].quantity !== null) {
+          throw new Error(src + ' should keep taco type from menu with no invented qty');
         }
+        if (byName['Bacon Egg and Cheese']) throw new Error(src + ' should drop plain modifier (no name matching)');
         if (!byName['Kolache'] || byName['Kolache'].quantity !== null) {
           throw new Error(src + ' should keep kolache from menu with no invented qty');
         }
@@ -229,6 +247,63 @@ const loader = spawnSync(
           if (byName[dropped]) throw new Error(src + ' should drop unstocked ' + dropped);
         }
       }
+
+      // Live-shaped Toast menus v2 JSON (Oct 2026): Breakfast Taco "Type" group
+      // holds the three types; Lunch Taco has "Type (Lunch)"; Salsa is not a type.
+      const menusJson = {
+        menus: [{
+          name: 'All Day',
+          menuGroups: [
+            { name: 'Bakery', menuItems: [{ guid: 'g-almond', name: 'Almond Croissant' }] },
+            { name: 'Food', menuItems: [
+              { guid: 'g-btaco', name: 'Breakfast Taco', modifierGroupReferences: [10, 11, 12] },
+              { guid: 'g-ltaco', name: 'Lunch Taco', modifierGroupReferences: [20, 11] },
+              { guid: 'g-topp', name: 'Taco Toppngs', modifierGroupReferences: [30] },
+            ] },
+            { name: 'Drinks', menuItems: [{ guid: 'g-latte', name: 'Latte', modifierGroupReferences: [40] }] },
+          ],
+        }],
+        modifierGroupReferences: {
+          10: { referenceId: 10, guid: 'mg-type', name: 'Type', modifierOptionReferences: [101, 102, 103] },
+          11: { referenceId: 11, guid: 'mg-salsa', name: 'Salsa', modifierOptionReferences: [111] },
+          12: { referenceId: 12, guid: 'mg-other', name: 'Other', modifierOptionReferences: [121] },
+          20: { referenceId: 20, guid: 'mg-ltype', name: 'Type (Lunch)', modifierOptionReferences: [201, 202] },
+          30: { referenceId: 30, guid: 'mg-topp', name: 'Type', modifierOptionReferences: [301] },
+          40: { referenceId: 40, guid: 'mg-milk', name: 'Milk Type', modifierOptionReferences: [401] },
+        },
+        modifierOptionReferences: {
+          101: { referenceId: 101, guid: 'o-wagyu', name: 'Wagyu Barbacoa Egg & Cheese', multiLocationId: 'ml-101' },
+          102: { referenceId: 102, guid: 'o-sausage', name: 'Sausage Egg & Cheese', multiLocationId: 'ml-102' },
+          103: { referenceId: 103, guid: 'o-potato', name: 'Potato Egg & Cheese', multiLocationId: 'ml-103' },
+          111: { referenceId: 111, guid: 'o-salsa', name: 'Salsa Verde' },
+          121: { referenceId: 121, guid: 'o-extra', name: 'Extra Cheese' },
+          201: { referenceId: 201, guid: 'o-machaca', name: 'Machaca' },
+          202: { referenceId: 202, guid: 'o-pastor', name: 'Chicken Al Pastor' },
+          301: { referenceId: 301, guid: 'o-pico', name: 'Pico' },
+          401: { referenceId: 401, guid: 'o-oat', name: 'Oat Milk' },
+        },
+      };
+      for (const mod of [stock, sold]) {
+        const src = mod === stock ? 'toast-stock' : 'toast-food-sold';
+        if (typeof mod.buildMenuLookup !== 'function') throw new Error(src + ' buildMenuLookup missing');
+        const live = mod.buildMenuLookup(menusJson);
+        // One stock row resolved via multiLocationId only.
+        const built = mod.buildFood86Items([{ multiLocationId: 'ml-102', status: 'QUANTITY', quantity: 4 }], live);
+        const names = built.items.map((i) => i.name).sort();
+        const want = ['Almond Croissant', 'Breakfast Taco', 'Potato Egg & Cheese', 'Sausage Egg & Cheese', 'Wagyu Barbacoa Egg & Cheese'];
+        if (JSON.stringify(names) !== JSON.stringify(want)) {
+          throw new Error(src + ' menu lookup items ' + JSON.stringify(names) + ' != ' + JSON.stringify(want));
+        }
+        const byName = Object.fromEntries(built.items.map((i) => [i.name, i]));
+        for (const t of ['Wagyu Barbacoa Egg & Cheese', 'Sausage Egg & Cheese', 'Potato Egg & Cheese']) {
+          if (byName[t].menuGroup !== mod.TACO_TYPE_GROUP) throw new Error(src + ' ' + t + ' should be tagged ' + mod.TACO_TYPE_GROUP);
+          if (!filter.isTacoTypeModifier(byName[t])) throw new Error('util isTacoTypeModifier should accept ' + t);
+        }
+        if (byName['Sausage Egg & Cheese'].quantity !== 4) throw new Error(src + ' should overlay stock qty on taco type via multiLocationId');
+        if (byName['Wagyu Barbacoa Egg & Cheese'].quantity !== null) throw new Error(src + ' must not invent taco type qty');
+      }
+      console.log('breakfast taco types from Toast menu structure: ok');
+
       console.log('module load api/toast-stock.ts: ok');
       console.log('module load api/toast-food-sold.ts: ok');
       console.log('module load utils/food86Bakery.ts: ok');

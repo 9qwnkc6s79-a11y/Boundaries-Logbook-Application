@@ -1,9 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AlertTriangle, ChevronDown, RefreshCw, UtensilsCrossed } from 'lucide-react';
 import { db } from '../services/db';
 import { toastAPI } from '../services/toast';
 import { Food86Event, FoodClosingWasteEntry, FoodSkuDay, FoodSoldResponse, User } from '../types';
-import { isBakeryFoodItem } from '../utils/food86Bakery';
+import { isBakeryFoodItem, isTacoTypeModifier } from '../utils/food86Bakery';
+import { parseWasteQty } from '../utils/wasteQueue';
 import {
   ClosingWasteGate,
   incompleteClosingWasteRows,
@@ -51,9 +52,15 @@ interface Food86PanelProps {
   onWasteCompletenessChange?: (gate: ClosingWasteGate | null) => void;
   /** Closing only: leftover/waste keystrokes count as form activity (do not wipe the logbook). */
   onWasteActivity?: () => void;
+  /**
+   * Closing only: hands the close screen a function that re-saves every
+   * leftover/waste row in one write. Called on close submit. Resolves false if
+   * the save failed. Null on unmount.
+   */
+  onRegisterWasteFlush?: (flush: (() => Promise<boolean>) | null) => void;
 }
 
-const Food86Panel: React.FC<Food86PanelProps> = ({ storeId, storeName, user, mode, readOnly, collapsible = false, defaultCollapsed = false, onWasteCompletenessChange, onWasteActivity }) => {
+const Food86Panel: React.FC<Food86PanelProps> = ({ storeId, storeName, user, mode, readOnly, collapsible = false, defaultCollapsed = false, onWasteCompletenessChange, onWasteActivity, onRegisterWasteFlush }) => {
   const [payload, setPayload] = useState<FoodSoldResponse | null>(null);
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
   const [wasteByGuid, setWasteByGuid] = useState<Record<string, FoodClosingWasteEntry>>({});
@@ -174,19 +181,13 @@ const Food86Panel: React.FC<Food86PanelProps> = ({ storeId, storeName, user, mod
     if (mode !== 'closing' || !user) return;
     onWasteActivity?.();
     setSavingGuid(item.itemGuid);
-    const parse = (raw: string): number | null => {
-      const trimmed = raw.trim();
-      if (trimmed === '') return null;
-      const n = Number(trimmed);
-      return Number.isFinite(n) ? n : null;
-    };
     const entry: FoodClosingWasteEntry = {
       storeId,
       businessDate: payload?.businessDate || chicagoNowDate(),
       itemGuid: item.itemGuid,
       itemName: item.name,
-      leftoverQty: parse(leftover),
-      wasteQty: parse(waste),
+      leftoverQty: parseWasteQty(leftover),
+      wasteQty: parseWasteQty(waste),
       updatedAt: new Date().toISOString(),
       updatedBy: user.id,
       updatedByName: user.name,
@@ -198,6 +199,51 @@ const Food86Panel: React.FC<Food86PanelProps> = ({ storeId, storeName, user, mod
     }
     setSavingGuid(null);
   };
+
+  // Close submit: re-save every visible row in ONE queued write, so a blur save
+  // that never landed (quick tabbing, Prosper Oct 18) cannot lose an entry.
+  const flushAllWaste = useCallback(async (): Promise<boolean> => {
+    if (mode !== 'closing' || !user) return true;
+    if (rows.length === 0) return true;
+    const businessDate = payload?.businessDate || chicagoNowDate();
+    const now = new Date().toISOString();
+    const entries: FoodClosingWasteEntry[] = rows.map(item => {
+      const qty = qtyForRow(item.itemGuid);
+      return {
+        storeId,
+        businessDate,
+        itemGuid: item.itemGuid,
+        itemName: item.name,
+        leftoverQty: parseWasteQty(qty.leftover),
+        wasteQty: parseWasteQty(qty.waste),
+        updatedAt: now,
+        updatedBy: user.id,
+        updatedByName: user.name,
+      };
+    });
+    let next = await db.upsertFoodClosingWasteBatch(entries).catch(() => null);
+    if (!next) {
+      await new Promise(r => setTimeout(r, 600));
+      next = await db.upsertFoodClosingWasteBatch(entries).catch(() => null);
+    }
+    if (!next) return false;
+    const saved: Record<string, FoodClosingWasteEntry> = {};
+    next.filter(r => r.businessDate === businessDate).forEach(r => { saved[r.itemGuid] = r; });
+    setWasteByGuid(prev => ({ ...prev, ...saved }));
+    return rows.every(item => !!saved[item.itemGuid]);
+  }, [mode, user, rows, payload?.businessDate, qtyForRow, storeId]);
+
+  const flushRef = useRef(flushAllWaste);
+  flushRef.current = flushAllWaste;
+
+  useEffect(() => {
+    if (mode !== 'closing' || !onRegisterWasteFlush) return;
+    onRegisterWasteFlush(() => flushRef.current());
+    return () => onRegisterWasteFlush(null);
+  }, [mode, onRegisterWasteFlush]);
+
+  const tacoTypeCount = rows.filter(item => isTacoTypeModifier(item)).length;
+  const showNoTacoTypes = mode === 'closing' && !loading && !!payload?.ok && rows.length > 0 && tacoTypeCount === 0;
 
   const scopeMissing = payload && !payload.stockScopeOk;
   const title = mode === 'closing' ? 'Food leftover & waste' : 'Food 86 / last sold';
@@ -286,8 +332,20 @@ const Food86Panel: React.FC<Food86PanelProps> = ({ storeId, storeName, user, mod
         <p className="text-xs text-neutral-400 font-medium">
           {scopeMissing
             ? 'No food SKUs to list while Toast stock is unavailable. Remaining / 86 / last-sold are not invented. Refresh when stock:read is back, then any closer can enter leftover qty and waste qty here.'
-            : 'No bakery or taco items to list right now. Named Toast Bakery SKUs stay listed even after they 86 (remaining shows — if Toast dropped the stock row). Taco types (including bacon / chorizo modifiers) appear here too. Any closer can enter leftover qty and waste qty once items appear.'}
+            : 'No bakery or taco items to list right now. Named Toast Bakery SKUs stay listed even after they 86 (remaining shows — if Toast dropped the stock row). Each Breakfast Taco type from Toast appears here too. Any closer can enter leftover qty and waste qty once items appear.'}
         </p>
+      )}
+
+      {showNoTacoTypes && (
+        <div className="mb-4 flex items-start gap-2 p-3 rounded-xl bg-amber-50 border border-amber-200">
+          <AlertTriangle size={16} className="text-amber-600 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-xs font-black text-amber-800 uppercase tracking-widest">No taco types loaded</p>
+            <p className="text-xs text-amber-800 mt-1 font-medium">
+              Toast did not return any Breakfast Taco types (Wagyu Barbacoa, Sausage, Potato…). Tap refresh. If they still do not show, log the taco total on the Breakfast Taco row and tell a manager.
+            </p>
+          </div>
+        </div>
       )}
 
       {rows.length > 0 && (

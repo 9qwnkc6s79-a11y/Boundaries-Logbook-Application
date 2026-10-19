@@ -10,6 +10,7 @@ import { toastAPI } from '../services/toast';
 import { db } from '../services/db';
 import { complianceStatus, findDaySubmission, lastBusinessDays } from '../utils/complianceMatrix';
 import Food86Panel from './Food86Panel';
+import WasteHistoryPanel from './WasteHistoryPanel';
 import ManagerBudgetTile from './ManagerBudgetTile';
 import { detectLeaders, calculateTimelinessScore, calculateTurnTimeScore, calculateSalesScore, calculateAvgTicketScore, calculateLeaderboard, determineShiftOwnership } from '../utils/leadershipTracking';
 import { syncOrderAttributions } from '../utils/orderAttribution';
@@ -2240,13 +2241,16 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
             </div>
 
             {operationsSubTab === 'food' && (
-              <Food86Panel
-                storeId={currentStoreId}
-                storeName={currentStoreName}
-                user={currentUser}
-                mode="report"
-                readOnly
-              />
+              <>
+                <Food86Panel
+                  storeId={currentStoreId}
+                  storeName={currentStoreName}
+                  user={currentUser}
+                  mode="report"
+                  readOnly
+                />
+                <WasteHistoryPanel stores={stores} currentStoreId={currentStoreId} />
+              </>
             )}
 
             {operationsSubTab === 'gallery' && (

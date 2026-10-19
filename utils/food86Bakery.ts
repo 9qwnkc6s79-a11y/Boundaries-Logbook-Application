@@ -1,7 +1,7 @@
 /**
  * Food 86 / leftover-waste visibility.
- * Keep named Toast Bakery SKUs and taco SKUs (including bacon / chorizo
- * modifier types). Match by menu/name text — never by hardcoded GUIDs.
+ * Keep named Toast Bakery SKUs and taco SKUs, including every Breakfast Taco
+ * type option (tagged TACO_TYPE_GROUP by the Toast food APIs). Match by menu/name text — never by hardcoded GUIDs.
  * Null quantity / missing stock is still visible — do not hide 86'd bakery.
  * Unnamed stock GUIDs ("Item 8a142d5c") never belong on the close list.
  * Daniel no longer stocks a short name list (brownie, donut, lunch taco,
@@ -55,11 +55,17 @@ export function isModifierGroup(menuGroup?: string | null): boolean {
   return (menuGroup || '').toLowerCase().includes('modifier');
 }
 
-/** Bacon/chorizo breakfast-taco types. Names do not need the word "taco". */
+/**
+ * Menu group the Toast APIs give every option of a taco item's "Type"
+ * modifier group (Breakfast Taco → Wagyu Barbacoa / Sausage / Potato Egg &
+ * Cheese today). Set server-side from the menu structure, so a Toast rename or
+ * a new lineup shows up without a code change. Option names are never matched.
+ */
+export const TACO_TYPE_GROUP = 'Breakfast Taco Type';
+
+/** Breakfast-taco type option (any name), tagged by the Toast food APIs. */
 export function isTacoTypeModifier(item?: Food86Meta | null): boolean {
-  if (!isModifierGroup(item?.menuGroup)) return false;
-  const name = (item?.name || '').toLowerCase();
-  return (name.includes('bacon') && name.includes('egg')) || name.includes('chorizo');
+  return (item?.menuGroup || '').trim().toLowerCase() === TACO_TYPE_GROUP.toLowerCase();
 }
 
 export function isExcludedNonFood(item?: Food86Meta | null): boolean {
@@ -77,7 +83,7 @@ function normalizeFood86Name(name?: string | null): string {
 /**
  * Unstocked SKU names. Case/punctuation/spacing flexible.
  * "Blueberry muffin" is not "Muffin for MWM". Lunch Taco the menu item
- * drops; bacon/chorizo taco modifiers stay (name-only match).
+ * drops; Breakfast Taco type options stay (tagged by group, not name).
  */
 export function isUnstockedFood86Name(item?: Food86Meta | null): boolean {
   const name = normalizeFood86Name(item?.name);

@@ -214,6 +214,11 @@ const OpsView: React.FC<OpsViewProps> = ({ user, storeId, allUsers, templates, e
   const [validationError, setValidationError] = useState<string | null>(null);
   const [showReopenConfirm, setShowReopenConfirm] = useState(false);
   const [wasteGate, setWasteGate] = useState<ClosingWasteGate | null>(null);
+  // Close submit re-saves every leftover/waste row (Food86Panel registers this).
+  const wasteFlushRef = useRef<(() => Promise<boolean>) | null>(null);
+  const registerWasteFlush = useCallback((flush: (() => Promise<boolean>) | null) => {
+    wasteFlushRef.current = flush;
+  }, []);
   const [isSaving, setIsSaving] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   
@@ -628,6 +633,20 @@ const OpsView: React.FC<OpsViewProps> = ({ user, storeId, allUsers, templates, e
         alert(formatIncompleteWasteMessage(wasteGate.incomplete));
         return;
       }
+      if (activeTemplate?.type === 'CLOSING' && wasteFlushRef.current) {
+        setIsSaving(true);
+        let wasteSaved = false;
+        try {
+          wasteSaved = await wasteFlushRef.current();
+        } catch (err) {
+          console.error('[OpsView] Leftover/waste re-save failed:', err);
+          wasteSaved = false;
+        }
+        setIsSaving(false);
+        if (!wasteSaved && !confirm('Leftover/waste numbers did not save. Tap Cancel to stay here and try again, or OK to submit the close anyway (your numbers stay on screen).')) {
+          return;
+        }
+      }
       const isAllDone = activeTemplate?.tasks.every(t => responses[t.id]?.completed);
       if (!isAllDone && !confirm('Incomplete standards detected. Authorize final submission?')) return;
     }
@@ -967,6 +986,7 @@ const OpsView: React.FC<OpsViewProps> = ({ user, storeId, allUsers, templates, e
             mode="closing"
             onWasteCompletenessChange={setWasteGate}
             onWasteActivity={() => markInteraction('__leftover_waste__')}
+            onRegisterWasteFlush={registerWasteFlush}
           />
         )}
 
