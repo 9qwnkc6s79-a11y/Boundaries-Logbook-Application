@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { toastAPI } from '../services/toast';
 import { db } from '../services/db';
+import { complianceStatus, findDaySubmission, lastBusinessDays } from '../utils/complianceMatrix';
 import Food86Panel from './Food86Panel';
 import ManagerBudgetTile from './ManagerBudgetTile';
 import { detectLeaders, calculateTimelinessScore, calculateTurnTimeScore, calculateSalesScore, calculateAvgTicketScore, calculateLeaderboard, determineShiftOwnership } from '../utils/leadershipTracking';
@@ -446,36 +447,15 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
   }, [allUsers, allProgress, curriculum]);
 
   const complianceMatrix = useMemo(() => {
-    const last7Days = Array.from({ length: 7 }, (_, i) => {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      return getLocalStr(d);
-    }).reverse();
+    // Business dates in America/Chicago. A checklist counts on its stored
+    // business date (s.date), not the UTC date of submittedAt — closes sent
+    // after 7 PM CT are already "tomorrow" in UTC. See utils/complianceMatrix.
+    const now = new Date();
+    const last7Days = lastBusinessDays(7, now);
 
     const mainTemplates = sortChecklistsByStoreDay(
       templates.filter(t => ['OPENING', 'CLOSING', 'SHIFT_CHANGE', 'WEEKLY'].includes(t.type))
     );
-
-    // Helper to get deadline for a template on a specific date
-    const getDeadline = (tpl: ChecklistTemplate, dateStr: string): Date => {
-      const deadline = new Date(dateStr + 'T00:00:00');
-
-      if (tpl.type === 'OPENING') {
-        // Opening Checklist: deadline is noon that day
-        deadline.setHours(12, 0, 0, 0);
-      } else if (tpl.type === 'CLOSING') {
-        // Closing Checklist: deadline is midnight (end of that day)
-        deadline.setHours(23, 59, 59, 999);
-      } else if (tpl.type === 'WEEKLY') {
-        // Weekly cleans: deadline is end of that day (must be submitted on correct day)
-        deadline.setHours(23, 59, 59, 999);
-      } else {
-        // Default: noon
-        deadline.setHours(12, 0, 0, 0);
-      }
-
-      return deadline;
-    };
 
     // Helper to check if a date is applicable for a weekly template
     const isWeeklyDateApplicable = (tpl: ChecklistTemplate, dateStr: string): boolean => {
@@ -491,53 +471,14 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
     };
 
     return last7Days.map(date => {
-      const now = new Date();
-      const todayStr = getLocalStr(now);
-      const isFuture = date > todayStr;
-
       const dayStatus = mainTemplates.map(tpl => {
         // For weekly templates, check if this day is applicable
         if (!isWeeklyDateApplicable(tpl, date)) {
           return { templateName: tpl.name, templateType: tpl.type, status: 'N/A' as const };
         }
 
-        // Find submission for this template submitted on this date (by submittedAt, not target date)
-        const submission = submissions.find(s => {
-          if (s.templateId !== tpl.id || s.status === 'DRAFT') return false;
-          // Match by the date portion of submittedAt (when actually submitted)
-          // Fall back to s.date for older submissions without submittedAt
-          const submittedDate = s.submittedAt
-            ? s.submittedAt.split('T')[0]
-            : s.date;
-          return submittedDate === date;
-        });
-
-        // Future date - not yet due
-        if (isFuture) {
-          return { templateName: tpl.name, templateType: tpl.type, status: 'FUTURE' as const };
-        }
-
-        const deadline = getDeadline(tpl, date);
-        const isToday = date === todayStr;
-        const isPastDeadline = now > deadline;
-
-        let status: 'MISSING' | 'COMPLETED' | 'LATE' | 'FUTURE' | 'N/A' = 'MISSING';
-
-        if (submission) {
-          const submittedAt = submission.submittedAt ? new Date(submission.submittedAt) : null;
-          if (submittedAt) {
-            // Check if submitted before or after deadline
-            status = submittedAt <= deadline ? 'COMPLETED' : 'LATE';
-          } else {
-            // No submittedAt timestamp, assume on time
-            status = 'COMPLETED';
-          }
-        } else if (isToday && !isPastDeadline) {
-          // Today but deadline hasn't passed yet - show as future/pending
-          status = 'FUTURE';
-        }
-        // else: no submission and past deadline = MISSING (default)
-
+        const submission = findDaySubmission(submissions, tpl.id, date);
+        const status = complianceStatus({ submission, type: tpl.type, ymd: date, now });
         return { templateName: tpl.name, templateType: tpl.type, status };
       });
       return { date, shortDate: date.split('-').slice(1).join('/'), statuses: dayStatus };

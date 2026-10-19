@@ -23,7 +23,8 @@
     "verify:closing-waste-complete": "npx --yes tsx scripts/verify-closing-waste-complete.ts",
     "verify:logbook-submit-guard": "npx --yes tsx scripts/verify-logbook-submit-guard.ts",
     "verify:logbook-export": "npx --yes tsx scripts/verify-logbook-export.ts",
-    "verify:taco-reheat-manual": "npx --yes tsx scripts/verify-taco-reheat-manual.ts"
+    "verify:taco-reheat-manual": "npx --yes tsx scripts/verify-taco-reheat-manual.ts",
+    "verify:compliance-business-date": "npx --yes tsx scripts/verify-compliance-business-date.ts"
   },
   "dependencies": {
     "@google/genai": "^1.35.0",
