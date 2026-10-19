@@ -104,6 +104,6 @@ assert(
 );
 
 const dbSrc = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '../services/db.ts'), 'utf8');
-assert(/const CONTENT_DEFAULTS_VERSION = 7;/.test(dbSrc), 'do not bump CONTENT_DEFAULTS_VERSION');
+assert(/const CONTENT_DEFAULTS_VERSION = 9;/.test(dbSrc), 'content_version is v9 (append-only Ops Manual patch; do not overwrite the recipe book)');
 
 console.log('verify-logbook-submit-guard: ok');

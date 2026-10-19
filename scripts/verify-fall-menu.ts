@@ -179,7 +179,7 @@ const second = appendFallAvailableFlavors(appended.recipes);
 assert(!second.mutated, 'second rematch is a no-op');
 
 const dbSrc = readFileSync(new URL('../services/db.ts', import.meta.url), 'utf8');
-assert(/const CONTENT_DEFAULTS_VERSION = 7;/.test(dbSrc), 'do not bump CONTENT_DEFAULTS_VERSION (that overwrites the book)');
+assert(/const CONTENT_DEFAULTS_VERSION = 9;/.test(dbSrc), 'content_version is v9 (append-only Ops Manual patch; do not overwrite the recipe book)');
 for (const id of FALL_SKU_IDS) {
   assert(dbSrc.includes(`'${id}'`), `live inventory rematch must include ${id}`);
 }
