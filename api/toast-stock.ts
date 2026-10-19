@@ -29,7 +29,7 @@ const STORE_BY_LOCATION: Record<string, string> = {
 const UNRESOLVED_ITEM_NAME = /^(unknown(\s+item)?|item\s+[0-9a-f]{4,})$/i;
 
 let cachedToken: { token: string; expires: number } | null = null;
-const menuCache = new Map<string, { expires: number; byGuid: Map<string, any>; byMl: Map<string, any> }>();
+const menuCache = new Map<string, { expires: number; byGuid: Map<string, any>; byMl: Map<string, any> }>(); // only good menus; see loadMenuLookupWith
 
 function setCors(res: VercelResponse, methods = 'GET, OPTIONS') {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -349,31 +349,92 @@ export function buildMenuLookup(json: any): { byGuid: Map<string, any>; byMl: Ma
   return { byGuid, byMl };
 }
 
-async function loadMenuLookup(token: string, restaurantGuid: string) {
-  const cached = menuCache.get(restaurantGuid);
-  if (cached && cached.expires > Date.now()) {
-    return { byGuid: cached.byGuid, byMl: cached.byMl, menusForbidden: false };
+type MenuLookupCacheEntry = { expires: number; byGuid: Map<string, any>; byMl: Map<string, any> };
+
+export interface MenuLookupDeps {
+  fetch: (url: string, init?: any) => Promise<{ ok: boolean; status: number; headers?: { get(name: string): string | null }; json(): Promise<any> }>;
+  cache: Map<string, MenuLookupCacheEntry>;
+  sleep?: (ms: number) => Promise<void>;
+  now?: () => number;
+  /** Fresh-cache lifetime. Default 15 minutes. */
+  ttlMs?: number;
+}
+
+const MENU_TTL_MS = 15 * 60 * 1000;
+
+function menuRetryDelayMs(response: { headers?: { get(name: string): string | null } } | null): number {
+  const raw = response?.headers?.get?.('retry-after');
+  const secs = raw ? Number(raw) : NaN;
+  if (Number.isFinite(secs) && secs > 0) return Math.min(2000, Math.max(250, secs * 1000));
+  return 750;
+}
+
+/**
+ * Toast menus -> lookup. Only a good (non-empty) menu is cached. On a 429 /
+ * 5xx / network error it retries once after a short backoff, then falls back to
+ * the last good menu for this restaurant (even if past its TTL). A failed or
+ * empty menu is never cached, so one rate-limited call cannot blank the list
+ * for 15 minutes. 401/403 still reports menusForbidden.
+ */
+export async function loadMenuLookupWith(deps: MenuLookupDeps, token: string, restaurantGuid: string) {
+  const now = deps.now || Date.now;
+  const sleep = deps.sleep || ((ms: number) => new Promise<void>(r => setTimeout(r, ms)));
+  const cached = deps.cache.get(restaurantGuid);
+  if (cached && cached.expires > now()) {
+    return { byGuid: cached.byGuid, byMl: cached.byMl, menusForbidden: false, menusStale: false };
   }
 
   const urls = [`${TOAST_API}/menus/v2/menus`, `${TOAST_API}/menus/v3/menus`];
-  let json: any = null;
-  for (const url of urls) {
-    const response = await fetch(url, {
-      headers: { Authorization: `Bearer ${token}`, 'Toast-Restaurant-External-ID': restaurantGuid },
-    });
-    if (response.ok) {
-      json = await response.json();
-      break;
-    }
-    console.warn(`[Toast Stock] ${url} failed (${response.status})`);
-    if (response.status === 401 || response.status === 403) {
-      return { byGuid: new Map(), byMl: new Map(), menusForbidden: true };
+  let lastFailed: any = null;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    if (attempt > 0) await sleep(menuRetryDelayMs(lastFailed));
+    for (const url of urls) {
+      let response: any;
+      try {
+        response = await deps.fetch(url, {
+          headers: { Authorization: `Bearer ${token}`, 'Toast-Restaurant-External-ID': restaurantGuid },
+        });
+      } catch (err) {
+        console.warn(`[Toast Stock] ${url} fetch error`, err);
+        lastFailed = null;
+        continue;
+      }
+      if (response.status === 401 || response.status === 403) {
+        console.warn(`[Toast Stock] ${url} failed (${response.status})`);
+        return { byGuid: new Map(), byMl: new Map(), menusForbidden: true, menusStale: false };
+      }
+      if (!response.ok) {
+        console.warn(`[Toast Stock] ${url} failed (${response.status})${attempt === 0 ? ', will retry' : ''}`);
+        lastFailed = response;
+        continue;
+      }
+      let json: any = null;
+      try {
+        json = await response.json();
+      } catch (err) {
+        console.warn(`[Toast Stock] ${url} bad JSON`, err);
+        continue;
+      }
+      const { byGuid, byMl } = buildMenuLookup(json);
+      if (byGuid.size === 0 && byMl.size === 0) {
+        console.warn(`[Toast Stock] ${url} returned an empty menu`);
+        continue;
+      }
+      deps.cache.set(restaurantGuid, { expires: now() + (deps.ttlMs ?? MENU_TTL_MS), byGuid, byMl });
+      return { byGuid, byMl, menusForbidden: false, menusStale: false };
     }
   }
 
-  const { byGuid, byMl } = buildMenuLookup(json);
-  menuCache.set(restaurantGuid, { expires: Date.now() + 15 * 60 * 1000, byGuid, byMl });
-  return { byGuid, byMl, menusForbidden: false };
+  if (cached) {
+    console.warn(`[Toast Stock] menus unavailable; using last good menu for ${restaurantGuid}`);
+    return { byGuid: cached.byGuid, byMl: cached.byMl, menusForbidden: false, menusStale: true };
+  }
+  console.warn(`[Toast Stock] menus unavailable and no cached menu for ${restaurantGuid} (not cached)`);
+  return { byGuid: new Map(), byMl: new Map(), menusForbidden: false, menusStale: false };
+}
+
+function loadMenuLookup(token: string, restaurantGuid: string) {
+  return loadMenuLookupWith({ fetch: (url, init) => fetch(url, init), cache: menuCache }, token, restaurantGuid);
 }
 
 function resolveStockItems(stockRows: any[], lookup: { byGuid: Map<string, any>; byMl: Map<string, any> }) {
