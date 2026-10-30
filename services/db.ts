@@ -2087,7 +2087,7 @@ class CloudAPI {
           const newItemParOverrides: Record<string, number> = {
             'inv-syrup-cupcake': 4,
           };
-          for (const newId of ['inv-frappe-powder', 'inv-dairy-sweetcream', 'inv-syrup-macadamia', 'inv-seasonal-coconut-shavings', 'inv-syrup-cupcake', 'inv-seasonal-pumpkin-spice', 'inv-seasonal-pumpkin-spice-zero', 'inv-sauce-pumpkin-pie', 'inv-cup-carriers']) {
+          for (const newId of ['inv-frappe-powder', 'inv-dairy-sweetcream', 'inv-syrup-macadamia', 'inv-seasonal-coconut-shavings', 'inv-syrup-cupcake', 'inv-seasonal-pumpkin-spice', 'inv-seasonal-pumpkin-spice-zero', 'inv-sauce-pumpkin-pie', 'inv-cup-carriers', 'inv-seasonal-sf-peppermint-torani', 'inv-seasonal-shortbread-torani', 'inv-seasonal-cupcake-torani', 'inv-seasonal-gingerbread-1883', 'inv-seasonal-brown-butter-toffee', 'inv-seasonal-cranberry', 'inv-seasonal-orange-torani', 'inv-sauce-dark-chocolate', 'inv-sauce-sf-dark-chocolate', 'inv-seasonal-candy-cane', 'inv-seasonal-holiday-sprinkles', 'inv-seasonal-cinnamon-sugar', 'inv-dairy-white-choc-sweetcream']) {
             if (!migrated.some(i => i.id === newId)) {
               const fromSeed = seedById.get(newId);
               if (fromSeed) {
