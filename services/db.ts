@@ -2087,7 +2087,7 @@ class CloudAPI {
           const newItemParOverrides: Record<string, number> = {
             'inv-syrup-cupcake': 4,
           };
-          for (const newId of ['inv-frappe-powder', 'inv-dairy-sweetcream', 'inv-syrup-macadamia', 'inv-seasonal-coconut-shavings', 'inv-syrup-cupcake', 'inv-seasonal-pumpkin-spice', 'inv-seasonal-pumpkin-spice-zero', 'inv-sauce-pumpkin-pie', 'inv-cup-carriers', 'inv-seasonal-sf-peppermint-torani', 'inv-seasonal-shortbread-torani', 'inv-seasonal-cupcake-torani', 'inv-seasonal-gingerbread-1883', 'inv-seasonal-brown-butter-toffee', 'inv-seasonal-cranberry', 'inv-seasonal-orange-torani', 'inv-sauce-dark-chocolate', 'inv-sauce-sf-dark-chocolate', 'inv-seasonal-candy-cane', 'inv-seasonal-holiday-sprinkles', 'inv-seasonal-cinnamon-sugar', 'inv-dairy-white-choc-sweetcream']) {
+          for (const newId of ['inv-frappe-powder', 'inv-dairy-sweetcream', 'inv-syrup-macadamia', 'inv-seasonal-coconut-shavings', 'inv-syrup-cupcake', 'inv-seasonal-pumpkin-spice', 'inv-seasonal-pumpkin-spice-zero', 'inv-sauce-pumpkin-pie', 'inv-cup-carriers', 'inv-seasonal-sf-peppermint-torani', 'inv-seasonal-shortbread-torani', 'inv-seasonal-cupcake-torani', 'inv-seasonal-gingerbread-1883', 'inv-seasonal-brown-butter-toffee', 'inv-seasonal-cranberry', 'inv-seasonal-orange-torani', 'inv-sauce-sf-dark-chocolate', 'inv-seasonal-candy-cane', 'inv-seasonal-holiday-sprinkles', 'inv-seasonal-cinnamon-sugar', 'inv-dairy-white-choc-sweetcream']) {
             if (!migrated.some(i => i.id === newId)) {
               const fromSeed = seedById.get(newId);
               if (fromSeed) {
@@ -2102,9 +2102,50 @@ class CloudAPI {
             }
           }
 
+          // Winter 2026 pars/vendors/units (Owen, Oct 30). Saved store data
+          // overrides seed defaults, so apply once per store behind a marker.
+          // Same pars for both stores. New winter items are only raised from 0
+          // (a par a manager already set is kept); the two core Hollinder sauces get +1.
+          // 'inv-sauce-dark-chocolate' (PR #66) duplicated 'Chocolate (Hollinder)'
+          // (TSB has one Hollander chocolate: HOL-SAU-DARCHO-64oz); deactivate it
+          // instead of deleting so any saved counts stay intact.
+          const winterParsKey = `winterPars2026-${storeId}`;
+          const winterMarker = await this.remoteGet<{ done: boolean }>(winterParsKey, { done: false });
+          let winterApplied = false;
+          if (!winterMarker.done) {
+            const WINTER_SET: Record<string, number> = {
+              'inv-seasonal-peppermint': 3, 'inv-seasonal-gingerbread-1883': 2,
+              'inv-seasonal-sf-peppermint-torani': 1, 'inv-sauce-sf-dark-chocolate': 1,
+              'inv-seasonal-shortbread-torani': 1, 'inv-seasonal-cupcake-torani': 1,
+              'inv-seasonal-brown-butter-toffee': 1, 'inv-seasonal-cranberry': 1,
+              'inv-seasonal-orange-torani': 1, 'inv-dairy-white-choc-sweetcream': 1,
+              'inv-seasonal-candy-cane': 1, 'inv-seasonal-holiday-sprinkles': 1,
+              'inv-seasonal-cinnamon-sugar': 1,
+            };
+            const WINTER_ADD: Record<string, number> = { 'inv-sauce-chocolate': 1, 'inv-sauce-whitechoc': 1 };
+            const WINTER_META: Record<string, Partial<InventoryItem>> = {
+              'inv-seasonal-candy-cane': { name: 'Crushed Candy Cane (2 lb bag)', vendor: 'Amazon', unit: 'bags' },
+              'inv-seasonal-holiday-sprinkles': { vendor: 'H-E-B', unit: 'shakers' },
+              'inv-seasonal-cinnamon-sugar': { unit: 'quarts' },
+              'inv-dairy-white-choc-sweetcream': { unit: 'quarts' },
+            };
+            for (let k = 0; k < migrated.length; k++) {
+              const item = migrated[k];
+              let next = { ...item, ...(WINTER_META[item.id] || {}) };
+              if (WINTER_SET[item.id] !== undefined && (item.id === 'inv-seasonal-peppermint' || !item.par)) next.par = WINTER_SET[item.id];
+              if (WINTER_ADD[item.id] !== undefined) next.par = (item.par || 0) + WINTER_ADD[item.id];
+              if (item.id === 'inv-sauce-dark-chocolate') next.active = false;
+              if (JSON.stringify(next) !== JSON.stringify(item)) { migrated[k] = next; mutated = true; }
+            }
+            winterApplied = true;
+          }
+
           if (mutated) {
             console.log(`[Firestore] globalSync: Applying inventory vendor migration for ${storeId}`);
             await this.pushInventoryItems(storeId, migrated);
+          }
+          if (winterApplied) {
+            await this.remoteSet(winterParsKey, { done: true, at: new Date().toISOString() });
           }
         })());
       }
