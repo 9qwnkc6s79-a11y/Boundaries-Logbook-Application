@@ -146,6 +146,22 @@ const DEFS: SeedDef[] = [
 
   // To-go (grouped with Cups; appended last so existing sortOrders don't shift)
   { id: 'inv-cup-carriers', name: 'Cup Carriers', category: 'Cups', storageLocation: 'Back Stock', vendor: 'TSB', parProsper: 0, unit: 'cases' },
+
+  // Winter 2026 menu (Nov 16 2026 - Feb 15 2027). Appended last so existing sortOrders don't shift.
+  // Pars 0 until Daniel sets them. Sizes from TSB winter order proposal (Nov 3).
+  { id: 'inv-seasonal-sf-peppermint-torani', name: 'SF Peppermint (Torani)', category: 'Seasonal Syrups', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 0, brand: 'Torani', unit: 'bottles' }, // 1 L
+  { id: 'inv-seasonal-shortbread-torani', name: 'Shortbread (Torani)', category: 'Seasonal Syrups', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 0, brand: 'Torani', unit: 'bottles' }, // 750 ml
+  { id: 'inv-seasonal-cupcake-torani', name: 'Cupcake (Torani)', category: 'Seasonal Syrups', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 0, brand: 'Torani', unit: 'bottles' }, // 1 L
+  { id: 'inv-seasonal-gingerbread-1883', name: 'Gingerbread (1883)', category: 'Seasonal Syrups', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 0, brand: '1883', unit: 'bottles' }, // 1 L
+  { id: 'inv-seasonal-brown-butter-toffee', name: 'Brown Butter Toffee (Monin)', category: 'Seasonal Syrups', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 0, brand: 'Monin', unit: 'bottles' }, // 1 L
+  { id: 'inv-seasonal-cranberry', name: 'Cranberry (1883)', category: 'Seasonal Syrups', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 0, brand: '1883', unit: 'bottles' }, // 1 L
+  { id: 'inv-seasonal-orange-torani', name: 'Orange (Torani)', category: 'Seasonal Syrups', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 0, brand: 'Torani', unit: 'bottles' }, // 1 L, sub while 1883 Orange is OOS
+  { id: 'inv-sauce-dark-chocolate', name: 'Dark Chocolate (Hollander)', category: 'Sauces', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 0, brand: 'Hollander', unit: 'bottles' }, // 64 oz
+  { id: 'inv-sauce-sf-dark-chocolate', name: 'SF Dark Chocolate Sauce (Monin)', category: 'Sauces', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 0, brand: 'Monin', unit: 'bottles' }, // 12 oz
+  { id: 'inv-seasonal-candy-cane', name: 'Crushed Candy Cane', category: 'Seasonal Toppings', storageLocation: 'Dry Storage', vendor: 'TBD', parProsper: 0 }, // not sold by TSB; vendor not decided
+  { id: 'inv-seasonal-holiday-sprinkles', name: 'Holiday Sprinkles', category: 'Seasonal Toppings', storageLocation: 'Dry Storage', vendor: 'TBD', parProsper: 0 }, // not sold by TSB; vendor not decided
+  { id: 'inv-seasonal-cinnamon-sugar', name: 'Cinnamon Sugar (mixed in store)', category: 'Seasonal Toppings', storageLocation: 'Dry Storage', vendor: 'In Store', parProsper: 0 },
+  { id: 'inv-dairy-white-choc-sweetcream', name: 'White Chocolate Sweet Cream (made in store, Sugar Cookie Nitro only)', category: 'Dairy', storageLocation: 'Walk-In Cooler', vendor: 'In Store', parProsper: 0 },
 ];
 
 /** Build a store-specific inventory from the shared definitions. */
