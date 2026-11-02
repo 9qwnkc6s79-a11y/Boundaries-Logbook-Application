@@ -147,7 +147,7 @@ const DEFS: SeedDef[] = [
   // To-go (grouped with Cups; appended last so existing sortOrders don't shift)
   { id: 'inv-cup-carriers', name: 'Cup Carriers', category: 'Cups', storageLocation: 'Back Stock', vendor: 'TSB', parProsper: 0, unit: 'cases' },
 
-  // Winter 2026 menu (Nov 16 2026 - Feb 15 2027). Appended last so existing sortOrders don't shift.
+  // Winter 2026 menu (launch Fri Nov 13 2026 - Feb 15 2027; fall ends Thu Nov 12). Appended last so existing sortOrders don't shift.
   // Pars 0 until Daniel sets them. Sizes from TSB winter order proposal (Nov 3).
   { id: 'inv-seasonal-sf-peppermint-torani', name: 'SF Peppermint (Torani)', category: 'Seasonal Syrups', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 1, brand: 'Torani', unit: 'bottles' }, // 1 L
   { id: 'inv-seasonal-shortbread-torani', name: 'Shortbread (Torani)', category: 'Seasonal Syrups', storageLocation: 'Dry Storage', vendor: 'TSB', parProsper: 1, brand: 'Torani', unit: 'bottles' }, // 750 ml
