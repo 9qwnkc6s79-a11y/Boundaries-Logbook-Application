@@ -30,6 +30,7 @@ import {
   shardSubmissionRows,
 } from '../utils/submissionArchive';
 import { createKeyedSerialQueue, mergeWasteEntries } from '../utils/wasteQueue';
+import { decideSubmissionsWriteBase, submissionsMatch } from '../utils/submissionWriteGuard';
 
 declare const firebase: any;
 
@@ -177,7 +178,7 @@ class CloudAPI {
   }
 
   /** Distinguish a missing doc from a failed read. Archive merges must not treat an error as empty. */
-  private async remoteGetStrict<T>(docId: string): Promise<
+  private async remoteGetStrict<T>(docId: string, opts?: { server?: boolean }): Promise<
     | { ok: true; missing: true; data: null }
     | { ok: true; missing: false; data: T | null }
     | { ok: false }
@@ -188,7 +189,8 @@ class CloudAPI {
       const docRef = collectionPath.includes('/')
         ? firestore.doc(`${collectionPath}/${docId}`)
         : firestore.collection(collectionPath).doc(docId);
-      const snap = await docRef.get();
+      // server: never answer a write-path read from the offline cache.
+      const snap = await (opts?.server ? docRef.get({ source: 'server' }) : docRef.get());
       if (!snap.exists) return { ok: true, missing: true, data: null };
       const raw = snap.data();
       const data = raw && Object.prototype.hasOwnProperty.call(raw, 'data') ? raw.data : null;
@@ -567,15 +569,21 @@ class CloudAPI {
    * would wipe every store's logbook).
    */
   async deleteSubmission(id: string): Promise<boolean> {
-    const all = await this.fetchSubmissionsForWrite();
-    if (all === null || all.length === 0) {
-      console.error('[DB] deleteSubmission REFUSED: empty submissions read');
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const all = await this.fetchSubmissionsForWrite();
+      if (all === null || all.length === 0) {
+        console.error('[DB] deleteSubmission REFUSED: empty submissions read');
+        return false;
+      }
+      const next = all.filter(s => s.id !== id);
+      if (next.length === all.length) return true;
+      if (next.length < all.length - 1) return false;
+      const committed = await this.commitSubmissionsIfUnchanged(all, next);
+      if (committed === 'ok') return true;
+      if (committed === 'conflict' && attempt === 0) continue;
       return false;
     }
-    const next = all.filter(s => s.id !== id);
-    if (next.length === all.length) return true;
-    if (next.length < all.length - 1) return false;
-    return this.remoteSet(DOC_KEYS.SUBMISSIONS, next);
+    return false;
   }
 
   /**
@@ -720,26 +728,100 @@ class CloudAPI {
     return true;
   }
 
+  private submissionsDocRef(): any {
+    const collectionPath = this.getCollectionPath();
+    const docId = DOC_KEYS.SUBMISSIONS;
+    return collectionPath.includes('/')
+      ? firestore.doc(`${collectionPath}/${docId}`)
+      : firestore.collection(collectionPath).doc(docId);
+  }
+
+  /** Rows from a submissions snapshot. A missing doc is []. A non-array is a failure, not empty. */
+  private readSubmissionRows(snap: any): { ok: true; rows: ChecklistSubmission[] } | { ok: false } {
+    if (!snap || !snap.exists) return { ok: true, rows: [] };
+    const raw = typeof snap.data === 'function' ? snap.data() : null;
+    const data = raw && Object.prototype.hasOwnProperty.call(raw, 'data') ? raw.data : null;
+    if (data == null) return { ok: true, rows: [] };
+    if (!Array.isArray(data)) return { ok: false };
+    return { ok: true, rows: data as ChecklistSubmission[] };
+  }
+
+  /**
+   * Replace the submissions doc only when the server still has `expectedBase`.
+   * runTransaction fails offline and is not queued by persistence, so a drop
+   * after a good read cannot replay a stale full-list set() on reconnect.
+   * A concurrent edit returns 'conflict' and the caller re-reads once.
+   */
+  private async commitSubmissionsIfUnchanged(
+    expectedBase: ChecklistSubmission[],
+    next: ChecklistSubmission[],
+  ): Promise<'ok' | 'conflict' | 'failed'> {
+    if (!firestore) return 'failed';
+    const cleaned = removeUndefined(next);
+    const jsonSize = JSON.stringify(cleaned).length;
+    if (jsonSize > 1000000) {
+      console.error(`[Firestore] submissions commit BLOCKED - ${Math.round(jsonSize / 1024)}KB exceeds 1MB`);
+      return 'failed';
+    }
+    const docRef = this.submissionsDocRef();
+    try {
+      const outcome = await firestore.runTransaction(async (tx: any): Promise<'ok' | 'conflict' | 'failed'> => {
+        const snap = await tx.get(docRef);
+        const fresh = this.readSubmissionRows(snap);
+        if (!fresh.ok) {
+          console.error('[Firestore] submissions commit refused: unexpected shape');
+          return 'failed';
+        }
+        if (!submissionsMatch(expectedBase, fresh.rows)) {
+          console.warn(`[Firestore] submissions commit conflict: read ${expectedBase.length} rows, server now has ${fresh.rows.length}`);
+          return 'conflict';
+        }
+        tx.set(docRef, {
+          data: cleaned,
+          lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+        return 'ok';
+      });
+      if (outcome === 'ok') {
+        console.log(`[Firestore] submissions commit OK (${cleaned.length} rows, ~${Math.round(jsonSize / 1024)}KB)`);
+      }
+      return outcome;
+    } catch (error) {
+      console.error('[Firestore] submissions commit FAILED (no queued replace):', error);
+      return 'failed';
+    }
+  }
+
   // DATA LOSS PREVENTION: pushSubmission is read-modify-write on a single
   // submissions doc. A transient empty read would make remoteSet([this])
   // wipe every store's history. Once submissions have been seen non-empty
   // (marker), an empty read retries once then refuses.
+  // A FAILED read (offline/flaky tablet) is never treated as empty: both reads
+  // are strict server reads; see utils/submissionWriteGuard.ts.
   private async fetchSubmissionsForWrite(): Promise<ChecklistSubmission[] | null> {
     const SUBMISSIONS_POPULATED_KEY = 'submissionsPopulated';
-    let existing = await this.fetchSubmissions();
-    const marker = await this.remoteGet<{ populated: boolean }>(SUBMISSIONS_POPULATED_KEY, { populated: false });
-    if (existing.length === 0 && marker.populated) {
+    const readBase = async () => {
+      const [list, marker] = await Promise.all([
+        this.remoteGetStrict<ChecklistSubmission[]>(DOC_KEYS.SUBMISSIONS, { server: true }),
+        this.remoteGetStrict<{ populated: boolean }>(SUBMISSIONS_POPULATED_KEY, { server: true }),
+      ]);
+      const populated = marker.ok && !marker.missing && !!marker.data?.populated;
+      return { decision: decideSubmissionsWriteBase<ChecklistSubmission>(list, marker), populated };
+    };
+    let read = await readBase();
+    if (!read.decision.ok) {
       await new Promise(r => setTimeout(r, 500));
-      existing = await this.fetchSubmissions();
-      if (existing.length === 0) {
-        console.error('[Firestore] pushSubmission REFUSED: submissions read empty but marker set');
-        return null;
-      }
+      read = await readBase();
     }
-    if (existing.length > 0 && !marker.populated) {
+    const base = read.decision;
+    if (!base.ok) {
+      console.error(`[Firestore] submissions write REFUSED: ${(base as { reason: string }).reason}`);
+      return null;
+    }
+    if (base.rows.length > 0 && !read.populated) {
       this.remoteSet(SUBMISSIONS_POPULATED_KEY, { populated: true, at: new Date().toISOString() });
     }
-    return existing;
+    return base.rows;
   }
 
   async pushSubmission(submission: ChecklistSubmission): Promise<boolean> {
@@ -754,79 +836,91 @@ class CloudAPI {
       console.log(`[DB] pushSubmission: ${totalPhotoCount} photo URLs`);
     }
 
-    const all = await this.fetchSubmissionsForWrite();
-    if (all === null) {
-      console.error('[DB] pushSubmission END: success=false (empty-read refuse)');
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const all = await this.fetchSubmissionsForWrite();
+      if (all === null) {
+        console.error('[DB] pushSubmission END: success=false (read refused)');
+        return false;
+      }
+      console.log(`[DB] pushSubmission: Fetched ${all.length} existing submissions`);
+
+      const existingIdx = all.findIndex(s => s.id === submission.id);
+      let next;
+      if (existingIdx > -1) {
+        console.log(`[DB] pushSubmission: Updating existing submission at index ${existingIdx}`);
+        const existing = all[existingIdx];
+        const mergedResults = [...existing.taskResults];
+        submission.taskResults.forEach(newRes => {
+          const idx = mergedResults.findIndex(r => r.taskId === newRes.taskId);
+          if (idx === -1) mergedResults.push(newRes);
+          else if (newRes.completed || newRes.value || newRes.photoUrl || (newRes.photoUrls && newRes.photoUrls.length > 0) || newRes.comment) mergedResults[idx] = newRes;
+        });
+        next = all.map((s, i) => i === existingIdx ? {
+          ...submission,
+          taskResults: mergedResults,
+          status: (existing.status !== 'DRAFT' && submission.status === 'DRAFT') ? existing.status : submission.status
+        } : s);
+      } else {
+        console.log(`[DB] pushSubmission: Adding new submission`);
+        next = [submission, ...all];
+      }
+
+      // Strip base64 from older rows first (same as before), then split retention.
+      // Rows the 90/60/30 prune would drop are archived into
+      // submissionsArchive-YYYY-MM (and -p2, -p3, …) before they leave the live doc.
+      // The logbook still reads only `submissions`. If the archive cannot be
+      // verified, fall back to the old prune so a store can still submit.
+      const stripped = next.map(s => this.stripBase64Photos(s, s.id === submission.id));
+      const partitioned = partitionSubmissionsForRetention<ChecklistSubmission>(stripped, 900000, new Date());
+      const { byMonth, undated } = groupRemovedByMonth<ChecklistSubmission>(partitioned.removed);
+      const removed = Array.from(byMonth.values()).flat();
+      let toSave = partitioned.kept;
+      if (undated.length > 0) {
+        console.warn(`[DB] pushSubmission: keeping ${undated.length} submissions with no YYYY-MM date in the live doc`);
+        toSave = [...toSave, ...undated];
+      }
+      if (removed.length > 0) {
+        console.log(`[DB] pushSubmission: archiving ${removed.length} submissions before prune (kept ${toSave.length})`);
+        let archived = await this.archiveRemovedSubmissions(removed);
+        if (!archived) {
+          await new Promise(r => setTimeout(r, 400));
+          archived = await this.archiveRemovedSubmissions(removed);
+        }
+        if (!archived) {
+          console.error(`[DB] pushSubmission: archive failed for ${removed.length} submissions; pruning the live doc anyway so the checklist can save`);
+        } else {
+          console.log(`[DB] pushSubmission: archived ${removed.length} submissions`);
+        }
+      }
+
+      let jsonSize = JSON.stringify(toSave).length;
+      console.log(`[DB] pushSubmission: Document size after retention: ${Math.round(jsonSize / 1024)}KB (${toSave.length} submissions)`);
+
+      // Safety valve: if still over limit after preserving current, strip current too
+      if (jsonSize > 900000) {
+        console.warn(`[DB] pushSubmission: Document still ${Math.round(jsonSize / 1024)}KB — stripping base64 from current submission too`);
+        toSave = toSave.map(s => this.stripBase64Photos(s, false));
+        jsonSize = JSON.stringify(toSave).length;
+      }
+
+      console.log(`[DB] pushSubmission: Saving ${toSave.length} total submissions`);
+      const committed = await this.commitSubmissionsIfUnchanged(all, toSave);
+      if (committed === 'ok') {
+        if (toSave.length > 0) {
+          this.remoteSet('submissionsPopulated', { populated: true, at: new Date().toISOString() });
+        }
+        console.log('[DB] pushSubmission END: success=true');
+        return true;
+      }
+      if (committed === 'conflict' && attempt === 0) {
+        console.warn('[DB] pushSubmission: submissions changed since the read; retrying once');
+        continue;
+      }
+      console.error(`[DB] pushSubmission END: success=false (${committed})`);
       return false;
     }
-    console.log(`[DB] pushSubmission: Fetched ${all.length} existing submissions`);
-
-    const existingIdx = all.findIndex(s => s.id === submission.id);
-    let next;
-    if (existingIdx > -1) {
-      console.log(`[DB] pushSubmission: Updating existing submission at index ${existingIdx}`);
-      const existing = all[existingIdx];
-      const mergedResults = [...existing.taskResults];
-      submission.taskResults.forEach(newRes => {
-        const idx = mergedResults.findIndex(r => r.taskId === newRes.taskId);
-        if (idx === -1) mergedResults.push(newRes);
-        else if (newRes.completed || newRes.value || newRes.photoUrl || (newRes.photoUrls && newRes.photoUrls.length > 0) || newRes.comment) mergedResults[idx] = newRes;
-      });
-      next = all.map((s, i) => i === existingIdx ? {
-        ...submission,
-        taskResults: mergedResults,
-        status: (existing.status !== 'DRAFT' && submission.status === 'DRAFT') ? existing.status : submission.status
-      } : s);
-    } else {
-      console.log(`[DB] pushSubmission: Adding new submission`);
-      next = [submission, ...all];
-    }
-
-    // Strip base64 from older rows first (same as before), then split retention.
-    // Rows the 90/60/30 prune would drop are archived into
-    // submissionsArchive-YYYY-MM (and -p2, -p3, …) before they leave the live doc.
-    // The logbook still reads only `submissions`. If the archive cannot be
-    // verified, fall back to the old prune so a store can still submit.
-    const stripped = next.map(s => this.stripBase64Photos(s, s.id === submission.id));
-    const partitioned = partitionSubmissionsForRetention<ChecklistSubmission>(stripped, 900000, new Date());
-    const { byMonth, undated } = groupRemovedByMonth<ChecklistSubmission>(partitioned.removed);
-    const removed = Array.from(byMonth.values()).flat();
-    let toSave = partitioned.kept;
-    if (undated.length > 0) {
-      console.warn(`[DB] pushSubmission: keeping ${undated.length} submissions with no YYYY-MM date in the live doc`);
-      toSave = [...toSave, ...undated];
-    }
-    if (removed.length > 0) {
-      console.log(`[DB] pushSubmission: archiving ${removed.length} submissions before prune (kept ${toSave.length})`);
-      let archived = await this.archiveRemovedSubmissions(removed);
-      if (!archived) {
-        await new Promise(r => setTimeout(r, 400));
-        archived = await this.archiveRemovedSubmissions(removed);
-      }
-      if (!archived) {
-        console.error(`[DB] pushSubmission: archive failed for ${removed.length} submissions; pruning the live doc anyway so the checklist can save`);
-      } else {
-        console.log(`[DB] pushSubmission: archived ${removed.length} submissions`);
-      }
-    }
-
-    let jsonSize = JSON.stringify(toSave).length;
-    console.log(`[DB] pushSubmission: Document size after retention: ${Math.round(jsonSize / 1024)}KB (${toSave.length} submissions)`);
-
-    // Safety valve: if still over limit after preserving current, strip current too
-    if (jsonSize > 900000) {
-      console.warn(`[DB] pushSubmission: Document still ${Math.round(jsonSize / 1024)}KB — stripping base64 from current submission too`);
-      toSave = toSave.map(s => this.stripBase64Photos(s, false));
-      jsonSize = JSON.stringify(toSave).length;
-    }
-
-    console.log(`[DB] pushSubmission: Saving ${toSave.length} total submissions`);
-    const success = await this.remoteSet(DOC_KEYS.SUBMISSIONS, toSave);
-    if (success && toSave.length > 0) {
-      this.remoteSet('submissionsPopulated', { populated: true, at: new Date().toISOString() });
-    }
-    console.log(`[DB] pushSubmission END: success=${success}`);
-    return success;
+    console.error('[DB] pushSubmission END: success=false (conflict)');
+    return false;
   }
 
   /**
@@ -857,7 +951,8 @@ class CloudAPI {
         return;
       }
       if (added > 0) {
-        const ok = await this.remoteSet(DOC_KEYS.SUBMISSIONS, next);
+        const committed = await this.commitSubmissionsIfUnchanged(live, next);
+        const ok = committed === 'ok';
         if (!ok) return;
       }
       await this.remoteSet(SUBMISSIONS_RESTORE_KEY, {
