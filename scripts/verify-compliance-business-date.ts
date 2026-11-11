@@ -4,11 +4,13 @@
  * to the deadline in America/Chicago.
  * Run: npx --yes tsx scripts/verify-compliance-business-date.ts
  */
+import { readFileSync } from 'node:fs';
 import {
   chicagoWallTime,
   complianceDeadline,
   complianceStatus,
   findDaySubmission,
+  isComplianceGridType,
   lastBusinessDays,
 } from '../utils/complianceMatrix.ts';
 
@@ -72,6 +74,21 @@ assert(done === 3 && applicable.length === 6, 'Prosper closing grid: Oct 15, 16,
 assert(chicagoWallTime('2026-10-18', 23, 59, 59, 999).toISOString() === '2026-10-19T04:59:59.999Z', 'CDT end of day');
 assert(chicagoWallTime('2026-11-02', 12).toISOString() === '2026-11-02T18:00:00.000Z', 'CST noon after DST ends');
 assert(complianceDeadline('OPENING', '2026-10-18').toISOString() === '2026-10-18T17:00:00.000Z', 'Opening deadline noon CT');
+assert(complianceDeadline('SHIFT_CHANGE', '2026-10-18').toISOString() === '2026-10-18T19:00:00.000Z', 'Mid-shift deadline 2 PM CT');
+assert(complianceDeadline('SHIFT_CHANGE', '2026-11-11').toISOString() === '2026-11-11T20:00:00.000Z', 'Mid-shift deadline 2 PM CT after DST');
+const midAt1pm = { templateId: 'mid', date: '2026-10-18', status: 'PENDING', submittedAt: '2026-10-18T18:00:00.000Z' };
+const midAt3pm = { templateId: 'mid', date: '2026-10-18', status: 'PENDING', submittedAt: '2026-10-18T20:00:00.000Z' };
+assert(complianceStatus({ submission: midAt1pm, type: 'SHIFT_CHANGE', ymd: '2026-10-18', now }) === 'COMPLETED', '1 PM CT mid-shift is on time');
+assert(complianceStatus({ submission: midAt3pm, type: 'SHIFT_CHANGE', ymd: '2026-10-18', now }) === 'LATE', '3 PM CT mid-shift is late');
+assert(complianceStatus({ submission: midAt1pm, type: 'OPENING', ymd: '2026-10-18', now }) === 'LATE', 'opening after noon is still late');
+
+assert(isComplianceGridType('WEEKLY') && isComplianceGridType('SHIFT_CHANGE'), 'weekly deep cleans stay on the compliance grid');
+assert(!isComplianceGridType('MONTHLY'), 'monthly stays off the 7-day rate and grid');
+const hub = readFileSync(new URL('../components/ManagerHub.tsx', import.meta.url), 'utf8');
+const matrixSrc = hub.slice(hub.indexOf('const complianceMatrix'), hub.indexOf('const performanceData'));
+const pulseSrc = hub.slice(hub.indexOf('const pulseTemplates'), hub.indexOf('const trailingSummary'));
+assert(matrixSrc.includes('isComplianceGridType'), 'completion rate uses the shared protocol set');
+assert(pulseSrc.includes('isComplianceGridType'), '7-day grid uses the same protocol set as the completion rate');
 
 // LATE: a close submitted after midnight CT on its business date is late, still on its own day.
 const late = { templateId: PR_CLOSE, date: '2026-10-10', status: 'PENDING', submittedAt: '2026-10-11T05:30:00Z' }; // 12:30 AM CT Oct 11

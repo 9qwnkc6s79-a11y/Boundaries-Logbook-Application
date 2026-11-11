@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { toastAPI } from '../services/toast';
 import { db } from '../services/db';
-import { complianceStatus, findDaySubmission, lastBusinessDays } from '../utils/complianceMatrix';
+import { complianceStatus, findDaySubmission, isComplianceGridType, lastBusinessDays } from '../utils/complianceMatrix';
 import Food86Panel from './Food86Panel';
 import WasteHistoryPanel from './WasteHistoryPanel';
 import ManagerBudgetTile from './ManagerBudgetTile';
@@ -455,7 +455,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
     const last7Days = lastBusinessDays(7, now);
 
     const mainTemplates = sortChecklistsByStoreDay(
-      templates.filter(t => ['OPENING', 'CLOSING', 'SHIFT_CHANGE', 'WEEKLY'].includes(t.type))
+      templates.filter(t => isComplianceGridType(t.type))
     );
 
     // Helper to check if a date is applicable for a weekly template
@@ -475,12 +475,12 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
       const dayStatus = mainTemplates.map(tpl => {
         // For weekly templates, check if this day is applicable
         if (!isWeeklyDateApplicable(tpl, date)) {
-          return { templateName: tpl.name, templateType: tpl.type, status: 'N/A' as const };
+          return { templateId: tpl.id, templateName: tpl.name, templateType: tpl.type, status: 'N/A' as const };
         }
 
         const submission = findDaySubmission(submissions, tpl.id, date);
         const status = complianceStatus({ submission, type: tpl.type, ymd: date, now });
-        return { templateName: tpl.name, templateType: tpl.type, status };
+        return { templateId: tpl.id, templateName: tpl.name, templateType: tpl.type, status };
       });
       return { date, shortDate: date.split('-').slice(1).join('/'), statuses: dayStatus };
     });
@@ -624,7 +624,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
   }, [templates, submissions]);
 
   const pulseTemplates = useMemo(
-    () => sortChecklistsByStoreDay((templates || []).filter(t => ['OPENING', 'CLOSING', 'SHIFT_CHANGE'].includes(t.type))),
+    () => sortChecklistsByStoreDay((templates || []).filter(t => isComplianceGridType(t.type))),
     [templates]
   );
 
@@ -2532,7 +2532,7 @@ const ManagerHub: React.FC<ManagerHubProps> = ({
                         <tr key={tpl.id}>
                           <td className="py-4 pr-6 font-bold text-xs text-[#0F2B3C] uppercase tracking-tight">{tpl.name}</td>
                           {complianceMatrix.map(day => {
-                            const status = day.statuses?.find(s => s.templateName === tpl.name)?.status || 'FUTURE';
+                            const status = day.statuses?.find(s => s.templateId === tpl.id)?.status || 'FUTURE';
                             return (
                               <td key={`${tpl.id}-${day.date}`} className="py-4 px-3 text-center">
                                 <div className={`w-8 h-8 rounded-xl mx-auto flex items-center justify-center ${

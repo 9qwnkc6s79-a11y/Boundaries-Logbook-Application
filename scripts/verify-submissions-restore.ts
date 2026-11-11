@@ -18,6 +18,6 @@ assert(JSON.stringify(next).length < 900_000, 'size ok');
 const db = readFileSync(new URL('../services/db.ts', import.meta.url), 'utf8');
 const fn = db.slice(db.indexOf('async restoreOct6to12Submissions'), db.indexOf('async fetchAuditFeedback'));
 assert(fn.includes('fetchSubmissionsForWrite()') && fn.includes('live.length === 0'), 'guarded re-read');
-assert(fn.indexOf('SUBMISSIONS_MAX_BYTES') < fn.indexOf('remoteSet(DOC_KEYS.SUBMISSIONS'), 'size check before write');
+assert(fn.indexOf('SUBMISSIONS_MAX_BYTES') < fn.indexOf('commitSubmissionsIfUnchanged'), 'size check before conditional commit');
 assert(fn.indexOf('if (!ok) return;') < fn.indexOf('remoteSet(SUBMISSIONS_RESTORE_KEY'), 'marker after successful save');
 console.log('verify-submissions-restore: OK');

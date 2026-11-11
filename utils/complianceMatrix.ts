@@ -13,6 +13,17 @@
 
 export const COMPLIANCE_TZ = 'America/Chicago';
 
+/**
+ * Protocols that appear on the 7-day grid and that Completion Rate counts.
+ * Weekly deep cleans are in both; leaving them out of either one makes the
+ * rate disagree with the grid.
+ */
+export const COMPLIANCE_GRID_TYPES = ['OPENING', 'CLOSING', 'SHIFT_CHANGE', 'WEEKLY'] as const;
+
+export function isComplianceGridType(type: string): boolean {
+  return (COMPLIANCE_GRID_TYPES as readonly string[]).includes(type);
+}
+
 export type ComplianceStatus = 'MISSING' | 'COMPLETED' | 'LATE' | 'FUTURE' | 'N/A';
 
 export interface ComplianceSubmissionLike {
@@ -59,10 +70,13 @@ export function chicagoWallTime(ymd: string, h: number, m = 0, s = 0, ms = 0): D
 
 /**
  * Hub grid deadline for a template type on a business date (Chicago).
- * Same rules the grid used before: Opening/other = noon, Closing/Weekly = end of day.
+ * Opening stays noon. Mid-shift is 2:00 PM CT — the same deadline the
+ * logbook export applies to Prosper's Mid-Shift (deadlineHour 14).
+ * Closing and weekly deep cleans are due by the end of that business day.
  */
 export function complianceDeadline(type: string, ymd: string): Date {
   if (type === 'CLOSING' || type === 'WEEKLY') return chicagoWallTime(ymd, 23, 59, 59, 999);
+  if (type === 'SHIFT_CHANGE') return chicagoWallTime(ymd, 14, 0, 0, 0);
   return chicagoWallTime(ymd, 12, 0, 0, 0);
 }
 
