@@ -18,6 +18,7 @@ import { mergeRestoredSubmissions, SUBMISSIONS_MAX_BYTES, SUBMISSIONS_RESTORE_CO
 import { HEATH_OFFBOARD_KEY, HEATH_USER_ID, needsOffboard, offboardedUser } from '../utils/userOffboard';
 import { currentReviewPeriod, prunePerformanceReviews, upsertPerformanceReview } from '../utils/performanceReviews';
 import { appendFallAvailableFlavors } from '../utils/fallMenuRematch';
+import { correctWinterCurriculum, correctWinterInventory, correctWinterRecipes, remapWinterInventoryCounts } from '../utils/winterSyrupBrands';
 import { pruneTeamPerformanceReviews, upsertTeamPerformanceReview } from '../utils/teamPerformanceReviews';
 import {
   ARCHIVE_MAX_BYTES,
@@ -2052,6 +2053,14 @@ class CloudAPI {
       needsCurriculumUpdate = true;
     }
 
+    // Winter 2026 syrup brands (Daniel, Nov 12). Text only — does not bump curriculum version.
+    const brandedCurriculum = correctWinterCurriculum(curriculum);
+    if (brandedCurriculum.mutated) {
+      console.log('[Firestore] globalSync: Corrected winter syrup brands in Academy text');
+      curriculum = brandedCurriculum.modules;
+      needsCurriculumUpdate = true;
+    }
+
     // Save curriculum and version if changes detected
     if (needsCurriculumUpdate || needsVersionUpdate) {
       console.log(`[Firestore] globalSync: Saving updated curriculum to Firebase`);
@@ -2120,6 +2129,17 @@ class CloudAPI {
       }
     }
 
+    // Winter syrup brand text, plus a TODO on an SF Peppermint Mocha card.
+    // Does not invent a peppermint syrup. No-op when the card is absent.
+    if (mergedRecipes.length > 0) {
+      const brandedRecipes = correctWinterRecipes(mergedRecipes);
+      if (brandedRecipes.mutated) {
+        console.log('[Firestore] globalSync: Corrected winter syrup brands in recipes');
+        mergedRecipes = brandedRecipes.recipes;
+        await this.remoteSet(DOC_KEYS.RECIPES, mergedRecipes);
+      }
+    }
+
     // Seed inventory items per store if cloud is empty
     if (defaults.inventorySeed) {
       const seedPromises: Promise<void>[] = [];
@@ -2156,7 +2176,7 @@ class CloudAPI {
             'inv-dairy-whole', 'inv-dairy-2pct', 'inv-dairy-halfhalf', 'inv-dairy-heavy',
           ]);
           let mutated = false;
-          const migrated = existing.map(item => {
+          let migrated = existing.map(item => {
             if (oakFarmsToCostco.has(item.id) && item.vendor === 'Oak Farms') {
               mutated = true;
               const { brand, ...rest } = item;
@@ -2182,7 +2202,7 @@ class CloudAPI {
           const newItemParOverrides: Record<string, number> = {
             'inv-syrup-cupcake': 4,
           };
-          for (const newId of ['inv-frappe-powder', 'inv-dairy-sweetcream', 'inv-syrup-macadamia', 'inv-seasonal-coconut-shavings', 'inv-syrup-cupcake', 'inv-seasonal-pumpkin-spice', 'inv-seasonal-pumpkin-spice-zero', 'inv-sauce-pumpkin-pie', 'inv-cup-carriers', 'inv-seasonal-sf-peppermint-torani', 'inv-seasonal-shortbread-torani', 'inv-seasonal-cupcake-torani', 'inv-seasonal-gingerbread-1883', 'inv-seasonal-brown-butter-toffee', 'inv-seasonal-cranberry', 'inv-seasonal-orange-torani', 'inv-sauce-sf-dark-chocolate', 'inv-seasonal-candy-cane', 'inv-seasonal-holiday-sprinkles', 'inv-seasonal-cinnamon-sugar', 'inv-dairy-white-choc-sweetcream']) {
+          for (const newId of ['inv-frappe-powder', 'inv-dairy-sweetcream', 'inv-syrup-macadamia', 'inv-seasonal-coconut-shavings', 'inv-syrup-cupcake', 'inv-seasonal-pumpkin-spice', 'inv-seasonal-pumpkin-spice-zero', 'inv-sauce-pumpkin-pie', 'inv-cup-carriers', 'inv-seasonal-shortbread-torani', 'inv-seasonal-gingerbread-1883', 'inv-seasonal-brown-butter-toffee', 'inv-seasonal-cranberry', 'inv-seasonal-orange-torani', 'inv-sauce-sf-dark-chocolate', 'inv-seasonal-candy-cane', 'inv-seasonal-holiday-sprinkles', 'inv-seasonal-cinnamon-sugar', 'inv-dairy-white-choc-sweetcream']) {
             if (!migrated.some(i => i.id === newId)) {
               const fromSeed = seedById.get(newId);
               if (fromSeed) {
@@ -2210,8 +2230,8 @@ class CloudAPI {
           if (!winterMarker.done) {
             const WINTER_SET: Record<string, number> = {
               'inv-seasonal-peppermint': 3, 'inv-seasonal-gingerbread-1883': 2,
-              'inv-seasonal-sf-peppermint-torani': 1, 'inv-sauce-sf-dark-chocolate': 1,
-              'inv-seasonal-shortbread-torani': 1, 'inv-seasonal-cupcake-torani': 1,
+              'inv-sauce-sf-dark-chocolate': 1,
+              'inv-seasonal-shortbread-torani': 1,
               'inv-seasonal-brown-butter-toffee': 1, 'inv-seasonal-cranberry': 1,
               'inv-seasonal-orange-torani': 1, 'inv-dairy-white-choc-sweetcream': 1,
               'inv-seasonal-candy-cane': 1, 'inv-seasonal-holiday-sprinkles': 1,
@@ -2235,9 +2255,34 @@ class CloudAPI {
             winterApplied = true;
           }
 
+          // Daniel Nov 12: rename SF dark chocolate to 1883, fold Torani Cupcake
+          // into Monin Cupcake, fold Monin Gingerbread into 1883, drop Torani SF Peppermint.
+          // Runs every sync until the stored rows match, including after winterPars2026 is done.
+          const brandFix = correctWinterInventory(migrated);
+          if (brandFix.mutated) {
+            migrated = brandFix.items;
+            mutated = true;
+          }
+
           if (mutated) {
             console.log(`[Firestore] globalSync: Applying inventory vendor migration for ${storeId}`);
             await this.pushInventoryItems(storeId, migrated);
+          }
+
+          // Counts are a separate doc, keyed by item id. Move or drop the old ids
+          // even when the item rows were corrected on a previous sync.
+          // Skip an empty read so a transient failure cannot wipe the count history.
+          try {
+            const storedCounts = await this.fetchInventoryCounts(storeId);
+            if (storedCounts.length > 0) {
+              const remappedCounts = remapWinterInventoryCounts(storedCounts);
+              if (remappedCounts.mutated) {
+                console.log(`[Firestore] globalSync: Remapped winter syrup count keys for ${storeId}`);
+                await this.remoteSet(this.inventoryCountsKey(storeId), remappedCounts.counts);
+              }
+            }
+          } catch (e) {
+            console.warn(`[Firestore] globalSync: Winter syrup count remap failed for ${storeId}:`, e);
           }
           if (winterApplied) {
             await this.remoteSet(winterParsKey, { done: true, at: new Date().toISOString() });
