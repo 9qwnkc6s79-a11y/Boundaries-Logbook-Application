@@ -33,6 +33,7 @@ import {
 import { createKeyedSerialQueue, mergeWasteEntries } from '../utils/wasteQueue';
 import { decideSubmissionsWriteBase, submissionsMatch } from '../utils/submissionWriteGuard';
 import { mergeUserRecords, userDocId, USERS_ARRAY_READ_ONLY_KEY } from '../utils/userRecords';
+import { applyRecordWrite, buildLogbookRecord, type LogbookRecord } from '../utils/logbookRecords';
 
 declare const firebase: any;
 
@@ -985,6 +986,8 @@ class CloudAPI {
         if (toSave.length > 0) {
           this.remoteSet('submissionsPopulated', { populated: true, at: new Date().toISOString() });
         }
+        const saved = toSave.find(s => s.id === submission.id) || submission;
+        await this.writeLogbookRecord(saved);
         console.log('[DB] pushSubmission END: success=true');
         return true;
       }
@@ -997,6 +1000,29 @@ class CloudAPI {
     }
     console.error('[DB] pushSubmission END: success=false (conflict)');
     return false;
+  }
+
+  /**
+   * Per-submission copy. A failure here must not fail the live checklist save.
+   * Drafts update. Submitted records stay put except for an https photo swap.
+   */
+  private async writeLogbookRecord(submission: ChecklistSubmission): Promise<void> {
+    if (!firestore || !this.currentOrgId) return;
+    const incoming = buildLogbookRecord(submission, {
+      source: 'client',
+      note: 'written with the checklist save',
+    });
+    if (!incoming) return;
+    try {
+      const ref = firestore.doc(`organizations/${this.currentOrgId}/logbookSubmissions/${incoming.id}`);
+      const snap = await ref.get();
+      const existing = snap.exists ? (snap.data() as LogbookRecord) : null;
+      const next = applyRecordWrite(existing, incoming);
+      if (!next) return;
+      await ref.set(next);
+    } catch (error) {
+      console.warn('[DB] immutable logbook record was not written; the live save still stands', error);
+    }
   }
 
   /**
