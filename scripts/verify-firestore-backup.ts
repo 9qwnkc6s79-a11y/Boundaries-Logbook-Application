@@ -11,6 +11,8 @@ import {
   buildManifest,
   collectionObjectName,
   manifestObjectName,
+  SOURCE_STORAGE_BUCKET,
+  storageCopyName,
 } from '../utils/firestoreBackup.ts';
 
 function assert(cond: unknown, message: string): asserts cond {
@@ -24,6 +26,12 @@ assert(!backupObjectExpired('firestore-backups/2026-11-17/manifest.json', now), 
 assert(!backupObjectExpired('other-prefix/2020-01-01/data.json', now), 'unrelated objects are not deleted');
 assert(collectionObjectName('2026-11-17', 'users') === 'firestore-backups/2026-11-17/users.json', 'object name');
 assert(manifestObjectName('2026-11-17').endsWith('manifest.json'), 'manifest name');
+assert(
+  storageCopyName('2026-11-17', 'photos/store-elm/a.jpg') === 'firestore-backups/2026-11-17/storage/photos/store-elm/a.jpg',
+  'storage copies sit in the dated folder',
+);
+assert(SOURCE_STORAGE_BUCKET === 'boundaries-logbook-app.firebasestorage.app', 'source bucket');
+assert(backupObjectExpired(storageCopyName('2026-10-17', 'photos/a.jpg'), now), 'old storage copies expire with the folder');
 
 const manifest = buildManifest({
   takenAt: now.toISOString(),

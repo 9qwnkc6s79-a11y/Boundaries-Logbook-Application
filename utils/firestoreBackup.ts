@@ -4,6 +4,8 @@
  */
 
 export const BACKUP_PREFIX = 'firestore-backups';
+/** Production Firebase Storage bucket. Listing it requires a service account. */
+export const SOURCE_STORAGE_BUCKET = 'boundaries-logbook-app.firebasestorage.app';
 export const BACKUP_RETENTION_DAYS = 30;
 
 export const BACKUP_COLLECTIONS = [
@@ -32,6 +34,12 @@ export function collectionObjectName(day: string, collection: string): string {
 
 export function manifestObjectName(day: string): string {
   return `${backupFolder(day)}/manifest.json`;
+}
+
+/** Copy path inside the backup bucket. Stays under the dated folder so retention applies. */
+export function storageCopyName(day: string, objectName: string): string {
+  const safe = objectName.replace(/^\/+/, '');
+  return `${backupFolder(day)}/storage/${safe}`;
 }
 
 export function buildManifest(input: {

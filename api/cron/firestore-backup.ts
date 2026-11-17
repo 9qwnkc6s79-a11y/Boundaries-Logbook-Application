@@ -14,10 +14,12 @@ import { loadServiceAccountFromEnv } from '../../utils/firebaseAdminApp';
 import {
   BACKUP_COLLECTIONS,
   BACKUP_PREFIX,
+  SOURCE_STORAGE_BUCKET,
   backupObjectExpired,
   buildManifest,
   collectionObjectName,
   manifestObjectName,
+  storageCopyName,
   utcDay,
 } from '../../utils/firestoreBackup';
 
@@ -60,6 +62,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }, 'firestore-backup');
     const db = admin.firestore(app);
     const bucket = admin.storage(app).bucket(bucketName);
+    const sourceBucket = admin.storage(app).bucket(process.env.FIREBASE_STORAGE_BUCKET || SOURCE_STORAGE_BUCKET);
     const counts: Record<string, number> = {};
 
     for (const name of BACKUP_COLLECTIONS) {
@@ -71,6 +74,33 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         contentType: 'application/json',
         resumable: false,
       });
+    }
+
+    const appData = await db.collection('appData').get();
+    const appDataDocs: Record<string, unknown> = {};
+    appData.forEach(doc => { appDataDocs[doc.id] = doc.data(); });
+    counts.appData = appData.size;
+    await bucket.file(collectionObjectName(day, 'appData')).save(JSON.stringify({ docs: appDataDocs }), {
+      contentType: 'application/json',
+      resumable: false,
+    });
+
+    const [storageFiles] = await sourceBucket.getFiles();
+    let storageCopied = 0;
+    let storageFailed = 0;
+    for (const file of storageFiles) {
+      try {
+        await file.copy(bucket.file(storageCopyName(day, file.name)));
+        storageCopied++;
+      } catch (error) {
+        storageFailed++;
+        console.error('[firestore-backup] storage copy failed', file.name, error instanceof Error ? error.message : error);
+      }
+    }
+    counts.storageFiles = storageCopied;
+    counts.storageFailed = storageFailed;
+    if (storageFiles.length > 0 && storageCopied === 0) {
+      throw new Error('Storage backup failed for every object. The service account needs access to the source bucket.');
     }
 
     const manifest = buildManifest({

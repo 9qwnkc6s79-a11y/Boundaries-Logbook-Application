@@ -65,7 +65,10 @@ async function main() {
   for (const row of plan) {
     const docs = loadDocs(dir, row.file)!;
     for (const [id, data] of Object.entries(docs)) {
-      await db.doc(`organizations/${orgId}/${row.collection}/${id}`).set(data as Record<string, unknown>);
+      const path = row.collection === 'appData'
+        ? `appData/${id}`
+        : `organizations/${orgId}/${row.collection}/${id}`;
+      await db.doc(path).set(data as Record<string, unknown>);
       written++;
     }
   }

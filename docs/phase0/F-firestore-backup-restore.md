@@ -7,6 +7,8 @@
 - `organizations/org-boundaries/logbookSubmissions`
 - `organizations/org-boundaries/toastSnapshots`
 - `organizations/org-boundaries/config`
+- top-level `appData` (legacy Jan–Feb 2026 snapshot, 10 docs in the 2026-11-17 backup)
+- every object in the Firebase Storage bucket `boundaries-logbook-app.firebasestorage.app`, copied with the service account (that bucket is not listable anonymously) to `firestore-backups/YYYY-MM-DD/storage/...`
 
 Objects:
 
@@ -23,12 +25,13 @@ This agent did not run the cron and did not read production.
 
 1. Google Cloud console → Cloud Storage → Buckets → Create bucket. Name example: `boundaries-logbook-backups`. Region: `us-central1` (same as the Firebase project). Do not make it public.
 2. Firebase console → Project settings → Service accounts → Generate new private key, if you do not already have one from Phase 0A. The same JSON is `FIREBASE_SERVICE_ACCOUNT_JSON` on Vercel.
-3. Cloud Storage → the bucket → Permissions → Grant access. Principal: the service account email inside that JSON (`client_email`). Role: **Storage Object Admin** on this bucket only.
-4. Vercel → Project **boundaries-logbook-application** → Settings → Environment Variables:
+3. Cloud Storage → the backup bucket → Permissions → Grant access. Principal: the service account email inside that JSON (`client_email`). Role: **Storage Object Admin** on the backup bucket.
+4. Same principal on the source bucket `boundaries-logbook-app.firebasestorage.app`: role **Storage Object Viewer** is not enough to copy, so grant **Storage Object Admin** (or Storage Object Viewer plus permission to read object data). Without this, the cron cannot list the photos.
+5. Vercel → Project **boundaries-logbook-application** → Settings → Environment Variables:
    - `FIREBASE_BACKUP_BUCKET` = the bucket name (not a URL)
    - `FIREBASE_SERVICE_ACCOUNT_JSON` = the key JSON, one line
    - `CRON_SECRET` = a long random string (`openssl rand -base64 32`). The same value authorizes the Toast snapshot cron.
-5. Redeploy so `vercel.json` registers the cron. Schedule: `0 8 * * *` UTC (about 2:00am or 3:00am Chicago).
+6. Redeploy so `vercel.json` registers the cron. Schedule: `0 8 * * *` UTC (about 2:00am or 3:00am Chicago). `FIREBASE_STORAGE_BUCKET` is optional; it defaults to `boundaries-logbook-app.firebasestorage.app`.
 
 Optional native export, in addition to this JSON cron: Google Cloud console → Firestore → Import/Export → Export, destination the same bucket. The service account (or the Firestore service agent) needs **Cloud Datastore Import Export Admin**. That export is the one Google can import with `gcloud firestore import`. The JSON cron is the one this repo runs and the one the restore script reads.
 
