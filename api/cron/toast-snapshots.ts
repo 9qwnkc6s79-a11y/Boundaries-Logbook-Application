@@ -9,15 +9,16 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createHash, timingSafeEqual } from 'node:crypto';
-import { eachDate } from '../../utils/logbookRecords';
-import { writeSnapshot } from '../toastSnapshotStore';
-import type { StoreDaySnapshot } from '../../utils/toastSnapshot';
+import { readFileSync } from 'node:fs';
 import {
   chicagoToday,
   fetchToastLaborCost,
   getDaySummary,
   toIsoDate,
 } from '../manager-budget';
+
+// Self-contained on purpose. A Vercel function that imports ../../utils
+// crashes at boot with ERR_MODULE_NOT_FOUND (seen on the first production hit).
 
 export const config = { maxDuration: 60 };
 
@@ -32,9 +33,58 @@ export function cronAuthorized(header: string | undefined, secret: string | unde
   return timingSafeEqual(a, b);
 }
 
+type StoreDaySnapshot = {
+  storeId: 'store-elm' | 'store-prosper';
+  businessDate: string;
+  capturedAt: string;
+  salesGross: number | null;
+  orders: number | null;
+  laborDollars: number | null;
+  laborHours: number | null;
+  salesStatus: 'ok' | 'unavailable';
+  laborStatus: 'ok' | 'unavailable' | 'incomplete';
+  error?: string;
+};
+
 function yesterday(today: string): string {
-  const dates = eachDate('2020-01-01', today);
-  return dates[dates.length - 2] || today;
+  const [year, month, day] = today.split('-').map(Number);
+  return new Date(Date.UTC(year, month - 1, day - 1)).toISOString().slice(0, 10);
+}
+
+function mergeSnapshot(previous: StoreDaySnapshot | null, incoming: StoreDaySnapshot): StoreDaySnapshot {
+  if (!previous) return incoming;
+  const salesOk = incoming.salesStatus === 'ok' && incoming.salesGross != null;
+  const laborOk = incoming.laborStatus === 'ok' && incoming.laborDollars != null;
+  return {
+    ...previous,
+    ...incoming,
+    salesGross: salesOk ? incoming.salesGross : previous.salesGross,
+    orders: salesOk ? incoming.orders : previous.orders,
+    salesStatus: salesOk ? 'ok' : previous.salesStatus,
+    laborDollars: laborOk ? incoming.laborDollars : previous.laborDollars,
+    laborHours: laborOk ? incoming.laborHours : previous.laborHours,
+    laborStatus: laborOk ? 'ok' : (previous.laborStatus === 'ok' ? 'ok' : incoming.laborStatus),
+    capturedAt: incoming.capturedAt,
+    error: incoming.error || previous.error,
+  };
+}
+
+async function writeSnapshot(snapshot: StoreDaySnapshot): Promise<void> {
+  const raw = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+  const path = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+  if (!raw && !path) throw new Error('Firebase Admin is not configured. Snapshot was not written.');
+  const account = raw ? JSON.parse(raw) : JSON.parse(readFileSync(path as string, 'utf8'));
+  const admin = await import('firebase-admin');
+  const existing = admin.apps.find(app => app?.name === 'toast-snapshots');
+  const app = existing || admin.initializeApp({
+    credential: admin.credential.cert(account),
+    projectId: account.project_id || 'boundaries-logbook-app',
+  }, 'toast-snapshots');
+  const db = admin.firestore(app);
+  const orgId = process.env.AUTH_ORG_ID || 'org-boundaries';
+  const ref = db.doc(`organizations/${orgId}/toastSnapshots/${snapshot.storeId}_${snapshot.businessDate}`);
+  const prev = await ref.get();
+  await ref.set(mergeSnapshot(prev.exists ? prev.data() as StoreDaySnapshot : null, snapshot));
 }
 
 async function token(): Promise<string> {
