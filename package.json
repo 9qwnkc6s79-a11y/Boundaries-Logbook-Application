@@ -36,6 +36,7 @@
     "verify:attributed-orders": "npx --yes tsx scripts/verify-attributed-orders.ts",
     "verify:upload-queue": "npx --yes tsx scripts/verify-upload-queue.ts",
     "verify:toast-snapshots": "npx --yes tsx scripts/verify-toast-snapshots.ts",
+    "verify:firestore-backup": "npx --yes tsx scripts/verify-firestore-backup.ts",
     "test:rules": "npx --yes firebase emulators:exec --project demo-boundaries-logbook --only firestore,storage \"npx tsx scripts/verify-security-rules.ts\""
   },
   "dependencies": {

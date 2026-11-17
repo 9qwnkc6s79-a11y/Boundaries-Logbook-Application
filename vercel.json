@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/toast-snapshots",
       "schedule": "30 4 * * *"
+    },
+    {
+      "path": "/api/cron/firestore-backup",
+      "schedule": "0 8 * * *"
     }
   ]
 }
