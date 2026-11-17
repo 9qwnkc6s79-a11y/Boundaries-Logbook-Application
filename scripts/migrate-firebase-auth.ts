@@ -18,6 +18,7 @@ import { readFileSync, statSync, writeFileSync } from 'node:fs';
 import {
   AUTH_HASH_ALGORITHM,
   AUTH_HASH_ROUNDS,
+  attachUserPasswords,
   planAuthImport,
   publicAuthImportReport,
   type AuthImportRow,
@@ -108,7 +109,10 @@ async function main() {
     console.error('Usage: npx tsx scripts/migrate-firebase-auth.ts --input users.json [--out plan.json] [--apply --backup-file backup.json]');
     process.exit(1);
   }
-  const users = loadUsers(input);
+  const passwordsPath = arg('--passwords');
+  const users = passwordsPath
+    ? attachUserPasswords(loadUsers(input), JSON.parse(readFileSync(passwordsPath, 'utf8')))
+    : loadUsers(input);
   const plan = planAuthImport(users);
   const report = publicAuthImportReport(plan);
   const out = arg('--out');

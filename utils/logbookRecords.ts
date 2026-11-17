@@ -9,6 +9,13 @@
  */
 
 export const GAP_REPORT_START = '2026-09-01';
+/**
+ * Production backup taken 2026-11-17 11:21 CT: the only submission archive is
+ * submissionsArchive-2026-10, and the live submissions doc starts 2026-10-18.
+ * Sep 1–Oct 5 has no Firestore source for either store. Flag those days as
+ * gaps. Do not invent the missing checklists.
+ */
+export const UNRECOVERABLE_THROUGH = '2026-10-05';
 export const LOGBOOK_STORES = ['store-elm', 'store-prosper'] as const;
 export const DAILY_CHECKLIST_TYPES = ['OPENING', 'SHIFT_CHANGE', 'CLOSING'] as const;
 
@@ -236,6 +243,8 @@ export interface GapCell {
   date: string;
   checklistType: DailyChecklistType;
   status: GapStatus;
+  /** Why a gap is a gap. Absent when the cell is present or partial. */
+  reason?: 'unrecoverable-before-backup' | 'missing-from-source';
 }
 
 function templateType(templates: TemplateLike[] | undefined, templateId: string | undefined): string | undefined {
@@ -373,11 +382,18 @@ export function planHistoryRebuild(input: HistoryRebuildInput, rebuiltAt: string
       for (const checklistType of DAILY_CHECKLIST_TYPES) {
         const key = `${storeId}|${date}|${checklistType}`;
         let status: GapStatus;
+        let reason: GapCell['reason'];
         if (presentKeys.has(key)) status = 'present';
         else if (partialKeys.has(key)) status = 'partial-export';
-        else if (!covered) status = 'no-source';
-        else status = 'gap';
-        gaps.push({ storeId, date, checklistType, status });
+        else if (date <= UNRECOVERABLE_THROUGH) {
+          status = 'gap';
+          reason = 'unrecoverable-before-backup';
+        } else if (!covered) status = 'no-source';
+        else {
+          status = 'gap';
+          reason = 'missing-from-source';
+        }
+        gaps.push({ storeId, date, checklistType, status, reason });
       }
     }
   }

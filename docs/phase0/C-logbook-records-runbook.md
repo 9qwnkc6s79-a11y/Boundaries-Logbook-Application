@@ -21,7 +21,9 @@ This does not read production. Put local JSON in `history.json`:
 npx tsx scripts/rebuild-logbook-history.ts --input history.json --end 2026-11-17 --out gap-report.json
 ```
 
-The report starts at 2026-09-01. For each store (Little Elm `store-elm`, Prosper `store-prosper`) and each daily type (`OPENING`, `SHIFT_CHANGE`, `CLOSING`):
+The report starts at 2026-09-01. The 2026-11-17 backup showed no submission source before 2026-10-06: the live doc is Oct 18–Nov 17 (154 rows), the only archive is `submissionsArchive-2026-10` (52 rows, one shard), and `appData/submissions` does not overlap those ids. Sep 1–Oct 5 is flagged `gap` / `unrecoverable-before-backup` for both stores. Those days are not filled in.
+
+For each store (Little Elm `store-elm`, Prosper `store-prosper`) and each daily type (`OPENING`, `SHIFT_CHANGE`, `CLOSING`):
 
 - `present` — a full row was in the archive or the live doc
 - `partial-export` — only the export summary exists
@@ -43,8 +45,21 @@ Requires the service account. Existing sealed docs are skipped, so a second run 
 
 Stop writing new docs by reverting this PR. Docs already written can stay; the app still reads the live array. To remove a bad rebuild, delete `organizations/org-boundaries/logbookSubmissions/{id}` for the ids in the dry-run report. Do not delete `data/submissions`.
 
+## Attributed orders
+
+`data/attributedOrders` is about 2,134 rows and ~1.05 MB, so the next array write can be rejected. New attributions are also written to `organizations/org-boundaries/attributedOrders/{orderId}_{checkGuid}`. The array is updated only when the JSON stays under 900 KB. If the array cannot be read, it is left alone and the new orders still get their own docs. A store clear does not delete those docs.
+
+Copy the historical array from the backup file (do not point this at production):
+
+```bash
+npx tsx scripts/migrate-attributed-orders.ts --input attributed-orders.json --out order-plan.json
+```
+
+`--apply` also needs `ORDERS_MIGRATION_APPLY=yes` and a service account. It does not modify the array.
+
 ## Test
 
 ```bash
 npx tsx scripts/verify-logbook-records.ts
+npx tsx scripts/verify-attributed-orders.ts
 ```

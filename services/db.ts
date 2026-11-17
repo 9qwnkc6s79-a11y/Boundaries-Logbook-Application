@@ -34,6 +34,7 @@ import { createKeyedSerialQueue, mergeWasteEntries } from '../utils/wasteQueue';
 import { decideSubmissionsWriteBase, submissionsMatch } from '../utils/submissionWriteGuard';
 import { mergeUserRecords, userDocId, USERS_ARRAY_READ_ONLY_KEY } from '../utils/userRecords';
 import { applyRecordWrite, buildLogbookRecord, type LogbookRecord } from '../utils/logbookRecords';
+import { arrayWriteFits, mergeAttributedOrders, orderDocId } from '../utils/attributedOrderRecords';
 
 declare const firebase: any;
 
@@ -1614,8 +1615,52 @@ class CloudAPI {
 
   // ── Order Attribution ──
 
+  private async fetchAttributedOrderDocs(): Promise<AttributedOrder[]> {
+    if (!firestore || !this.currentOrgId) return [];
+    try {
+      const snap = await firestore.collection(`organizations/${this.currentOrgId}/attributedOrders`).get();
+      const orders: AttributedOrder[] = [];
+      snap.forEach((docSnap: any) => {
+        const raw = docSnap.data() || {};
+        const order = raw.id ? raw : raw.data;
+        if (order?.id) orders.push(order as AttributedOrder);
+      });
+      return orders;
+    } catch (error) {
+      console.warn('[Firestore] attributed order docs unreadable; array remains the fallback', error);
+      return [];
+    }
+  }
+
+  private async writeAttributedOrderDocs(orders: AttributedOrder[]): Promise<number> {
+    if (!firestore || !this.currentOrgId) return 0;
+    let written = 0;
+    for (const order of orders) {
+      const id = orderDocId(order);
+      if (!id) continue;
+      try {
+        await firestore.doc(`organizations/${this.currentOrgId}/attributedOrders/${id}`).set(removeUndefined({
+          ...order,
+          updatedAt: new Date().toISOString(),
+        }));
+        written++;
+      } catch (error) {
+        console.warn(`[Firestore] attributed order doc ${id} was not written`, error);
+      }
+    }
+    return written;
+  }
+
+  private async loadAttributedOrders(): Promise<{ orders: AttributedOrder[]; arrayOk: boolean }> {
+    const strict = await this.remoteGetStrict<AttributedOrder[]>(DOC_KEYS.ATTRIBUTED_ORDERS);
+    const docs = await this.fetchAttributedOrderDocs();
+    if (!strict.ok) return { orders: docs, arrayOk: false };
+    const arrayOrders = strict.missing || !Array.isArray(strict.data) ? [] : strict.data;
+    return { orders: mergeAttributedOrders(arrayOrders, docs), arrayOk: true };
+  }
+
   async fetchAttributedOrders(storeId?: string, startDate?: string, endDate?: string): Promise<AttributedOrder[]> {
-    const allOrders = await this.remoteGet<AttributedOrder[]>(DOC_KEYS.ATTRIBUTED_ORDERS, []);
+    const { orders: allOrders } = await this.loadAttributedOrders();
 
     // Filter by store and date range if provided
     let filtered = allOrders;
@@ -1642,54 +1687,56 @@ class CloudAPI {
    * Clear all attributed orders for a store (forces fresh re-attribution on next sync)
    */
   async clearAttributedOrders(storeId?: string): Promise<boolean> {
-    if (storeId) {
-      const existing = await this.remoteGet<AttributedOrder[]>(DOC_KEYS.ATTRIBUTED_ORDERS, []);
-      const filtered = existing.filter(o => o.storeId !== storeId);
-      console.log(`[DB] clearAttributedOrders: Cleared ${existing.length - filtered.length} orders for ${storeId}`);
-      return this.remoteSet(DOC_KEYS.ATTRIBUTED_ORDERS, filtered);
-    } else {
-      console.log(`[DB] clearAttributedOrders: Clearing ALL orders`);
-      return this.remoteSet(DOC_KEYS.ATTRIBUTED_ORDERS, []);
+    // Per-order docs are kept. Clearing them would drop history the oversized
+    // array can no longer be trusted to hold. Re-attribution overwrites a doc
+    // by id. The legacy array is filtered only when the write still fits.
+    const loaded = await this.loadAttributedOrders();
+    if (!loaded.arrayOk) {
+      console.warn('[DB] clearAttributedOrders: array unreadable; order docs were left in place');
+      return false;
     }
+    const filtered = storeId ? loaded.orders.filter(o => o.storeId !== storeId) : [];
+    console.log(`[DB] clearAttributedOrders: array would drop ${loaded.orders.length - filtered.length}; order docs kept`);
+    if (!arrayWriteFits(filtered)) {
+      console.warn('[DB] clearAttributedOrders: array still over the size guard; not written');
+      return false;
+    }
+    return this.remoteSet(DOC_KEYS.ATTRIBUTED_ORDERS, filtered);
   }
 
   async pushAttributedOrders(orders: AttributedOrder[]): Promise<boolean> {
     console.log(`[DB] pushAttributedOrders START: ${orders.length} new orders`);
+    const written = await this.writeAttributedOrderDocs(orders);
+    const loaded = await this.loadAttributedOrders();
+    if (!loaded.arrayOk) {
+      console.warn(`[DB] pushAttributedOrders: array unreadable (${written} order docs written). Array was not replaced.`);
+      return written > 0 || orders.length === 0;
+    }
 
-    const existing = await this.remoteGet<AttributedOrder[]>(DOC_KEYS.ATTRIBUTED_ORDERS, []);
-    console.log(`[DB] pushAttributedOrders: ${existing.length} existing orders`);
-
-    // Merge: use order id + checkGuid as unique key to avoid duplicates
     const orderMap = new Map<string, AttributedOrder>();
-    existing.forEach(o => orderMap.set(`${o.id}-${o.checkGuid}`, o));
-
+    loaded.orders.forEach(o => orderMap.set(`${o.id}-${o.checkGuid}`, o));
     let newCount = 0;
     orders.forEach(o => {
       const key = `${o.id}-${o.checkGuid}`;
-      if (!orderMap.has(key)) {
-        newCount++;
-      }
+      if (!orderMap.has(key)) newCount++;
       orderMap.set(key, o);
     });
-
     const merged = Array.from(orderMap.values());
-
-    // Sort by openedAt descending (newest first)
     merged.sort((a, b) => new Date(b.openedAt).getTime() - new Date(a.openedAt).getTime());
 
-    // Keep only last 90 days of orders to prevent document bloat
+    // The legacy array used to drop anything older than 90 days. Those rows
+    // now live in their own docs, so the array only keeps a fitting window.
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - 90);
-    const pruned = merged.filter(o => new Date(o.openedAt) >= cutoff);
-
-    if (pruned.length < merged.length) {
-      console.log(`[DB] pushAttributedOrders: Pruned ${merged.length - pruned.length} orders older than 90 days`);
+    let pruned = merged.filter(o => new Date(o.openedAt) >= cutoff);
+    if (!arrayWriteFits(pruned)) {
+      console.warn(`[DB] pushAttributedOrders: array is over the size guard (${pruned.length} rows). Order docs were written (${written}); array was not replaced.`);
+      return written > 0 || orders.length === 0;
     }
-
-    console.log(`[DB] pushAttributedOrders: Saving ${pruned.length} total orders (${newCount} new)`);
+    console.log(`[DB] pushAttributedOrders: Saving ${pruned.length} array rows (${newCount} new, ${written} docs)`);
     const success = await this.remoteSet(DOC_KEYS.ATTRIBUTED_ORDERS, pruned);
     console.log(`[DB] pushAttributedOrders END: success=${success}`);
-    return success;
+    return success || written > 0;
   }
 
   // ── FCM Token Management ──
@@ -1737,7 +1784,8 @@ class CloudAPI {
   }
 
   async getAttributedOrders(): Promise<any[]> {
-    return this.remoteGet<any[]>(DOC_KEYS.ATTRIBUTED_ORDERS, []);
+    const { orders } = await this.loadAttributedOrders();
+    return orders;
   }
 
   // ── Archived Leaderboards ──

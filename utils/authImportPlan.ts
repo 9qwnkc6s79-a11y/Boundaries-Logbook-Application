@@ -92,6 +92,48 @@ export function claimsForUser(user: AuthSourceUser, orgId: string) {
   };
 }
 
+/**
+ * Production keeps a separate organizations/org-boundaries/data/userPasswords
+ * document. Join it onto the users array before planning an import.
+ * Accepts an array of { id|email, password } or a map of email/id -> hash.
+ * A password from that doc wins when both exist, because the array copy can
+ * be stale. Users with no password in either place stay on first-login.
+ */
+export function attachUserPasswords(users: AuthSourceUser[], passwordDoc: unknown): AuthSourceUser[] {
+  const byEmail = new Map<string, string>();
+  const byId = new Map<string, string>();
+  const absorb = (row: unknown) => {
+    if (!row || typeof row !== 'object') return;
+    const record = row as Record<string, unknown>;
+    const password = typeof record.password === 'string' ? record.password
+      : typeof record.hash === 'string' ? record.hash
+      : '';
+    if (!password) return;
+    if (typeof record.email === 'string' && record.email.trim()) byEmail.set(record.email.trim().toLowerCase(), password);
+    if (typeof record.id === 'string' && record.id.trim()) byId.set(record.id.trim(), password);
+    if (typeof record.userId === 'string' && record.userId.trim()) byId.set(record.userId.trim(), password);
+  };
+  const source = passwordDoc && typeof passwordDoc === 'object' && 'data' in (passwordDoc as object)
+    ? (passwordDoc as { data: unknown }).data
+    : passwordDoc;
+  if (Array.isArray(source)) source.forEach(absorb);
+  else if (source && typeof source === 'object') {
+    for (const [key, value] of Object.entries(source as Record<string, unknown>)) {
+      if (typeof value === 'string') {
+        if (key.includes('@')) byEmail.set(key.toLowerCase(), value);
+        else byId.set(key, value);
+      } else absorb({ ...(typeof value === 'object' && value ? value : {}), id: key, email: key });
+    }
+  }
+  return (users || []).map(user => {
+    const fromDoc = (user.email && byEmail.get(user.email.trim().toLowerCase()))
+      || (user.id && byId.get(user.id))
+      || '';
+    if (!fromDoc) return user;
+    return { ...user, password: fromDoc };
+  });
+}
+
 export function planAuthImport(users: AuthSourceUser[], orgId = 'org-boundaries'): AuthImportPlan {
   const seen = new Map<string, number>();
   const rows: AuthImportRow[] = [];

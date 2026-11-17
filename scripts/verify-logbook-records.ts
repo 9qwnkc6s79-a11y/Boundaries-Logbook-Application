@@ -76,10 +76,13 @@ assert(plan.records.find(r => r.provenance.source === 'logbook-export')?.itemsOm
 const elmClose = plan.gaps.find(g => g.storeId === 'store-elm' && g.date === '2026-10-06' && g.checklistType === 'CLOSING');
 const elmOpen = plan.gaps.find(g => g.storeId === 'store-elm' && g.date === '2026-10-06' && g.checklistType === 'OPENING');
 const sep = plan.gaps.find(g => g.date === '2026-09-01');
+const oct5 = plan.gaps.find(g => g.date === '2026-10-05' && g.storeId === 'store-prosper');
 const prosperOpen = plan.gaps.find(g => g.storeId === 'store-prosper' && g.date === '2026-10-06' && g.checklistType === 'OPENING');
 assert(elmClose?.status === 'present', 'archived close is present');
 assert(elmOpen?.status === 'gap', 'missing opening in a covered month is a gap');
-assert(sep?.status === 'no-source', 'September without an archive is no-source, not a fake gap');
+assert(sep?.status === 'gap' && sep.reason === 'unrecoverable-before-backup', 'Sep 1 is an unrecoverable gap, not a fabricated close');
+assert(oct5?.status === 'gap' && oct5.reason === 'unrecoverable-before-backup', 'Oct 5 is an unrecoverable gap for both stores');
+assert(!plan.records.some(r => r.businessDate <= '2026-10-05'), 'unrecoverable days are flagged, not filled in');
 assert(prosperOpen?.status === 'partial-export', 'export-only checklist is not a full record and not a gap');
 assert(!plan.records.some(r => r.businessDate === '2026-09-15'), 'no September record was fabricated');
 
