@@ -1668,25 +1668,106 @@ async function getAuthToken(): Promise<string> {
   return token;
 }
 
+function cronRequest(req: VercelRequest): boolean {
+  const secret = process.env.CRON_SECRET;
+  if (!secret) return false;
+  const header = Array.isArray(req.headers.authorization) ? req.headers.authorization[0] : req.headers.authorization;
+  const token = (header || '').replace(/^Bearer\s+/i, '');
+  return token.length > 0 && token === secret;
+}
+
+async function saveDailySnapshots(accessToken: string): Promise<string[]> {
+  const raw = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+  if (!raw) throw new Error('Firebase Admin is not configured. Snapshot was not written.');
+  const account = JSON.parse(raw);
+  const admin = await import('firebase-admin');
+  const existing = admin.apps.find(app => app?.name === 'toast-snapshots');
+  const app = existing || admin.initializeApp({
+    credential: admin.credential.cert(account),
+    projectId: account.project_id || 'boundaries-logbook-app',
+  }, 'toast-snapshots');
+  const db = admin.firestore(app);
+  const orgId = process.env.AUTH_ORG_ID || 'org-boundaries';
+  const today = toIsoDate(chicagoToday());
+  const [year, month, day] = today.split('-').map(Number);
+  const previous = new Date(Date.UTC(year, month - 1, day - 1)).toISOString().slice(0, 10);
+  const saved: string[] = [];
+  for (const businessDate of [previous, today]) {
+    const toastDate = businessDate.replace(/-/g, '');
+    const labor = await fetchToastLaborCost({
+      accessToken,
+      startBusinessDate: toastDate,
+      endBusinessDate: toastDate,
+      littleElmGuid: LITTLE_ELM_GUID,
+      prosperGuid: PROSPER_GUID,
+    }).catch(() => null);
+    for (const store of [
+      { storeId: 'store-elm', guid: LITTLE_ELM_GUID, labor: labor && 'littleElm' in labor ? labor.littleElm : null },
+      { storeId: 'store-prosper', guid: PROSPER_GUID, labor: labor && 'prosper' in labor ? labor.prosper : null },
+    ]) {
+      let salesGross: number | null = null;
+      let orders: number | null = null;
+      let salesStatus: 'ok' | 'unavailable' = 'unavailable';
+      try {
+        const summary = await getDaySummary(accessToken, store.guid, toastDate);
+        salesGross = summary.grossSales;
+        orders = summary.orders;
+        salesStatus = 'ok';
+      } catch {
+        salesStatus = 'unavailable';
+      }
+      const laborOk = !!store.labor && store.labor.status === 'ok' && store.labor.mtdLaborDollars != null;
+      const ref = db.doc(`organizations/${orgId}/toastSnapshots/${store.storeId}_${businessDate}`);
+      const prev = await ref.get();
+      const incoming = {
+        storeId: store.storeId,
+        businessDate,
+        capturedAt: new Date().toISOString(),
+        salesGross,
+        orders,
+        laborDollars: laborOk ? store.labor!.mtdLaborDollars : null,
+        laborHours: null,
+        salesStatus,
+        laborStatus: laborOk ? 'ok' : 'unavailable',
+      };
+      const prior = prev.exists ? prev.data() as typeof incoming : null;
+      await ref.set(!prior ? incoming : {
+        ...prior,
+        ...incoming,
+        salesGross: salesStatus === 'ok' ? salesGross : prior.salesGross,
+        orders: salesStatus === 'ok' ? orders : prior.orders,
+        salesStatus: salesStatus === 'ok' ? 'ok' : prior.salesStatus,
+        laborDollars: laborOk ? incoming.laborDollars : prior.laborDollars,
+        laborStatus: laborOk ? 'ok' : (prior.laborStatus === 'ok' ? 'ok' : 'unavailable'),
+      });
+      saved.push(`${store.storeId}_${businessDate}`);
+    }
+  }
+  return saved;
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  // A matching cron secret saves snapshots and does not change the public tile.
+  // No secret is set in production yet, so normal tile requests skip this.
+  if (cronRequest(req)) {
+    try {
+      const accessToken = await getAuthToken();
+      const saved = await saveDailySnapshots(accessToken);
+      return res.status(200).json({ ok: true, saved });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'snapshot failed';
+      const status = message.includes('not configured') ? 503 : 500;
+      return res.status(status).json({ error: message });
+    }
+  }
+
   try {
     const accessToken = await getAuthToken();
-    const live = await getManagerBudget(accessToken, Date.now() + TIME_BUDGET_MS);
-    let budget = live;
-    try {
-      const { readSnapshots } = await import('./toastSnapshotStore');
-      const { applyToastSnapshots } = await import('../utils/toastSnapshot');
-      const { eachDate } = await import('../utils/logbookRecords');
-      const dates = eachDate(live.period.startDate, live.period.endDate);
-      const snapshots = await readSnapshots(dates);
-      budget = applyToastSnapshots(live, snapshots);
-    } catch (snapshotError) {
-      console.warn('[Manager Budget] snapshot fallback skipped', snapshotError instanceof Error ? snapshotError.message : snapshotError);
-    }
+    const budget = await getManagerBudget(accessToken, Date.now() + TIME_BUDGET_MS);
     res.setHeader('Cache-Control', 's-maxage=60');
     return res.status(200).json({ success: true, budget });
   } catch (error: any) {

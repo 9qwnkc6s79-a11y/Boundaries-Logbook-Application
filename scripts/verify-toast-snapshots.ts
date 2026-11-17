@@ -86,7 +86,8 @@ assert(partial.prosper.mtdLaborDollars === null, 'partial snapshot is not summed
 assert(partial.prosper.laborMessage.includes('1 of 2'), 'the gap is visible');
 
 const src = readFileSync(new URL('../api/manager-budget.ts', import.meta.url), 'utf8');
-assert(src.includes('applyToastSnapshots'), 'the tile handler reads snapshots');
-assert(src.includes('readSnapshots'), 'snapshots are loaded before the response');
+assert(!src.includes("from '../utils/"), 'the tile function must not import utils (Vercel drops them)');
+assert(src.includes('saveDailySnapshots'), 'the cron secret path saves snapshots from the tile function');
+assert(src.includes('CRON_SECRET'), 'snapshot saves require the cron secret');
 
 console.log('verify-toast-snapshots: OK');
