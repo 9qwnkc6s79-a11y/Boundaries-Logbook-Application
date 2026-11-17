@@ -31,6 +31,7 @@
     "verify:menu-lookup-cache": "npx --yes tsx scripts/verify-menu-lookup-cache.ts",
     "verify:submissions-write-guard": "npx --yes tsx scripts/verify-submissions-write-guard.ts",
     "verify:auth-migration": "npx --yes tsx scripts/verify-auth-migration.ts",
+    "verify:user-records": "npx --yes tsx scripts/verify-user-records.ts",
     "test:rules": "npx --yes firebase emulators:exec --project demo-boundaries-logbook --only firestore,storage \"npx tsx scripts/verify-security-rules.ts\""
   },
   "dependencies": {
