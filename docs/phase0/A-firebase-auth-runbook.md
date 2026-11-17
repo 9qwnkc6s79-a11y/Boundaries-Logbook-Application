@@ -48,10 +48,10 @@ Plaintext leftovers are not imported. The first successful legacy login creates 
 
 ## Dry-run
 
-Export the users array from Firestore (`organizations/org-boundaries/data/users` field `data`) to `users.json` as `{ "users": [ ... ] }`. Do this from a machine that already has console access. Then:
+Export the users array from Firestore (`organizations/org-boundaries/data/users` field `data`) to `users.json` as `{ "users": [ ... ] }`. The 2026-11-17 backup has 78 users. Also export `organizations/org-boundaries/data/userPasswords` to `userPasswords.json`. Do this from a machine that already has console access. Then:
 
 ```bash
-npx tsx scripts/migrate-firebase-auth.ts --input users.json --out auth-plan.json
+npx tsx scripts/migrate-firebase-auth.ts --input users.json --passwords userPasswords.json --out auth-plan.json
 ```
 
 Read the summary. `import-sha256` rows can be imported. `first-login` rows wait for that person to sign in. `skip` rows need a human (bad id or duplicate email). The report does not print hashes.

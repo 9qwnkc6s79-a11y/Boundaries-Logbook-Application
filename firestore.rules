@@ -118,6 +118,14 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    match /organizations/{orgId}/attributedOrders/{orderId} {
+      allow read: if openOr(orgId, sameOrg(orgId));
+      allow create, update: if openOr(orgId, sameOrg(orgId) && (
+        isManager() || request.auth.token.role == 'TRAINER'
+      ));
+      allow delete: if false;
+    }
+
     match /organizations/{orgId}/metrics/{docId} {
       allow read: if openOr(orgId, sameOrg(orgId) && isManager());
       allow write: if false;
