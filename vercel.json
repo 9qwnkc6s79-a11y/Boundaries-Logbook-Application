@@ -3,6 +3,10 @@
     {
       "path": "/api/manager-budget",
       "schedule": "30 4 * * *"
+    },
+    {
+      "path": "/api/cron/firestore-backup",
+      "schedule": "0 8 * * *"
     }
   ]
 }
