@@ -9,21 +9,46 @@
  */
 
 import { createHash, timingSafeEqual } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { loadServiceAccountFromEnv } from '../../utils/firebaseAdminApp';
-import {
-  BACKUP_COLLECTIONS,
-  BACKUP_PREFIX,
-  SOURCE_STORAGE_BUCKET,
-  backupObjectExpired,
-  buildManifest,
-  collectionObjectName,
-  manifestObjectName,
-  storageCopyName,
-  utcDay,
-} from '../../utils/firestoreBackup';
+
+// Self-contained on purpose. Importing ../../utils crashes the Vercel
+// function at boot (ERR_MODULE_NOT_FOUND). The pure helpers in
+// utils/firestoreBackup.ts stay the ones the unit test checks.
 
 export const config = { maxDuration: 300 };
+
+const BACKUP_PREFIX = 'firestore-backups';
+const BACKUP_RETENTION_DAYS = 30;
+const SOURCE_STORAGE_BUCKET = 'boundaries-logbook-app.firebasestorage.app';
+const BACKUP_COLLECTIONS = ['data', 'users', 'logbookSubmissions', 'toastSnapshots', 'config'] as const;
+
+function utcDay(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function collectionObjectName(day: string, collection: string): string {
+  return `${BACKUP_PREFIX}/${day}/${collection}.json`;
+}
+
+function storageCopyName(day: string, objectName: string): string {
+  return `${BACKUP_PREFIX}/${day}/storage/${objectName.replace(/^\/+/, '')}`;
+}
+
+function backupObjectExpired(name: string, now: Date): boolean {
+  const match = /^firestore-backups\/(\d{4}-\d{2}-\d{2})\//.exec(name);
+  if (!match) return false;
+  const cutoff = new Date(now.getTime() - BACKUP_RETENTION_DAYS * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  return match[1] < cutoff;
+}
+
+function loadAccount(): { project_id?: string; client_email?: string; private_key?: string } | null {
+  const raw = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+  if (raw && raw.trim()) return JSON.parse(raw);
+  const path = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+  if (path && path.trim()) return JSON.parse(readFileSync(path, 'utf8'));
+  return null;
+}
 
 function authorized(header: string | undefined, secret: string | undefined): boolean {
   if (!secret) return false;
@@ -43,7 +68,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const bucketName = process.env.FIREBASE_BACKUP_BUCKET;
-  const account = loadServiceAccountFromEnv();
+  const account = loadAccount();
   if (!bucketName || !account) {
     return res.status(503).json({
       error: 'Set FIREBASE_BACKUP_BUCKET and FIREBASE_SERVICE_ACCOUNT_JSON before the backup cron can write.',
@@ -103,13 +128,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       throw new Error('Storage backup failed for every object. The service account needs access to the source bucket.');
     }
 
-    const manifest = buildManifest({
+    const manifest = {
       takenAt: new Date().toISOString(),
       orgId,
       bucket: bucketName,
-      counts,
-    });
-    await bucket.file(manifestObjectName(day)).save(JSON.stringify(manifest, null, 2), {
+      retentionDays: BACKUP_RETENTION_DAYS,
+      collections: counts,
+    };
+    await bucket.file(`${BACKUP_PREFIX}/${day}/manifest.json`).save(JSON.stringify(manifest, null, 2), {
       contentType: 'application/json',
       resumable: false,
     });
