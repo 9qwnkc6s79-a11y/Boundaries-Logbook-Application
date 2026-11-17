@@ -1,0 +1,46 @@
+rules_version = '2';
+// Target Storage rules. DO NOT deploy these until staff are signing in with
+// Firebase Auth (VITE_FIREBASE_AUTH_ENABLED verified). Deploying earlier
+// keeps photo uploads failing for anyone without an Auth session — that is
+// the current production behavior, not a new login lockout, but it will
+// block an unauthenticated handbook upload.
+//
+// Rollback: Firebase console → Storage → Rules → History → previous version.
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isManager() {
+      return signedIn() && request.auth.token.role in ['MANAGER', 'ADMIN'];
+    }
+
+    match /documents/{path=**} {
+      allow read: if true;
+      allow write: if isManager()
+        && request.resource.size < 15 * 1024 * 1024;
+    }
+
+    match /photos/{storeId}/{path=**} {
+      allow read: if signedIn();
+      allow write: if signedIn()
+        && request.resource.size < 8 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*')
+        && (request.auth.token.role == 'ADMIN' || request.auth.token.storeId == storeId);
+    }
+
+    match /training/{path=**} {
+      allow read: if signedIn();
+      allow write: if signedIn()
+        && request.resource.size < 8 * 1024 * 1024
+        && (request.resource.contentType.matches('image/.*')
+          || request.resource.contentType == 'application/pdf');
+    }
+
+    match /{path=**} {
+      allow read, write: if false;
+    }
+  }
+}

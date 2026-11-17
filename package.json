@@ -29,20 +29,26 @@
     "verify:waste-queue": "npx --yes tsx scripts/verify-waste-queue.ts",
     "verify:waste-history": "npx --yes tsx scripts/verify-waste-history.ts",
     "verify:menu-lookup-cache": "npx --yes tsx scripts/verify-menu-lookup-cache.ts",
-    "verify:submissions-write-guard": "npx --yes tsx scripts/verify-submissions-write-guard.ts"
+    "verify:submissions-write-guard": "npx --yes tsx scripts/verify-submissions-write-guard.ts",
+    "verify:auth-migration": "npx --yes tsx scripts/verify-auth-migration.ts",
+    "test:rules": "npx --yes firebase emulators:exec --project demo-boundaries-logbook --only firestore,storage \"npx tsx scripts/verify-security-rules.ts\""
   },
   "dependencies": {
     "@google/genai": "^1.35.0",
+    "firebase-admin": "^14.5.1",
     "lucide-react": "^0.562.0",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
     "recharts": "^3.6.0"
   },
   "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.2",
     "@types/node": "^22.14.0",
     "@vercel/node": "^5.5.27",
     "@vitejs/plugin-react": "^5.0.0",
     "autoprefixer": "^10.4.19",
+    "firebase": "^12.19.0",
+    "firebase-tools": "^15.36.0",
     "postcss": "^8.4.38",
     "tailwindcss": "^3.4.3",
     "typescript": "~5.8.2",

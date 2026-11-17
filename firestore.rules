@@ -1,0 +1,159 @@
+rules_version = '2';
+// Phase 0 dual-path rules.
+//
+// Enforcement is OFF until this document exists and enforceAuth == true:
+//   organizations/{orgId}/config/security   { enforceAuth: true }
+//
+// Missing doc or enforceAuth false = today's open client access, so deploying
+// these rules does not lock staff out. Flip the field only after
+// VITE_FIREBASE_AUTH_ENABLED is verified. See docs/phase0/A-firebase-auth-runbook.md.
+//
+// The monolithic organizations/{orgId}/data/* docs mix every store in one
+// document, so rules cannot store-scope those fields. Per-user docs and
+// per-submission docs (added in later PRs) are store-scoped. Scores and
+// metrics collections are admin-SDK only even before the flag flips.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function securityPath(orgId) {
+      return /databases/$(database)/documents/organizations/$(orgId)/config/security;
+    }
+
+    function authEnforced(orgId) {
+      return exists(securityPath(orgId))
+        && get(securityPath(orgId)).data.enforceAuth == true;
+    }
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function role() {
+      return request.auth.token.role;
+    }
+
+    function isAdmin() {
+      return signedIn() && role() == 'ADMIN';
+    }
+
+    function isManager() {
+      return signedIn() && (role() == 'MANAGER' || role() == 'ADMIN');
+    }
+
+    function sameOrg(orgId) {
+      return signedIn() && (isAdmin() || request.auth.token.orgId == orgId);
+    }
+
+    function sameStore(storeId) {
+      return isAdmin() || (signedIn() && request.auth.token.storeId == storeId);
+    }
+
+    // Open until the owner flips the flag. Short-circuits, so a missing
+    // security doc does not deny the request.
+    function openOr(orgId, condition) {
+      return !authEnforced(orgId) || condition;
+    }
+
+    function serverOnlyData(docId) {
+      return docId in ['backupStatus', 'toastSnapshotStatus']
+        || docId.matches('^metrics.*')
+        || docId.matches('^scores.*');
+    }
+
+    function managerOnlyData(docId) {
+      return docId in [
+        'users',
+        'curriculum',
+        'curriculum_version',
+        'manual',
+        'recipes',
+        'templates',
+        'content_version'
+      ];
+    }
+
+    match /organizations/{orgId}/config/security {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /organizations/{orgId}/config/{docId} {
+      allow read: if openOr(orgId, sameOrg(orgId));
+      allow write: if docId != 'security' && openOr(orgId, isManager() && sameOrg(orgId));
+    }
+
+    match /organizations/{orgId}/users/{userId} {
+      allow read: if openOr(orgId, sameOrg(orgId) && (
+        isAdmin()
+        || request.auth.token.userId == userId
+        || request.auth.uid == userId
+        || (signedIn() && resource.data.storeId == request.auth.token.storeId)
+      ));
+      allow create: if openOr(orgId, isManager() && sameOrg(orgId) && (
+        isAdmin() || request.resource.data.storeId == request.auth.token.storeId
+      ));
+      allow update: if openOr(orgId, isManager() && sameOrg(orgId) && (
+        isAdmin() || resource.data.storeId == request.auth.token.storeId
+      ));
+      allow delete: if false;
+    }
+
+    match /organizations/{orgId}/logbookSubmissions/{subId} {
+      allow read: if openOr(orgId, sameOrg(orgId) && (
+        isAdmin() || resource.data.storeId == request.auth.token.storeId
+      ));
+      allow create: if openOr(orgId, sameOrg(orgId)
+        && sameStore(request.resource.data.storeId)
+        && request.resource.data.userId == request.auth.token.userId
+        && request.resource.data.id == subId
+      );
+      allow update: if openOr(orgId, sameOrg(orgId)
+        && resource.data.status == 'DRAFT'
+        && request.resource.data.status == 'DRAFT'
+        && request.resource.data.storeId == resource.data.storeId
+        && request.resource.data.id == resource.data.id
+        && request.resource.data.userId == resource.data.userId
+        && (resource.data.userId == request.auth.token.userId || isManager())
+      );
+      allow delete: if false;
+    }
+
+    match /organizations/{orgId}/metrics/{docId} {
+      allow read: if openOr(orgId, sameOrg(orgId) && isManager());
+      allow write: if false;
+    }
+
+    match /organizations/{orgId}/scores/{docId} {
+      allow read: if openOr(orgId, sameOrg(orgId) && isManager());
+      allow write: if false;
+    }
+
+    match /organizations/{orgId}/toastSnapshots/{docId} {
+      allow read: if openOr(orgId, sameOrg(orgId) && isManager());
+      allow write: if false;
+    }
+
+    match /organizations/{orgId}/backups/{docId} {
+      allow read: if openOr(orgId, isAdmin() && sameOrg(orgId));
+      allow write: if false;
+    }
+
+    match /organizations/{orgId}/data/{docId} {
+      allow read: if openOr(orgId, sameOrg(orgId));
+      allow write: if !serverOnlyData(docId) && openOr(orgId, sameOrg(orgId) && (
+        !managerOnlyData(docId) || isManager()
+      ));
+    }
+
+    // Legacy pre-org snapshot. Closed once enforcement is on so it cannot
+    // be written back over live data.
+    match /appData/{docId} {
+      allow read, write: if !exists(/databases/$(database)/documents/organizations/org-boundaries/config/security)
+        || get(/databases/$(database)/documents/organizations/org-boundaries/config/security).data.enforceAuth != true;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
