@@ -15,6 +15,8 @@ import Onboarding, { OnboardingData } from './components/Onboarding';
 import { getStarterPack } from './data/starterPacks';
 import { GoogleGenAI } from "@google/genai";
 import { hashPassword, verifyPassword, isHashed } from './utils/passwordUtils';
+import { isFirebaseAuthEnabled } from './utils/authMode';
+import { hasFirebaseSession, provisionFirebaseAuth, signInWithFirebaseEmail, signOutFirebase, whenFirebaseReady } from './services/firebaseAuth';
 import { storeRosterUsers } from './utils/performanceReviews';
 import { buildToastSyncedUser, decideToastRosterSync } from './utils/toastRosterSync';
 import { shouldReplaceLocalSubmissions } from './utils/logbookSubmitGuard';
@@ -248,9 +250,19 @@ const App: React.FC = () => {
       await initOrg();
       const syncResult = await performCloudSync();
 
-      // Restore session from localStorage if exists
+      // Restore session from localStorage if exists.
+      // With Firebase Auth enabled, a saved email is not enough: rules will
+      // require a token once enforcement is on. Staff type their password
+      // once. The saved email is left in place so turning the flag back off
+      // restores the previous session.
+      if (isFirebaseAuthEnabled()) {
+        await whenFirebaseReady();
+      }
       const savedEmail = localStorage.getItem(SESSION_STORAGE_KEY);
-      if (savedEmail && syncResult?.users) {
+      const firebaseGate = isFirebaseAuthEnabled() && typeof (window as any).firebase !== 'undefined' && typeof (window as any).firebase.auth === 'function';
+      if (firebaseGate && !hasFirebaseSession()) {
+        console.log('[Auth] Firebase auth is on. Enter your password once to refresh this session.');
+      } else if (savedEmail && syncResult?.users) {
         const savedUser = syncResult.users.find(
           (u: User) => u.email.toLowerCase() === savedEmail.toLowerCase()
         );
@@ -358,7 +370,57 @@ const App: React.FC = () => {
     return currentUser;
   }, [currentUser, progress, curriculum]);
 
+  const bridgeFirebaseAfterLegacy = (email: string, pass: string) => {
+    if (!isFirebaseAuthEnabled()) return;
+    void provisionFirebaseAuth(email, pass).then(async (result) => {
+      if (!result.ok) {
+        if (result.status && result.status !== 503) {
+          console.warn('[Auth] Firebase account was not updated. Legacy login still works.', result.status, result.message);
+        }
+        return;
+      }
+      const retry = await signInWithFirebaseEmail(email, pass);
+      if (retry !== 'signed-in') {
+        console.warn('[Auth] Firebase account is ready. The next login will pick it up.', retry);
+      }
+    }).catch((error) => {
+      console.warn('[Auth] Firebase provision skipped. Legacy login still works.', error);
+    });
+  };
+
   const handleLoginAction = async (email: string, pass: string): Promise<User> => {
+    if (isFirebaseAuthEnabled()) {
+      const fb = await signInWithFirebaseEmail(email, pass);
+      if (fb === 'signed-in') {
+        const freshData = await performCloudSync();
+        const userList = freshData?.users || allUsers;
+        const found = userList.find(u => u.email.toLowerCase() === email.toLowerCase().trim());
+        if (found?.active === false) {
+          await signOutFirebase();
+          throw new Error("Your account has been deactivated. Contact your manager.");
+        }
+        if (found) {
+          const orgId = found.orgId || DEFAULT_ORG_ID;
+          if (!currentOrg || currentOrg.id !== orgId) {
+            const org = await db.fetchOrg(orgId);
+            if (org) {
+              db.setOrg(org.id);
+              setCurrentOrg(org);
+              applyOrgTheme(org);
+            }
+          }
+          if (found.mustChangePassword) {
+            setForcePasswordChangeUser(found);
+            return found;
+          }
+          localStorage.setItem(SESSION_STORAGE_KEY, found.email);
+          setCurrentUser(found);
+          return found;
+        }
+        console.warn('[Auth] Firebase signed in but the staff list did not include this email. Trying the existing password check.');
+      }
+    }
+
     const freshData = await performCloudSync();
     const userList = freshData?.users || allUsers;
 
@@ -430,6 +492,7 @@ const App: React.FC = () => {
     // If user must change password, intercept login and show password change screen
     if (migratedUser.mustChangePassword) {
       setForcePasswordChangeUser(migratedUser);
+      bridgeFirebaseAfterLegacy(email, pass);
       return migratedUser;
     }
 
@@ -437,6 +500,7 @@ const App: React.FC = () => {
     localStorage.setItem(SESSION_STORAGE_KEY, found.email);
 
     setCurrentUser(migratedUser);
+    bridgeFirebaseAfterLegacy(email, pass);
     return migratedUser;
   };
 
@@ -452,6 +516,7 @@ const App: React.FC = () => {
     localStorage.setItem(SESSION_STORAGE_KEY, secureUser.email);
 
     setCurrentUser(secureUser);
+    bridgeFirebaseAfterLegacy(secureUser.email, user.password || '');
   };
 
   const handlePasswordResetAction = async (email: string, pass: string) => {
@@ -467,6 +532,7 @@ const App: React.FC = () => {
     const updated = { ...user, password: hashed };
     await db.syncUser(updated, { changePassword: true });
     await performCloudSync(true);
+    bridgeFirebaseAfterLegacy(email, pass);
   };
 
   const handleForcePasswordChange = async (newPassword: string) => {
@@ -475,6 +541,7 @@ const App: React.FC = () => {
     const updated = { ...forcePasswordChangeUser, password: hashed, mustChangePassword: false };
     await db.syncUser(updated, { changePassword: true });
     await performCloudSync(true);
+    bridgeFirebaseAfterLegacy(updated.email, newPassword);
 
     // Complete login
     localStorage.setItem(SESSION_STORAGE_KEY, updated.email);
@@ -1039,6 +1106,7 @@ const App: React.FC = () => {
       onTabChange={setActiveTab}
       onLogout={() => {
         localStorage.removeItem(SESSION_STORAGE_KEY);
+        void signOutFirebase();
         setCurrentUser(null);
       }}
       stores={activeStores}
