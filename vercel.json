@@ -1,7 +1,7 @@
 {
   "crons": [
     {
-      "path": "/api/cron/toast-snapshots",
+      "path": "/api/manager-budget",
       "schedule": "30 4 * * *"
     },
     {
