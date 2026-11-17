@@ -34,6 +34,7 @@
     "verify:user-records": "npx --yes tsx scripts/verify-user-records.ts",
     "verify:logbook-records": "npx --yes tsx scripts/verify-logbook-records.ts",
     "verify:attributed-orders": "npx --yes tsx scripts/verify-attributed-orders.ts",
+    "verify:upload-queue": "npx --yes tsx scripts/verify-upload-queue.ts",
     "test:rules": "npx --yes firebase emulators:exec --project demo-boundaries-logbook --only firestore,storage \"npx tsx scripts/verify-security-rules.ts\""
   },
   "dependencies": {
