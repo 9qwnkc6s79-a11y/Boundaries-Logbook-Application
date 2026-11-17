@@ -1675,7 +1675,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const accessToken = await getAuthToken();
-    const budget = await getManagerBudget(accessToken, Date.now() + TIME_BUDGET_MS);
+    const live = await getManagerBudget(accessToken, Date.now() + TIME_BUDGET_MS);
+    let budget = live;
+    try {
+      const { readSnapshots } = await import('./toastSnapshotStore');
+      const { applyToastSnapshots } = await import('../utils/toastSnapshot');
+      const { eachDate } = await import('../utils/logbookRecords');
+      const dates = eachDate(live.period.startDate, live.period.endDate);
+      const snapshots = await readSnapshots(dates);
+      budget = applyToastSnapshots(live, snapshots);
+    } catch (snapshotError) {
+      console.warn('[Manager Budget] snapshot fallback skipped', snapshotError instanceof Error ? snapshotError.message : snapshotError);
+    }
     res.setHeader('Cache-Control', 's-maxage=60');
     return res.status(200).json({ success: true, budget });
   } catch (error: any) {
