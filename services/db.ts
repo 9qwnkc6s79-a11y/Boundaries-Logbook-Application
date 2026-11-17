@@ -32,6 +32,7 @@ import {
 } from '../utils/submissionArchive';
 import { createKeyedSerialQueue, mergeWasteEntries } from '../utils/wasteQueue';
 import { decideSubmissionsWriteBase, submissionsMatch } from '../utils/submissionWriteGuard';
+import { mergeUserRecords, userDocId, USERS_ARRAY_READ_ONLY_KEY } from '../utils/userRecords';
 
 declare const firebase: any;
 
@@ -118,8 +119,11 @@ function removeUndefined(obj: any): any {
 
 class CloudAPI {
   private currentOrgId: string | null = null;
+  private userDocsUnsub: (() => void) | null = null;
+  private userDocsLive: User[] | null = null;
 
   setOrg(orgId: string) {
+    if (this.currentOrgId !== orgId) this.stopUserDocsListener();
     this.currentOrgId = orgId;
     console.log(`[Firestore] Organization context set to: ${orgId}`);
   }
@@ -419,14 +423,79 @@ class CloudAPI {
     }
   }
 
+  private stopUserDocsListener() {
+    if (this.userDocsUnsub) this.userDocsUnsub();
+    this.userDocsUnsub = null;
+    this.userDocsLive = null;
+  }
+
+  /**
+   * One snapshot of users/{userId}, then incremental updates. Avoids reading
+   * every user doc on the 30-second heartbeat. A listener error leaves the
+   * array as the fallback.
+   */
+  private ensureUserDocsListener() {
+    if (this.userDocsUnsub || !firestore || !this.currentOrgId) return;
+    const path = `organizations/${this.currentOrgId}/users`;
+    try {
+      const unsub = firestore.collection(path).onSnapshot((snap: any) => {
+        const users: User[] = [];
+        snap.forEach((docSnap: any) => {
+          const raw = docSnap.data() || {};
+          const user = raw.email ? raw : raw.data;
+          if (user?.email && user?.id) users.push(user as User);
+        });
+        this.userDocsLive = users;
+      }, (error: any) => {
+        console.warn('[Firestore] user doc listener failed; array remains the fallback', error?.code || error);
+        try { unsub(); } catch { /* already stopped */ }
+        this.userDocsUnsub = null;
+        this.userDocsLive = null;
+      });
+      this.userDocsUnsub = unsub;
+    } catch (error) {
+      console.warn('[Firestore] user doc listener not started', error);
+    }
+  }
+
+  private currentUserDocs(): User[] {
+    this.ensureUserDocsListener();
+    return this.userDocsLive || [];
+  }
+
+  private async usersArrayIsReadOnly(): Promise<boolean> {
+    const marker = await this.remoteGet<{ readOnly?: boolean }>(USERS_ARRAY_READ_ONLY_KEY, { readOnly: false });
+    return marker?.readOnly === true;
+  }
+
+  private async writeUserDoc(user: User): Promise<void> {
+    if (!firestore || !this.currentOrgId) return;
+    const id = userDocId(user.id);
+    if (!id) {
+      console.error('[Firestore] writeUserDoc refused an unsafe id');
+      return;
+    }
+    try {
+      const payload = removeUndefined({ ...user, id, updatedAt: new Date().toISOString() });
+      await firestore.doc(`organizations/${this.currentOrgId}/users/${id}`).set(payload);
+      const nextDocs = (this.userDocsLive || []).filter(u => u.id !== id);
+      nextDocs.push(payload as User);
+      this.userDocsLive = nextDocs;
+    } catch (error) {
+      console.warn('[Firestore] user doc write failed; the array copy is still updated unless it is read-only', error);
+    }
+  }
+
   async fetchUsers(defaults: User[]): Promise<User[]> {
     console.log('[Firestore] fetchUsers: Loading users...');
     const persistedUsers = await this.remoteGet(DOC_KEYS.USERS, [] as User[]);
-    console.log('[Firestore] fetchUsers: Persisted users from cloud:', persistedUsers.length);
+    const docUsers = this.currentUserDocs();
+    const mergedUsers = mergeUserRecords(persistedUsers, docUsers);
+    console.log(`[Firestore] fetchUsers: array ${persistedUsers.length}, docs ${docUsers.length}, merged ${mergedUsers.length}`);
 
-    // Cloud users are the source of truth — start with them.
+    // Cloud users are the source of truth — start with them. User docs win.
     const userMap = new Map<string, User>();
-    persistedUsers.forEach(u => userMap.set(u.email.toLowerCase(), u));
+    mergedUsers.forEach(u => userMap.set(u.email.toLowerCase(), u));
 
     // Legacy appData migration merge — runs EXACTLY ONCE (marker-guarded) and
     // only against a non-empty org read. Re-running it on flaky reads kept
@@ -552,7 +621,13 @@ class CloudAPI {
 
     userMap.set(user.email.toLowerCase(), user);
     const next = Array.from(userMap.values());
-    await this.remoteSet(DOC_KEYS.USERS, next);
+    const readOnly = await this.usersArrayIsReadOnly();
+    if (readOnly) {
+      console.log('[Firestore] syncUser: users array is read-only; writing the user doc only');
+    } else {
+      await this.remoteSet(DOC_KEYS.USERS, next);
+    }
+    await this.writeUserDoc(user);
     return next;
   }
 
@@ -973,13 +1048,15 @@ class CloudAPI {
     try {
       const marker = await this.remoteGet<{ done: boolean }>(HEATH_OFFBOARD_KEY, { done: false });
       if (marker.done) return;
-      const users = await this.remoteGet(DOC_KEYS.USERS, [] as User[]);
+      const arrayUsers = await this.remoteGet(DOC_KEYS.USERS, [] as User[]);
+      const users = mergeUserRecords(arrayUsers, this.currentUserDocs());
       if (users.length === 0) return; // transient empty read — try next load
       const heath = users.find(u => u.id === HEATH_USER_ID);
       const at = new Date().toISOString();
       if (heath && needsOffboard(heath)) {
         await this.syncUser(offboardedUser(heath, at));
-        const after = (await this.remoteGet(DOC_KEYS.USERS, [] as User[])).find(u => u.id === HEATH_USER_ID);
+        const afterList = mergeUserRecords(await this.remoteGet(DOC_KEYS.USERS, [] as User[]), this.currentUserDocs());
+        const after = afterList.find(u => u.id === HEATH_USER_ID);
         if (!after || after.active !== false || after.role === 'ADMIN' || !after.offboarded) return;
       }
       await this.remoteSet(HEATH_OFFBOARD_KEY, { done: true, at, found: !!heath });
