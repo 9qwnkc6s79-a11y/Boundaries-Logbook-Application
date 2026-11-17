@@ -689,10 +689,22 @@ class CloudAPI {
       // Get download URL
       const downloadUrl = await snapshot.ref.getDownloadURL();
       console.log(`[Storage] Upload successful: ${downloadUrl.substring(0, 60)}...`);
+      const queue = await import('../services/uploadQueue');
+      await queue.forgetUploaded(storagePath);
 
       return downloadUrl;
     } catch (error: any) {
       console.error('[Storage] Upload failed:', error);
+      try {
+        const queue = await import('../services/uploadQueue');
+        await queue.rememberFailedUpload({
+          storagePath,
+          dataUrl,
+          error: error?.message || 'upload failed',
+        });
+      } catch (queueError) {
+        console.error('[Storage] Could not keep the failed upload on this device', queueError);
+      }
       throw new Error(`Photo upload failed: ${error.message}`);
     }
   }

@@ -17,6 +17,8 @@ import { GoogleGenAI } from "@google/genai";
 import { hashPassword, verifyPassword, isHashed } from './utils/passwordUtils';
 import { isFirebaseAuthEnabled } from './utils/authMode';
 import { hasFirebaseSession, provisionFirebaseAuth, signInWithFirebaseEmail, signOutFirebase, whenFirebaseReady } from './services/firebaseAuth';
+import { countQueuedUploads, forgetUploaded, rememberFailedUpload, uploadsDue } from './services/uploadQueue';
+import { replaceDataUrl } from './utils/uploadQueue';
 import { storeRosterUsers } from './utils/performanceReviews';
 import { buildToastSyncedUser, decideToastRosterSync } from './utils/toastRosterSync';
 import { shouldReplaceLocalSubmissions } from './utils/logbookSubmitGuard';
@@ -136,6 +138,7 @@ const App: React.FC = () => {
   const [isSyncing, setIsSyncing] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [pendingUploads, setPendingUploads] = useState(0);
 
   // Toast POS Data (for sidebar widgets)
   const [toastSales, setToastSales] = useState<ToastSalesData | null>(null);
@@ -294,6 +297,50 @@ const App: React.FC = () => {
     }, 30000);
     return () => clearInterval(heartbeat);
   }, [currentUser, performCloudSync]);
+
+  // Photos Storage rejected stay on this device and retry. A failed attempt
+  // is recorded again by uploadPhoto, with a later nextAttemptAt.
+  useEffect(() => {
+    let stopped = false;
+    const tick = async () => {
+      try {
+        const due = await uploadsDue();
+        for (const item of due) {
+          try {
+            const url = await db.uploadPhoto(item.dataUrl, item.storagePath);
+            await forgetUploaded(item.storagePath);
+            try {
+              const all = await db.fetchSubmissions();
+              for (const sub of all) {
+                const next = replaceDataUrl(sub, item.dataUrl, url);
+                if (JSON.stringify(next) !== JSON.stringify(sub)) await db.pushSubmission(next);
+              }
+            } catch (replaceError) {
+              await rememberFailedUpload({
+                storagePath: item.storagePath,
+                dataUrl: item.dataUrl,
+                error: 'uploaded but the checklist was not updated',
+              });
+              console.warn('[Upload queue] checklist still has the inline photo', replaceError);
+            }
+          } catch (error) {
+            console.warn('[Upload queue] retry failed; the photo stays queued', error);
+          }
+        }
+      } finally {
+        if (!stopped) setPendingUploads(await countQueuedUploads());
+      }
+    };
+    void tick();
+    const id = window.setInterval(() => { void tick(); }, 30_000);
+    const onOnline = () => { void tick(); };
+    window.addEventListener('online', onOnline);
+    return () => {
+      stopped = true;
+      window.clearInterval(id);
+      window.removeEventListener('online', onOnline);
+    };
+  }, []);
 
   // Toast offboard (active: false) should end an already-open session.
   useEffect(() => {
@@ -1122,6 +1169,11 @@ const App: React.FC = () => {
       salesComparison={salesComparison}
       org={currentOrg}
     >
+      {pendingUploads > 0 && (
+        <div className="bg-amber-500 text-white px-4 py-3 text-sm font-bold">
+          {pendingUploads} photo{pendingUploads === 1 ? '' : 's'} waiting to upload. They stay on this device and retry automatically.
+        </div>
+      )}
       {saveError && (
         <div className="bg-red-500 text-white px-4 py-3 text-sm font-bold flex items-center justify-between">
           <span>{saveError}</span>
