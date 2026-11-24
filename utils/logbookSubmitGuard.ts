@@ -85,3 +85,46 @@ export function shouldClearLocalResponsesForMissingDraft(args: {
   if (args.hasMatchingSubmission) return false;
   return args.localResponseCount === 0;
 }
+
+/**
+ * Draft id the open form may write to. A form only writes to a submission
+ * for its own template. If the id belongs to a different checklist (left over
+ * from the form they were in before), drop it so the write cannot land in,
+ * or finalize, the other checklist. Unknown ids pass through unchanged
+ * (a brand-new draft may not be in the local list yet).
+ */
+export function submissionIdForTemplate<T extends { id: string; templateId: string }>(
+  submissionId: string | null | undefined,
+  templateId: string,
+  submissions: readonly T[],
+): string | undefined {
+  if (!submissionId) return undefined;
+  const found = submissions.find(s => s.id === submissionId);
+  if (found && found.templateId !== templateId) return undefined;
+  return submissionId;
+}
+
+/**
+ * Existing row a checklist save should update. By id first, but only when that
+ * row is the same template; otherwise fall back to this template's draft for the
+ * target date. Returns `idMismatch` so the caller does not reuse a foreign id
+ * for a new row.
+ */
+export function findExistingSubmissionForSave<
+  T extends { id: string; templateId: string; storeId: string; date: string; status: string },
+>(
+  submissions: readonly T[],
+  data: { id?: string; templateId: string; targetDate: string },
+  storeId: string,
+): { existing: T | undefined; idMismatch: boolean } {
+  const byTemplateDraft = () =>
+    submissions.find(
+      s => s.templateId === data.templateId && s.storeId === storeId && s.date === data.targetDate && s.status === 'DRAFT',
+    );
+  if (!data.id) return { existing: byTemplateDraft(), idMismatch: false };
+  const byId = submissions.find(s => s.id === data.id);
+  if (byId && byId.templateId !== data.templateId) {
+    return { existing: byTemplateDraft(), idMismatch: true };
+  }
+  return { existing: byId, idMismatch: false };
+}

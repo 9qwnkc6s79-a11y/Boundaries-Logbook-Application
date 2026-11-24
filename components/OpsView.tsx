@@ -13,6 +13,7 @@ import {
   computeChecklistTargetDate,
   resolveSessionTargetDate,
   shouldClearLocalResponsesForMissingDraft,
+  submissionIdForTemplate,
   toLocalYYYYMMDD,
 } from '../utils/logbookSubmitGuard';
 
@@ -227,6 +228,26 @@ const OpsView: React.FC<OpsViewProps> = ({ user, storeId, allUsers, templates, e
   const sessionTargetDateRef = useRef<string | null>(null);
   const responsesRef = useRef(responses);
   responsesRef.current = responses;
+
+  // Open (or leave) a checklist with a clean form. Without this, leaving a
+  // half-done checklist (e.g. a Deep Clean started at open) kept its draft id
+  // and checks in state; the next checklist opened with no draft yet then wrote
+  // its taps into, and its Submit finalized, the old checklist instead.
+  const openTemplate = useCallback((tpl: ChecklistTemplate | null) => {
+    setActiveSubmissionId(null);
+    setResponses({});
+    responsesRef.current = {};
+    setIsReadOnly(false);
+    setValidationError(null);
+    setShowReopenConfirm(false);
+    lastSyncedSubmissionRef.current = null;
+    interactionLock.current = {};
+    setActiveTemplate(tpl);
+  }, []);
+
+  // Draft id this form may write to: never one that belongs to another checklist.
+  const formSubmissionId = (templateId: string) =>
+    submissionIdForTemplate(activeSubmissionId, templateId, existingSubmissions);
 
   useEffect(() => {
     if (activeTemplate?.type !== 'CLOSING') setWasteGate(null);
@@ -483,7 +504,7 @@ const OpsView: React.FC<OpsViewProps> = ({ user, storeId, allUsers, templates, e
       };
 
       onUpdate({
-        id: activeSubmissionId || undefined,
+        id: formSubmissionId(activeTemplate!.id),
         templateId: activeTemplate!.id,
         responses: updated,
         isFinal: false,
@@ -507,7 +528,7 @@ const OpsView: React.FC<OpsViewProps> = ({ user, storeId, allUsers, templates, e
         }
       };
       onUpdate({
-        id: activeSubmissionId || undefined,
+        id: formSubmissionId(activeTemplate!.id),
         templateId: activeTemplate!.id,
         responses: updated,
         isFinal: false,
@@ -523,7 +544,7 @@ const OpsView: React.FC<OpsViewProps> = ({ user, storeId, allUsers, templates, e
     setResponses(prev => {
       const updated = { ...prev, [taskId]: { ...prev[taskId], comment } };
       onUpdate({
-        id: activeSubmissionId || undefined,
+        id: formSubmissionId(activeTemplate!.id),
         templateId: activeTemplate!.id,
         responses: updated,
         isFinal: false,
@@ -554,7 +575,7 @@ const OpsView: React.FC<OpsViewProps> = ({ user, storeId, allUsers, templates, e
 
       // Upload to Firebase Storage
       const targetDate = getTargetDate(activeTemplate);
-      const submissionId = activeSubmissionId || `sub-${Date.now()}`;
+      const submissionId = formSubmissionId(activeTemplate.id) || `sub-${Date.now()}`;
       const photoIndex = (responses[taskId]?.photos?.length || 0) + 1;
       const storagePath = `photos/${user.storeId}/${targetDate}/${submissionId}/${taskId}-${photoIndex}.jpg`;
 
@@ -588,7 +609,7 @@ const OpsView: React.FC<OpsViewProps> = ({ user, storeId, allUsers, templates, e
           }
         };
         onUpdate({
-          id: activeSubmissionId || undefined,
+          id: formSubmissionId(activeTemplate.id),
           templateId: activeTemplate.id,
           responses: updated,
           isFinal: false,
@@ -652,7 +673,7 @@ const OpsView: React.FC<OpsViewProps> = ({ user, storeId, allUsers, templates, e
     }
 
     const payload = {
-      id: activeSubmissionId || undefined,
+      id: formSubmissionId(activeTemplate!.id),
       templateId: activeTemplate!.id,
       responses,
       isFinal,
@@ -788,7 +809,7 @@ const OpsView: React.FC<OpsViewProps> = ({ user, storeId, allUsers, templates, e
               </div>
             </div>
             <button 
-              onClick={() => { if (!isSaving) setActiveTemplate(null); }}
+              onClick={() => { if (!isSaving) openTemplate(null); }}
               disabled={isSaving}
               className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-neutral-100 text-neutral-500 flex items-center justify-center disabled:opacity-50"
             >
@@ -1063,7 +1084,7 @@ const OpsView: React.FC<OpsViewProps> = ({ user, storeId, allUsers, templates, e
             return (
               <button
                 key={tpl.id}
-                onClick={() => setActiveTemplate(tpl)}
+                onClick={() => openTemplate(tpl)}
                 className={`group relative bg-white p-5 sm:p-6 rounded-xl border transition-all duration-300 text-left overflow-hidden ${
                   isFinalized 
                     ? 'border-green-200 bg-green-50/20 shadow-inner' 

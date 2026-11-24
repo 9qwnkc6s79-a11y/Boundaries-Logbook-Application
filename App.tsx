@@ -21,7 +21,7 @@ import { countQueuedUploads, forgetUploaded, rememberFailedUpload, uploadsDue } 
 import { replaceDataUrl } from './utils/uploadQueue';
 import { storeRosterUsers } from './utils/performanceReviews';
 import { buildToastSyncedUser, decideToastRosterSync } from './utils/toastRosterSync';
-import { shouldReplaceLocalSubmissions } from './utils/logbookSubmitGuard';
+import { findExistingSubmissionForSave, shouldReplaceLocalSubmissions } from './utils/logbookSubmitGuard';
 import { mergePendingProgress } from './utils/progressUploads';
 import { Lock, ShieldCheck } from 'lucide-react';
 
@@ -790,9 +790,11 @@ const App: React.FC = () => {
       console.log(`[Checklist] ${photoTasks.length} task(s) with ${totalPhotos} total photo(s), size: ${Math.round(totalPhotoSize / 1024)}KB`);
     }
 
-    const existing = data.id 
-      ? submissions.find(s => s.id === data.id)
-      : submissions.find(s => s.templateId === data.templateId && s.storeId === currentStoreId && s.date === data.targetDate && s.status === 'DRAFT');
+    // Never let one checklist's form write into (or finalize) another checklist's row.
+    const { existing, idMismatch } = findExistingSubmissionForSave<ChecklistSubmission>(submissions, data, currentStoreId);
+    if (idMismatch) {
+      console.warn(`[Checklist] Ignored submission id ${data.id}: it belongs to a different checklist than ${data.templateId}`);
+    }
 
     // Capture Toast metrics snapshot when finalizing for leader performance scoring
     const toastSnapshotData = data.isFinal && toastSales ? {
@@ -810,7 +812,7 @@ const App: React.FC = () => {
       submittedAt: data.isFinal ? new Date().toISOString() : existing.submittedAt,
       toastSnapshot: toastSnapshotData || existing.toastSnapshot,
     } : {
-      id: data.id || `sub-${Date.now()}`,
+      id: (!idMismatch && data.id) || `sub-${Date.now()}`,
       userId: currentUser?.id || 'anonymous',
       storeId: currentStoreId,
       templateId: data.templateId,
